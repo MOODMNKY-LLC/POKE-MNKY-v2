@@ -1,0 +1,94 @@
+{
+  "mcpServers": {
+    "firecrawl": {
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "-e",
+        "FIRECRAWL_API_KEY=${env:FIRECRAWL_API_KEY}",
+        "mcp/firecrawl"
+      ]
+    },
+    "@magicuidesign/mcp": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@magicuidesign/mcp@latest"
+      ]
+    },
+    "sequential-thinking": {
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "mcp/sequentialthinking"
+      ]
+    },
+    "brave-search": {
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "-e",
+        "BRAVE_API_KEY=${env:BRAVE_API_KEY}",
+        "mcp/brave-search"
+      ]
+    },
+    "tavily": {
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "-e",
+        "TAVILY_API_KEY=${env:TAVILY_API_KEY}",
+        "mcp/tavily"
+      ]
+    },
+    "fetch": {
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "mcp/fetch"
+      ]
+    },
+    "github": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-github"
+      ],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${env:GITHUB_PERSONAL_ACCESS_TOKEN}"
+      }
+    },
+    "Notion": {
+      "url": "https://mcp.notion.com/mcp"
+    },
+    "notion-sse": {
+      "type": "sse",
+      "url": "https://mcp.notion.com/sse"
+    },
+    "notion-stdio": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://mcp.notion.com/mcp"]
+    },
+    "notion-open-source": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-notion"
+      ],
+      "env": {
+        "NOTION_API_KEY": "${env:NOTION_API_KEY}",
+        "NOTION_API_VERSION": "${env:NOTION_API_VERSION}"
+      }
+    }
+  }
+}

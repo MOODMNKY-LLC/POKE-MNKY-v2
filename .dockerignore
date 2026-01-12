@@ -1,0 +1,72 @@
+# Docker ignore file for Discord Bot
+# Exclude unnecessary files from Docker build context
+
+# Dependencies
+node_modules
+.pnpm-store
+
+# Next.js build files (not needed for bot)
+.next
+out
+dist
+build
+
+# Environment files (use environment variables instead)
+.env
+.env.local
+.env*.local
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Documentation (not needed in container)
+*.md
+!README.md
+
+# Test files
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+__tests__
+coverage
+
+# Next.js specific (not needed for bot)
+app
+components
+public
+styles
+next.config.mjs
+postcss.config.mjs
+
+# Supabase local (not needed)
+supabase/.gitignore
+
+# Scripts we don't need in bot container
+scripts/full-sync-pokemon.ts
+scripts/incremental-sync-pokemon.ts
+scripts/pre-cache-competitive-pokemon.ts
+scripts/run-migrations.ts
+scripts/*.sql
+
+# Cursor IDE
+.cursor
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db

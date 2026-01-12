@@ -1,0 +1,219 @@
+---
+description: Comprehensive MCP tool usage guidelines for all configured servers
+globs: 
+alwaysApply: true
+---
+
+# MCP Tool Usage Guidelines
+
+This document provides comprehensive guidance for using all MCP (Model Context Protocol) servers configured in this project. Each tool has specific use cases, security considerations, and best practices.
+
+## Overview
+
+Our MCP configuration includes 11 servers across multiple categories: search and research, web scraping, problem-solving, UI generation, version control, and workspace integration. Understanding when and how to use each tool is essential for effective AI-assisted development.
+
+## Search & Research Tools
+
+### Brave Search MCP
+**When to Use**: Citation-first research, RAG pipelines, when source credibility matters, academic research, documentation searches.
+
+**Best Practices**: 
+- Use for broad context gathering with `max_results=20`
+- Excellent for citation-required research
+- Combines well with Sequential Thinking for analysis
+- Prioritize reliable sources from results
+
+**Configuration**: Requires `BRAVE_API_KEY` in environment variables.
+
+### Tavily Search MCP
+**When to Use**: Real-time AI agent searches, quick search-and-extract workflows, RAG pipeline optimization, when you need immediate cleaned output.
+
+**Best Practices**:
+- Use `search_depth="advanced"` for deep dives
+- Perfect for AI-optimized search scenarios
+- Faster than Brave for real-time agent needs
+- Provides ranked results with relevance scores
+
+**Configuration**: Requires `TAVILY_API_KEY` in environment variables.
+
+**Decision Guide**: Use Brave when citations matter; use Tavily for speed and AI-optimized results.
+
+## Web Scraping & Extraction Tools
+
+### FireCrawl MCP
+**When to Use**: Extracting content from known URLs, batch scraping operations, building knowledge bases, processing specific websites, when you need LLM-ready content.
+
+**Best Practices**:
+- Best for data collection and transformation
+- Handles batch operations efficiently
+- Includes automatic retries and rate limiting
+- Supports both cloud and self-hosted versions
+- Use for structured content extraction
+
+**Configuration**: Requires `FIRECRAWL_API_KEY` in environment variables.
+
+### Puppeteer/Playwright MCP
+**When to Use**: Browser automation, interactive elements, JavaScript-heavy sites, form interactions, dynamic content rendering.
+
+**Best Practices**:
+- Use when FireCrawl cannot handle the content
+- Essential for JavaScript-dependent pages
+- Requires more setup time than FireCrawl
+- Monitor for performance impact
+
+**Decision Guide**: Use FireCrawl for known URLs and batch operations; use Puppeteer for interactive elements and complex JavaScript.
+
+## Simple Operations
+
+### Fetch MCP
+**When to Use**: Simple URL fetching without processing, quick content retrieval, basic HTTP requests.
+
+**Best Practices**:
+- Lightweight alternative to FireCrawl for simple needs
+- No API key required
+- Fastest option for basic fetching
+
+## Problem-Solving Tools
+
+### Sequential Thinking MCP
+**When to Use**: Complex problem-solving, debugging, troubleshooting, detailed project planning, multi-step analysis.
+
+**Best Practices**:
+- Maintain minimum 5 thoughts per analysis
+- Avoid excessive recursive calls
+- Trigger intelligently when new progress is possible
+- Combine with search tools for comprehensive research
+- Use for breaking down complex problems systematically
+
+**Configuration**: No API key required (Docker-based).
+
+## UI Generation Tools
+
+### Magic UI Design MCP
+**When to Use**: UI component generation, design system creation, rapid prototyping.
+
+**Best Practices**:
+- Use for generating UI components
+- Integrates with design systems
+- No API key required (npx-based)
+
+## Version Control Tools
+
+### GitHub MCP
+**When to Use**: Git operations, commit management, pull request creation, issue management, repository operations.
+
+**Best Practices**:
+- Commit and push after every successful test
+- Use clear, descriptive, incremental commits
+- Never overwrite critical documentation without approval
+- Follow conventional commit message format
+- Review changes before committing
+
+**Configuration**: Requires `GITHUB_PERSONAL_ACCESS_TOKEN` in environment variables.
+
+## Notion Integration
+
+### Official Notion Hosted MCP (OAuth) - PRIMARY
+**When to Use**: All Notion operations. This is the primary and recommended method.
+
+**Best Practices**:
+- Use for all Notion workspace interactions
+- OAuth-based (no API key needed)
+- Full workspace access
+- Most secure option
+- Configured via Notion app settings
+
+**Configuration**: URL-based (`https://mcp.notion.com/mcp`), OAuth flow handled by Cursor.
+
+### Notion SSE Variant
+**When to Use**: Real-time Notion updates, event-driven workflows.
+
+**Configuration**: SSE transport type, same OAuth flow.
+
+### Notion Stdio Variant
+**When to Use**: Local execution, alternative connection method.
+
+**Configuration**: npx-based remote connection.
+
+### Notion Open Source Variant (Fallback)
+**When to Use**: Only if Official Hosted MCP is unavailable.
+
+**Best Practices**:
+- Requires API key management
+- Less secure than OAuth
+- Use as last resort
+
+**Configuration**: Requires `NOTION_API_KEY` and `NOTION_API_VERSION` in environment variables.
+
+**Decision Guide**: Always prefer Official Hosted MCP (OAuth). Only use Open Source variant if OAuth unavailable.
+
+## Browser Automation
+
+### Browser Tools MCP
+**When to Use**: Only when explicitly requested by user, interactive web testing, visual verification.
+
+**Best Practices**:
+- **REQUIRES USER CONFIRMATION** before use
+- User must explicitly start the server
+- Ensure Chromium browser is running
+- Remind user to disable Puppeteer before use
+- Use sparingly due to performance impact
+
+**Security Note**: Browser automation has broad system access. Always confirm with user before use.
+
+## Security Best Practices
+
+### Environment Variable Management
+- **Never hardcode API keys** in `mcp.json` or code
+- Use `${env:VARIABLE_NAME}` syntax in `mcp.json`
+- Store all keys in `.env` file (gitignored)
+- Organize `.env` by service with clear comments
+- Rotate keys regularly
+- Use restricted API keys with minimal permissions
+
+### OAuth vs API Keys
+- **Prefer OAuth** for remote servers (more secure)
+- Use API keys only when OAuth unavailable
+- Never commit API keys to version control
+- Use separate keys per environment (dev/staging/prod)
+
+### Server Verification
+- Verify MCP server source before installation
+- Review server permissions and capabilities
+- Check what data and APIs the server accesses
+- Audit code for critical integrations
+
+## Tool Combination Strategies
+
+### Research Workflow
+1. Start with Brave Search or Tavily for broad context
+2. Use Sequential Thinking to analyze findings
+3. Use FireCrawl for deep extraction from identified URLs
+4. Integrate findings with Sequential Thinking
+
+### Development Workflow
+1. Use Sequential Thinking for problem analysis
+2. Use GitHub MCP for version control operations
+3. Use Notion MCP for documentation and project management
+4. Use search tools for troubleshooting and research
+
+## Error Handling
+
+- Tool errors are reported within result objects, not as protocol-level errors
+- Always handle errors gracefully
+- Provide fallback options when tools fail
+- Log errors for debugging without exposing sensitive information
+
+## Performance Considerations
+
+- Cursor warns if exceeding 40 active tools (prevents context window overload)
+- Use project-specific `.cursor/mcp.json` to enable only needed tools
+- Disable unused MCP servers to improve performance
+- Monitor tool usage for optimization opportunities
+
+## References
+
+- MCP Configuration: `.cursor/mcp.json.example`
+- Environment Variables: `.env` (gitignored)
+- Official MCP Documentation: https://modelcontextprotocol.io
+- Cursor MCP Documentation: https://cursor.com/docs/context/model-context-protocol
