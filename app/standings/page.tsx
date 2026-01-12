@@ -4,20 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import Link from "next/link"
-import { mockTeams } from "@/lib/mock-data"
-
-const USE_MOCK_DATA = true
 
 export default async function StandingsPage() {
-  let allTeams = null
-
-  if (USE_MOCK_DATA) {
-    allTeams = mockTeams.sort((a, b) => b.wins - a.wins || b.differential - a.differential)
-  } else {
-    const supabase = await createClient()
-    const { data } = await supabase.from("teams").select("*").order("wins", { ascending: false })
-    allTeams = data
-  }
+  const supabase = await createClient()
+  const { data: allTeams } = await supabase.from("teams").select("*").order("wins", { ascending: false })
 
   // Group by conference and division
   const lanceTeams = allTeams?.filter((t) => t.conference === "Lance") || []

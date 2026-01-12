@@ -3,53 +3,49 @@ import { SiteHeader } from "@/components/site-header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Trophy, Zap, Target } from "lucide-react"
-import { getMVPStats } from "@/lib/mock-data"
-
-const USE_MOCK_DATA = true
 
 export default async function MVPPage() {
-  let topPokemon: any[] = []
+  const supabase = await createClient()
 
-  if (USE_MOCK_DATA) {
-    topPokemon = getMVPStats()
-  } else {
-    const supabase = await createClient()
+  // Fetch pokemon stats
+  const { data: allStats } = await supabase
+    .from("pokemon_stats")
+    .select(
+      `
+      pokemon_id,
+      kills,
+      pokemon:pokemon_id(name, type1, type2),
+      team:team_id(name, division)
+    `,
+    )
+    .order("kills", { ascending: false })
 
-    // Fetch pokemon stats
-    const { data: allStats } = await supabase
-      .from("pokemon_stats")
-      .select(
-        `
-        pokemon_id,
-        kills,
-        pokemon:pokemon_id(name, type1, type2),
-        team:team_id(name, division)
-      `,
-      )
-      .order("kills", { ascending: false })
+  // Aggregate kills per pokemon
+  const pokemonKills = new Map<string, any>()
 
-    // Aggregate kills per pokemon
-    const pokemonKills = new Map<string, any>()
+  allStats?.forEach((stat) => {
+    const pokemonId = stat.pokemon_id
+    if (!pokemonKills.has(pokemonId)) {
+      pokemonKills.set(pokemonId, {
+        pokemon: stat.pokemon,
+        team: stat.team,
+        totalKills: 0,
+        matches: 0,
+      })
+    }
+    const current = pokemonKills.get(pokemonId)
+    current.totalKills += stat.kills
+    current.matches += 1
+  })
 
-    allStats?.forEach((stat) => {
-      const pokemonId = stat.pokemon_id
-      if (!pokemonKills.has(pokemonId)) {
-        pokemonKills.set(pokemonId, {
-          pokemon: stat.pokemon,
-          team: stat.team,
-          totalKills: 0,
-          matches: 0,
-        })
-      }
-      const current = pokemonKills.get(pokemonId)
-      current.totalKills += stat.kills
-      current.matches += 1
-    })
-
-    topPokemon = Array.from(pokemonKills.values())
-      .sort((a, b) => b.totalKills - a.totalKills)
-      .slice(0, 50)
-  }
+  const topPokemon = Array.from(pokemonKills.values())
+    .sort((a, b) => b.totalKills - a.totalKills)
+    .slice(0, 50)
+    .map((stat) => ({
+      ...stat,
+      name: stat.pokemon?.name || "Unknown",
+      avgKills: stat.matches > 0 ? (stat.totalKills / stat.matches).toFixed(1) : "0.0",
+    }))
 
   // Calculate league averages
   const totalKills = topPokemon.reduce((sum, p) => sum + p.totalKills, 0)
@@ -125,7 +121,7 @@ export default async function MVPPage() {
                     2
                   </div>
                   <div className="text-xl font-bold">{topPokemon[1].name}</div>
-                  <div className="mt-2 text-sm text-muted-foreground">{topPokemon[1].team}</div>
+                  <div className="mt-2 text-sm text-muted-foreground">{topPokemon[1].team?.name}</div>
                   <div className="mt-4 text-3xl font-bold text-chart-1">{topPokemon[1].totalKills}</div>
                   <div className="text-xs text-muted-foreground">Total KOs</div>
                 </CardContent>
@@ -138,7 +134,7 @@ export default async function MVPPage() {
                     1
                   </div>
                   <div className="text-2xl font-bold">{topPokemon[0].name}</div>
-                  <div className="mt-2 text-sm text-muted-foreground">{topPokemon[0].team}</div>
+                  <div className="mt-2 text-sm text-muted-foreground">{topPokemon[0].team?.name}</div>
                   <div className="mt-4 text-4xl font-bold text-accent">{topPokemon[0].totalKills}</div>
                   <div className="text-xs text-muted-foreground">Total KOs</div>
                   <Badge className="mt-3 bg-accent text-accent-foreground">MVP Leader</Badge>
@@ -152,7 +148,7 @@ export default async function MVPPage() {
                     3
                   </div>
                   <div className="text-xl font-bold">{topPokemon[2].name}</div>
-                  <div className="mt-2 text-sm text-muted-foreground">{topPokemon[2].team}</div>
+                  <div className="mt-2 text-sm text-muted-foreground">{topPokemon[2].team?.name}</div>
                   <div className="mt-4 text-3xl font-bold text-chart-3">{topPokemon[2].totalKills}</div>
                   <div className="text-xs text-muted-foreground">Total KOs</div>
                 </CardContent>
@@ -210,7 +206,7 @@ export default async function MVPPage() {
                             </div>
                           </td>
                           <td className="p-3 font-semibold">{stat.name}</td>
-                          <td className="p-3 text-sm">{stat.team}</td>
+                          <td className="p-3 text-sm">{stat.team?.name}</td>
                           <td className="p-3 text-center">
                             <span className="font-bold text-primary">{stat.totalKills}</span>
                           </td>
