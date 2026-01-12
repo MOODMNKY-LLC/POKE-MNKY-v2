@@ -15,7 +15,7 @@ The app uses **Supabase Auth** with a cookie-based session management system pow
 
 ### Architecture Diagram
 
-```
+\`\`\`
 ┌─────────────┐
 │   Browser   │
 └──────┬──────┘
@@ -35,12 +35,12 @@ The app uses **Supabase Auth** with a cookie-based session management system pow
        ├─── User Found ──────► Allow Access + Refresh Cookie
        │
        └─── No User ────────► Redirect to /auth/login
-```
+\`\`\`
 
 ### Key Components
 
 #### 1. Root Middleware (`/proxy.ts`)
-```typescript
+\`\`\`typescript
 export async function proxy(request: NextRequest) {
   return await updateSession(request)
 }
@@ -48,13 +48,13 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
 }
-```
+\`\`\`
 - **Purpose**: Intercepts ALL requests except static assets
 - **Scope**: Every page/API route in the app
 - **Action**: Routes through `updateSession()` middleware
 
 #### 2. Session Update Middleware (`/lib/supabase/proxy.ts`)
-```typescript
+\`\`\`typescript
 export async function updateSession(request: NextRequest) {
   // Create Supabase server client with cookie handling
   const supabase = createServerClient(...)
@@ -69,7 +69,7 @@ export async function updateSession(request: NextRequest) {
   
   return supabaseResponse // with updated cookies
 }
-```
+\`\`\`
 
 **Key Features:**
 - ✅ Automatic session refresh on every request
@@ -80,7 +80,7 @@ export async function updateSession(request: NextRequest) {
 #### 3. Supabase Client Setup
 
 **Server-Side** (`/lib/supabase/server.ts`)
-```typescript
+\`\`\`typescript
 export async function createClient() {
   const cookieStore = await cookies()
   
@@ -97,10 +97,10 @@ export async function createClient() {
 }
 
 export { createClient as createServerClient }
-```
+\`\`\`
 
 **Client-Side** (`/lib/supabase/client.ts`)
-```typescript
+\`\`\`typescript
 export function createClient() {
   return createSupabaseBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -109,11 +109,11 @@ export function createClient() {
 }
 
 export const createBrowserClient = createClient
-```
+\`\`\`
 
 ### Login Flow (`/app/auth/login/page.tsx`)
 
-```typescript
+\`\`\`typescript
 const handleLogin = async (e: React.FormEvent) => {
   e.preventDefault()
   const supabase = createClient()
@@ -128,7 +128,7 @@ const handleLogin = async (e: React.FormEvent) => {
   router.push("/admin")
   router.refresh() // Trigger middleware to update session
 }
-```
+\`\`\`
 
 **User Journey:**
 1. User enters email/password
@@ -139,20 +139,20 @@ const handleLogin = async (e: React.FormEvent) => {
 
 ### Logout Flow (`/app/api/auth/signout/route.ts`)
 
-```typescript
+\`\`\`typescript
 export async function POST() {
   const supabase = await createClient()
   await supabase.auth.signOut()
   
   return NextResponse.redirect("/")
 }
-```
+\`\`\`
 
 ### API Endpoint Protection Pattern
 
 All protected API routes follow this pattern:
 
-```typescript
+\`\`\`typescript
 export async function POST(request: NextRequest) {
   const supabase = await createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -163,7 +163,7 @@ export async function POST(request: NextRequest) {
   
   // Protected logic here
 }
-```
+\`\`\`
 
 **Protected Endpoints:**
 - `/api/supabase-proxy/[...path]` - Supabase Management API proxy
@@ -197,10 +197,10 @@ export async function POST(request: NextRequest) {
 #### ⚠️ What's Missing (Ready for Implementation)
 
 **1. Role-Based Checks**
-```typescript
+\`\`\`typescript
 // TODO: Add in /app/api/sync/google-sheets/route.ts (line 18)
 // TODO: Add admin role check here
-```
+\`\`\`
 
 **2. Permission Granularity**
 - No distinction between "coach" and "admin" roles
@@ -216,7 +216,7 @@ export async function POST(request: NextRequest) {
 
 Store role in Supabase Auth user metadata:
 
-```typescript
+\`\`\`typescript
 // During user creation/update
 await supabase.auth.admin.updateUserById(userId, {
   user_metadata: { role: 'admin' }
@@ -229,7 +229,7 @@ const role = user?.user_metadata?.role
 if (role !== 'admin') {
   return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 }
-```
+\`\`\`
 
 **Pros:**
 - No database schema changes needed
@@ -244,7 +244,7 @@ if (role !== 'admin') {
 
 Create a `profiles` table with role/permission tracking:
 
-```sql
+\`\`\`sql
 CREATE TABLE profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   role TEXT NOT NULL CHECK (role IN ('admin', 'commissioner', 'coach', 'viewer')),
@@ -270,10 +270,10 @@ CREATE POLICY "Admins can view all profiles"
       WHERE id = auth.uid() AND role = 'admin'
     )
   );
-```
+\`\`\`
 
 **Helper Function:**
-```typescript
+\`\`\`typescript
 export async function getUserRole(supabase: any, userId: string): Promise<string | null> {
   const { data } = await supabase
     .from('profiles')
@@ -293,10 +293,10 @@ export async function requireRole(supabase: any, userId: string, allowedRoles: s
   
   return role
 }
-```
+\`\`\`
 
 **Usage in API Routes:**
-```typescript
+\`\`\`typescript
 export async function POST(request: NextRequest) {
   const supabase = await createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -314,13 +314,13 @@ export async function POST(request: NextRequest) {
   
   // Protected admin logic here
 }
-```
+\`\`\`
 
 #### Option 3: Row Level Security (Database-Level)
 
 Implement RLS policies to control data access:
 
-```sql
+\`\`\`sql
 -- Example: Coaches can only view their own team's data
 CREATE POLICY "Coaches view own team roster"
   ON team_rosters FOR SELECT
@@ -340,11 +340,11 @@ CREATE POLICY "Admins full access to teams"
       WHERE id = auth.uid() AND role = 'admin'
     )
   );
-```
+\`\`\`
 
 ### Proposed Role Structure
 
-```typescript
+\`\`\`typescript
 enum UserRole {
   ADMIN = 'admin',           // Full system access
   COMMISSIONER = 'commissioner', // League management, no system config
@@ -381,7 +381,7 @@ interface RolePermissions {
     'view:teams'
   ]
 }
-```
+\`\`\`
 
 ### Implementation Checklist
 
@@ -442,7 +442,7 @@ The app uses **two Google Sheets packages** with a fallback strategy:
 #### File: `/lib/google-sheets-sync.ts`
 
 **Authentication Setup:**
-```typescript
+\`\`\`typescript
 import { GoogleSpreadsheet } from "node-google-spreadsheet"
 
 const doc = new GoogleSpreadsheet(SHEET_ID)
@@ -453,18 +453,18 @@ await doc.useServiceAccountAuth({
 })
 
 await doc.loadInfo()
-```
+\`\`\`
 
 **Environment Variables Required:**
-```bash
+\`\`\`bash
 GOOGLE_SHEETS_ID=your_spreadsheet_id
 GOOGLE_SERVICE_ACCOUNT_EMAIL=your-service-account@project.iam.gserviceaccount.com
 GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
-```
+\`\`\`
 
 ### Sync Flow Architecture
 
-```
+\`\`\`
 ┌──────────────────┐
 │  Google Sheets   │
 │  (Master Data)   │
@@ -496,7 +496,7 @@ GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END P
 │  - matches          │
 │  - pokemon          │
 └─────────────────────┘
-```
+\`\`\`
 
 ### Sheet Mapping Strategy
 
@@ -513,7 +513,7 @@ GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END P
 - `SoS` or `Strength of Schedule` → `teams.strength_of_schedule`
 
 **Code:**
-```typescript
+\`\`\`typescript
 async function syncTeams(sheet: any, supabase: any) {
   const rows = await sheet.getRows()
   
@@ -527,7 +527,7 @@ async function syncTeams(sheet: any, supabase: any) {
     await supabase.from("teams").upsert(teamData, { onConflict: "name" })
   }
 }
-```
+\`\`\`
 
 **Key Features:**
 - ✅ Flexible column name mapping (handles variations)
@@ -558,7 +558,7 @@ async function syncTeams(sheet: any, supabase: any) {
 - `Score` or `Result` → format: `"6-4"` (winner-loser)
 
 **Score Parsing:**
-```typescript
+\`\`\`typescript
 // Parse "6-4" into winner/loser scores
 if (score && score.includes("-")) {
   const [s1, s2] = score.split("-").map(s => parseInt(s.trim()))
@@ -569,7 +569,7 @@ if (score && score.includes("-")) {
 // Determine winner
 if (team1Score > team2Score) winnerId = team1.id
 else if (team2Score > team1Score) winnerId = team2.id
-```
+\`\`\`
 
 ### API Endpoints
 
@@ -589,20 +589,20 @@ else if (team2Score > team1Score) winnerId = team2.id
 5. Return summary
 
 **Response:**
-```json
+\`\`\`json
 {
   "success": true,
   "message": "Synced 87 records",
   "recordsProcessed": 87,
   "errors": []
 }
-```
+\`\`\`
 
 #### `GET /api/sync/google-sheets`
 
 Returns sync history:
 
-```json
+\`\`\`json
 {
   "logs": [
     {
@@ -615,12 +615,12 @@ Returns sync history:
     }
   ]
 }
-```
+\`\`\`
 
 ### Error Handling Strategy
 
 **Per-Row Error Collection:**
-```typescript
+\`\`\`typescript
 const errors: string[] = []
 
 for (const row of rows) {
@@ -636,7 +636,7 @@ return {
   success: errors.length === 0,
   errors
 }
-```
+\`\`\`
 
 **Sync Status Logic:**
 - `success` → No errors at all
@@ -647,12 +647,12 @@ return {
 
 The sync handles column name variations:
 
-```typescript
+\`\`\`typescript
 // Accepts multiple column name formats
 row.get("Team") || row.get("Team Name")
 row.get("Wins") || row.get("W")
 row.get("Differential") || row.get("Diff")
-```
+\`\`\`
 
 This makes the sync resilient to spreadsheet formatting changes.
 
@@ -673,7 +673,7 @@ This makes the sync resilient to spreadsheet formatting changes.
 #### 1. Conditional Implementation
 
 **`/lib/google-sheets.ts`** (googleapis - commented out):
-```typescript
+\`\`\`typescript
 // This file will work when deployed to Vercel with proper environment variables
 
 /*
@@ -685,10 +685,10 @@ import { google } from "googleapis"
 export async function getGoogleSheetsClient() {
   throw new Error("Google Sheets API not available in v0 preview. Deploy to Vercel to use.")
 }
-```
+\`\`\`
 
 **`/lib/google-sheets-sync.ts`** (node-google-spreadsheet - active):
-```typescript
+\`\`\`typescript
 import { GoogleSpreadsheet } from "node-google-spreadsheet"
 
 // Real implementation (works when deployed)
@@ -697,10 +697,10 @@ export async function syncLeagueData() {
   await doc.useServiceAccountAuth({ ... })
   // ... full sync logic
 }
-```
+\`\`\`
 
 **`/app/api/sync/route.ts`** (fallback endpoint):
-```typescript
+\`\`\`typescript
 export async function POST() {
   return NextResponse.json(
     {
@@ -710,13 +710,13 @@ export async function POST() {
     { status: 503 },
   )
 }
-```
+\`\`\`
 
 #### 2. Mock Data Fallback
 
 All pages use mock data when Google Sheets isn't available:
 
-```typescript
+\`\`\`typescript
 // In all pages
 const USE_MOCK_DATA = true // Toggle to false in production
 
@@ -729,7 +729,7 @@ async function getData() {
   const { data } = await supabase.from('teams').select('*')
   return data
 }
-```
+\`\`\`
 
 ### Why `node-google-spreadsheet` is Better for V0
 
@@ -745,7 +745,7 @@ Even though both packages break v0 preview authentication, `node-google-spreadsh
 **Example Comparison:**
 
 **With `googleapis`:**
-```typescript
+\`\`\`typescript
 const auth = new google.auth.GoogleAuth({
   credentials: {
     client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
@@ -763,10 +763,10 @@ const response = await sheets.spreadsheets.values.get({
 
 const rows = response.data.values || []
 // Manual parsing required
-```
+\`\`\`
 
 **With `node-google-spreadsheet`:**
-```typescript
+\`\`\`typescript
 const doc = new GoogleSpreadsheet(SHEET_ID)
 
 await doc.useServiceAccountAuth({
@@ -780,7 +780,7 @@ const rows = await sheet.getRows()
 
 // Rows already parsed with `.get()` method
 const teamName = rows[0].get("Team Name")
-```
+\`\`\`
 
 ### Workarounds for V0 Preview
 
@@ -793,7 +793,7 @@ const teamName = rows[0].get("Team Name")
 #### Option 2: CSV Upload (Alternative)
 Instead of live Google Sheets sync in preview, allow CSV upload:
 
-```typescript
+\`\`\`typescript
 // Alternative implementation
 export async function POST(request: Request) {
   const formData = await request.formData()
@@ -811,7 +811,7 @@ export async function POST(request: Request) {
   
   return NextResponse.json({ success: true })
 }
-```
+\`\`\`
 
 **Benefits:**
 - Works in v0 preview (no Google API required)
@@ -821,11 +821,11 @@ export async function POST(request: Request) {
 #### Option 3: MCP Server (Advanced)
 Use a Model Context Protocol server as a bridge:
 
-```
+\`\`\`
 ┌─────────┐     ┌─────────────┐     ┌────────────────┐
 │  V0 App │────▶│  MCP Server │────▶│ Google Sheets  │
 └─────────┘     └─────────────┘     └────────────────┘
-```
+\`\`\`
 
 **How it works:**
 1. Run MCP server locally or on a separate service
@@ -876,43 +876,43 @@ Use a Model Context Protocol server as a bridge:
 7. Share your Google Sheet with the service account email
 
 **Extract from JSON key:**
-```json
+\`\`\`json
 {
   "type": "service_account",
   "client_email": "your-sa@project.iam.gserviceaccount.com",
   "private_key": "-----BEGIN PRIVATE KEY-----\nYOUR_KEY\n-----END PRIVATE KEY-----\n"
 }
-```
+\`\`\`
 
 **Set in Vercel:**
-```bash
+\`\`\`bash
 GOOGLE_SHEETS_ID=1wwH5XUHxQnivm90wGtNLQI_g7P3nPi5ZRcbZ3JU3-YQ
 GOOGLE_SERVICE_ACCOUNT_EMAIL=your-sa@project.iam.gserviceaccount.com
 GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
-```
+\`\`\`
 
 **Important:** Private key must include escaped newlines (`\n`) as shown above.
 
 ### Testing the Integration
 
 **1. Test in Vercel (after deployment):**
-```bash
+\`\`\`bash
 curl -X POST https://your-app.vercel.app/api/sync/google-sheets \
   -H "Authorization: Bearer YOUR_USER_TOKEN"
-```
+\`\`\`
 
 **2. Check sync logs:**
-```bash
+\`\`\`bash
 curl https://your-app.vercel.app/api/sync/google-sheets \
   -H "Authorization: Bearer YOUR_USER_TOKEN"
-```
+\`\`\`
 
 **3. Verify Supabase:**
-```sql
+\`\`\`sql
 SELECT * FROM sync_log ORDER BY synced_at DESC LIMIT 5;
 SELECT COUNT(*) FROM teams;
 SELECT COUNT(*) FROM team_rosters;
-```
+\`\`\`
 
 ---
 
@@ -957,7 +957,7 @@ SELECT COUNT(*) FROM team_rosters;
 - `/app/admin/page.tsx` - Admin dashboard
 
 ### Environment Variables
-```bash
+\`\`\`bash
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGc...
@@ -971,10 +971,10 @@ GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END P
 
 # OpenAI (optional)
 OPENAI_API_KEY=sk-proj-...
-```
+\`\`\`
 
 ### Useful Commands
-```bash
+\`\`\`bash
 # Test sync
 curl -X POST https://your-app.vercel.app/api/sync/google-sheets
 

@@ -45,13 +45,13 @@ Complete embedded Supabase management experience with:
 - Mobile-responsive out of the box
 
 **Example usage:**
-```tsx
+\`\`\`tsx
 import { SupabaseAuthUI } from "@/components/auth/supabase-auth-ui"
 
 export default function LoginPage() {
   return <SupabaseAuthUI />
 }
-```
+\`\`\`
 
 ---
 
@@ -74,12 +74,12 @@ export default function LoginPage() {
 - Scales to hundreds of concurrent users
 
 **Example usage:**
-```tsx
+\`\`\`tsx
 import { RealtimeAvatarStack } from "@/components/realtime/realtime-avatar-stack"
 
 // In your match page
 <RealtimeAvatarStack channel={`match-${matchId}`} maxAvatars={5} />
-```
+\`\`\`
 
 ---
 
@@ -101,12 +101,12 @@ import { RealtimeAvatarStack } from "@/components/realtime/realtime-avatar-stack
 - Low bandwidth - only sends cursor positions
 
 **Example usage:**
-```tsx
+\`\`\`tsx
 import { RealtimeCursor } from "@/components/realtime/realtime-cursor"
 
 // Wrap any collaborative page
 <RealtimeCursor channel="draft-room-2024" />
-```
+\`\`\`
 
 ---
 
@@ -130,11 +130,11 @@ import { RealtimeCursor } from "@/components/realtime/realtime-cursor"
 - Can be moderated by admins
 
 **Example usage:**
-```tsx
+\`\`\`tsx
 import { RealtimeChat } from "@/components/realtime/realtime-chat"
 
 <RealtimeChat channel={`match-${matchId}-chat`} />
-```
+\`\`\`
 
 ---
 
@@ -159,7 +159,7 @@ import { RealtimeChat } from "@/components/realtime/realtime-chat"
 - Built-in validation and error handling
 
 **Example usage:**
-```tsx
+\`\`\`tsx
 import { FileDropzone } from "@/components/upload/file-dropzone"
 
 <FileDropzone
@@ -172,7 +172,7 @@ import { FileDropzone } from "@/components/upload/file-dropzone"
     // Update team logo in database
   }}
 />
-```
+\`\`\`
 
 ---
 
@@ -256,10 +256,10 @@ The `/api/supabase-proxy/[...path]/route.ts` securely forwards requests from you
 - Prevents direct API abuse
 
 **Security model:**
-```
+\`\`\`
 Browser → Your Next.js API → Supabase Management API
          (checks auth)        (with secret token)
-```
+\`\`\`
 
 ---
 
@@ -273,7 +273,7 @@ Browser → Your Next.js API → Supabase Management API
 5. User reviews and executes
 
 **Technical flow:**
-```typescript
+\`\`\`typescript
 User prompt → /api/ai/sql
   ↓
 Fetch DB schema via Management API
@@ -283,7 +283,7 @@ Build prompt: "Schema: [tables/columns] + User request"
 GPT-4 generates SQL
   ↓
 Return to user for review
-```
+\`\`\`
 
 **Safety features:**
 - Read-only queries enforced
@@ -372,7 +372,7 @@ Return to user for review
 
 Add these to your `.env.local`:
 
-```bash
+\`\`\`bash
 # Existing Supabase vars (you have these)
 NEXT_PUBLIC_SUPABASE_URL=...
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
@@ -386,7 +386,7 @@ SUPABASE_MANAGEMENT_API_TOKEN=your-personal-access-token
 NEXT_PUBLIC_ENABLE_AI_QUERIES=true
 OPENAI_API_KEY=sk-...
 # (You already have this)
-```
+\`\`\`
 
 ---
 
@@ -451,7 +451,7 @@ OPENAI_API_KEY=sk-...
 ## Quick Wins You Can Implement Today
 
 ### 1. Add Presence to Match Pages (15 minutes)
-```tsx
+\`\`\`tsx
 // In app/matches/[id]/page.tsx
 import { RealtimeAvatarStack } from "@/components/realtime/realtime-avatar-stack"
 
@@ -467,14 +467,14 @@ export default function MatchPage({ params }) {
     </div>
   )
 }
-```
+\`\`\`
 
 **Result:** Everyone watching a match sees who else is online
 
 ---
 
 ### 2. Replace Login Page (10 minutes)
-```tsx
+\`\`\`tsx
 // In app/auth/login/page.tsx
 import { SupabaseAuthUI } from "@/components/auth/supabase-auth-ui"
 
@@ -488,14 +488,14 @@ export default function LoginPage() {
     </div>
   )
 }
-```
+\`\`\`
 
 **Result:** Professional auth UI with Discord login option
 
 ---
 
 ### 3. Add Chat to Draft Room (20 minutes)
-```tsx
+\`\`\`tsx
 // In app/draft/page.tsx
 import { RealtimeChat } from "@/components/realtime/realtime-chat"
 import { RealtimeCursor } from "@/components/realtime/realtime-cursor"
@@ -515,14 +515,14 @@ export default function DraftRoomPage() {
     </>
   )
 }
-```
+\`\`\`
 
 **Result:** Live collaborative draft experience
 
 ---
 
 ### 4. Team Logo Uploader (15 minutes)
-```tsx
+\`\`\`tsx
 // In app/teams/[id]/settings/page.tsx
 import { FileDropzone } from "@/components/upload/file-dropzone"
 
@@ -550,7 +550,7 @@ export default function TeamSettings({ params }) {
     </Card>
   )
 }
-```
+\`\`\`
 
 **Result:** Teams can upload custom logos
 

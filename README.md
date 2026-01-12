@@ -55,7 +55,7 @@ A comprehensive Pokemon Draft League management platform with Showdown-accurate 
 
 Required environment variables:
 
-```bash
+\`\`\`bash
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
@@ -76,25 +76,25 @@ DISCORD_GUILD_ID=
 
 # App
 NEXT_PUBLIC_APP_URL=https://yourapp.vercel.app
-```
+\`\`\`
 
 ## Database Setup
 
 1. Run the SQL migration scripts in order:
-   ```bash
+   \`\`\`bash
    # In Supabase SQL Editor:
    scripts/001_create_schema.sql
    scripts/002_enhanced_schema.sql
-   ```
+   \`\`\`
 
 2. (Optional) Sync initial data from Google Sheets:
-   ```bash
+   \`\`\`bash
    POST /api/sync/google-sheets
-   ```
+   \`\`\`
 
 ## Running Locally
 
-```bash
+\`\`\`bash
 # Install dependencies
 pnpm install
 
@@ -103,7 +103,7 @@ pnpm dev
 
 # Run Discord bot (separate terminal)
 node scripts/start-discord-bot.js
-```
+\`\`\`
 
 ## Deployment
 
