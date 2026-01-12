@@ -9,14 +9,13 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { createBrowserClient } from "@/lib/supabase/client"
-
-const supabase = createBrowserClient()
+import { PokemonSprite } from "@/components/pokemon-sprite"
+import { getAllPokemonFromCache, searchPokemon, type PokemonDisplayData } from "@/lib/pokemon-utils"
 
 export default function PokedexPage() {
   const [searchQuery, setSearchQuery] = useState("")
-  const [selectedPokemon, setSelectedPokemon] = useState<any>(null)
-  const [pokemonList, setPokemonList] = useState<any[]>([])
+  const [selectedPokemon, setSelectedPokemon] = useState<PokemonDisplayData | null>(null)
+  const [pokemonList, setPokemonList] = useState<PokemonDisplayData[]>([])
   const [loading, setLoading] = useState(true)
   const [aiQuestion, setAiQuestion] = useState("")
   const [aiResponse, setAiResponse] = useState("")
@@ -26,24 +25,32 @@ export default function PokedexPage() {
   useEffect(() => {
     async function loadPokemon() {
       setLoading(true)
-      const { data, error } = await supabase
-        .from("pokemon_cache")
-        .select("*")
-        .order("pokemon_id", { ascending: true })
-        .limit(50)
-
-      if (error) {
-        console.error("[v0] Failed to load Pokémon:", error)
-      } else {
-        setPokemonList(data || [])
-      }
+      // Load all Pokemon from cache (not just 50)
+      const pokemon = await getAllPokemonFromCache()
+      setPokemonList(pokemon)
       setLoading(false)
     }
 
     loadPokemon()
   }, [])
 
-  const filteredPokemon = pokemonList.filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
+  // Search with debounce
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      return
+    }
+
+    const timeoutId = setTimeout(async () => {
+      const results = await searchPokemon(searchQuery)
+      setPokemonList(results)
+    }, 300)
+
+    return () => clearTimeout(timeoutId)
+  }, [searchQuery])
+
+  const filteredPokemon = searchQuery.trim()
+    ? pokemonList
+    : pokemonList.filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
 
   const handleAskAI = async () => {
     if (!aiQuestion.trim()) return
@@ -65,7 +72,8 @@ export default function PokedexPage() {
     }
   }
 
-  const getTierColor = (tier: string) => {
+  const getTierColor = (tier: string | null) => {
+    if (!tier) return "bg-muted text-muted-foreground"
     const colors: Record<string, string> = {
       Uber: "bg-red-500/10 text-red-400 border-red-500/20",
       OU: "bg-blue-500/10 text-blue-400 border-blue-500/20",
@@ -74,21 +82,6 @@ export default function PokedexPage() {
       NU: "bg-purple-500/10 text-purple-400 border-purple-500/20",
     }
     return colors[tier] || "bg-muted text-muted-foreground"
-  }
-
-  const getSpriteUrl = (pokemon: any) => {
-    if (!pokemon.sprites) return pokemon.sprite_url || "/placeholder.svg?height=96&width=96"
-
-    switch (spriteMode) {
-      case "back":
-        return pokemon.sprites.back_default || pokemon.sprites.front_default
-      case "shiny":
-        return pokemon.sprites.front_shiny || pokemon.sprites.front_default
-      case "artwork":
-        return pokemon.sprites.official_artwork || pokemon.sprites.front_default
-      default:
-        return pokemon.sprites.front_default || pokemon.sprite_url
-    }
   }
 
   if (loading) {
@@ -153,10 +146,12 @@ export default function PokedexPage() {
                 onClick={() => setSelectedPokemon(pokemon)}
               >
                 <CardContent className="p-4 flex items-center gap-3">
-                  <img
-                    src={getSpriteUrl(pokemon) || "/placeholder.svg"}
-                    alt={pokemon.name}
-                    className="w-12 h-12 pixelated"
+                  <PokemonSprite
+                    name={pokemon.name}
+                    pokemonId={pokemon.pokemon_id}
+                    pokemon={pokemon}
+                    size="sm"
+                    mode={spriteMode}
                   />
                   <div className="flex-1">
                     <p className="font-semibold capitalize">{pokemon.name}</p>
@@ -191,20 +186,22 @@ export default function PokedexPage() {
                         <CardTitle className="text-3xl capitalize">{selectedPokemon.name}</CardTitle>
                         <CardDescription>#{selectedPokemon.pokemon_id}</CardDescription>
                       </div>
-                      <img
-                        src={getSpriteUrl(selectedPokemon) || "/placeholder.svg"}
-                        alt={selectedPokemon.name}
-                        className="w-24 h-24 pixelated"
+                      <PokemonSprite
+                        name={selectedPokemon.name}
+                        pokemonId={selectedPokemon.pokemon_id}
+                        pokemon={selectedPokemon}
+                        size="lg"
+                        mode={spriteMode}
                       />
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {selectedPokemon.types && (
+                    {selectedPokemon.types && selectedPokemon.types.length > 0 && (
                       <div>
                         <h3 className="font-semibold mb-2">Types</h3>
                         <div className="flex gap-2">
-                          {JSON.parse(selectedPokemon.types).map((type: string) => (
-                            <Badge key={type} variant="secondary">
+                          {selectedPokemon.types.map((type: string) => (
+                            <Badge key={type} variant="secondary" className="capitalize">
                               {type}
                             </Badge>
                           ))}
@@ -216,9 +213,9 @@ export default function PokedexPage() {
                       <div>
                         <h3 className="font-semibold mb-2">Base Stats</h3>
                         <div className="space-y-2">
-                          {Object.entries(JSON.parse(selectedPokemon.base_stats)).map(([stat, value]: any) => (
+                          {Object.entries(selectedPokemon.base_stats).map(([stat, value]: [string, any]) => (
                             <div key={stat} className="flex items-center gap-3">
-                              <span className="text-sm w-20 capitalize">{stat.replace("-", " ")}</span>
+                              <span className="text-sm w-20 capitalize">{stat.replace("_", " ")}</span>
                               <div className="flex-1 bg-muted rounded-full h-2 overflow-hidden">
                                 <div
                                   className="bg-primary h-full transition-all"
@@ -251,9 +248,9 @@ export default function PokedexPage() {
                     <CardDescription>Available abilities for {selectedPokemon.name}</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    {selectedPokemon.abilities ? (
+                    {selectedPokemon.ability_details && selectedPokemon.ability_details.length > 0 ? (
                       <div className="space-y-3">
-                        {JSON.parse(selectedPokemon.abilities).map((ability: any) => (
+                        {selectedPokemon.ability_details.map((ability) => (
                           <div key={ability.name} className="p-3 rounded-lg bg-muted/50">
                             <div className="flex items-center gap-2 mb-1">
                               <h4 className="font-semibold capitalize">{ability.name.replace("-", " ")}</h4>
@@ -261,6 +258,14 @@ export default function PokedexPage() {
                             </div>
                             {ability.effect && <p className="text-sm text-muted-foreground">{ability.effect}</p>}
                           </div>
+                        ))}
+                      </div>
+                    ) : selectedPokemon.abilities && selectedPokemon.abilities.length > 0 ? (
+                      <div className="space-y-2">
+                        {selectedPokemon.abilities.map((ability: string) => (
+                          <Badge key={ability} variant="secondary" className="capitalize">
+                            {ability.replace("-", " ")}
+                          </Badge>
                         ))}
                       </div>
                     ) : (

@@ -1,44 +1,63 @@
 "use client"
 
-import { useState } from "react"
-import { Trash2, Save, Sparkles } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Trash2, Save, Sparkles, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-
-const MOCK_AVAILABLE_POKEMON = [
-  { id: 25, name: "Pikachu", types: ["electric"], tier: "RU", cost: 8 },
-  { id: 94, name: "Gengar", types: ["ghost", "poison"], tier: "OU", cost: 15 },
-  { id: 445, name: "Garchomp", types: ["dragon", "ground"], tier: "OU", cost: 16 },
-  { id: 6, name: "Charizard", types: ["fire", "flying"], tier: "UU", cost: 12 },
-  { id: 9, name: "Blastoise", types: ["water"], tier: "UU", cost: 11 },
-  { id: 3, name: "Venusaur", types: ["grass", "poison"], tier: "OU", cost: 14 },
-]
+import { PokemonSprite } from "@/components/pokemon-sprite"
+import { getAllPokemonFromCache, searchPokemon, type PokemonDisplayData } from "@/lib/pokemon-utils"
 
 export default function TeamBuilderPage() {
   const [teamName, setTeamName] = useState("")
-  const [selectedPokemon, setSelectedPokemon] = useState<any[]>([])
+  const [selectedPokemon, setSelectedPokemon] = useState<PokemonDisplayData[]>([])
+  const [availablePokemon, setAvailablePokemon] = useState<PokemonDisplayData[]>([])
   const [budget, setBudget] = useState(120)
   const [searchQuery, setSearchQuery] = useState("")
+  const [loading, setLoading] = useState(true)
 
-  const spentPoints = selectedPokemon.reduce((sum, p) => sum + p.cost, 0)
+  useEffect(() => {
+    async function loadPokemon() {
+      setLoading(true)
+      const pokemon = await getAllPokemonFromCache()
+      setAvailablePokemon(pokemon)
+      setLoading(false)
+    }
+    loadPokemon()
+  }, [])
+
+  // Search Pokemon
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      return
+    }
+
+    const timeoutId = setTimeout(async () => {
+      const results = await searchPokemon(searchQuery)
+      setAvailablePokemon(results)
+    }, 300)
+
+    return () => clearTimeout(timeoutId)
+  }, [searchQuery])
+
+  const spentPoints = selectedPokemon.reduce((sum, p) => sum + p.draft_cost, 0)
   const remainingBudget = budget - spentPoints
 
-  const addPokemon = (pokemon: any) => {
+  const addPokemon = (pokemon: PokemonDisplayData) => {
     if (selectedPokemon.length >= 10) {
       alert("Maximum 10 Pokémon per team")
       return
     }
 
-    if (spentPoints + pokemon.cost > budget) {
-      alert(`Not enough points! Need ${pokemon.cost}, have ${remainingBudget}`)
+    if (spentPoints + pokemon.draft_cost > budget) {
+      alert(`Not enough points! Need ${pokemon.draft_cost}, have ${remainingBudget}`)
       return
     }
 
-    if (selectedPokemon.find((p) => p.id === pokemon.id)) {
+    if (selectedPokemon.find((p) => p.pokemon_id === pokemon.pokemon_id)) {
       alert("Pokémon already in team")
       return
     }
@@ -46,8 +65,8 @@ export default function TeamBuilderPage() {
     setSelectedPokemon([...selectedPokemon, pokemon])
   }
 
-  const removePokemon = (id: number) => {
-    setSelectedPokemon(selectedPokemon.filter((p) => p.id !== id))
+  const removePokemon = (pokemonId: number) => {
+    setSelectedPokemon(selectedPokemon.filter((p) => p.pokemon_id !== pokemonId))
   }
 
   const getTypeAnalysis = () => {
@@ -62,8 +81,10 @@ export default function TeamBuilderPage() {
 
   const typeAnalysis = getTypeAnalysis()
 
-  const filteredAvailable = MOCK_AVAILABLE_POKEMON.filter(
-    (p) => !selectedPokemon.find((sp) => sp.id === p.id) && p.name.toLowerCase().includes(searchQuery.toLowerCase()),
+  const filteredAvailable = availablePokemon.filter(
+    (p) =>
+      !selectedPokemon.find((sp) => sp.pokemon_id === p.pokemon_id) &&
+      (searchQuery.trim() ? true : p.name.toLowerCase().includes(searchQuery.toLowerCase())),
   )
 
   return (
@@ -136,10 +157,16 @@ export default function TeamBuilderPage() {
               ) : (
                 <div className="grid gap-2">
                   {selectedPokemon.map((pokemon, idx) => (
-                    <div key={pokemon.id} className="flex items-center gap-3 p-3 border rounded-lg">
+                    <div key={pokemon.pokemon_id} className="flex items-center gap-3 p-3 border rounded-lg">
                       <span className="text-sm text-muted-foreground w-6">{idx + 1}</span>
+                      <PokemonSprite
+                        name={pokemon.name}
+                        pokemonId={pokemon.pokemon_id}
+                        pokemon={pokemon}
+                        size="sm"
+                      />
                       <div className="flex-1">
-                        <p className="font-semibold">{pokemon.name}</p>
+                        <p className="font-semibold capitalize">{pokemon.name}</p>
                         <div className="flex gap-1 mt-1">
                           {pokemon.types.map((type: string) => (
                             <Badge key={type} variant="secondary" className="text-xs capitalize">
@@ -148,8 +175,8 @@ export default function TeamBuilderPage() {
                           ))}
                         </div>
                       </div>
-                      <Badge variant="outline">{pokemon.cost} pts</Badge>
-                      <Button variant="ghost" size="icon" onClick={() => removePokemon(pokemon.id)}>
+                      <Badge variant="outline">{pokemon.draft_cost} pts</Badge>
+                      <Button variant="ghost" size="icon" onClick={() => removePokemon(pokemon.pokemon_id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -192,27 +219,55 @@ export default function TeamBuilderPage() {
             <Input placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              {filteredAvailable.map((pokemon) => (
-                <button
-                  key={pokemon.id}
-                  onClick={() => addPokemon(pokemon)}
-                  className="w-full text-left p-3 rounded-lg border hover:bg-muted transition-colors"
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <p className="font-semibold">{pokemon.name}</p>
-                    <Badge variant="outline">{pokemon.cost} pts</Badge>
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-[600px] overflow-y-auto">
+                {filteredAvailable.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p>No Pokémon found</p>
+                    <p className="text-sm mt-2">
+                      {searchQuery.trim() ? "Try a different search" : "Loading from cache..."}
+                    </p>
                   </div>
-                  <div className="flex gap-1">
-                    {pokemon.types.map((type) => (
-                      <Badge key={type} variant="secondary" className="text-xs capitalize">
-                        {type}
-                      </Badge>
-                    ))}
-                  </div>
-                </button>
-              ))}
-            </div>
+                ) : (
+                  filteredAvailable.map((pokemon) => (
+                    <button
+                      key={pokemon.pokemon_id}
+                      onClick={() => addPokemon(pokemon)}
+                      className="w-full text-left p-3 rounded-lg border hover:bg-muted transition-colors flex items-center gap-3"
+                    >
+                      <PokemonSprite
+                        name={pokemon.name}
+                        pokemonId={pokemon.pokemon_id}
+                        pokemon={pokemon}
+                        size="sm"
+                      />
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-1">
+                          <p className="font-semibold capitalize">{pokemon.name}</p>
+                          <Badge variant="outline">{pokemon.draft_cost} pts</Badge>
+                        </div>
+                        <div className="flex gap-1">
+                          {pokemon.types.map((type) => (
+                            <Badge key={type} variant="secondary" className="text-xs capitalize">
+                              {type}
+                            </Badge>
+                          ))}
+                          {pokemon.tier && (
+                            <Badge variant="outline" className="text-xs">
+                              {pokemon.tier}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

@@ -1,0 +1,26 @@
+{
+  "timestamp": "2026-01-12T15:37:52.123Z",
+  "spreadsheet_id": "1sVQD6_CsoYtGmguRhc07IDlnz2V4Q2uWTt8Owpl5JE0",
+  "results": [
+    {
+      "parserType": "rules",
+      "sheetName": "Rules",
+      "success": false,
+      "recordsProcessed": 0,
+      "errors": [
+        "AI structure extraction failed: AI structure extraction timed out after 60 seconds"
+      ],
+      "warnings": [
+        "No sections detected in rules sheet"
+      ],
+      "duration": 61645,
+      "timedOut": false
+    }
+  ],
+  "summary": {
+    "total": 1,
+    "successful": 0,
+    "failed": 1,
+    "timedOut": 0
+  }
+}

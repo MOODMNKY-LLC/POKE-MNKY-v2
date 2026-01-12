@@ -1,0 +1,176 @@
+---
+description: League Rules - AI Context for POKE MNKY
+globs: 
+alwaysApply: true
+---
+
+# League Rules - AI Context
+
+This file provides contextual awareness of league rules for AI assistants working on POKE MNKY.
+
+> **Source**: Google Sheet - Rules tab
+> **Last Updated**: 2026-01-12
+
+---
+
+## Key Rules Summary
+
+### Season 5
+
+Draft Time votes (Pick up to 6 times and top three are made available to the league to vote on)
+
+
+---
+
+### League Rules
+
+Incentivising recording battles. Giving an extra slot for transactions(?) for every video uploaded. Could look at increasing a point budget as well.
+**All rules can be amended as seasons go on as more of a general understanding and concensus can be reached in the voting channel.** | Determine available drafting points and tera points
+
+
+---
+
+### **All times below will be in accordance to Eastern Standard Time (EST)**
+
+1. | Be respectful of other coaches, property and time. We are looking to build something long lasting and fun. | Which pokemon to add or remove from draft pool for Season 5. (Pokemon of Ruin, Urshifu's, any box legendaries, Terapagos, Paradox mons [Gouging Fire, Raging Bolt, Flutter Mane])
+2. | While not mandatory, it is encouraged that coaches come up with team names. (Please do be respectful when naming your team. If this is something we all enjoy doing there is a potential for coaches to look into streaming or making videos in the future). | Review what happens after a coach (or coaches) d...
+
+
+---
+
+### 10.
+
+11. | **NOT FOLLOWING THE RULES BELOW WILL RESULT IN A 0-6 LOSS TO THE OFFENDING COACH**
+12. | **All Rules are subject to change at the end of each season and/or prior to the beginning of the following season. Rules can be ammended and changed mid season, at the majority ruling of the mods once a vote has taken place. Results will be posted if needed for clarity.**
+
+
+---
+
+### Season Rules
+
+1. | Teams to consist of at least 8 and no more than 10 Pokemon during the course of the season.
+2. | Teams will be given a Drafting Budget of 120pts and a Tera budget of 15pts, for Season 5.
+3. | There is a 1 week grace period for Coaches to freely battle and get used to their teams before Week 1 begins. 
+     ○ Draft will take place on August 17th, 2025. Week 1 Battles will begin Starting on Monday, August 25th.
+     ○ Tera Captains must be relayed to Jacki via General Chat channel, Battle channel or a PM, by the end of the day, on Friday, 22nd (EST).
+     ○ Coaches can Drop a Tera Captain, ...
+
+
+---
+
+### 11.
+
+12. | *A Link to Smogon for building your team-->     Pokemon | SV | Smogon Strategy Pokedex     <--A Link to Smogon for building your team*
+13. | **NOT FOLLOWING THE RULES BELOW WILL RESULT IN A 0-6 LOSS TO THE OFFENDING COACH**
+
+
+---
+
+### Drafting Rules
+
+1. | Drafting order will be set on Friday, 15th, during our Season 5 Review call. Please be present as it will be a randomized order. Call will take place at 7PM EST on the Friday before the draft.
+2. | The draft will take place the following Sunday, 17th, at 2PM EST.
+3. | The draft will be in snake draft order. Team 1 will get the first pick in round 1 and then will not pick until the 20th pick in round 2 (pick 40).
+4. | Your time limit to pick is 45 seconds per pick. If you are unable to make a selection in your time allotment, you will be skipped that round and have 45 seconds added to your...
+
+
+---
+
+### 11.
+
+12. | **NOT FOLLOWING THE RULES BELOW WILL RESULT IN A 0-6 LOSS TO THE OFFENDING COACH**
+
+
+---
+
+### Battle Rules
+
+1. | Pokémon levels will be capped at level 50 for battles.
+2. | Pokémon can be caught, hatched, or generated and traded in. Hyper training / min maxing, is encouraged and allowed.
+3. | You can repeat items on multiple Pokemon in one match. (Limit of 2 Pokemon can hold the same item). 
+    ○ Example; leftovers may be used as a held item on up to two Pokemon per match.
+    ○ **Any violation will result in a 0-6 Loss to the offender**
+4. | Tera Captains or Tera-ing is allowed in Season 5.
+     ○ Coaches will have until end of day Friday, 22nd, to announce the 3 Tera-types of their Tera Captains....
+
+
+---
+
+### 13.
+
+14. | *Link to Pokémon Generator  -->  https://discord.gg/berichan  <--  Link to Pokémon Generator*
+15. | **NOT FOLLOWING THE RULES BELOW WILL RESULT IN A 0-6 LOSS TO THE OFFENDING COACH**
+
+
+---
+
+### Banned Sets (Moves and Abilities)
+
+1. | Dark Void on Darkrai. (Move)
+2. | Last Respects on Basculegion. (Move)
+3. | Last Respects on Houndstone. (Move)
+4. | Relic Song on Meloetta. (Move)
+5. | Shed Tail on Cyclizar. (Move)
+
+
+---
+
+### 17.
+
+18. | **NOT FOLLOWING THE RULES BELOW WILL RESULT IN A 0-6 LOSS TO THE OFFENDING COACH**
+
+
+
+---
+
+## Critical Rules for AI Decision-Making
+
+### Draft Board & Point System
+- **Point Values**: Range from 20 (highest) to 12 (lowest) points
+- **Budget**: Each team has 120 points total
+- **Draft Format**: Snake draft with point-based selection
+- **Draft Board Structure**: Row 3 has point headers, Pokemon start at row 5
+- **Drafted Pokemon**: Removed/struck out from board when drafted
+
+### Team Structure
+- **Roster Size**: 11 Pokemon per team
+- **Team Pages**: Structured format (A2:B2 = team name, A4:B4 = coach, C-E = picks)
+- **Point Tracking**: Stored in `draft_budgets` table per team per season
+- **Team Names**: Use actual names from Team Pages, not point-based names
+
+### Battle Format
+- **Format**: 6v6 Singles
+- **Scoring**: Wins/losses tracked with differential
+- **Standings**: Based on record and point differential
+
+### League Structure
+- **Conferences**: Lance Conference, Leon Conference
+- **Divisions**: Kanto, Johto, Hoenn, Sinnoh
+- **Seasons**: Tracked with start/end dates and current flag
+
+---
+
+## AI Decision Guidelines
+
+When making decisions about:
+- **Draft Picks**: Always check point values and remaining budget (120 points total)
+- **Team Creation**: Use actual team names from Team Pages, not point-based names like "Team X Points"
+- **Point Validation**: Warn if picks exceed remaining budget, but allow (non-blocking)
+- **Match Scheduling**: Follow conference/division structure
+- **Standings**: Calculate based on wins, losses, and differential
+- **Draft Board Updates**: Remove/strike out Pokemon when drafted
+
+---
+
+## Database Schema Reference
+
+- **`league_config`**: Stores parsed rules sections (when AI parsing succeeds)
+- **`draft_budgets`**: Tracks point spending (120 total, spent_points, remaining_points)
+- **`team_rosters`**: Draft picks with `draft_points` field
+- **`teams`**: Team information with division/conference
+
+---
+
+**Full Documentation**: See `docs/LEAGUE-RULES.md` for complete rules.
+
+**Database Query**: `SELECT * FROM league_config WHERE config_type = 'rules'`

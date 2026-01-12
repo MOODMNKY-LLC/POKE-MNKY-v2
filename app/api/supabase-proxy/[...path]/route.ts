@@ -13,7 +13,8 @@ export async function GET(request: NextRequest, { params }: { params: { path: st
 
   // Forward request to Supabase Management API
   const path = params.path.join("/")
-  const url = `https://api.supabase.com/${path}`
+  const searchParams = request.nextUrl.searchParams.toString()
+  const url = `https://api.supabase.com/${path}${searchParams ? `?${searchParams}` : ""}`
 
   const response = await fetch(url, {
     method: "GET",
