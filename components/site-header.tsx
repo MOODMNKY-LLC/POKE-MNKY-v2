@@ -1,10 +1,62 @@
+"use client"
+
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { MessageSquare, Sparkles, Menu, Database, Brain, Trophy, Calendar, Users, BookOpen } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { MessageSquare, Sparkles, Menu, Database, Brain, Trophy, Calendar, Users, BookOpen, LogOut } from "lucide-react"
 import { ThemeSwitcher } from "@/components/theme-switcher"
+import { createClient } from "@/lib/supabase/client"
+import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
+import type { User as SupabaseUser } from "@supabase/supabase-js"
 
 export function SiteHeader() {
+  const [user, setUser] = useState<SupabaseUser | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const router = useRouter()
+  const supabase = createClient()
+
+  useEffect(() => {
+    // Get initial session
+    const getUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      setUser(user)
+      setIsLoading(false)
+    }
+
+    getUser()
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [supabase.auth])
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+    router.push("/")
+    router.refresh()
+  }
+
+  const discordAvatar = user?.user_metadata?.avatar_url
+  const discordUsername = user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split("@")[0]
+  const userInitials = discordUsername?.substring(0, 2).toUpperCase() || "U"
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur-xl supports-[backdrop-filter]:bg-background/80">
       <div className="container flex h-16 items-center">
@@ -64,23 +116,98 @@ export function SiteHeader() {
             >
               <Link href="/teams/builder">Team Builder</Link>
             </Button>
-            <Button asChild size="sm" className="bg-gradient-to-r from-primary to-secondary hover:opacity-90">
-              <Link href="/auth/login">
-                <MessageSquare className="h-4 w-4 mr-2" />
-                Login
-              </Link>
-            </Button>
+            {!isLoading &&
+              (user ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="gap-2">
+                      <Avatar className="h-7 w-7">
+                        <AvatarImage src={discordAvatar || "/placeholder.svg"} alt={discordUsername} />
+                        <AvatarFallback className="bg-[#5865F2] text-white text-xs">{userInitials}</AvatarFallback>
+                      </Avatar>
+                      <span className="hidden md:inline-block">{discordUsername}</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel>
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium leading-none">{discordUsername}</p>
+                        <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link href="/admin" className="cursor-pointer">
+                        <Database className="mr-2 h-4 w-4" />
+                        Admin Dashboard
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={handleSignOut}
+                      className="cursor-pointer text-destructive focus:text-destructive"
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Sign Out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Button asChild size="sm" className="bg-gradient-to-r from-primary to-secondary hover:opacity-90">
+                  <Link href="/auth/login">
+                    <MessageSquare className="h-4 w-4 mr-2" />
+                    Login
+                  </Link>
+                </Button>
+              ))}
           </div>
         </nav>
 
         {/* Mobile Navigation */}
         <div className="flex flex-1 items-center justify-end lg:hidden gap-2">
           <ThemeSwitcher />
-          <Button asChild size="sm" className="bg-gradient-to-r from-primary to-secondary">
-            <Link href="/auth/login">
-              <MessageSquare className="h-4 w-4" />
-            </Link>
-          </Button>
+          {!isLoading &&
+            (user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="p-1">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={discordAvatar || "/placeholder.svg"} alt={discordUsername} />
+                      <AvatarFallback className="bg-[#5865F2] text-white text-xs">{userInitials}</AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none">{discordUsername}</p>
+                      <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin" className="cursor-pointer">
+                      <Database className="mr-2 h-4 w-4" />
+                      Admin Dashboard
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={handleSignOut}
+                    className="cursor-pointer text-destructive focus:text-destructive"
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button asChild size="sm" className="bg-gradient-to-r from-primary to-secondary">
+                <Link href="/auth/login">
+                  <MessageSquare className="h-4 w-4" />
+                </Link>
+              </Button>
+            ))}
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="ghost" size="sm" className="px-2">
@@ -140,12 +267,31 @@ export function SiteHeader() {
                   Team Builder
                 </Link>
                 <div className="pt-4 mt-4 border-t border-border">
-                  <Button asChild size="lg" className="w-full bg-gradient-to-r from-primary to-secondary">
-                    <Link href="/auth/login">
-                      <MessageSquare className="h-5 w-5 mr-2" />
-                      Sign In with Discord
-                    </Link>
-                  </Button>
+                  {user ? (
+                    <>
+                      <div className="mb-4 flex items-center gap-3 px-2">
+                        <Avatar className="h-10 w-10">
+                          <AvatarImage src={discordAvatar || "/placeholder.svg"} alt={discordUsername} />
+                          <AvatarFallback className="bg-[#5865F2] text-white">{userInitials}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium">{discordUsername}</span>
+                          <span className="text-xs text-muted-foreground">{user.email}</span>
+                        </div>
+                      </div>
+                      <Button onClick={handleSignOut} size="lg" variant="outline" className="w-full bg-transparent">
+                        <LogOut className="h-5 w-5 mr-2" />
+                        Sign Out
+                      </Button>
+                    </>
+                  ) : (
+                    <Button asChild size="lg" className="w-full bg-gradient-to-r from-primary to-secondary">
+                      <Link href="/auth/login">
+                        <MessageSquare className="h-5 w-5 mr-2" />
+                        Sign In with Discord
+                      </Link>
+                    </Button>
+                  )}
                 </div>
               </nav>
             </SheetContent>
