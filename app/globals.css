@@ -4,76 +4,76 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Pokemon League themed colors - electric blue primary with dark background */
-  --background: oklch(0.12 0.015 264);
-  --foreground: oklch(0.98 0.005 264);
-  --card: oklch(0.18 0.02 264);
-  --card-foreground: oklch(0.98 0.005 264);
-  --popover: oklch(0.16 0.02 264);
-  --popover-foreground: oklch(0.98 0.005 264);
-  --primary: oklch(0.65 0.25 264);
-  --primary-foreground: oklch(0.98 0.005 264);
-  --secondary: oklch(0.72 0.18 45);
-  --secondary-foreground: oklch(0.12 0.015 264);
-  --muted: oklch(0.25 0.02 264);
-  --muted-foreground: oklch(0.65 0.02 264);
-  --accent: oklch(0.72 0.18 45);
-  --accent-foreground: oklch(0.12 0.015 264);
+  /* Updated color palette inspired by design brief - emerald green primary with cyan accents for Pokemon tech theme */
+  --background: oklch(0.1 0.02 240);
+  --foreground: oklch(0.98 0.005 240);
+  --card: oklch(0.15 0.02 240);
+  --card-foreground: oklch(0.98 0.005 240);
+  --popover: oklch(0.14 0.02 240);
+  --popover-foreground: oklch(0.98 0.005 240);
+  --primary: oklch(0.68 0.19 165);
+  --primary-foreground: oklch(0.12 0.02 165);
+  --secondary: oklch(0.7 0.22 195);
+  --secondary-foreground: oklch(0.12 0.02 195);
+  --muted: oklch(0.22 0.02 240);
+  --muted-foreground: oklch(0.62 0.02 240);
+  --accent: oklch(0.68 0.19 165);
+  --accent-foreground: oklch(0.12 0.02 165);
   --destructive: oklch(0.55 0.22 15);
-  --destructive-foreground: oklch(0.98 0.005 264);
-  --border: oklch(0.28 0.02 264);
-  --input: oklch(0.28 0.02 264);
-  --ring: oklch(0.65 0.25 264);
-  --chart-1: oklch(0.65 0.25 264);
-  --chart-2: oklch(0.72 0.18 45);
-  --chart-3: oklch(0.68 0.2 160);
+  --destructive-foreground: oklch(0.98 0.005 15);
+  --border: oklch(0.26 0.02 240);
+  --input: oklch(0.26 0.02 240);
+  --ring: oklch(0.68 0.19 165);
+  --chart-1: oklch(0.68 0.19 165);
+  --chart-2: oklch(0.7 0.22 195);
+  --chart-3: oklch(0.72 0.18 45);
   --chart-4: oklch(0.7 0.22 300);
   --chart-5: oklch(0.62 0.24 30);
-  --radius: 0.5rem;
-  --sidebar: oklch(0.16 0.02 264);
-  --sidebar-foreground: oklch(0.98 0.005 264);
-  --sidebar-primary: oklch(0.65 0.25 264);
-  --sidebar-primary-foreground: oklch(0.98 0.005 264);
-  --sidebar-accent: oklch(0.25 0.02 264);
-  --sidebar-accent-foreground: oklch(0.98 0.005 264);
-  --sidebar-border: oklch(0.28 0.02 264);
-  --sidebar-ring: oklch(0.65 0.25 264);
+  --radius: 0.75rem;
+  --sidebar: oklch(0.14 0.02 240);
+  --sidebar-foreground: oklch(0.98 0.005 240);
+  --sidebar-primary: oklch(0.68 0.19 165);
+  --sidebar-primary-foreground: oklch(0.12 0.02 165);
+  --sidebar-accent: oklch(0.22 0.02 240);
+  --sidebar-accent-foreground: oklch(0.98 0.005 240);
+  --sidebar-border: oklch(0.26 0.02 240);
+  --sidebar-ring: oklch(0.68 0.19 165);
 }
 
 .dark {
-  /* Same theme for dark mode consistency */
-  --background: oklch(0.12 0.015 264);
-  --foreground: oklch(0.98 0.005 264);
-  --card: oklch(0.18 0.02 264);
-  --card-foreground: oklch(0.98 0.005 264);
-  --popover: oklch(0.16 0.02 264);
-  --popover-foreground: oklch(0.98 0.005 264);
-  --primary: oklch(0.65 0.25 264);
-  --primary-foreground: oklch(0.98 0.005 264);
-  --secondary: oklch(0.72 0.18 45);
-  --secondary-foreground: oklch(0.12 0.015 264);
-  --muted: oklch(0.25 0.02 264);
-  --muted-foreground: oklch(0.65 0.02 264);
-  --accent: oklch(0.72 0.18 45);
-  --accent-foreground: oklch(0.12 0.015 264);
+  /* Same theme for consistency */
+  --background: oklch(0.1 0.02 240);
+  --foreground: oklch(0.98 0.005 240);
+  --card: oklch(0.15 0.02 240);
+  --card-foreground: oklch(0.98 0.005 240);
+  --popover: oklch(0.14 0.02 240);
+  --popover-foreground: oklch(0.98 0.005 240);
+  --primary: oklch(0.68 0.19 165);
+  --primary-foreground: oklch(0.12 0.02 165);
+  --secondary: oklch(0.7 0.22 195);
+  --secondary-foreground: oklch(0.12 0.02 195);
+  --muted: oklch(0.22 0.02 240);
+  --muted-foreground: oklch(0.62 0.02 240);
+  --accent: oklch(0.68 0.19 165);
+  --accent-foreground: oklch(0.12 0.02 165);
   --destructive: oklch(0.55 0.22 15);
-  --destructive-foreground: oklch(0.98 0.005 264);
-  --border: oklch(0.28 0.02 264);
-  --input: oklch(0.28 0.02 264);
-  --ring: oklch(0.65 0.25 264);
-  --chart-1: oklch(0.65 0.25 264);
-  --chart-2: oklch(0.72 0.18 45);
-  --chart-3: oklch(0.68 0.2 160);
+  --destructive-foreground: oklch(0.98 0.005 15);
+  --border: oklch(0.26 0.02 240);
+  --input: oklch(0.26 0.02 240);
+  --ring: oklch(0.68 0.19 165);
+  --chart-1: oklch(0.68 0.19 165);
+  --chart-2: oklch(0.7 0.22 195);
+  --chart-3: oklch(0.72 0.18 45);
   --chart-4: oklch(0.7 0.22 300);
   --chart-5: oklch(0.62 0.24 30);
-  --sidebar: oklch(0.16 0.02 264);
-  --sidebar-foreground: oklch(0.98 0.005 264);
-  --sidebar-primary: oklch(0.65 0.25 264);
-  --sidebar-primary-foreground: oklch(0.98 0.005 264);
-  --sidebar-accent: oklch(0.25 0.02 264);
-  --sidebar-accent-foreground: oklch(0.98 0.005 264);
-  --sidebar-border: oklch(0.28 0.02 264);
-  --sidebar-ring: oklch(0.65 0.25 264);
+  --sidebar: oklch(0.14 0.02 240);
+  --sidebar-foreground: oklch(0.98 0.005 240);
+  --sidebar-primary: oklch(0.68 0.19 165);
+  --sidebar-primary-foreground: oklch(0.12 0.02 165);
+  --sidebar-accent: oklch(0.22 0.02 240);
+  --sidebar-accent-foreground: oklch(0.98 0.005 240);
+  --sidebar-border: oklch(0.26 0.02 240);
+  --sidebar-ring: oklch(0.68 0.19 165);
 }
 
 @theme inline {
@@ -106,7 +106,7 @@
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-xl: calc(var(--radius) + 6px);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -123,5 +123,139 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* Added grid pattern background effect for tech aesthetic */
+@layer base {
+  body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: linear-gradient(rgba(104, 211, 180, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(104, 211, 180, 0.03) 1px, transparent 1px);
+    background-size: 50px 50px;
+    pointer-events: none;
+    z-index: 0;
+  }
+}
+
+/* Enhanced mobile responsiveness and accessibility */
+@layer utilities {
+  /* Improved text balance for better mobile readability */
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .text-pretty {
+    text-wrap: pretty;
+  }
+
+  /* Touch-friendly tap targets */
+  .tap-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Safe area insets for mobile devices */
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Smooth scroll behavior */
+  .smooth-scroll {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Enhanced animations for better UX */
+@layer utilities {
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.5s ease-out;
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.3s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideUp {
+    from {
+      transform: translateY(20px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes scaleIn {
+    from {
+      transform: scale(0.95);
+      opacity: 0;
+    }
+    to {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+}
+
+/* Improved focus states for accessibility */
+@layer base {
+  *:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  button:focus-visible,
+  a:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+}
+
+/* Better mobile grid pattern */
+@layer base {
+  body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: linear-gradient(rgba(104, 211, 180, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(104, 211, 180, 0.03) 1px, transparent 1px);
+    background-size: 50px 50px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  @media (max-width: 768px) {
+    body::before {
+      background-size: 30px 30px;
+      opacity: 0.5;
+    }
   }
 }
