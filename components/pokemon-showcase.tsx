@@ -62,7 +62,7 @@ export function PokemonShowcase({ featured }: PokemonShowcaseProps) {
             className={`h-2 rounded-full transition-all ${
               index === currentIndex ? "w-8 bg-primary" : "w-2 bg-muted-foreground/50"
             }`}
-            aria-label={`View Pokemon ${index + 1}`}
+            aria-label={`View Pokémon ${index + 1}`}
           />
         ))}
       </div>
