@@ -40,7 +40,7 @@ This document describes the complete user experience from initial registration t
 **Navigation**: User clicks "Admin" link or "Submit Match" → Redirected to `/auth/login`
 
 **Login Page Components**:
-```
+\`\`\`
 ┌────────────────────────────────────────┐
 │  Average at Best Draft League Logo     │
 │                                        │
@@ -60,14 +60,14 @@ This document describes the complete user experience from initial registration t
 │  │  Don't have an account? Sign up  │ │
 │  └──────────────────────────────────┘ │
 └────────────────────────────────────────┘
-```
+\`\`\`
 
 **Powered by**: `components/auth/supabase-auth-ui.tsx` (Supabase UI Library)
 
 ### Step 1.3: Discord OAuth Flow (Recommended Path)
 
 **Flow Sequence**:
-```
+\`\`\`
 User clicks "Continue with Discord"
    ↓
 Supabase Auth initiates OAuth
@@ -89,7 +89,7 @@ User redirected back to app with session cookie
 Middleware verifies session
    ↓
 User lands on homepage (now authenticated)
-```
+\`\`\`
 
 **Technical Details**:
 - OAuth Provider: Discord
@@ -103,10 +103,10 @@ User lands on homepage (now authenticated)
 **Automatic Actions**:
 1. Supabase creates user in `auth.users` table
 2. Trigger creates profile in `public.profiles` table:
-   ```sql
+   \`\`\`sql
    INSERT INTO profiles (id, discord_id, discord_username, avatar_url, role)
    VALUES (user.id, metadata->>'provider_id', metadata->>'username', metadata->>'avatar_url', 'viewer')
-   ```
+   \`\`\`
 3. Default role assigned: `viewer` (read-only access)
 
 **Profile Data Captured**:
@@ -137,7 +137,7 @@ User lands on homepage (now authenticated)
 ### Step 2.2: Role Synchronization (Discord → App)
 
 **Discord Bot Command** (automatic on join):
-```typescript
+\`\`\`typescript
 // In lib/discord-bot.ts
 async function syncUserRoles(discordUserId: string) {
   // 1. Fetch user from Supabase by discord_id
@@ -159,10 +159,10 @@ async function syncUserRoles(discordUserId: string) {
     .update({ role: appRole })
     .eq('id', profile.id)
 }
-```
+\`\`\`
 
 **Role Mapping Logic**:
-```
+\`\`\`
 Discord Role              → App Role
 ─────────────────────────────────────
 @Commissioner            → admin
@@ -170,7 +170,7 @@ Discord Role              → App Role
 @Coach                   → coach
 @Spectator               → viewer
 (no special role)        → viewer
-```
+\`\`\`
 
 **Automatic Sync Triggers**:
 - User joins Discord server
@@ -181,7 +181,7 @@ Discord Role              → App Role
 ### Step 2.3: Discord Bot Commands Available to Users
 
 **Public Commands** (all authenticated users):
-```
+\`\`\`
 /matchups week:<number>
   → Shows week's matchups with teams and coaches
 
@@ -196,10 +196,10 @@ Discord Role              → App Role
 
 /my-team
   → Shows user's team (if they are a coach)
-```
+\`\`\`
 
 **Coach Commands** (role: coach):
-```
+\`\`\`
 /submit-result
   → Opens result submission form (Discord modal or web link)
   
@@ -208,10 +208,10 @@ Discord Role              → App Role
 
 /trade-request team:<team> offer:<pokemon>
   → Initiates trade request
-```
+\`\`\`
 
 **Admin Commands** (role: admin):
-```
+\`\`\`
 /create-match week:<number> team1:<name> team2:<name>
   → Creates a scheduled match
 
@@ -226,7 +226,7 @@ Discord Role              → App Role
 
 /broadcast message:<text>
   → Sends announcement to all coaches
-```
+\`\`\`
 
 ---
 
@@ -394,7 +394,7 @@ Discord Role              → App Role
 **Scenario**: Coach wants to submit result for Week 5 match
 
 **Workflow**:
-```
+\`\`\`
 1. Coach navigates to /matches/submit
 
 2. Form loads with:
@@ -427,10 +427,10 @@ Discord Role              → App Role
 5. Commissioner reviews in admin panel:
    - Approves → status: 'completed', standings update
    - Rejects → status: 'disputed', notifies coach
-```
+\`\`\`
 
 **Technical Flow**:
-```typescript
+\`\`\`typescript
 // Client: app/matches/submit/page.tsx
 async function handleSubmit(formData) {
   const response = await fetch('/api/matches/submit', {
@@ -485,14 +485,14 @@ export async function POST(request: Request) {
   
   return NextResponse.json({ success: true, match })
 }
-```
+\`\`\`
 
 ### 4.2: User Asks AI Pokedex Question
 
 **Scenario**: User wants strategy advice for Gengar
 
 **Workflow**:
-```
+\`\`\`
 1. User navigates to /pokedex
 
 2. Searches for "Gengar" in search bar
@@ -525,10 +525,10 @@ export async function POST(request: Request) {
    EVs: 252 SpA / 4 SpD / 252 Spe"
 
 7. User can ask follow-up questions
-```
+\`\`\`
 
 **Technical Flow**:
-```typescript
+\`\`\`typescript
 // Client: app/pokedex/page.tsx
 async function askQuestion(question: string) {
   const response = await fetch('/api/ai/pokedex', {
@@ -576,14 +576,14 @@ export async function POST(request: Request) {
   // If model calls function, execute and return result
   // Stream final answer back to client
 }
-```
+\`\`\`
 
 ### 4.3: Commissioner Generates Weekly Recap
 
 **Scenario**: Week 5 just finished, commissioner wants AI recap
 
 **Workflow**:
-```
+\`\`\`
 1. Commissioner navigates to /insights
 
 2. Sees "Generate Weekly Recap" section
@@ -629,14 +629,14 @@ export async function POST(request: Request) {
 7. On "Post to Discord":
    - Discord webhook sends formatted embed
    - Recap saved to database for archives
-```
+\`\`\`
 
 ### 4.4: Discord Role Change Syncs to App
 
 **Scenario**: Commissioner promotes a spectator to coach in Discord
 
 **Workflow**:
-```
+\`\`\`
 1. In Discord server, commissioner right-clicks user "JohnDoe#1234"
 
 2. Selects "Roles" → Adds @Coach role
@@ -666,13 +666,13 @@ export async function POST(request: Request) {
    - Middleware checks session
    - Fetches updated profile (role = 'coach')
    - User now sees coach features unlocked
-```
+\`\`\`
 
 ---
 
 ## 5. Navigation Flow Map
 
-```
+\`\`\`
 Homepage (/)
 ├─ [View Standings] → /standings
 │  ├─ [Team Name Click] → /teams/[id]
@@ -702,7 +702,7 @@ Header Navigation (always visible):
 ├─ Insights (coach/admin only) → /insights
 ├─ Pokedex
 └─ Admin (admin only)
-```
+\`\`\`
 
 ---
 
@@ -719,7 +719,7 @@ Header Navigation (always visible):
 - Max 5 avatars visible ("+3 more" indicator)
 
 **Technical**:
-```typescript
+\`\`\`typescript
 // components/realtime/realtime-avatar-stack.tsx
 const channel = supabase.channel('presence')
 
@@ -733,7 +733,7 @@ channel
       channel.track({ user_id: user.id, username: profile.discord_username })
     }
   })
-```
+\`\`\`
 
 ### 6.2: Collaborative Cursors (Admin Dashboard)
 
@@ -849,16 +849,16 @@ channel
 ## 10. User Workflow Summary by Role
 
 ### Viewer Journey:
-```
+\`\`\`
 Visit homepage
   → Browse public data (standings, schedule, rosters)
   → View Pokedex (basic lookup only)
   → See prompt to join as coach
   → Click "Login" if interested
-```
+\`\`\`
 
 ### Coach Journey:
-```
+\`\`\`
 Login via Discord OAuth
   → Role syncs from Discord (@Coach role)
   → Dashboard shows team assignment
@@ -870,10 +870,10 @@ Login via Discord OAuth
   → Track MVP race
   → Use AI Pokedex for strategy
   → View insights and predictions
-```
+\`\`\`
 
 ### Commissioner Journey:
-```
+\`\`\`
 Login via Discord OAuth (admin role)
   → Access admin dashboard
   → Sync Google Sheets data (one-time or periodic)
@@ -886,7 +886,7 @@ Login via Discord OAuth (admin role)
   → Manage Discord roles via bot commands
   → Configure draft settings
   → Monitor app health via logs
-```
+\`\`\`
 
 ---
 

@@ -2,7 +2,7 @@
 
 ## Project Structure Overview
 
-```
+\`\`\`
 pokemon-draft-league/
 ├── 📄 Configuration Files
 │   ├── package.json                          # Dependencies and scripts
@@ -197,7 +197,7 @@ pokemon-draft-league/
 │
 └── 📁 public/                                # Static assets (not shown)
     └── (images, icons, etc.)
-```
+\`\`\`
 
 ## Key File Categories
 
@@ -301,12 +301,12 @@ pokemon-draft-league/
 
 ## Import Path Aliases
 
-```typescript
+\`\`\`typescript
 @/app/*              // App directory
 @/components/*       // Components
 @/lib/*              // Libraries and utilities
 @/hooks/*            // React hooks
-```
+\`\`\`
 
 ## Notes
 
