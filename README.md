@@ -55,46 +55,43 @@ A comprehensive Pokemon Draft League management platform with Showdown-accurate 
 
 Required environment variables:
 
-\`\`\`bash
+```bash
 # Supabase
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 
 # OpenAI
-OPENAI_API_KEY=
+OPENAI_API_KEY=your_openai_key
 
 # Google Sheets
-GOOGLE_SHEETS_ID=
-GOOGLE_SERVICE_ACCOUNT_EMAIL=
-GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY=
+GOOGLE_SHEETS_ID=your_sheet_id
+GOOGLE_SERVICE_ACCOUNT_EMAIL=your_service_account_email
+GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY=your_private_key
 
 # Discord
-DISCORD_BOT_TOKEN=
-DISCORD_CLIENT_ID=
-DISCORD_GUILD_ID=
+DISCORD_BOT_TOKEN=your_bot_token
+DISCORD_CLIENT_ID=your_client_id
+DISCORD_GUILD_ID=your_guild_id
 
 # App
 NEXT_PUBLIC_APP_URL=https://yourapp.vercel.app
-\`\`\`
+```
 
 ## Database Setup
 
-1. Run the SQL migration scripts in order:
-   \`\`\`bash
-   # In Supabase SQL Editor:
-   scripts/001_create_schema.sql
-   scripts/002_enhanced_schema.sql
-   \`\`\`
+1. Run the SQL migration scripts in order in Supabase SQL Editor:
+   - `scripts/001_create_schema.sql`
+   - `scripts/002_enhanced_schema.sql`
 
-2. (Optional) Sync initial data from Google Sheets:
-   \`\`\`bash
-   POST /api/sync/google-sheets
-   \`\`\`
+2. (Optional) Sync initial data from Google Sheets by calling:
+   ```bash
+   curl -X POST https://yourapp.vercel.app/api/sync/google-sheets
+   ```
 
 ## Running Locally
 
-\`\`\`bash
+```bash
 # Install dependencies
 pnpm install
 
@@ -103,7 +100,7 @@ pnpm dev
 
 # Run Discord bot (separate terminal)
 node scripts/start-discord-bot.js
-\`\`\`
+```
 
 ## Deployment
 
