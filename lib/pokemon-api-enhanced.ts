@@ -1,11 +1,9 @@
 // Enhanced PokéAPI integration with rich visual data and optimized caching
 
-import { PokemonClient, AbilityClient, MoveClient, type Pokemon } from "pokenode-ts"
+import { PokemonClient, type Pokemon } from "pokenode-ts"
 import { createClient } from "@supabase/supabase-js"
 
 const pokemonClient = new PokemonClient()
-const abilityClient = new AbilityClient()
-const moveClient = new MoveClient()
 
 export interface PokemonSprites {
   front_default: string | null
@@ -116,8 +114,11 @@ export async function getPokemonDataExtended(
     const abilityDetails = await Promise.all(
       pokemon.abilities.slice(0, 3).map(async (a) => {
         try {
-          const ability = await abilityClient.getAbilityByName(a.ability.name)
-          const englishEffect = ability.effect_entries.find((e) => e.language.name === "en")
+          // Fetch ability data directly using the pokemon client
+          const response = await fetch(`https://pokeapi.co/api/v2/ability/${a.ability.name}`)
+          if (!response.ok) throw new Error("Failed to fetch ability")
+          const ability = await response.json()
+          const englishEffect = ability.effect_entries.find((e: any) => e.language.name === "en")
 
           return {
             name: a.ability.name,
@@ -150,8 +151,10 @@ export async function getPokemonDataExtended(
       moveDetails = await Promise.all(
         topMoves.map(async (m) => {
           try {
-            const move = await moveClient.getMoveByName(m.move.name)
-            const englishEffect = move.effect_entries.find((e) => e.language.name === "en")
+            const response = await fetch(`https://pokeapi.co/api/v2/move/${m.move.name}`)
+            if (!response.ok) throw new Error("Failed to fetch move")
+            const move = await response.json()
+            const englishEffect = move.effect_entries.find((e: any) => e.language.name === "en")
 
             return {
               name: move.name,
