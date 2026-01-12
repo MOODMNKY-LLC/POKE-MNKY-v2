@@ -4,76 +4,81 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Pokémon-inspired light theme: red and white color scheme */
-  --background: oklch(0.98 0.01 30);
-  --foreground: oklch(0.15 0.03 30);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.15 0.03 30);
+  /* Authentic Pokémon Red/White light theme based on official Pokemon Red/Blue branding */
+  --background: oklch(0.99 0.005 20); /* Pure white background */
+  --foreground: oklch(0.2 0.02 20); /* Deep charcoal text */
+  --card: oklch(1 0 0); /* Bright white cards */
+  --card-foreground: oklch(0.2 0.02 20);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.15 0.03 30);
-  --primary: oklch(0.55 0.22 15);
-  --primary-foreground: oklch(0.98 0.01 15);
-  --secondary: oklch(0.95 0.02 15);
-  --secondary-foreground: oklch(0.15 0.03 15);
-  --muted: oklch(0.96 0.01 30);
-  --muted-foreground: oklch(0.45 0.03 30);
-  --accent: oklch(0.55 0.22 15);
-  --accent-foreground: oklch(0.98 0.01 15);
-  --destructive: oklch(0.55 0.22 15);
-  --destructive-foreground: oklch(0.98 0.01 15);
-  --border: oklch(0.92 0.01 30);
-  --input: oklch(0.92 0.01 30);
-  --ring: oklch(0.55 0.22 15);
-  --chart-1: oklch(0.55 0.22 15);
-  --chart-2: oklch(0.6 0.2 45);
-  --chart-3: oklch(0.65 0.18 90);
-  --chart-4: oklch(0.6 0.2 200);
-  --chart-5: oklch(0.55 0.2 280);
+  --popover-foreground: oklch(0.2 0.02 20);
+  /* Pokémon Red #CC0000 converted to OKLCH */
+  --primary: oklch(0.548 0.217 27); /* Authentic Pokémon Red */
+  --primary-foreground: oklch(0.99 0.005 27);
+  --secondary: oklch(0.96 0.01 20); /* Light gray accent */
+  --secondary-foreground: oklch(0.2 0.02 20);
+  --muted: oklch(0.97 0.005 20);
+  --muted-foreground: oklch(0.5 0.015 20);
+  /* Pokémon Blue #3B4CCA for accent */
+  --accent: oklch(0.485 0.186 264); /* Pokémon Blue */
+  --accent-foreground: oklch(0.99 0.005 264);
+  --destructive: oklch(0.548 0.217 27); /* Same red for consistency */
+  --destructive-foreground: oklch(0.99 0.005 27);
+  --border: oklch(0.92 0.005 20);
+  --input: oklch(0.94 0.005 20);
+  --ring: oklch(0.548 0.217 27);
+  /* Pokémon Yellow #FFDE00 for charts */
+  --chart-1: oklch(0.885 0.176 95); /* Pokémon Yellow */
+  --chart-2: oklch(0.548 0.217 27); /* Pokémon Red */
+  --chart-3: oklch(0.485 0.186 264); /* Pokémon Blue */
+  --chart-4: oklch(0.5 0.12 165); /* Green accent */
+  --chart-5: oklch(0.6 0.15 340); /* Purple accent */
   --radius: 0.75rem;
-  --sidebar: oklch(0.98 0.01 30);
-  --sidebar-foreground: oklch(0.15 0.03 30);
-  --sidebar-primary: oklch(0.55 0.22 15);
-  --sidebar-primary-foreground: oklch(0.98 0.01 15);
-  --sidebar-accent: oklch(0.96 0.01 30);
-  --sidebar-accent-foreground: oklch(0.15 0.03 30);
-  --sidebar-border: oklch(0.92 0.01 30);
-  --sidebar-ring: oklch(0.55 0.22 15);
+  --sidebar: oklch(0.99 0.005 20);
+  --sidebar-foreground: oklch(0.2 0.02 20);
+  --sidebar-primary: oklch(0.548 0.217 27);
+  --sidebar-primary-foreground: oklch(0.99 0.005 27);
+  --sidebar-accent: oklch(0.97 0.005 20);
+  --sidebar-accent-foreground: oklch(0.2 0.02 20);
+  --sidebar-border: oklch(0.92 0.005 20);
+  --sidebar-ring: oklch(0.548 0.217 27);
 }
 
 .dark {
-  /* Dark theme with gold and black accents */
-  --background: oklch(0.1 0.02 60);
-  --foreground: oklch(0.98 0.005 60);
-  --card: oklch(0.14 0.02 60);
-  --card-foreground: oklch(0.98 0.005 60);
-  --popover: oklch(0.13 0.02 60);
-  --popover-foreground: oklch(0.98 0.005 60);
-  --primary: oklch(0.75 0.15 80);
-  --primary-foreground: oklch(0.1 0.02 80);
-  --secondary: oklch(0.68 0.12 85);
-  --secondary-foreground: oklch(0.1 0.02 85);
-  --muted: oklch(0.2 0.02 60);
-  --muted-foreground: oklch(0.6 0.02 60);
-  --accent: oklch(0.75 0.15 80);
-  --accent-foreground: oklch(0.1 0.02 80);
-  --destructive: oklch(0.55 0.22 15);
-  --destructive-foreground: oklch(0.98 0.005 15);
-  --border: oklch(0.24 0.02 60);
-  --input: oklch(0.24 0.02 60);
-  --ring: oklch(0.75 0.15 80);
-  --chart-1: oklch(0.75 0.15 80);
-  --chart-2: oklch(0.7 0.18 60);
-  --chart-3: oklch(0.72 0.16 100);
-  --chart-4: oklch(0.68 0.2 200);
-  --chart-5: oklch(0.7 0.18 280);
-  --sidebar: oklch(0.13 0.02 60);
-  --sidebar-foreground: oklch(0.98 0.005 60);
-  --sidebar-primary: oklch(0.75 0.15 80);
-  --sidebar-primary-foreground: oklch(0.1 0.02 80);
-  --sidebar-accent: oklch(0.2 0.02 60);
-  --sidebar-accent-foreground: oklch(0.98 0.005 60);
-  --sidebar-border: oklch(0.24 0.02 60);
-  --sidebar-ring: oklch(0.75 0.15 80);
+  /* Authentic Pokémon Gold/Black dark theme inspired by Pokémon Gold/Silver */
+  --background: oklch(0.12 0.01 80); /* Deep black background */
+  --foreground: oklch(0.97 0.005 80); /* Bright text */
+  --card: oklch(0.16 0.015 80); /* Dark gray cards */
+  --card-foreground: oklch(0.97 0.005 80);
+  --popover: oklch(0.14 0.015 80);
+  --popover-foreground: oklch(0.97 0.005 80);
+  /* Pokémon Gold #B3A125 converted to OKLCH */
+  --primary: oklch(0.703 0.106 92); /* Authentic Pokémon Gold */
+  --primary-foreground: oklch(0.12 0.01 92);
+  --secondary: oklch(0.25 0.02 80); /* Dark gray accent */
+  --secondary-foreground: oklch(0.97 0.005 80);
+  --muted: oklch(0.22 0.015 80);
+  --muted-foreground: oklch(0.6 0.01 80);
+  /* Pokémon Silver/Yellow for accent */
+  --accent: oklch(0.885 0.176 95); /* Pokémon Yellow accent */
+  --accent-foreground: oklch(0.12 0.01 95);
+  --destructive: oklch(0.548 0.217 27); /* Pokémon Red for destructive */
+  --destructive-foreground: oklch(0.99 0.005 27);
+  --border: oklch(0.28 0.015 80);
+  --input: oklch(0.24 0.015 80);
+  --ring: oklch(0.703 0.106 92);
+  --chart-1: oklch(0.703 0.106 92); /* Gold */
+  --chart-2: oklch(0.885 0.176 95); /* Yellow */
+  --chart-3: oklch(0.485 0.186 264); /* Blue */
+  --chart-4: oklch(0.5 0.12 165); /* Green */
+  --chart-5: oklch(0.6 0.15 340); /* Purple */
+  --sidebar: oklch(0.14 0.015 80);
+  --sidebar-foreground: oklch(0.97 0.005 80);
+  --sidebar-primary: oklch(0.703 0.106 92);
+  --sidebar-primary-foreground: oklch(0.12 0.01 92);
+  --sidebar-accent: oklch(0.22 0.015 80);
+  --sidebar-accent-foreground: oklch(0.97 0.005 80);
+  --sidebar-border: oklch(0.28 0.015 80);
+  --sidebar-ring: oklch(0.703 0.106 92);
 }
 
 @theme inline {
