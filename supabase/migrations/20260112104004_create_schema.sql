@@ -81,8 +81,22 @@ CREATE INDEX IF NOT EXISTS idx_team_rosters_team ON public.team_rosters(team_id)
 CREATE INDEX IF NOT EXISTS idx_team_rosters_pokemon ON public.team_rosters(pokemon_id);
 CREATE INDEX IF NOT EXISTS idx_matches_week ON public.matches(week);
 CREATE INDEX IF NOT EXISTS idx_matches_playoff ON public.matches(is_playoff);
-CREATE INDEX IF NOT EXISTS idx_pokemon_stats_match ON public.pokemon_stats(match_id);
-CREATE INDEX IF NOT EXISTS idx_pokemon_stats_pokemon ON public.pokemon_stats(pokemon_id);
+-- Conditional indexes for pokemon_stats (only if match_id column exists)
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_schema = 'public' AND table_name = 'pokemon_stats' AND column_name = 'match_id'
+  ) THEN
+    CREATE INDEX IF NOT EXISTS idx_pokemon_stats_match ON public.pokemon_stats(match_id);
+  END IF;
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_schema = 'public' AND table_name = 'pokemon_stats' AND column_name = 'pokemon_id'
+  ) THEN
+    CREATE INDEX IF NOT EXISTS idx_pokemon_stats_pokemon ON public.pokemon_stats(pokemon_id);
+  END IF;
+END $$;
 
 -- Enable Row Level Security
 ALTER TABLE public.teams ENABLE ROW LEVEL SECURITY;

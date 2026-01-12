@@ -33,6 +33,22 @@ const commands = [
     .setName("pokemon")
     .setDescription("Look up Pokémon information")
     .addStringOption((option) => option.setName("name").setDescription("Pokémon name").setRequired(true)),
+
+  // Draft commands
+  new SlashCommandBuilder()
+    .setName("draft")
+    .setDescription("Draft a Pokémon")
+    .addStringOption((option) =>
+      option.setName("pokemon").setDescription("Pokémon name to draft").setRequired(true).setAutocomplete(true),
+    ),
+
+  new SlashCommandBuilder().setName("draft-status").setDescription("View current draft status"),
+
+  new SlashCommandBuilder().setName("draft-available").setDescription("View available Pokémon to draft"),
+
+  new SlashCommandBuilder()
+    .setName("draft-my-team")
+    .setDescription("View your team's draft picks and budget"),
 ].map((command) => command.toJSON())
 
 // Register commands
@@ -83,6 +99,18 @@ export function createDiscordBot() {
           break
         case "pokemon":
           await handlePokemonCommand(interaction)
+          break
+        case "draft":
+          await handleDraftCommand(interaction)
+          break
+        case "draft-status":
+          await handleDraftStatusCommand(interaction)
+          break
+        case "draft-available":
+          await handleDraftAvailableCommand(interaction)
+          break
+        case "draft-my-team":
+          await handleDraftMyTeamCommand(interaction)
           break
         default:
           await interaction.reply("Unknown command")
@@ -223,6 +251,149 @@ async function handlePokemonCommand(interaction: any) {
     )
   } catch (error) {
     await interaction.editReply("Failed to fetch Pokémon data")
+  }
+}
+
+// Draft command handlers
+async function handleDraftCommand(interaction: any) {
+  const pokemonName = interaction.options.getString("pokemon")
+  const discordId = interaction.user.id
+
+  await interaction.deferReply()
+
+  try {
+    // Get user's team
+    const teamResponse = await fetch(
+      `${process.env.NEXT_PUBLIC_APP_URL}/api/discord/team?discord_id=${discordId}`,
+    )
+    const teamData = await teamResponse.json()
+
+    if (!teamData.team_id) {
+      await interaction.editReply("❌ You don't have a team assigned. Please contact an admin.")
+      return
+    }
+
+    // Get active season
+    const seasonResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/seasons/current`)
+    const seasonData = await seasonResponse.json()
+
+    if (!seasonData.season?.id) {
+      await interaction.editReply("❌ No active season found")
+      return
+    }
+
+    // Make draft pick via API
+    const draftResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/draft/pick`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        pokemon_name: pokemonName,
+        team_id: teamData.team_id,
+        season_id: seasonData.season.id,
+      }),
+    })
+
+    const draftResult = await draftResponse.json()
+
+    if (draftResult.success) {
+      await interaction.editReply(
+        `✅ **Draft Pick Confirmed!**\n**${pokemonName}** (${draftResult.pick.point_value}pts) drafted in Round ${draftResult.pick.round}, Pick #${draftResult.pick.pick_number}`,
+      )
+    } else {
+      await interaction.editReply(`❌ **Draft Failed**\n${draftResult.error || "Unknown error"}`)
+    }
+  } catch (error) {
+    console.error("Draft command error:", error)
+    await interaction.editReply("❌ Failed to process draft pick. Please try again.")
+  }
+}
+
+async function handleDraftStatusCommand(interaction: any) {
+  await interaction.deferReply()
+
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/draft/status`)
+    const data = await response.json()
+
+    if (!data.session) {
+      await interaction.editReply("❌ No active draft session")
+      return
+    }
+
+    const session = data.session
+    const currentTeam = data.currentTeam
+
+    await interaction.editReply(
+      `📊 **Draft Status**\n\n**Round**: ${session.current_round}/${session.total_rounds}\n**Pick**: #${session.current_pick_number}\n**Current Team**: ${currentTeam?.name || "Unknown"}\n**Status**: ${session.status}\n\n**Next**: ${data.nextTeam?.name || "TBD"}`,
+    )
+  } catch (error) {
+    await interaction.editReply("❌ Failed to fetch draft status")
+  }
+}
+
+async function handleDraftAvailableCommand(interaction: any) {
+  await interaction.deferReply()
+
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/draft/available?limit=20`)
+    const data = await response.json()
+
+    if (!data.pokemon || data.pokemon.length === 0) {
+      await interaction.editReply("❌ No available Pokémon found")
+      return
+    }
+
+    // Group by point value
+    const byPoints = new Map<number, string[]>()
+    for (const p of data.pokemon) {
+      if (!byPoints.has(p.point_value)) {
+        byPoints.set(p.point_value, [])
+      }
+      byPoints.get(p.point_value)!.push(p.pokemon_name)
+    }
+
+    const lines: string[] = ["📋 **Available Pokémon**\n"]
+    for (const [points, names] of Array.from(byPoints.entries()).sort((a, b) => b[0] - a[0])) {
+      lines.push(`**${points}pts**: ${names.slice(0, 5).join(", ")}${names.length > 5 ? ` +${names.length - 5} more` : ""}`)
+    }
+
+    await interaction.editReply(lines.join("\n"))
+  } catch (error) {
+    await interaction.editReply("❌ Failed to fetch available Pokémon")
+  }
+}
+
+async function handleDraftMyTeamCommand(interaction: any) {
+  const discordId = interaction.user.id
+  await interaction.deferReply()
+
+  try {
+    // Get user's team
+    const teamResponse = await fetch(
+      `${process.env.NEXT_PUBLIC_APP_URL}/api/discord/team?discord_id=${discordId}`,
+    )
+    const teamData = await teamResponse.json()
+
+    if (!teamData.team_id) {
+      await interaction.editReply("❌ You don't have a team assigned")
+      return
+    }
+
+    // Get team status
+    const statusResponse = await fetch(
+      `${process.env.NEXT_PUBLIC_APP_URL}/api/draft/team-status?team_id=${teamData.team_id}`,
+    )
+    const status = await statusResponse.json()
+
+    const picksList = status.picks
+      .map((p: any, idx: number) => `${idx + 1}. ${p.pokemon_name} (${p.point_value}pts) - Round ${p.round}`)
+      .join("\n")
+
+    await interaction.editReply(
+      `👥 **Your Team**\n\n**Budget**: ${status.budget.spent}/${status.budget.total}pts (${status.budget.remaining} remaining)\n\n**Picks**:\n${picksList || "No picks yet"}`,
+    )
+  } catch (error) {
+    await interaction.editReply("❌ Failed to fetch team status")
   }
 }
 

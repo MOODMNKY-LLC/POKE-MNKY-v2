@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { Database, Calendar, Trophy, Users, RefreshCw, Settings } from "lucide-react"
 import { SupabaseManager } from "@/components/platform/supabase-manager"
+import { PokepediaSyncStatus } from "@/components/admin/pokepedia-sync-status"
 import { useRouter } from "next/navigation"
 
 export default function AdminPage() {
@@ -59,7 +60,7 @@ export default function AdminPage() {
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <header className="border-b border-border bg-card">
-        <div className="container flex h-16 items-center justify-between">
+        <div className="container mx-auto flex h-16 items-center justify-between px-4">
           <div>
             <h1 className="text-xl font-bold">Admin Dashboard</h1>
             <p className="text-sm text-muted-foreground">{user.email}</p>
@@ -81,7 +82,7 @@ export default function AdminPage() {
         </div>
       </header>
 
-      <main className="container flex-1 py-8">
+      <main className="container mx-auto flex-1 py-8 px-4">
         <div className="mb-8">
           <h2 className="text-3xl font-bold tracking-tight">League Management</h2>
           <p className="text-muted-foreground">Manage teams, matches, and sync data</p>
@@ -148,11 +149,16 @@ export default function AdminPage() {
               <p className="mb-4 text-sm text-muted-foreground">
                 Import the latest data from your Google Sheets master data file.
               </p>
-              <form action="/api/sync" method="POST">
-                <Button type="submit" className="w-full">
-                  Sync Now
+              <div className="flex gap-2">
+                <Button asChild variant="outline" className="flex-1">
+                  <Link href="/admin/google-sheets">Configure</Link>
                 </Button>
-              </form>
+                <form action="/api/sync/google-sheets" method="POST" className="flex-1">
+                  <Button type="submit" className="w-full">
+                    Sync Now
+                  </Button>
+                </form>
+              </div>
             </CardContent>
           </Card>
 
@@ -234,6 +240,11 @@ export default function AdminPage() {
               </Button>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Poképedia Sync Status */}
+        <div className="mt-8">
+          <PokepediaSyncStatus />
         </div>
 
         {/* Recent Sync Log */}
