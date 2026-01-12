@@ -2,6 +2,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { MessageSquare, Sparkles, Menu, Database, Brain, Trophy, Calendar, Users, BookOpen } from "lucide-react"
+import { ThemeSwitcher } from "@/components/theme-switcher"
 
 export function SiteHeader() {
   return (
@@ -54,6 +55,7 @@ export function SiteHeader() {
             </Link>
           </div>
           <div className="flex items-center gap-2">
+            <ThemeSwitcher />
             <Button
               asChild
               variant="outline"
@@ -73,6 +75,7 @@ export function SiteHeader() {
 
         {/* Mobile Navigation */}
         <div className="flex flex-1 items-center justify-end lg:hidden gap-2">
+          <ThemeSwitcher />
           <Button asChild size="sm" className="bg-gradient-to-r from-primary to-secondary">
             <Link href="/auth/login">
               <MessageSquare className="h-4 w-4" />
