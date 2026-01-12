@@ -2,9 +2,55 @@
 
 import OpenAI from "openai"
 
-export const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
+// Singleton instance - only created when first needed at runtime
+let _openaiClient: OpenAI | null = null
+
+// Lazy initialization function - only called when actually used
+function getOpenAIClient(): OpenAI {
+  if (!_openaiClient) {
+    const apiKey = process.env.OPENAI_API_KEY
+    if (!apiKey) {
+      throw new Error(
+        "OPENAI_API_KEY environment variable is not set. Please add it to your Vercel project environment variables.",
+      )
+    }
+    _openaiClient = new OpenAI({ apiKey })
+  }
+  return _openaiClient
+}
+
+// Export a function, not an object with getters (to avoid module-time evaluation)
+export function getOpenAI() {
+  return getOpenAIClient()
+}
+
+// This uses a getter-based approach that defers client creation until property access
+export const openai = {
+  get chat() {
+    return getOpenAIClient().chat
+  },
+  get completions() {
+    return getOpenAIClient().completions
+  },
+  get embeddings() {
+    return getOpenAIClient().embeddings
+  },
+  get models() {
+    return getOpenAIClient().models
+  },
+  get audio() {
+    return getOpenAIClient().audio
+  },
+  get files() {
+    return getOpenAIClient().files
+  },
+  get images() {
+    return getOpenAIClient().images
+  },
+  get moderations() {
+    return getOpenAIClient().moderations
+  },
+}
 
 // Model selection based on use case
 export const AI_MODELS = {
@@ -49,6 +95,8 @@ export interface BattleChoice {
 
 // Grounded Pokédex Q&A
 export async function askPokedexQuestion(input: PokedexQuery): Promise<string> {
+  const openaiClient = getOpenAIClient()
+
   const tools: OpenAI.Chat.ChatCompletionTool[] = [
     {
       type: "function",
@@ -66,7 +114,7 @@ export async function askPokedexQuestion(input: PokedexQuery): Promise<string> {
     },
   ]
 
-  const response = await openai.chat.completions.create({
+  const response = await openaiClient.chat.completions.create({
     model: AI_MODELS.POKEDEX_QA,
     messages: [
       {
@@ -95,7 +143,9 @@ export async function askPokedexQuestion(input: PokedexQuery): Promise<string> {
 
 // Battle move selection
 export async function selectBattleMove(input: BattleChoiceInput): Promise<BattleChoice> {
-  const response = await openai.chat.completions.create({
+  const openaiClient = getOpenAIClient()
+
+  const response = await openaiClient.chat.completions.create({
     model: AI_MODELS.BATTLE_CHOICE,
     messages: [
       {
@@ -143,7 +193,9 @@ export async function generateWeeklyRecap(weekData: {
   streaks: any[]
   top_performers: any[]
 }): Promise<string> {
-  const response = await openai.chat.completions.create({
+  const openaiClient = getOpenAIClient()
+
+  const response = await openaiClient.chat.completions.create({
     model: AI_MODELS.WEEKLY_RECAP,
     messages: [
       {
@@ -174,7 +226,9 @@ export async function parseMatchResult(text: string): Promise<{
   needs_review: boolean
   notes: string
 }> {
-  const response = await openai.chat.completions.create({
+  const openaiClient = getOpenAIClient()
+
+  const response = await openaiClient.chat.completions.create({
     model: AI_MODELS.RESULT_PARSER,
     messages: [
       {
