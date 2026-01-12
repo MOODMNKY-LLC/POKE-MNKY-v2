@@ -1,12 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase/server"
-import OpenAI from "openai"
+import { getOpenAI } from "@/lib/openai-client"
 import createClient from "openapi-fetch"
 import type { paths } from "@/lib/management-api-schema"
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
 
 const client = createClient<paths>({
   baseUrl: "https://api.supabase.com",
@@ -93,6 +89,8 @@ export async function POST(request: NextRequest) {
     // Get database schema
     const schema = await getDbSchema(projectRef)
     const schemaString = formatSchemaForPrompt(schema)
+
+    const openai = getOpenAI()
 
     // Generate SQL using OpenAI
     const completion = await openai.chat.completions.create({
