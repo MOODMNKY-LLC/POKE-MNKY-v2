@@ -25,6 +25,8 @@ export async function updateSession(request: NextRequest) {
     },
   )
 
+  // This ensures the session is validated and refreshed on every request
+  // Without this, sessions won't persist properly after OAuth callback
   const {
     data: { user },
   } = await supabase.auth.getUser()

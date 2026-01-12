@@ -220,6 +220,20 @@ export default function AdminPage() {
               </Button>
             </CardContent>
           </Card>
+
+          {/* User Management */}
+          <Card>
+            <CardHeader>
+              <Users className="mb-2 h-8 w-8 text-primary" />
+              <CardTitle>User Management</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-4 text-sm text-muted-foreground">Manage user roles, permissions, and access control.</p>
+              <Button asChild variant="outline" className="w-full bg-transparent">
+                <Link href="/admin/users">Manage Users</Link>
+              </Button>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Recent Sync Log */}
