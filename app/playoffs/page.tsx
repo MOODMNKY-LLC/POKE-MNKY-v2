@@ -3,50 +3,23 @@ import { SiteHeader } from "@/components/site-header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { BracketMatch } from "@/components/bracket-match"
-import { mockMatches, getTeamById } from "@/lib/mock-data"
-
-const USE_MOCK_DATA = true
 
 export default async function PlayoffsPage() {
-  let playoffMatches = null
+  const supabase = await createClient()
 
-  if (USE_MOCK_DATA) {
-    // Filter playoff matches and add team details
-    playoffMatches = mockMatches
-      .filter((m) => m.is_playoff)
-      .map((match) => ({
-        id: match.id.toString(),
-        team1_id: match.team1_id.toString(),
-        team2_id: match.team2_id.toString(),
-        team1_score: match.team1_score,
-        team2_score: match.team2_score,
-        winner_id: match.winner_id?.toString() || null,
-        playoff_round: match.playoff_round,
-        differential: match.differential,
-        team1: getTeamById(match.team1_id),
-        team2: getTeamById(match.team2_id),
-        winner: match.winner_id ? getTeamById(match.winner_id) : null,
-      }))
-      .sort((a, b) => (a.playoff_round || 0) - (b.playoff_round || 0))
-  } else {
-    const supabase = await createClient()
-
-    // Fetch playoff matches
-    const { data } = await supabase
-      .from("matches")
-      .select(
-        `
-        *,
-        team1:team1_id(name),
-        team2:team2_id(name),
-        winner:winner_id(name)
-      `,
-      )
-      .eq("is_playoff", true)
-      .order("playoff_round")
-
-    playoffMatches = data
-  }
+  // Fetch playoff matches
+  const { data: playoffMatches } = await supabase
+    .from("matches")
+    .select(
+      `
+      *,
+      team1:team1_id(name),
+      team2:team2_id(name),
+      winner:winner_id(name)
+    `,
+    )
+    .eq("is_playoff", true)
+    .order("playoff_round")
 
   // Group by round
   const rounds = {

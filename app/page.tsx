@@ -5,11 +5,10 @@ import { StatCard } from "@/components/stat-card"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { mockTeams, mockMatches, getTeamById, getMVPStats } from "@/lib/mock-data"
-
-const USE_MOCK_DATA = true // Set to false when deployed with real database
 
 export default async function HomePage() {
+  const supabase = await createClient()
+
   console.log("[v0] HomePage rendering started")
 
   let teams = null
@@ -18,108 +17,71 @@ export default async function HomePage() {
   let recentMatches = null
   let topPokemon = null
 
-  if (USE_MOCK_DATA) {
-    teams = mockTeams.sort((a, b) => b.wins - a.wins || b.differential - a.differential).slice(0, 5)
-    teamCount = mockTeams.length
-
-    const regularMatches = mockMatches.filter((m) => !m.is_playoff)
-    matchCount = regularMatches.length
-
-    recentMatches = regularMatches
-      .slice(-3)
-      .reverse()
-      .map((m) => ({
-        id: m.id,
-        week: m.week,
-        team1_id: m.team1_id,
-        team2_id: m.team2_id,
-        team1_score: m.team1_score,
-        team2_score: m.team2_score,
-        winner_id: m.winner_id,
-        differential: m.differential,
-        team1: getTeamById(m.team1_id),
-        team2: getTeamById(m.team2_id),
-        winner: m.winner_id ? getTeamById(m.winner_id) : null,
-      }))
-
-    const mvpStats = getMVPStats()
-    topPokemon = mvpStats.slice(0, 3).map((stat) => ({
-      pokemon: { name: stat.name },
-      kills: stat.totalKills,
-    }))
-  } else {
+  try {
+    // Fetch key statistics with error handling
     try {
-      const supabase = await createClient()
-      console.log("[v0] Supabase client created")
+      const result = await supabase
+        .from("teams")
+        .select("*", { count: "exact" })
+        .order("wins", { ascending: false })
+        .limit(5)
 
-      // Fetch key statistics with error handling
-      try {
-        const result = await supabase
-          .from("teams")
-          .select("*", { count: "exact" })
-          .order("wins", { ascending: false })
-          .limit(5)
-
-        teams = result.data
-        teamCount = result.count || 0
-        console.log("[v0] Teams fetched:", teamCount)
-      } catch (error) {
-        console.log("[v0] Teams table not yet created:", error)
-      }
-
-      try {
-        const result = await supabase
-          .from("matches")
-          .select("*", { count: "exact", head: true })
-          .eq("is_playoff", false)
-
-        matchCount = result.count || 0
-        console.log("[v0] Matches count:", matchCount)
-      } catch (error) {
-        console.log("[v0] Matches table not yet created:", error)
-      }
-
-      try {
-        const result = await supabase
-          .from("matches")
-          .select(
-            `
-            *,
-            team1:team1_id(name, coach_name),
-            team2:team2_id(name, coach_name),
-            winner:winner_id(name)
-          `,
-          )
-          .order("created_at", { ascending: false })
-          .limit(3)
-
-        recentMatches = result.data
-        console.log("[v0] Recent matches fetched:", recentMatches?.length || 0)
-      } catch (error) {
-        console.log("[v0] Error fetching recent matches:", error)
-      }
-
-      try {
-        const result = await supabase
-          .from("pokemon_stats")
-          .select(
-            `
-            pokemon_id,
-            pokemon:pokemon_id(name),
-            kills
-          `,
-          )
-          .order("kills", { ascending: false })
-          .limit(3)
-
-        topPokemon = result.data
-        console.log("[v0] Top pokemon fetched:", topPokemon?.length || 0)
-      } catch (error) {
-        console.log("[v0] Error fetching pokemon stats:", error)
-      }
+      teams = result.data
+      teamCount = result.count || 0
+      console.log("[v0] Teams fetched:", teamCount)
     } catch (error) {
-      console.log("[v0] Error creating Supabase client:", error)
+      console.log("[v0] Teams table not yet created:", error)
     }
+
+    try {
+      const result = await supabase.from("matches").select("*", { count: "exact", head: true }).eq("is_playoff", false)
+
+      matchCount = result.count || 0
+      console.log("[v0] Matches count:", matchCount)
+    } catch (error) {
+      console.log("[v0] Matches table not yet created:", error)
+    }
+
+    try {
+      const result = await supabase
+        .from("matches")
+        .select(
+          `
+          *,
+          team1:team1_id(name, coach_name),
+          team2:team2_id(name, coach_name),
+          winner:winner_id(name)
+        `,
+        )
+        .order("created_at", { ascending: false })
+        .limit(3)
+
+      recentMatches = result.data
+      console.log("[v0] Recent matches fetched:", recentMatches?.length || 0)
+    } catch (error) {
+      console.log("[v0] Error fetching recent matches:", error)
+    }
+
+    try {
+      const result = await supabase
+        .from("pokemon_stats")
+        .select(
+          `
+          pokemon_id,
+          pokemon:pokemon_id(name),
+          kills
+        `,
+        )
+        .order("kills", { ascending: false })
+        .limit(3)
+
+      topPokemon = result.data
+      console.log("[v0] Top pokemon fetched:", topPokemon?.length || 0)
+    } catch (error) {
+      console.log("[v0] Error fetching pokemon stats:", error)
+    }
+  } catch (error) {
+    console.log("[v0] Error creating Supabase client:", error)
   }
 
   return (

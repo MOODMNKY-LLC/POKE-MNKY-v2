@@ -3,43 +3,24 @@ import { SiteHeader } from "@/components/site-header"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { mockMatches, getTeamById } from "@/lib/mock-data"
-
-const USE_MOCK_DATA = true
 
 export default async function SchedulePage() {
-  let matches = null
+  const supabase = await createClient()
 
-  if (USE_MOCK_DATA) {
-    // Filter regular season matches and add team details
-    matches = mockMatches
-      .filter((m) => !m.is_playoff)
-      .map((match) => ({
-        ...match,
-        team1: getTeamById(match.team1_id),
-        team2: getTeamById(match.team2_id),
-        winner: match.winner_id ? getTeamById(match.winner_id) : null,
-      }))
-  } else {
-    const supabase = await createClient()
-
-    // Fetch all regular season matches
-    const { data } = await supabase
-      .from("matches")
-      .select(
-        `
-        *,
-        team1:team1_id(name, coach_name, division),
-        team2:team2_id(name, coach_name, division),
-        winner:winner_id(name)
-      `,
-      )
-      .eq("is_playoff", false)
-      .order("week")
-      .order("created_at")
-
-    matches = data
-  }
+  // Fetch all regular season matches
+  const { data: matches } = await supabase
+    .from("matches")
+    .select(
+      `
+      *,
+      team1:team1_id(name, coach_name, division),
+      team2:team2_id(name, coach_name, division),
+      winner:winner_id(name)
+    `,
+    )
+    .eq("is_playoff", false)
+    .order("week")
+    .order("created_at")
 
   // Group matches by week
   const matchesByWeek = matches?.reduce(

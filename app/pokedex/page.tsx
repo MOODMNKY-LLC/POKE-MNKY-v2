@@ -1,62 +1,54 @@
 "use client"
 
-import { useState } from "react"
-import { Search, Sparkles } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Search, Sparkles, ImageIcon } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { createBrowserClient } from "@/lib/supabase/client"
 
-const USE_MOCK_DATA = true
-
-const MOCK_POKEMON = [
-  {
-    pokemon_id: 25,
-    name: "pikachu",
-    types: ["electric"],
-    base_stats: { hp: 35, attack: 55, defense: 40, special_attack: 50, special_defense: 50, speed: 90 },
-    abilities: ["static", "lightning-rod"],
-    tier: "RU",
-    draft_cost: 8,
-    sprite_url: "/placeholder.svg?height=96&width=96",
-  },
-  {
-    pokemon_id: 94,
-    name: "gengar",
-    types: ["ghost", "poison"],
-    base_stats: { hp: 60, attack: 65, defense: 60, special_attack: 130, special_defense: 75, speed: 110 },
-    abilities: ["cursed-body"],
-    tier: "OU",
-    draft_cost: 15,
-    sprite_url: "/placeholder.svg?height=96&width=96",
-  },
-  {
-    pokemon_id: 445,
-    name: "garchomp",
-    types: ["dragon", "ground"],
-    base_stats: { hp: 108, attack: 130, defense: 95, special_attack: 80, special_defense: 85, speed: 102 },
-    abilities: ["sand-veil", "rough-skin"],
-    tier: "OU",
-    draft_cost: 16,
-    sprite_url: "/placeholder.svg?height=96&width=96",
-  },
-]
+const supabase = createBrowserClient()
 
 export default function PokedexPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedPokemon, setSelectedPokemon] = useState<any>(null)
+  const [pokemonList, setPokemonList] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
   const [aiQuestion, setAiQuestion] = useState("")
   const [aiResponse, setAiResponse] = useState("")
-  const [loading, setLoading] = useState(false)
+  const [aiLoading, setAiLoading] = useState(false)
+  const [spriteMode, setSpriteMode] = useState<"front" | "back" | "shiny" | "artwork">("front")
 
-  const filteredPokemon = MOCK_POKEMON.filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
+  useEffect(() => {
+    async function loadPokemon() {
+      setLoading(true)
+      const { data, error } = await supabase
+        .from("pokemon_cache")
+        .select("*")
+        .order("pokemon_id", { ascending: true })
+        .limit(50)
+
+      if (error) {
+        console.error("[v0] Failed to load Pokemon:", error)
+      } else {
+        setPokemonList(data || [])
+      }
+      setLoading(false)
+    }
+
+    loadPokemon()
+  }, [])
+
+  const filteredPokemon = pokemonList.filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
 
   const handleAskAI = async () => {
     if (!aiQuestion.trim()) return
 
-    setLoading(true)
+    setAiLoading(true)
     try {
       const response = await fetch("/api/ai/pokedex", {
         method: "POST",
@@ -69,7 +61,7 @@ export default function PokedexPage() {
     } catch (error) {
       setAiResponse("Error: " + (error instanceof Error ? error.message : "Unknown error"))
     } finally {
-      setLoading(false)
+      setAiLoading(false)
     }
   }
 
@@ -84,6 +76,31 @@ export default function PokedexPage() {
     return colors[tier] || "bg-muted text-muted-foreground"
   }
 
+  const getSpriteUrl = (pokemon: any) => {
+    if (!pokemon.sprites) return pokemon.sprite_url || "/placeholder.svg?height=96&width=96"
+
+    switch (spriteMode) {
+      case "back":
+        return pokemon.sprites.back_default || pokemon.sprites.front_default
+      case "shiny":
+        return pokemon.sprites.front_shiny || pokemon.sprites.front_default
+      case "artwork":
+        return pokemon.sprites.official_artwork || pokemon.sprites.front_default
+      default:
+        return pokemon.sprites.front_default || pokemon.sprite_url
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="container mx-auto py-8 px-4">
+        <div className="text-center">
+          <p className="text-muted-foreground">Loading Pokédex...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="mb-8">
@@ -91,6 +108,13 @@ export default function PokedexPage() {
         <p className="text-muted-foreground">
           Browse Pokémon data, check stats, and get AI-powered insights for your team building.
         </p>
+        {pokemonList.length === 0 && (
+          <div className="mt-4 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+            <p className="text-sm text-yellow-600 dark:text-yellow-400">
+              ⚠️ No Pokémon data found. Run the pre-cache script to populate the database.
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -109,7 +133,7 @@ export default function PokedexPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
+            <div className="space-y-2 max-h-[600px] overflow-y-auto">
               {filteredPokemon.map((pokemon) => (
                 <button
                   key={pokemon.pokemon_id}
@@ -122,14 +146,14 @@ export default function PokedexPage() {
                 >
                   <div className="flex items-center gap-3">
                     <img
-                      src={pokemon.sprite_url || "/placeholder.svg"}
+                      src={getSpriteUrl(pokemon) || "/placeholder.svg"}
                       alt={pokemon.name}
                       className="h-12 w-12 rounded bg-muted"
                     />
                     <div className="flex-1">
                       <p className="font-semibold capitalize">{pokemon.name}</p>
                       <div className="flex gap-1 mt-1">
-                        {pokemon.types.map((type) => (
+                        {pokemon.types.map((type: string) => (
                           <Badge key={type} variant="secondary" className="text-xs capitalize">
                             {type}
                           </Badge>
@@ -153,22 +177,40 @@ export default function PokedexPage() {
                   <CardTitle className="capitalize text-3xl">{selectedPokemon?.name || "Select a Pokémon"}</CardTitle>
                   {selectedPokemon && (
                     <CardDescription className="mt-2">
-                      Draft Cost: {selectedPokemon.draft_cost} points • Tier: {selectedPokemon.tier}
+                      Draft Cost: {selectedPokemon.draft_cost} points • Tier: {selectedPokemon.tier} • Gen{" "}
+                      {selectedPokemon.generation || "?"}
                     </CardDescription>
                   )}
                 </div>
                 {selectedPokemon && (
-                  <img
-                    src={selectedPokemon.sprite_url || "/placeholder.svg"}
-                    alt={selectedPokemon.name}
-                    className="h-24 w-24 rounded-lg bg-muted"
-                  />
+                  <div className="flex flex-col items-end gap-2">
+                    <img
+                      src={getSpriteUrl(selectedPokemon) || "/placeholder.svg"}
+                      alt={selectedPokemon.name}
+                      className="h-24 w-24 rounded-lg bg-muted"
+                    />
+                    {selectedPokemon.sprites && (
+                      <Select value={spriteMode} onValueChange={(v: any) => setSpriteMode(v)}>
+                        <SelectTrigger className="w-[140px] h-8 text-xs">
+                          <ImageIcon className="h-3 w-3 mr-1" />
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="front">Front</SelectItem>
+                          <SelectItem value="back">Back</SelectItem>
+                          <SelectItem value="shiny">Shiny</SelectItem>
+                          <SelectItem value="artwork">Artwork</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
                 )}
               </div>
               {selectedPokemon && (
                 <TabsList className="mt-4">
                   <TabsTrigger value="stats">Stats</TabsTrigger>
                   <TabsTrigger value="abilities">Abilities</TabsTrigger>
+                  <TabsTrigger value="moves">Moves</TabsTrigger>
                   <TabsTrigger value="ai">
                     <Sparkles className="h-4 w-4 mr-2" />
                     AI Assistant
@@ -221,13 +263,62 @@ export default function PokedexPage() {
                 </TabsContent>
 
                 <TabsContent value="abilities">
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <h3 className="font-semibold mb-3">Abilities</h3>
-                    {selectedPokemon.abilities.map((ability: string) => (
-                      <div key={ability} className="p-3 bg-muted rounded-lg">
-                        <p className="font-semibold capitalize">{ability.replace("-", " ")}</p>
+                    {selectedPokemon.ability_details && selectedPokemon.ability_details.length > 0
+                      ? selectedPokemon.ability_details.map((ability: any) => (
+                          <div key={ability.name} className="p-3 bg-muted rounded-lg space-y-1">
+                            <div className="flex items-center gap-2">
+                              <p className="font-semibold capitalize">{ability.name.replace("-", " ")}</p>
+                              {ability.is_hidden && (
+                                <Badge variant="outline" className="text-xs">
+                                  Hidden
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-sm text-muted-foreground">{ability.effect}</p>
+                          </div>
+                        ))
+                      : selectedPokemon.abilities.map((ability: string) => (
+                          <div key={ability} className="p-3 bg-muted rounded-lg">
+                            <p className="font-semibold capitalize">{ability.replace("-", " ")}</p>
+                          </div>
+                        ))}
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="moves">
+                  <div className="space-y-3">
+                    <h3 className="font-semibold mb-3">Top Competitive Moves</h3>
+                    {selectedPokemon.move_details && selectedPokemon.move_details.length > 0 ? (
+                      <div className="space-y-2">
+                        {selectedPokemon.move_details.slice(0, 10).map((move: any) => (
+                          <div key={move.name} className="p-3 bg-muted rounded-lg">
+                            <div className="flex items-center justify-between mb-1">
+                              <p className="font-semibold capitalize">{move.name.replace("-", " ")}</p>
+                              <div className="flex gap-2">
+                                <Badge variant="outline" className="capitalize text-xs">
+                                  {move.type}
+                                </Badge>
+                                <Badge variant="secondary" className="capitalize text-xs">
+                                  {move.category}
+                                </Badge>
+                              </div>
+                            </div>
+                            <div className="flex gap-4 text-xs text-muted-foreground">
+                              {move.power && <span>Power: {move.power}</span>}
+                              {move.accuracy && <span>Acc: {move.accuracy}%</span>}
+                              <span>PP: {move.pp}</span>
+                            </div>
+                            <p className="text-sm text-muted-foreground mt-1">{move.effect}</p>
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        Move details not cached. Extended data will be loaded on next fetch.
+                      </p>
+                    )}
                   </div>
                 </TabsContent>
 
@@ -242,9 +333,9 @@ export default function PokedexPage() {
                         rows={3}
                       />
                     </div>
-                    <Button onClick={handleAskAI} disabled={loading} className="w-full">
+                    <Button onClick={handleAskAI} disabled={aiLoading} className="w-full">
                       <Sparkles className="h-4 w-4 mr-2" />
-                      {loading ? "Thinking..." : "Ask AI"}
+                      {aiLoading ? "Thinking..." : "Ask AI"}
                     </Button>
 
                     {aiResponse && (

@@ -3,23 +3,15 @@ import { SiteHeader } from "@/components/site-header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
-import { mockTeams } from "@/lib/mock-data"
+// import { mockTeams } from "@/lib/mock-data"
 
-const USE_MOCK_DATA = true
+const divisions = ["Kanto", "Johto", "Hoenn", "Sinnoh"]
 
 export default async function TeamsPage() {
-  let teams = null
-
-  if (USE_MOCK_DATA) {
-    teams = mockTeams.sort((a, b) => a.name.localeCompare(b.name))
-  } else {
-    const supabase = await createClient()
-    const { data } = await supabase.from("teams").select("*").order("name")
-    teams = data
-  }
+  const supabase = await createClient()
+  const { data: teams } = await supabase.from("teams").select("*").order("name")
 
   // Group by division
-  const divisions = ["Kanto", "Johto", "Hoenn", "Sinnoh"]
 
   return (
     <div className="flex min-h-screen flex-col">

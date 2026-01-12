@@ -3,88 +3,46 @@ import { SiteHeader } from "@/components/site-header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { notFound } from "next/navigation"
-import { getTeamById, getPokemonByTeam, getMatchesForTeam } from "@/lib/mock-data"
-
-const USE_MOCK_DATA = true
 
 export default async function TeamDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const teamId = Number.parseInt(id)
+  const supabase = await createClient()
 
-  let team = null
-  let roster = null
-  let matches = null
+  // Fetch team details
+  const { data: team } = await supabase.from("teams").select("*").eq("id", id).single()
 
-  if (USE_MOCK_DATA) {
-    team = getTeamById(teamId)
-
-    if (!team) {
-      notFound()
-    }
-
-    // Get roster with pokemon details
-    roster = getPokemonByTeam(teamId).map((pokemon) => ({
-      id: pokemon.id,
-      draft_round: pokemon.draft_round,
-      draft_order: pokemon.draft_order,
-      pokemon: {
-        name: pokemon.name,
-        type1: "Unknown",
-        type2: null,
-      },
-    }))
-
-    // Get matches
-    const teamMatches = getMatchesForTeam(teamId)
-    matches = teamMatches
-      .slice(0, 5)
-      .reverse()
-      .map((match) => ({
-        ...match,
-        team1: getTeamById(match.team1_id),
-        team2: getTeamById(match.team2_id),
-        winner: match.winner_id ? getTeamById(match.winner_id) : null,
-      }))
-  } else {
-    const supabase = await createClient()
-
-    // Fetch team details
-    const { data: teamData } = await supabase.from("teams").select("*").eq("id", id).single()
-    team = teamData
-
-    if (!team) {
-      notFound()
-    }
-
-    // Fetch team roster with pokemon details
-    const { data: rosterData } = await supabase
-      .from("team_rosters")
-      .select(
-        `
-        *,
-        pokemon:pokemon_id(name, type1, type2)
-      `,
-      )
-      .eq("team_id", id)
-      .order("draft_round")
-    roster = rosterData
-
-    // Fetch team matches
-    const { data: matchesData } = await supabase
-      .from("matches")
-      .select(
-        `
-        *,
-        team1:team1_id(name),
-        team2:team2_id(name),
-        winner:winner_id(name)
-      `,
-      )
-      .or(`team1_id.eq.${id},team2_id.eq.${id}`)
-      .order("week", { ascending: false })
-      .limit(5)
-    matches = matchesData
+  if (!team) {
+    notFound()
   }
+
+  // Fetch team roster with pokemon details
+  const { data: roster } = await supabase
+    .from("team_rosters")
+    .select(
+      `
+      *,
+      pokemon:pokemon_id(name, type1, type2)
+    `,
+    )
+    .eq("team_id", id)
+    .order("draft_round")
+
+  // Fetch team matches
+  const { data: matches } = await supabase
+    .from("matches")
+    .select(
+      `
+      *,
+      team1:team1_id(name),
+      team2:team2_id(name),
+      winner:winner_id(name)
+    `,
+    )
+    .or(`team1_id.eq.${id},team2_id.eq.${id}`)
+    .order("week", { ascending: false })
+    .limit(5)
+
+  const teamId = Number.parseInt(id)
 
   return (
     <div className="flex min-h-screen flex-col">
