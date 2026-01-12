@@ -8,8 +8,27 @@ const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Average at Best Draft League",
-  description: "Competitive Pokemon Draft League - Standings, Schedules, and Statistics",
+  title: "Average at Best Draft League | Pokemon Competitive Platform",
+  description:
+    "Complete Pokemon Draft League platform with AI-powered insights, Discord integration, Showdown battle engine, and real-time analytics. Join the competitive scene today!",
+  keywords: [
+    "pokemon draft league",
+    "competitive pokemon",
+    "pokemon showdown",
+    "draft league platform",
+    "pokemon ai",
+    "discord pokemon",
+  ],
+  openGraph: {
+    title: "Average at Best Draft League",
+    description: "Competitive Pokemon Draft League with AI insights and Discord integration",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Average at Best Draft League",
+    description: "Competitive Pokemon Draft League platform",
+  },
   generator: "v0.app",
   icons: {
     icon: [
@@ -28,6 +47,12 @@ export const metadata: Metadata = {
     ],
     apple: "/apple-icon.png",
   },
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 5,
+    userScalable: true,
+  },
 }
 
 export default function RootLayout({
@@ -36,7 +61,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className="scroll-smooth">
       <body className={`font-sans antialiased`}>
         {children}
         <Analytics />
