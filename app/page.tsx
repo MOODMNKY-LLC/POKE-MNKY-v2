@@ -115,7 +115,7 @@ export default async function HomePage() {
                     </span>
                   </h1>
                   <p className="max-w-[600px] text-muted-foreground text-lg md:text-xl text-pretty">
-                    The ultimate Pokemon competitive platform powered by AI insights, Discord integration, and real-time
+                    The ultimate Pokémon competitive platform powered by AI insights, Discord integration, and real-time
                     analytics.
                   </p>
                 </div>
@@ -168,10 +168,10 @@ export default async function HomePage() {
             <div className="flex flex-col items-center justify-center space-y-4 text-center mb-12">
               <div className="space-y-3">
                 <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
-                  Complete Draft League Platform
+                  <span className="text-pokemon-bold">Complete Draft League Platform</span>
                 </h2>
                 <p className="mx-auto max-w-[700px] text-muted-foreground text-lg md:text-xl text-balance">
-                  Everything you need to run a competitive Pokemon draft league, all in one place
+                  Everything you need to run a competitive Pokémon draft league, all in one place
                 </p>
               </div>
             </div>
@@ -216,7 +216,7 @@ export default async function HomePage() {
               <FeatureCard
                 icon={<BarChart3 className="h-8 w-8" />}
                 title="Live Analytics"
-                description="Real-time standings, playoff brackets, MVP leaderboards, and detailed statistics for every team and Pokemon."
+                description="Real-time standings, playoff brackets, MVP leaderboards, and detailed statistics for every team and Pokémon."
                 status="active"
               />
               <FeatureCard
@@ -296,7 +296,7 @@ export default async function HomePage() {
                     </CardTitle>
                     <Badge variant="outline">Top Performers</Badge>
                   </div>
-                  <CardDescription>Most valuable Pokemon this season</CardDescription>
+                  <CardDescription>Most valuable Pokémon this season</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {topPokemon && topPokemon.length > 0 ? (
@@ -317,7 +317,7 @@ export default async function HomePage() {
                     </div>
                   ) : (
                     <div className="text-center py-8 text-muted-foreground">
-                      <p>No Pokemon stats available yet</p>
+                      <p>No Pokémon stats available yet</p>
                       <p className="text-sm mt-2">Data will populate after first matches</p>
                     </div>
                   )}
@@ -333,10 +333,10 @@ export default async function HomePage() {
             <div className="flex flex-col items-center justify-center space-y-4 text-center mb-12">
               <div className="space-y-3">
                 <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
-                  Built with Modern Technology
+                  <span className="text-pokemon-bold">Built with Modern Technology</span>
                 </h2>
                 <p className="mx-auto max-w-[700px] text-muted-foreground text-lg md:text-xl text-balance">
-                  Production-ready stack powering your competitive Pokemon experience
+                  Production-ready stack powering your competitive Pokémon experience
                 </p>
               </div>
             </div>
@@ -382,7 +382,7 @@ export default async function HomePage() {
                 </div>
                 <h3 className="font-semibold text-lg mb-2">PokéAPI</h3>
                 <p className="text-sm text-muted-foreground">
-                  Complete Pokemon data with sprites, abilities, and moves
+                  Complete Pokémon data with sprites, abilities, and moves
                 </p>
               </Card>
             </div>

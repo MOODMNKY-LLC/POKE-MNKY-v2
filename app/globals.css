@@ -82,8 +82,10 @@
 }
 
 @theme inline {
-  --font-sans: "Geist", "Geist Fallback";
-  --font-mono: "Geist Mono", "Geist Mono Fallback";
+  /* Updated font stack to use Pokémon-inspired Fredoka */
+  --font-sans: var(--font-fredoka), "Fredoka", ui-rounded, "SF Pro Rounded", system-ui, sans-serif;
+  --font-marker: var(--font-marker), "Permanent Marker", cursive;
+  --font-mono: var(--font-mono), "Geist Mono", ui-monospace, monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -178,6 +180,26 @@
   .smooth-scroll {
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
+  }
+  /* Adding Pokémon-inspired typography utilities */
+  /* Pokémon brand heading style - playful and bold */
+  .text-pokemon {
+    font-family: var(--font-marker);
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+
+  /* Friendly Pokémon body text */
+  .text-friendly {
+    font-family: var(--font-sans);
+    font-weight: 400;
+  }
+
+  /* Bold Pokémon headings */
+  .text-pokemon-bold {
+    font-family: var(--font-sans);
+    font-weight: 700;
+    letter-spacing: -0.02em;
   }
 }
 

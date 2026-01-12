@@ -33,7 +33,7 @@ export default function PokedexPage() {
         .limit(50)
 
       if (error) {
-        console.error("[v0] Failed to load Pokemon:", error)
+        console.error("[v0] Failed to load Pokémon:", error)
       } else {
         setPokemonList(data || [])
       }
@@ -104,230 +104,187 @@ export default function PokedexPage() {
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="mb-8">
-        <h1 className="text-4xl font-bold mb-2">Pokédex</h1>
-        <p className="text-muted-foreground">
-          Browse Pokémon data, check stats, and get AI-powered insights for your team building.
-        </p>
-        {pokemonList.length === 0 && (
-          <div className="mt-4 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-            <p className="text-sm text-yellow-600 dark:text-yellow-400">
-              ⚠️ No Pokémon data found. Run the pre-cache script to populate the database.
-            </p>
-          </div>
-        )}
+        <h1 className="text-4xl font-bold mb-2">
+          <span className="text-pokemon">Pokédex</span>
+        </h1>
+        <p className="text-muted-foreground">Explore competitive Pokémon data with AI-powered insights</p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      {/* Search and Filters */}
+      <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search Pokémon..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <Select value={spriteMode} onValueChange={(v: any) => setSpriteMode(v)}>
+          <SelectTrigger className="w-full sm:w-[180px]">
+            <ImageIcon className="h-4 w-4 mr-2" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="front">Front Sprite</SelectItem>
+            <SelectItem value="back">Back Sprite</SelectItem>
+            <SelectItem value="shiny">Shiny</SelectItem>
+            <SelectItem value="artwork">Official Art</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="grid lg:grid-cols-[300px_1fr] gap-6">
         {/* Pokemon List */}
-        <Card className="lg:col-span-1">
-          <CardHeader>
-            <CardTitle>Search Pokémon</CardTitle>
-            <div className="relative mt-2">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by name..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
+        <div className="space-y-2 h-[600px] overflow-y-auto pr-2">
+          {filteredPokemon.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>No Pokémon found</p>
+              <p className="text-sm mt-2">Run pre-cache script or adjust search</p>
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2 max-h-[600px] overflow-y-auto">
-              {filteredPokemon.map((pokemon) => (
-                <button
-                  key={pokemon.pokemon_id}
-                  onClick={() => setSelectedPokemon(pokemon)}
-                  className={`w-full text-left p-3 rounded-lg border transition-colors ${
-                    selectedPokemon?.pokemon_id === pokemon.pokemon_id
-                      ? "bg-primary/10 border-primary"
-                      : "hover:bg-muted border-border"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <img
-                      src={getSpriteUrl(pokemon) || "/placeholder.svg"}
-                      alt={pokemon.name}
-                      className="h-12 w-12 rounded bg-muted"
-                    />
-                    <div className="flex-1">
-                      <p className="font-semibold capitalize">{pokemon.name}</p>
-                      <div className="flex gap-1 mt-1">
-                        {pokemon.types.map((type: string) => (
-                          <Badge key={type} variant="secondary" className="text-xs capitalize">
-                            {type}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                    <Badge className={getTierColor(pokemon.tier)}>{pokemon.tier}</Badge>
+          ) : (
+            filteredPokemon.map((pokemon) => (
+              <Card
+                key={pokemon.pokemon_id}
+                className={`cursor-pointer transition-all hover:border-primary ${
+                  selectedPokemon?.pokemon_id === pokemon.pokemon_id ? "border-primary bg-primary/5" : ""
+                }`}
+                onClick={() => setSelectedPokemon(pokemon)}
+              >
+                <CardContent className="p-4 flex items-center gap-3">
+                  <img
+                    src={getSpriteUrl(pokemon) || "/placeholder.svg"}
+                    alt={pokemon.name}
+                    className="w-12 h-12 pixelated"
+                  />
+                  <div className="flex-1">
+                    <p className="font-semibold capitalize">{pokemon.name}</p>
+                    <p className="text-xs text-muted-foreground">#{pokemon.pokemon_id}</p>
                   </div>
-                </button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                  {pokemon.tier && (
+                    <Badge className={getTierColor(pokemon.tier)} variant="outline">
+                      {pokemon.tier}
+                    </Badge>
+                  )}
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
 
         {/* Pokemon Details */}
-        <Card className="lg:col-span-2">
-          <Tabs defaultValue="stats">
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div>
-                  <CardTitle className="capitalize text-3xl">{selectedPokemon?.name || "Select a Pokémon"}</CardTitle>
-                  {selectedPokemon && (
-                    <CardDescription className="mt-2">
-                      Draft Cost: {selectedPokemon.draft_cost} points • Tier: {selectedPokemon.tier} • Gen{" "}
-                      {selectedPokemon.generation || "?"}
-                    </CardDescription>
-                  )}
-                </div>
-                {selectedPokemon && (
-                  <div className="flex flex-col items-end gap-2">
-                    <img
-                      src={getSpriteUrl(selectedPokemon) || "/placeholder.svg"}
-                      alt={selectedPokemon.name}
-                      className="h-24 w-24 rounded-lg bg-muted"
-                    />
-                    {selectedPokemon.sprites && (
-                      <Select value={spriteMode} onValueChange={(v: any) => setSpriteMode(v)}>
-                        <SelectTrigger className="w-[140px] h-8 text-xs">
-                          <ImageIcon className="h-3 w-3 mr-1" />
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="front">Front</SelectItem>
-                          <SelectItem value="back">Back</SelectItem>
-                          <SelectItem value="shiny">Shiny</SelectItem>
-                          <SelectItem value="artwork">Artwork</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    )}
-                  </div>
-                )}
-              </div>
-              {selectedPokemon && (
-                <TabsList className="mt-4">
-                  <TabsTrigger value="stats">Stats</TabsTrigger>
-                  <TabsTrigger value="abilities">Abilities</TabsTrigger>
-                  <TabsTrigger value="moves">Moves</TabsTrigger>
-                  <TabsTrigger value="ai">
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    AI Assistant
-                  </TabsTrigger>
-                </TabsList>
-              )}
-            </CardHeader>
+        <div>
+          {selectedPokemon ? (
+            <Tabs defaultValue="stats" className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="stats">Stats</TabsTrigger>
+                <TabsTrigger value="abilities">Abilities</TabsTrigger>
+                <TabsTrigger value="ai">AI Assistant</TabsTrigger>
+              </TabsList>
 
-            {selectedPokemon && (
-              <CardContent>
-                <TabsContent value="stats" className="space-y-4">
-                  <div>
-                    <h3 className="font-semibold mb-3">Base Stats</h3>
-                    <div className="space-y-3">
-                      {Object.entries(selectedPokemon.base_stats).map(([stat, value]) => (
-                        <div key={stat}>
-                          <div className="flex justify-between text-sm mb-1">
-                            <span className="capitalize">{stat.replace("_", " ")}</span>
-                            <span className="font-semibold">{value as number}</span>
-                          </div>
-                          <div className="h-2 bg-muted rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-primary rounded-full transition-all"
-                              style={{ width: `${Math.min(((value as number) / 255) * 100, 100)}%` }}
-                            />
-                          </div>
+              <TabsContent value="stats" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <CardTitle className="text-3xl capitalize">{selectedPokemon.name}</CardTitle>
+                        <CardDescription>#{selectedPokemon.pokemon_id}</CardDescription>
+                      </div>
+                      <img
+                        src={getSpriteUrl(selectedPokemon) || "/placeholder.svg"}
+                        alt={selectedPokemon.name}
+                        className="w-24 h-24 pixelated"
+                      />
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {selectedPokemon.types && (
+                      <div>
+                        <h3 className="font-semibold mb-2">Types</h3>
+                        <div className="flex gap-2">
+                          {JSON.parse(selectedPokemon.types).map((type: string) => (
+                            <Badge key={type} variant="secondary">
+                              {type}
+                            </Badge>
+                          ))}
                         </div>
-                      ))}
-                    </div>
-                    <div className="mt-4 p-3 bg-muted rounded-lg">
-                      <p className="text-sm text-muted-foreground">
-                        Base Stat Total:{" "}
-                        <span className="font-semibold text-foreground">
-                          {Object.values(selectedPokemon.base_stats).reduce((a, b) => a + b, 0)}
-                        </span>
-                      </p>
-                    </div>
-                  </div>
+                      </div>
+                    )}
 
-                  <div>
-                    <h3 className="font-semibold mb-2">Types</h3>
-                    <div className="flex gap-2">
-                      {selectedPokemon.types.map((type: string) => (
-                        <Badge key={type} className="capitalize">
-                          {type}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="abilities">
-                  <div className="space-y-3">
-                    <h3 className="font-semibold mb-3">Abilities</h3>
-                    {selectedPokemon.ability_details && selectedPokemon.ability_details.length > 0
-                      ? selectedPokemon.ability_details.map((ability: any) => (
-                          <div key={ability.name} className="p-3 bg-muted rounded-lg space-y-1">
-                            <div className="flex items-center gap-2">
-                              <p className="font-semibold capitalize">{ability.name.replace("-", " ")}</p>
-                              {ability.is_hidden && (
-                                <Badge variant="outline" className="text-xs">
-                                  Hidden
-                                </Badge>
-                              )}
-                            </div>
-                            <p className="text-sm text-muted-foreground">{ability.effect}</p>
-                          </div>
-                        ))
-                      : selectedPokemon.abilities.map((ability: string) => (
-                          <div key={ability} className="p-3 bg-muted rounded-lg">
-                            <p className="font-semibold capitalize">{ability.replace("-", " ")}</p>
-                          </div>
-                        ))}
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="moves">
-                  <div className="space-y-3">
-                    <h3 className="font-semibold mb-3">Top Competitive Moves</h3>
-                    {selectedPokemon.move_details && selectedPokemon.move_details.length > 0 ? (
-                      <div className="space-y-2">
-                        {selectedPokemon.move_details.slice(0, 10).map((move: any) => (
-                          <div key={move.name} className="p-3 bg-muted rounded-lg">
-                            <div className="flex items-center justify-between mb-1">
-                              <p className="font-semibold capitalize">{move.name.replace("-", " ")}</p>
-                              <div className="flex gap-2">
-                                <Badge variant="outline" className="capitalize text-xs">
-                                  {move.type}
-                                </Badge>
-                                <Badge variant="secondary" className="capitalize text-xs">
-                                  {move.category}
-                                </Badge>
+                    {selectedPokemon.base_stats && (
+                      <div>
+                        <h3 className="font-semibold mb-2">Base Stats</h3>
+                        <div className="space-y-2">
+                          {Object.entries(JSON.parse(selectedPokemon.base_stats)).map(([stat, value]: any) => (
+                            <div key={stat} className="flex items-center gap-3">
+                              <span className="text-sm w-20 capitalize">{stat.replace("-", " ")}</span>
+                              <div className="flex-1 bg-muted rounded-full h-2 overflow-hidden">
+                                <div
+                                  className="bg-primary h-full transition-all"
+                                  style={{ width: `${(value / 255) * 100}%` }}
+                                />
                               </div>
+                              <span className="text-sm font-mono w-8 text-right">{value}</span>
                             </div>
-                            <div className="flex gap-4 text-xs text-muted-foreground">
-                              {move.power && <span>Power: {move.power}</span>}
-                              {move.accuracy && <span>Acc: {move.accuracy}%</span>}
-                              <span>PP: {move.pp}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {selectedPokemon.tier && (
+                      <div>
+                        <h3 className="font-semibold mb-2">Competitive Tier</h3>
+                        <Badge className={getTierColor(selectedPokemon.tier)} variant="outline">
+                          {selectedPokemon.tier}
+                        </Badge>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="abilities" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Abilities</CardTitle>
+                    <CardDescription>Available abilities for {selectedPokemon.name}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {selectedPokemon.abilities ? (
+                      <div className="space-y-3">
+                        {JSON.parse(selectedPokemon.abilities).map((ability: any) => (
+                          <div key={ability.name} className="p-3 rounded-lg bg-muted/50">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4 className="font-semibold capitalize">{ability.name.replace("-", " ")}</h4>
+                              {ability.is_hidden && <Badge variant="secondary">Hidden</Badge>}
                             </div>
-                            <p className="text-sm text-muted-foreground mt-1">{move.effect}</p>
+                            {ability.effect && <p className="text-sm text-muted-foreground">{ability.effect}</p>}
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <p className="text-sm text-muted-foreground">
-                        Move details not cached. Extended data will be loaded on next fetch.
-                      </p>
+                      <p className="text-muted-foreground">No ability data available</p>
                     )}
-                  </div>
-                </TabsContent>
+                  </CardContent>
+                </Card>
+              </TabsContent>
 
-                <TabsContent value="ai">
-                  <div className="space-y-4">
+              <TabsContent value="ai" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Sparkles className="h-5 w-5" />
+                      AI Pokémon Assistant
+                    </CardTitle>
+                    <CardDescription>
+                      Ask questions about {selectedPokemon.name} and competitive strategy
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
                     <div>
-                      <label className="text-sm font-medium mb-2 block">Ask AI about {selectedPokemon.name}</label>
                       <Textarea
-                        placeholder={`e.g., "What's a good moveset for ${selectedPokemon.name} in Gen 9 OU?"`}
+                        placeholder={`What are the best moves for ${selectedPokemon.name}?`}
                         value={aiQuestion}
                         onChange={(e) => setAiQuestion(e.target.value)}
                         rows={3}
@@ -337,18 +294,26 @@ export default function PokedexPage() {
                       <Sparkles className="h-4 w-4 mr-2" />
                       {aiLoading ? "Thinking..." : "Ask AI"}
                     </Button>
-
                     {aiResponse && (
-                      <div className="p-4 bg-muted rounded-lg">
-                        <p className="text-sm whitespace-pre-wrap">{aiResponse}</p>
-                      </div>
+                      <Card className="bg-muted/50">
+                        <CardContent className="pt-6">
+                          <p className="text-sm whitespace-pre-wrap">{aiResponse}</p>
+                        </CardContent>
+                      </Card>
                     )}
-                  </div>
-                </TabsContent>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          ) : (
+            <Card className="h-[600px] flex items-center justify-center">
+              <CardContent className="text-center text-muted-foreground">
+                <Sparkles className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Select a Pokémon to view details</p>
               </CardContent>
-            )}
-          </Tabs>
-        </Card>
+            </Card>
+          )}
+        </div>
       </div>
     </div>
   )
