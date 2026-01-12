@@ -1,18 +1,41 @@
-// Google Sheets sync using node-google-spreadsheet
-// Replaces the googleapis implementation with simpler API
-
-import { GoogleSpreadsheet } from "node-google-spreadsheet"
-import { createClient } from "@supabase/supabase-js"
-
-const SHEET_ID = process.env.GOOGLE_SHEETS_ID || ""
-const SERVICE_ACCOUNT_EMAIL = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || ""
-const SERVICE_ACCOUNT_PRIVATE_KEY = (process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY || "").replace(/\\n/g, "\n")
-
 export interface SyncResult {
   success: boolean
   recordsProcessed: number
   errors: string[]
 }
+
+// Mock sync function for preview/development
+export async function syncLeagueData(): Promise<SyncResult> {
+  console.log("[v0] Google Sheets sync is disabled - using mock data")
+
+  return {
+    success: false,
+    recordsProcessed: 0,
+    errors: [
+      "Google Sheets sync requires node-google-spreadsheet package. Install it when ready to deploy with real data sync.",
+    ],
+  }
+}
+
+/* PRODUCTION IMPLEMENTATION - Uncomment when ready to use real Google Sheets sync
+ *
+ * Prerequisites:
+ * 1. Install package: npm install node-google-spreadsheet
+ * 2. Set environment variables:
+ *    - GOOGLE_SHEETS_ID
+ *    - GOOGLE_SERVICE_ACCOUNT_EMAIL
+ *    - GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY
+ * 3. Share your Google Sheet with the service account email
+ *
+ * Then uncomment the code below and remove the mock function above
+ */
+
+/*
+import { GoogleSpreadsheet } from "node-google-spreadsheet"
+
+const SHEET_ID = process.env.GOOGLE_SHEETS_ID || ""
+const SERVICE_ACCOUNT_EMAIL = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || ""
+const SERVICE_ACCOUNT_PRIVATE_KEY = (process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY || "").replace(/\\n/g, "\n")
 
 export async function syncLeagueData(): Promise<SyncResult> {
   const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -21,7 +44,6 @@ export async function syncLeagueData(): Promise<SyncResult> {
   const errors: string[] = []
   let recordsProcessed = 0
 
-  // Authenticate with service account
   await doc.useServiceAccountAuth({
     client_email: SERVICE_ACCOUNT_EMAIL,
     private_key: SERVICE_ACCOUNT_PRIVATE_KEY,
@@ -259,3 +281,4 @@ async function syncStats(sheet: any, supabase: any): Promise<SyncResult> {
   // TODO: Implement MVP/stats sync
   return { success: true, recordsProcessed: 0, errors: [] }
 }
+*/
