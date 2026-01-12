@@ -1,0 +1,80 @@
+{
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "github_token",
+      "description": "GitHub Personal Access Token",
+      "password": true
+    }
+  ],
+  "mcpServers": {
+    "@21st-dev/magic": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@21st-dev/magic@latest",
+        "API_KEY=\"ccb5589f1c59f4535a74c14d14d75fdc02f69f571344fdc47b8cda007f9420f2\""
+      ]
+    },
+    "memory": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "--name",
+        "memory",
+        "mcp/memory"
+      ]
+    },
+    "v0": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "https://mcp.v0.dev",
+        "--header",
+        "Authorization: Bearer ${V0_API_KEY}"
+      ]
+    },
+    "mcp-discord": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "-e",
+        "DISCORD_TOKEN",
+        "mcp/mcp-discord"
+      ],
+      "env": {
+        "DISCORD_TOKEN": "YOUR_DISCORD_BOT_TOKEN_HERE"
+      }
+    },
+    "shadcn": {
+      "command": "pnpm",
+      "args": [
+        "dlx",
+        "shadcn@latest",
+        "mcp"
+      ]
+    },
+    "supabase": {
+      "url": "https://mcp.supabase.com/mcp?project_ref=chmrszrwlfeqovwxyrmt"
+    },
+    "filesystem": {
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "-v",
+        "C:/DEV-MNKY/MOOD_MNKY/POKE-MNKY-v2:/local-directory",
+        "mcp/filesystem",
+        "/local-directory"
+      ],
+      "command": "docker"
+    }
+  },
+  "registries": {
+    "@acme": "https://acme.com/r/{name}.json"
+  }
+}

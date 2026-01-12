@@ -1,0 +1,43 @@
+# Docker Compose for Discord Bot
+# Use this with Coolify or docker-compose
+# Run: docker-compose -f docker-compose.discord-bot.yml up -d
+
+version: '3.8'
+
+services:
+  discord-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile.discord-bot
+    container_name: poke-mnky-discord-bot
+    restart: unless-stopped
+    environment:
+      # Discord Configuration
+      - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}
+      - DISCORD_CLIENT_ID=${DISCORD_CLIENT_ID}
+      - DISCORD_CLIENT_SECRET=${DISCORD_CLIENT_SECRET}
+      - DISCORD_GUILD_ID=${DISCORD_GUILD_ID}
+      
+      # Supabase Configuration
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      
+      # Node Environment
+      - NODE_ENV=production
+    networks:
+      - poke-mnky-network
+    # No ports needed for Discord bot (uses WebSocket)
+    # But expose for health checks if needed
+    # ports:
+    #   - "3001:3001"
+    healthcheck:
+      test: ["CMD", "node", "-e", "console.log('Bot is running')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  poke-mnky-network:
+    driver: bridge

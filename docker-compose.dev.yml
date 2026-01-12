@@ -1,0 +1,42 @@
+# Docker Compose for Local Discord Bot Development
+# Run: docker-compose -f docker-compose.dev.yml up
+# This mounts your local code for hot-reload development
+
+version: '3.8'
+
+services:
+  discord-bot-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.discord-bot
+      target: base  # Use base stage for development (includes dev dependencies)
+    container_name: poke-mnky-discord-bot-dev
+    restart: unless-stopped
+    volumes:
+      # Mount local code for hot-reload
+      - ./lib:/app/lib
+      - ./scripts:/app/scripts
+      - ./tsconfig.json:/app/tsconfig.json
+      # Exclude node_modules (use container's)
+      - /app/node_modules
+    environment:
+      # Discord Configuration
+      - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}
+      - DISCORD_CLIENT_ID=${DISCORD_CLIENT_ID}
+      - DISCORD_CLIENT_SECRET=${DISCORD_CLIENT_SECRET}
+      - DISCORD_GUILD_ID=${DISCORD_GUILD_ID}
+      
+      # Supabase Configuration
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      
+      # Node Environment
+      - NODE_ENV=development
+    command: pnpm exec tsx --watch scripts/start-discord-bot.ts
+    networks:
+      - poke-mnky-network-dev
+
+networks:
+  poke-mnky-network-dev:
+    driver: bridge

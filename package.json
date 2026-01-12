@@ -5,7 +5,8 @@
   "scripts": {
     "build": "next build",
     "dev": "next dev",
-    "discord-bot": "node scripts/start-discord-bot.js",
+    "discord-bot": "tsx --env-file=.env.local scripts/start-discord-bot.ts",
+    "discord-bot:dev": "tsx --watch --env-file=.env.local scripts/start-discord-bot.ts",
     "lint": "eslint .",
     "start": "next start"
   },
@@ -80,6 +81,7 @@
     "@types/react-dom": "^19",
     "postcss": "^8.5",
     "tailwindcss": "^4.1.9",
+    "tsx": "^4.21.0",
     "tw-animate-css": "1.3.3",
     "typescript": "^5"
   }
