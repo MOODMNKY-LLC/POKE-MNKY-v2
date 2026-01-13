@@ -36,15 +36,18 @@ export function PokemonSprite({
 
   // Determine sprite URL priority:
   // 1. Provided sprite prop
-  // 2. Pokemon object with sprites
-  // 3. Fallback to PokeAPI URL
+  // 2. Supabase Storage path (from pokepedia_pokemon table)
+  // 3. Pokemon object with sprites (external URLs)
+  // 4. Fallback to PokeAPI URL
   let spriteUrl: string | null = null
 
   if (sprite) {
     spriteUrl = sprite
   } else if (pokemon) {
+    // getSpriteUrl now checks Supabase Storage paths first, then external URLs
     spriteUrl = getSpriteUrl(pokemon, mode)
   } else if (pokemonId) {
+    // getFallbackSpriteUrl now checks Supabase Storage first
     spriteUrl = getFallbackSpriteUrl(pokemonId, mode === "shiny")
   } else {
     // Last resort: try to construct from name

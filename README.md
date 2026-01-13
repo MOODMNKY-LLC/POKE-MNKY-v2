@@ -21,13 +21,19 @@
 6. [Getting Started](#getting-started)
 7. [Environment Setup](#environment-setup)
 8. [Database Setup](#database-setup)
-9. [Deployment](#deployment)
-10. [API Documentation](#api-documentation)
-11. [Discord Bot](#discord-bot)
-12. [Development Roadmap](#development-roadmap)
-13. [Performance Metrics](#performance-metrics)
-14. [Contributing](#contributing)
-15. [Troubleshooting](#troubleshooting)
+9. [Local PokeAPI Setup](#local-pokeapi-setup)
+10. [PokeAPI Sprites Resources](#pokeapi-sprites-resources)
+11. [PokeAPI Cries Resources](#pokeapi-cries-resources)
+12. [PokeAPI API Data Repository](#pokeapi-api-data-repository)
+13. [Ditto Tool Setup](#ditto-tool-setup)
+14. [Poképedia Data Ingestion Workflow](#poképedia-data-ingestion-workflow)
+15. [Deployment](#deployment)
+16. [API Documentation](#api-documentation)
+17. [Discord Bot](#discord-bot)
+18. [Development Roadmap](#development-roadmap)
+19. [Performance Metrics](#performance-metrics)
+20. [Contributing](#contributing)
+21. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -232,7 +238,25 @@ User Request → getPokemonDataExtended() → Check Supabase Cache
 
 ### Integrations
 - **AI**: OpenAI GPT-4.1 (structured tasks), GPT-5.2 (deep reasoning), GPT-5 mini (quick summaries)
-- **Pokémon Data**: Pokenode-TS wrapper for PokéAPI v2, @pkmn/dex for battle mechanics
+- **Pokémon Data**: 
+  - **PokeAPI**: [PokeAPI/pokeapi](https://github.com/PokeAPI/pokeapi) - RESTful API for Pokémon data
+  - **Local Instance**: Local Docker-based PokeAPI instance for development (see [Local PokeAPI Setup](#local-pokeapi-setup))
+  - **Pokenode-TS**: TypeScript wrapper for PokéAPI v2
+  - **@pkmn/dex**: Battle mechanics and type calculations
+- **Pokémon Sprites**: 
+  - **PokeAPI Sprites**: [PokeAPI/sprites](https://github.com/PokeAPI/sprites) - Comprehensive sprite repository
+  - **Local Copy**: Installed in `resources/sprites` for offline access and CDN hosting
+  - **Includes**: All generations, variants (shiny, female, back), official artwork, icons, and items
+- **Pokémon Audio**:
+  - **PokeAPI Cries**: [PokeAPI/cries](https://github.com/PokeAPI/cries) - Pokémon cry audio files
+  - **Local Copy**: Installed in `resources/cries` for offline access
+  - **Includes**: Latest cries (1,302+ OGG files) and legacy cries (649 files) for all generations
+- **Pokémon Data Tools**: 
+  - **Ditto**: [PokeAPI/ditto](https://github.com/PokeAPI/ditto) - Tool for meta operations over PokéAPI data
+  - **Local Installation**: Docker-based installation in `tools/ditto`
+  - **Features**: Clone, analyze, and transform PokéAPI data
+  - **API Data**: [PokeAPI/api-data](https://github.com/PokeAPI/api-data) - Static JSON data + JSON Schema
+  - **Local Copy**: Installed in `resources/api-data` for baseline dataset and schema validation
 - **Discord**: Discord.js v14 with slash commands and webhooks
 - **Sheets**: node-google-spreadsheet for legacy data import
 - **Analytics**: Vercel Analytics + Web Vitals tracking
@@ -388,6 +412,11 @@ Visit [http://localhost:3000](http://localhost:3000)
 pnpm run discord-bot
 ```
 
+7. **Set Up Local PokeAPI** (Optional, recommended for development)
+```bash
+# See Local PokeAPI Setup section below
+```
+
 ---
 
 ## Environment Setup
@@ -417,6 +446,11 @@ DISCORD_PUBLIC_KEY=your_discord_public_key
 GOOGLE_SHEETS_ID=your_google_sheet_id
 GOOGLE_SERVICE_ACCOUNT_EMAIL=your-service-account@project.iam.gserviceaccount.com
 GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYour_Private_Key_Here\n-----END PRIVATE KEY-----\n"
+
+# PokeAPI Configuration (Optional - defaults to production)
+# Use local instance for development: http://localhost/api/v2
+# Use production instance: https://pokeapi.co/api/v2
+POKEAPI_BASE_URL=http://localhost/api/v2
 
 # App Configuration
 NEXT_PUBLIC_APP_URL=http://localhost:3000
@@ -452,6 +486,10 @@ CRON_SECRET=your_cron_secret_for_scheduled_jobs
 3. Create Service Account
 4. Download JSON key file
 5. Extract `client_email` and `private_key`
+
+#### Local PokeAPI (Optional)
+1. See [Local PokeAPI Setup](#local-pokeapi-setup) section below
+2. Set `POKEAPI_BASE_URL=http://localhost/api/v2` in `.env.local`
 
 ---
 
@@ -519,6 +557,466 @@ curl -X POST https://your-app.vercel.app/api/sync/google-sheets \
 
 # Or via admin UI: /admin → "Sync Google Sheets" button
 ```
+
+---
+
+## Local PokeAPI Setup
+
+### Overview
+
+For development and testing, you can run a local instance of PokeAPI. This provides:
+- **No rate limits** - Test without restrictions
+- **Faster development** - No network latency
+- **Offline development** - Works without internet
+- **Full data control** - Modify data as needed
+
+### Prerequisites
+
+- Docker and Docker Compose installed
+- Port 80 available (or modify port mapping)
+
+### Installation
+
+1. **Clone the Repository**
+```bash
+cd temp
+git clone --recurse-submodules https://github.com/PokeAPI/pokeapi.git pokeapi-local
+```
+
+2. **Start Docker Containers**
+```bash
+cd temp/pokeapi-local
+docker compose up -d
+```
+
+3. **Apply Migrations**
+```bash
+docker compose exec -T app python manage.py migrate --settings=config.docker-compose
+```
+
+4. **Build the Database**
+```bash
+docker compose exec -T app sh -c 'echo "from data.v2.build import build_all; build_all()" | python manage.py shell --settings=config.docker-compose'
+```
+
+This process may take 10-20 minutes to load all Pokemon data.
+
+### Configuration
+
+Add to `.env.local`:
+```env
+POKEAPI_BASE_URL=http://localhost/api/v2
+```
+
+### Verification
+
+Test the local API:
+```bash
+# Test API endpoint
+curl http://localhost/api/v2/pokemon/1/
+
+# Test configuration
+pnpm tsx --env-file=.env.local scripts/test-local-pokeapi.ts
+```
+
+### Usage
+
+Once configured, all scripts and Edge Functions will use the local instance:
+
+```bash
+# Run sync scripts (uses local instance)
+pnpm tsx --env-file=.env.local scripts/sync-pokemon-from-api.ts
+```
+
+### Access Points
+
+- **REST API**: `http://localhost/api/v2/`
+- **GraphQL Console**: `http://localhost:8080`
+- **Example**: `http://localhost/api/v2/pokemon/1/`
+
+### Container Management
+
+```bash
+# Start containers
+cd tools/pokeapi-local
+docker compose up -d
+
+# Stop containers
+docker compose down
+
+# View logs
+docker compose logs app
+
+# Check status
+docker compose ps
+```
+
+### Documentation
+
+For detailed setup instructions, see:
+- `temp/pokeapi-local-setup-complete.md`
+- `docs/LOCAL-POKEAPI-SETUP.md`
+
+### Original Repository
+
+This project uses the official PokeAPI repository:
+- **Repository**: [PokeAPI/pokeapi](https://github.com/PokeAPI/pokeapi)
+- **Website**: [pokeapi.co](https://pokeapi.co)
+- **Documentation**: [pokeapi.co/docs](https://pokeapi.co/docs)
+
+---
+
+## PokeAPI Sprites Resources
+
+### Overview
+
+The project includes a local copy of the [PokeAPI/sprites](https://github.com/PokeAPI/sprites) repository for offline access and CDN hosting. This reduces load on PokeAPI's infrastructure and provides faster sprite loading.
+
+### Location
+
+- **Path**: `resources/sprites`
+- **Repository**: [PokeAPI/sprites](https://github.com/PokeAPI/sprites)
+- **License**: See `resources/sprites/LICENCE.txt`
+
+### Sprite Categories
+
+The sprites repository includes:
+
+#### Pokémon Sprites
+- **Default sprites** (PNGs with back, female, shiny variants)
+- **Official artwork** (475x475 PNGs)
+- **Home sprites** (512x512 PNGs)
+- **Dream World** (SVGs)
+- **Showdown sprites** (GIFs)
+- **Generation-specific sprites** (Gen I-IX)
+  - Red/Blue, Yellow, Crystal, Gold, Silver
+  - Ruby/Sapphire, Emerald, FireRed/LeafGreen
+  - Diamond/Pearl, Platinum, HeartGold/SoulSilver
+  - Black/White (with animated variants)
+  - X/Y, Omega Ruby/Alpha Sapphire
+  - Ultra Sun/Ultra Moon
+  - Brilliant Diamond/Shining Pearl
+  - Scarlet/Violet
+- **Icons** (Generation VII & VIII)
+
+#### Item Sprites
+- Default PokeAPI items (PNGs)
+
+### Usage
+
+Sprites are organized by category and generation:
+
+```
+resources/sprites/
+├── sprites/
+│   ├── pokemon/
+│   │   ├── other/
+│   │   │   ├── dream-world/
+│   │   │   ├── official-artwork/
+│   │   │   ├── home/
+│   │   │   └── showdown/
+│   │   └── versions/
+│   │       ├── generation-i/
+│   │       ├── generation-ii/
+│   │       └── ... (through generation-ix)
+│   └── items/
+```
+
+### Updating Sprites
+
+To update the sprites repository:
+
+```bash
+cd resources/sprites
+git pull origin master
+```
+
+### Benefits
+
+1. **Offline Access**: Sprites available without internet connection
+2. **Faster Loading**: Serve sprites from your own CDN
+3. **Reduced Load**: Less dependency on PokeAPI's sprite hosting
+4. **Version Control**: Track sprite changes in your repository
+5. **Customization**: Easy to add custom sprites or modifications
+
+---
+
+## Ditto Tool Setup
+
+### Overview
+
+Ditto is a **critical tool** for comprehensive PokéAPI data ingestion. It provides the official approach to downloading the complete REST v2 corpus for bulk import into Supabase, avoiding rate limits and respecting PokeAPI fair use policies.
+
+**Primary Use Case**: Phase A "Foundation Load" - One-time bulk import of all PokéAPI data into Supabase tables (`pokeapi_resources`, `pokepedia_pokemon`, `pokepedia_assets`).
+
+### Location
+
+- **Path**: `tools/ditto`
+- **Repository**: [PokeAPI/ditto](https://github.com/PokeAPI/ditto)
+- **License**: Apache-2.0
+
+### Prerequisites
+
+- Docker and Docker Compose installed
+- Local PokeAPI instance running on `localhost:80` (see [Local PokeAPI Setup](#local-pokeapi-setup))
+
+### Workflow: Poképedia Data Ingestion
+
+Ditto is the **primary ingestion engine** for the Poképedia system:
+
+#### Phase A: Foundation Load (One-Time Bulk Import)
+
+```bash
+# 1. Ensure local PokeAPI is running
+cd tools/pokeapi-local
+docker compose up -d
+
+# 2. Run ditto to clone all data (Windows)
+cd ../ditto
+.\docker-run.ps1
+
+# Or manually
+docker compose build
+docker compose up ditto
+```
+
+This produces:
+- **Complete REST v2 corpus** in `tools/ditto/data/`
+- **JSON schema** for validation
+- **Transformed data** ready for Supabase import
+
+#### Phase B: Import to Supabase
+
+After ditto completes, import the data:
+
+1. **Canonical Data Plane**: Import into `pokeapi_resources` table (JSONB storage)
+   - Stores every REST v2 resource JSON
+   - Keyed by `(resource_type, resource_key)`
+   - Idempotent upserts
+
+2. **Projection Plane**: Build `pokepedia_pokemon` from canonical data
+   - Fast query tables for UI
+   - Extracts: id, name, height, weight, base_experience, types, abilities
+   - Includes "best sprite path" logic
+
+3. **Media Plane**: Sprite paths mapped to `pokepedia_assets`
+   - Maps upstream sprite URLs to Supabase Storage paths
+   - Tracks checksums and metadata
+
+### Commands
+
+- **`ditto clone`**: Crawl and download all data from a PokeAPI instance
+  - `--dest-dir`: Output directory for cloned data
+  - `--src-url`: Source PokeAPI URL (default: http://localhost/)
+  - `--select`: Select specific endpoints (e.g., `pokemon/129`)
+
+- **`ditto analyze`**: Generate JSON schema of cloned data
+  - `--data-dir`: Directory containing cloned data
+  - Outputs schema for validation and TypeScript type generation
+
+- **`ditto transform`**: Apply base URL transformations to data
+  - `--base-url`: Target base URL for transformations
+  - `--src-dir`: Source data directory
+  - `--dest-dir`: Output directory for transformed data
+
+### Custom Configuration
+
+For Poképedia ingestion, you may want to customize the Dockerfile:
+
+```dockerfile
+# Clone all data from local PokeAPI
+CMD poetry run ditto clone --src-url http://localhost/api/v2 --dest-dir ./data && \
+    poetry run ditto analyze --data-dir ./data && \
+    poetry run ditto transform \
+        --base-url='http://localhost/api/v2' \
+        --src-dir=./data \
+        --dest-dir=./_gen
+```
+
+### Integration with Poképedia Architecture
+
+Ditto fits into the complete ingestion pipeline:
+
+1. **Batch Import** (ditto): One-time comprehensive data pull
+2. **Incremental Sync** (Supabase Queues): Periodic updates via `pokepedia_ingest` queue
+3. **Sprite Mirroring**: Separate process using `resources/sprites` repository
+
+### Benefits
+
+1. **Respects Fair Use**: Official tool recommended by PokeAPI
+2. **Complete Coverage**: Downloads entire REST v2 corpus
+3. **Schema Generation**: Creates JSON schema for validation
+4. **Idempotent**: Safe to re-run for updates
+5. **Offline Development**: Complete dataset available locally
+
+### Output Structure
+
+After running ditto:
+
+```
+tools/ditto/
+├── data/           # Cloned REST v2 data
+│   ├── pokemon/
+│   ├── moves/
+│   ├── abilities/
+│   └── ...
+├── _gen/           # Transformed data
+└── schema.json     # Generated JSON schema
+```
+
+### Next Steps After Ditto
+
+1. **Validate Data**: Check row counts against expected endpoint counts
+2. **Bulk Import**: Import `data/` into `pokeapi_resources` table
+3. **Build Projections**: Create `pokepedia_pokemon` from canonical JSON
+4. **Map Sprites**: Link sprite paths from `resources/sprites` to `pokepedia_assets`
+
+---
+
+## Poképedia Data Ingestion Workflow
+
+### Overview
+
+The Poképedia system uses a comprehensive data ingestion pipeline that combines multiple PokeAPI tools for complete, reliable data synchronization. This workflow follows the architecture outlined in `temp/pokepedia-infra.md`.
+
+### Architecture: Three Data Planes
+
+1. **Canonical Data Plane** (`pokeapi_resources`)
+   - Stores every REST v2 resource as JSONB
+   - Keyed by `(resource_type, resource_key)`
+   - Single source of truth
+
+2. **Projection Plane** (`pokepedia_pokemon`, `pokepedia_moves`, etc.)
+   - Fast query tables for UI
+   - Extracted from canonical JSONB
+   - Indexed for performance
+
+3. **Media Plane** (`pokepedia_assets` + Supabase Storage)
+   - Sprite metadata in database
+   - Actual files in `pokedex-sprites` bucket
+   - Mirrored from `resources/sprites` repository
+   - Cry audio files (future: `pokedex-cries` bucket)
+   - Mirrored from `resources/cries` repository
+
+### Phase A: Foundation Load (One-Time Bulk Import)
+
+**Goal**: Fill `pokeapi_resources` completely and mirror sprites to Storage.
+
+#### Step 1: Baseline Data from api-data (Optional but Recommended)
+
+```bash
+# Use api-data as baseline for faster initial seeding
+# Data is already available in resources/api-data/data/api/
+```
+
+**Benefits**: Faster than cloning, provides JSON Schema for validation
+
+#### Step 2: Clone Complete Data with Ditto
+
+```bash
+# Ensure local PokeAPI is running
+cd tools/pokeapi-local
+docker compose up -d
+
+# Run ditto to clone all REST v2 data
+cd ../../tools/ditto
+poetry run ditto clone --src-url http://localhost/api/v2 --dest-dir ./data
+```
+
+**Output**: Complete REST v2 corpus in `tools/ditto/data/`
+
+**Note**: Can use api-data as baseline and ditto for comprehensive coverage, or use ditto alone for complete clone.
+
+#### Step 3: Import to Supabase
+
+**Option A: Import from api-data (Fast Baseline)**
+```bash
+# Import baseline dataset from api-data
+pnpm tsx scripts/import-api-data.ts
+
+# Or import specific endpoint with limit
+pnpm tsx scripts/import-api-data.ts --endpoint=pokemon --limit=100
+```
+
+**Option B: Import from Ditto (Comprehensive)**
+```bash
+# Import comprehensive data from ditto clone
+pnpm tsx scripts/import-ditto-data.ts
+
+# Or import specific endpoint with limit
+pnpm tsx scripts/import-ditto-data.ts --endpoint=pokemon --limit=100
+```
+
+**Result**: All PokéAPI resources stored as JSONB in `pokeapi_resources`
+
+#### Step 4: Mirror Sprites
+
+```bash
+# Upload sprites from resources/sprites to Supabase Storage
+# Preserves directory structure
+pnpm tsx scripts/mirror-sprites-to-storage.ts
+
+# Dry run to preview without uploading
+pnpm tsx scripts/mirror-sprites-to-storage.ts --dry-run
+
+# Limit uploads for testing
+pnpm tsx scripts/mirror-sprites-to-storage.ts --limit=100
+```
+
+**Result**: All sprites in `pokedex-sprites` bucket, metadata in `pokepedia_assets`
+
+#### Step 4b: Mirror Cries (Future)
+
+```bash
+# Upload cries from resources/cries to Supabase Storage
+# Future: pnpm tsx scripts/mirror-cries-to-storage.ts
+```
+
+**Result**: All cries in `pokedex-cries` bucket (when implemented), metadata in `pokepedia_assets`
+
+#### Step 5: Build Projections
+
+```bash
+# Extract fast query tables from canonical JSONB
+pnpm tsx scripts/build-pokepedia-projections.ts
+```
+
+**Result**: `pokepedia_pokemon` table with optimized fields for UI queries
+
+### Phase B: Incremental Sync (Ongoing)
+
+After foundation load, use Supabase Queues for incremental updates:
+
+1. **Queue-Based Sync**: `pokepedia_ingest` queue handles delta updates
+2. **Periodic Refresh**: Scheduled jobs pull list endpoints and enqueue changes
+3. **Worker Processing**: Edge Functions process queue messages and update canonical data
+4. **Projection Updates**: Automatically rebuild projections when canonical data changes
+
+### Why This Approach?
+
+1. **Respects Fair Use**: Uses official PokeAPI tools (ditto, sprites repo)
+2. **Complete Coverage**: One-time bulk import ensures nothing is missed
+3. **Performance**: Projection tables enable fast UI queries
+4. **Reliability**: Idempotent operations, resumable imports
+5. **Offline Development**: Complete dataset available locally
+
+### Tools Integration
+
+- **API Data** (`resources/api-data`): Baseline dataset + JSON Schema for validation
+- **Ditto** (`tools/ditto`): Foundation load - clones complete REST v2 corpus
+- **Local PokeAPI** (`tools/pokeapi-local`): Source for ditto, no rate limits
+- **Sprites Repository** (`resources/sprites`): Sprite mirroring source
+- **Cries Repository** (`resources/cries`): Audio asset source (future integration)
+- **Supabase Queues**: Incremental sync after foundation load
+
+### Recommended Approach
+
+Per `temp/pokepedia-infra.md`:
+
+1. **Use api-data** as baseline canonical dataset (fewer network calls)
+2. **Use ditto** for comprehensive clone or delta verification
+3. **Use REST v2** only for incremental updates or resources not covered
+4. **Combine both**: api-data for fast baseline + ditto for complete truth
 
 ---
 
@@ -1158,6 +1656,17 @@ This project is proprietary software developed for the "Average at Best Draft Le
 ## Acknowledgments
 
 - **PokéAPI**: [pokeapi.co](https://pokeapi.co) for comprehensive Pokémon data
+  - **Repository**: [PokeAPI/pokeapi](https://github.com/PokeAPI/pokeapi)
+  - **License**: BSD-3-Clause
+  - This project includes a local Docker instance of PokeAPI for development
+- **PokeAPI Sprites**: [PokeAPI/sprites](https://github.com/PokeAPI/sprites) for comprehensive sprite collection
+  - **Repository**: [PokeAPI/sprites](https://github.com/PokeAPI/sprites)
+  - **License**: See `resources/sprites/LICENCE.txt`
+  - This project includes a local copy in `resources/sprites` for offline access
+- **PokeAPI API Data**: [PokeAPI/api-data](https://github.com/PokeAPI/api-data) for static JSON data and JSON Schema
+  - **Repository**: [PokeAPI/api-data](https://github.com/PokeAPI/api-data)
+  - **License**: BSD-3-Clause (see `resources/api-data/LICENSE.txt`)
+  - This project includes a local copy in `resources/api-data` for baseline dataset and schema validation
 - **@pkmn**: [pkmn.cc](https://pkmn.cc) for battle engine architecture inspiration
 - **Pokémon Showdown**: [play.pokemonshowdown.com](https://play.pokemonshowdown.com) for competitive mechanics reference
 - **Shadcn UI**: [ui.shadcn.com](https://ui.shadcn.com) for beautiful component library

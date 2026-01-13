@@ -29,11 +29,49 @@ import type {
   Pokemon,
 } from "./types.ts"
 
-const POKEAPI_BASE_URL = "https://pokeapi.co/api/v2"
-const CONCURRENT_REQUESTS = 8 // Parallel requests per batch (optimized: PokéAPI can handle 8-10 safely)
+const POKEAPI_BASE_URL = Deno.env.get("POKEAPI_BASE_URL") ?? "https://pokeapi.co/api/v2"
+const CONCURRENT_REQUESTS = 12 // Optimized: Increased from 8 to 12-15 for faster sync (PokéAPI has no official rate limits, fair use allows reasonable concurrency)
 const BATCH_DELAY_MS = 100 // Delay between batches (optimized: reduced from 250ms, still respectful to PokéAPI fair use)
 const MAX_RETRIES = 3 // Maximum retries for failed requests
 const RETRY_BASE_DELAY_MS = 1000 // Base delay for exponential backoff
+
+// Phase-to-endpoint mapping for chunk size configuration
+const PHASE_TO_ENDPOINT_MAP: Record<string, string> = {
+  'master': 'type', // Use type as representative for master phase
+  'reference': 'generation', // Use generation as representative for reference phase
+  'species': 'pokemon-species',
+  'pokemon': 'pokemon',
+  'evolution-chain': 'evolution-chain',
+  'pokemon-form': 'pokemon-form',
+  'move-damage-class': 'move-damage-class',
+  'move-target': 'move-target',
+  'move-learn-method': 'move-learn-method',
+  'move-ailment': 'move-ailment',
+  'move-category': 'move-category',
+}
+
+// Endpoint-specific configurations for optimal chunk sizes and concurrency
+const ENDPOINT_CONFIG: Record<string, { chunkSize: number; concurrency: number }> = {
+  'type': { chunkSize: 50, concurrency: 15 }, // Small dataset (18 types)
+  'stat': { chunkSize: 50, concurrency: 15 }, // Small dataset (8 stats)
+  'egg-group': { chunkSize: 50, concurrency: 15 }, // Small dataset
+  'growth-rate': { chunkSize: 50, concurrency: 15 }, // Small dataset
+  'ability': { chunkSize: 50, concurrency: 12 }, // Medium dataset (~300 abilities)
+  'move': { chunkSize: 50, concurrency: 12 }, // Medium dataset (~900 moves)
+  'generation': { chunkSize: 50, concurrency: 15 }, // Small dataset
+  'pokemon-color': { chunkSize: 50, concurrency: 15 }, // Small dataset
+  'pokemon-habitat': { chunkSize: 50, concurrency: 15 }, // Small dataset
+  'pokemon-shape': { chunkSize: 50, concurrency: 15 }, // Small dataset
+  'pokemon-species': { chunkSize: 30, concurrency: 10 }, // Large dataset (~1025 species), large responses
+  'pokemon': { chunkSize: 30, concurrency: 10 }, // Large dataset (~1025 pokemon), large responses
+  'evolution-chain': { chunkSize: 40, concurrency: 12 }, // Medium dataset (~500 chains)
+  'item': { chunkSize: 40, concurrency: 12 }, // Medium dataset (~1000 items)
+  'berry': { chunkSize: 40, concurrency: 12 }, // Medium dataset (~70 berries)
+  'nature': { chunkSize: 50, concurrency: 15 }, // Small dataset (25 natures)
+  'evolution-trigger': { chunkSize: 50, concurrency: 15 }, // Small dataset (~10 triggers)
+  'location': { chunkSize: 40, concurrency: 12 }, // Medium dataset
+  'region': { chunkSize: 50, concurrency: 15 }, // Small dataset
+}
 
 interface SyncJob {
   job_id: string
@@ -720,9 +758,66 @@ async function processChunk(supabase: any, job: SyncJob) {
       errors = pokemonResult.errors
       break
     case "relationships":
-      const relResult = await syncRelationshipsPhase(supabase, job)
-      synced = relResult.synced
-      errors = relResult.errors
+      // DEPRECATED: Relationships are now synced in pokemon phase to eliminate triple-fetching
+      console.warn(`[processChunk] Phase "relationships" is deprecated. Relationships are now synced in "pokemon" phase.`)
+      // For backward compatibility, return success but don't process
+      synced = 0
+      errors = 0
+      break
+    case "evolution-chain":
+      const evoResult = await syncEvolutionChainsPhase(supabase, job)
+      synced = evoResult.synced
+      errors = evoResult.errors
+      break
+    case "items":
+      const itemsResult = await syncSimpleEndpointPhase(supabase, job, "item", "items", "item_id")
+      synced = itemsResult.synced
+      errors = itemsResult.errors
+      break
+    case "berries":
+      const berriesResult = await syncSimpleEndpointPhase(supabase, job, "berry", "berries", "berry_id")
+      synced = berriesResult.synced
+      errors = berriesResult.errors
+      break
+    case "natures":
+      const naturesResult = await syncSimpleEndpointPhase(supabase, job, "nature", "natures", "nature_id")
+      synced = naturesResult.synced
+      errors = naturesResult.errors
+      break
+    case "evolution-triggers":
+      const triggersResult = await syncSimpleEndpointPhase(supabase, job, "evolution-trigger", "evolution_triggers", "trigger_id")
+      synced = triggersResult.synced
+      errors = triggersResult.errors
+      break
+    case "pokemon-form":
+      const formResult = await syncPokemonFormPhase(supabase, job)
+      synced = formResult.synced
+      errors = formResult.errors
+      break
+    case "move-damage-class":
+      const damageClassResult = await syncSimpleEndpointPhase(supabase, job, "move-damage-class", "move_damage_classes", "move_damage_class_id")
+      synced = damageClassResult.synced
+      errors = damageClassResult.errors
+      break
+    case "move-target":
+      const targetResult = await syncSimpleEndpointPhase(supabase, job, "move-target", "move_targets", "move_target_id")
+      synced = targetResult.synced
+      errors = targetResult.errors
+      break
+    case "move-learn-method":
+      const learnMethodResult = await syncSimpleEndpointPhase(supabase, job, "move-learn-method", "move_learn_methods", "move_learn_method_id")
+      synced = learnMethodResult.synced
+      errors = learnMethodResult.errors
+      break
+    case "move-ailment":
+      const ailmentResult = await syncSimpleEndpointPhase(supabase, job, "move-ailment", "move_ailments", "move_ailment_id")
+      synced = ailmentResult.synced
+      errors = ailmentResult.errors
+      break
+    case "move-category":
+      const categoryResult = await syncSimpleEndpointPhase(supabase, job, "move-category", "move_categories", "move_category_id")
+      synced = categoryResult.synced
+      errors = categoryResult.errors
       break
     default:
       return { error: `Unknown phase: ${job.phase}` }
@@ -1138,18 +1233,34 @@ async function syncReferenceDataPhase(supabase: any, job: SyncJob) {
       const listData: ResourceList = await listResponse.json()
       const resources = listData.results.slice(batchStart, batchEnd)
 
-      const batches = chunkArray(resources, CONCURRENT_REQUESTS)
+      const config = ENDPOINT_CONFIG[endpoint] || { chunkSize: 50, concurrency: CONCURRENT_REQUESTS }
+      const batches = chunkArray(resources, config.concurrency)
 
       for (const batch of batches) {
         const results = await Promise.allSettled(
           batch.map(async (resource) => {
-            return await fetchWithRetry(resource.url)
+            const { data, etag, cached } = await fetchWithRetry(resource.url, supabase, endpoint)
+            if (cached) {
+              // Resource unchanged, return null to skip processing
+              return null
+            }
+            return data
           })
         )
 
         const successful = results
-          .filter((r): r is PromiseFulfilledResult<any> => r.status === "fulfilled")
+          .filter((r): r is PromiseFulfilledResult<any> => r.status === "fulfilled" && r.value !== null)
           .map((r) => r.value)
+        
+        // Count cached responses (304 Not Modified)
+        const cachedCount = results.filter((r) => 
+          r.status === "fulfilled" && r.value === null
+        ).length
+        
+        if (cachedCount > 0) {
+          console.log(`[Reference] ${cachedCount} ${endpoint} resources unchanged (ETag cache hit)`)
+          totalSynced += cachedCount
+        }
 
         if (successful.length > 0) {
           const records = successful.map((data) => ({
@@ -1224,9 +1335,12 @@ async function syncSpeciesPhase(supabase: any, job: SyncJob) {
   for (const batch of batches) {
     const results = await Promise.allSettled(
       batch.map(async (resource) => {
-        const detailResponse = await fetch(resource.url)
-        if (!detailResponse.ok) throw new Error(`Failed to fetch ${resource.url}`)
-        const speciesData = await detailResponse.json()
+        const { data: speciesData, cached } = await fetchWithRetry(resource.url, supabase, "pokemon-species")
+        if (cached) {
+          // Resource unchanged, skip processing
+          return null
+        }
+        if (!speciesData) throw new Error(`Failed to fetch ${resource.url}`)
 
         // Validate foreign keys exist
         const generationId = extractIdFromUrl(speciesData.generation?.url)
@@ -1318,12 +1432,16 @@ async function syncSpeciesPhase(supabase: any, job: SyncJob) {
 }
 
 // ============================================================================
-// PHASE 4: Pokemon Sync (Depends on species)
+// PHASE 4: Pokemon Sync with Relationships (Optimized: Combined phases 4 & 5)
 // ============================================================================
+// OPTIMIZATION: This phase combines Pokemon sync and Relationships sync
+// to eliminate triple-fetching. Pokemon endpoint already contains types,
+// abilities, and stats data, so we extract relationships in the same pass.
 
 async function syncPokemonPhase(supabase: any, job: SyncJob) {
   let totalSynced = 0
   let totalErrors = 0
+  let relationshipsSynced = 0
 
   // Fetch Pokemon list
   const listResponse = await fetch(`${POKEAPI_BASE_URL}/pokemon/?limit=1000`)
@@ -1335,33 +1453,50 @@ async function syncPokemonPhase(supabase: any, job: SyncJob) {
 
   // Update total chunks if first run
   if (job.current_chunk === 0 && job.total_chunks === 0) {
-    const totalChunks = Math.ceil(listData.count / job.chunk_size)
+    const config = ENDPOINT_CONFIG['pokemon'] || { chunkSize: 30, concurrency: CONCURRENT_REQUESTS }
+    const totalChunks = Math.ceil(listData.count / config.chunkSize)
     await supabase
       .from("sync_jobs")
       .update({ total_chunks: totalChunks, end_id: listData.count })
       .eq("job_id", job.job_id)
   }
 
+  const config = ENDPOINT_CONFIG['pokemon'] || { chunkSize: 30, concurrency: CONCURRENT_REQUESTS }
   const batchStart = job.current_chunk * job.chunk_size
   const batchEnd = Math.min(batchStart + job.chunk_size, listData.results.length)
   const resources = listData.results.slice(batchStart, batchEnd)
 
-  const batches = chunkArray(resources, CONCURRENT_REQUESTS)
+  const batches = chunkArray(resources, config.concurrency)
 
   for (const batch of batches) {
     const results = await Promise.allSettled(
       batch.map(async (resource) => {
-        const detailResponse = await fetch(resource.url)
-        if (!detailResponse.ok) throw new Error(`Failed to fetch ${resource.url}`)
-        return await detailResponse.json()
+        const { data: pokemon, cached } = await fetchWithRetry(resource.url, supabase, "pokemon")
+        if (cached) {
+          // Resource unchanged, skip processing
+          return null
+        }
+        if (!pokemon) throw new Error(`Failed to fetch ${resource.url}`)
+        return pokemon
       })
     )
 
     const successful = results
-      .filter((r): r is PromiseFulfilledResult<any> => r.status === "fulfilled")
+      .filter((r): r is PromiseFulfilledResult<any> => r.status === "fulfilled" && r.value !== null)
       .map((r) => r.value)
+    
+    // Count cached responses (304 Not Modified)
+    const cachedCount = results.filter((r) => 
+      r.status === "fulfilled" && r.value === null
+    ).length
+    
+    if (cachedCount > 0) {
+      console.log(`[Pokemon] ${cachedCount} resources unchanged (ETag cache hit)`)
+      totalSynced += cachedCount
+    }
 
     if (successful.length > 0) {
+      // Sync Pokemon records
       const records = successful.map((pokemon) => {
         const speciesId = extractIdFromUrl(pokemon.species?.url)
         
@@ -1385,12 +1520,257 @@ async function syncPokemonPhase(supabase: any, job: SyncJob) {
         }
       })
 
-      const { error } = await supabase
+      const { error: pokemonError } = await supabase
         .from("pokemon_comprehensive")
         .upsert(records, { onConflict: "pokemon_id" })
 
+      if (pokemonError) {
+        console.error(`[Pokemon] Error upserting:`, pokemonError)
+        totalErrors += successful.length
+      } else {
+        totalSynced += successful.length
+        
+        // OPTIMIZATION: Extract and sync relationships in the same pass
+        // This eliminates the need for a separate relationships phase
+        for (const pokemon of successful) {
+          try {
+            // Sync types
+            const typeRecords = (pokemon.types || []).map((t: any) => ({
+              pokemon_id: pokemon.id,
+              type_id: extractIdFromUrl(t.type?.url),
+              slot: t.slot,
+            })).filter((r: any) => r.type_id)
+
+            if (typeRecords.length > 0) {
+              await supabase
+                .from("pokemon_types")
+                .upsert(typeRecords, { onConflict: "pokemon_id,type_id,slot" })
+            }
+
+            // Sync abilities
+            const abilityRecords = (pokemon.abilities || []).map((a: any) => ({
+              pokemon_id: pokemon.id,
+              ability_id: extractIdFromUrl(a.ability?.url),
+              is_hidden: a.is_hidden,
+              slot: a.slot,
+            })).filter((r: any) => r.ability_id)
+
+            if (abilityRecords.length > 0) {
+              await supabase
+                .from("pokemon_abilities")
+                .upsert(abilityRecords, { onConflict: "pokemon_id,ability_id,slot" })
+            }
+
+            // Sync stats
+            const statRecords = (pokemon.stats || []).map((s: any) => ({
+              pokemon_id: pokemon.id,
+              stat_id: extractIdFromUrl(s.stat?.url),
+              base_stat: s.base_stat,
+              effort: s.effort,
+            })).filter((r: any) => r.stat_id)
+
+            if (statRecords.length > 0) {
+              await supabase
+                .from("pokemon_stats")
+                .upsert(statRecords, { onConflict: "pokemon_id,stat_id" })
+            }
+
+            relationshipsSynced++
+          } catch (error) {
+            console.error(`[Pokemon] Error syncing relationships for Pokemon ${pokemon.id}:`, error)
+            totalErrors++
+          }
+        }
+      }
+    }
+
+    totalErrors += results.filter((r) => r.status === "rejected").length
+    
+    // Memory cleanup
+    cleanupMemory(results, successful, records)
+    
+    await new Promise((resolve) => setTimeout(resolve, BATCH_DELAY_MS))
+  }
+
+  console.log(`[Pokemon] Synced ${totalSynced} Pokemon with ${relationshipsSynced} relationship sets`)
+  return { synced: totalSynced, errors: totalErrors }
+}
+
+// ============================================================================
+// PHASE 5: Evolution Chains Sync (Critical missing data)
+// ============================================================================
+
+async function syncEvolutionChainsPhase(supabase: any, job: SyncJob) {
+  let totalSynced = 0
+  let totalErrors = 0
+
+  // Fetch evolution chain list
+  const listResponse = await fetch(`${POKEAPI_BASE_URL}/evolution-chain/?limit=1000`)
+  if (!listResponse.ok) {
+    return { synced: 0, errors: 1 }
+  }
+
+  const listData: ResourceList = await listResponse.json()
+
+  // Update total chunks if first run
+  if (job.current_chunk === 0 && job.total_chunks === 0) {
+    const config = ENDPOINT_CONFIG['evolution-chain'] || { chunkSize: 40, concurrency: CONCURRENT_REQUESTS }
+    const totalChunks = Math.ceil(listData.count / config.chunkSize)
+    await supabase
+      .from("sync_jobs")
+      .update({ total_chunks: totalChunks, end_id: listData.count })
+      .eq("job_id", job.job_id)
+  }
+
+  const config = ENDPOINT_CONFIG['evolution-chain'] || { chunkSize: 40, concurrency: CONCURRENT_REQUESTS }
+  const batchStart = job.current_chunk * job.chunk_size
+  const batchEnd = Math.min(batchStart + job.chunk_size, listData.results.length)
+  const resources = listData.results.slice(batchStart, batchEnd)
+
+  const batches = chunkArray(resources, config.concurrency)
+
+  for (const batch of batches) {
+    const results = await Promise.allSettled(
+      batch.map(async (resource) => {
+        const { data: chainData, cached } = await fetchWithRetry(resource.url, supabase, "evolution-chain")
+        if (cached) {
+          // Resource unchanged, skip processing
+          return null
+        }
+        if (!chainData) throw new Error(`Failed to fetch ${resource.url}`)
+        return chainData
+      })
+    )
+
+    const successful = results
+      .filter((r): r is PromiseFulfilledResult<any> => r.status === "fulfilled" && r.value !== null)
+      .map((r) => r.value)
+    
+    // Count cached responses (304 Not Modified)
+    const cachedCount = results.filter((r) => 
+      r.status === "fulfilled" && r.value === null
+    ).length
+    
+    if (cachedCount > 0) {
+      console.log(`[EvolutionChain] ${cachedCount} chains unchanged (ETag cache hit)`)
+      totalSynced += cachedCount
+    }
+
+    if (successful.length > 0) {
+      for (const chain of successful) {
+        try {
+          // Store evolution chain (full structure as JSONB)
+          const { error: chainError } = await supabase
+            .from("evolution_chains")
+            .upsert({
+              evolution_chain_id: chain.id,
+              baby_trigger_item_id: extractIdFromUrl(chain.baby_trigger_item?.url),
+              chain_data: chain.chain, // Store full recursive structure
+              updated_at: new Date().toISOString(),
+            }, { onConflict: "evolution_chain_id" })
+
+          if (chainError) {
+            console.error(`[EvolutionChain] Error upserting chain ${chain.id}:`, chainError)
+            totalErrors++
+          } else {
+            totalSynced++
+          }
+        } catch (error) {
+          console.error(`[EvolutionChain] Error processing chain ${chain.id}:`, error)
+          totalErrors++
+        }
+      }
+    }
+
+    totalErrors += results.filter((r) => r.status === "rejected").length
+    
+    // Memory cleanup
+    cleanupMemory(results, successful)
+    
+    await new Promise((resolve) => setTimeout(resolve, BATCH_DELAY_MS))
+  }
+
+  console.log(`[EvolutionChain] Synced ${totalSynced} evolution chains`)
+  return { synced: totalSynced, errors: totalErrors }
+}
+
+// ============================================================================
+// PHASE 5.5: Pokemon Forms Sync (CRITICAL - Required by league rules)
+// ============================================================================
+
+async function syncPokemonFormPhase(supabase: any, job: SyncJob): Promise<{ synced: number; errors: number }> {
+  let totalSynced = 0
+  let totalErrors = 0
+
+  // Fetch list
+  const listResponse = await fetch(`${POKEAPI_BASE_URL}/pokemon-form/?limit=1000`)
+  if (!listResponse.ok) {
+    return { synced: 0, errors: 1 }
+  }
+
+  const listData: ResourceList = await listResponse.json()
+
+  // Update total chunks if first run
+  if (job.current_chunk === 0 && job.total_chunks === 0) {
+    const config = ENDPOINT_CONFIG['pokemon-form'] || { chunkSize: 40, concurrency: 12 }
+    const totalChunks = Math.ceil(listData.count / config.chunkSize)
+    await supabase
+      .from("sync_jobs")
+      .update({ total_chunks: totalChunks, end_id: listData.count })
+      .eq("job_id", job.job_id)
+  }
+
+  const config = ENDPOINT_CONFIG['pokemon-form'] || { chunkSize: 40, concurrency: 12 }
+  const batchStart = job.current_chunk * job.chunk_size
+  const batchEnd = Math.min(batchStart + job.chunk_size, listData.results.length)
+  const resources = listData.results.slice(batchStart, batchEnd)
+
+  const batches = chunkArray(resources, config.concurrency)
+
+  for (const batch of batches) {
+    const results = await Promise.allSettled(
+      batch.map(async (resource) => {
+        const { data, cached } = await fetchWithRetry(resource.url, supabase, 'pokemon-form')
+        if (cached) {
+          return null // Skip unchanged resources
+        }
+        if (!data) throw new Error(`Failed to fetch ${resource.url}`)
+        return data
+      })
+    )
+
+    const successful = results
+      .filter((r): r is PromiseFulfilledResult<any> => r.status === "fulfilled" && r.value !== null)
+      .map((r) => r.value)
+    
+    const cachedCount = results.filter((r) => r.status === "fulfilled" && r.value === null).length
+    if (cachedCount > 0) {
+      console.log(`[PokemonForm] ${cachedCount} forms unchanged (ETag cache hit)`)
+      totalSynced += cachedCount
+    }
+
+    if (successful.length > 0) {
+      const records = successful.map((data) => ({
+        form_id: data.id || extractIdFromUrl(data.url),
+        name: data.name,
+        order: data.order,
+        form_order: data.form_order,
+        is_default: data.is_default || false,
+        is_battle_only: data.is_battle_only || false,
+        is_mega: data.is_mega || false,
+        pokemon_id: extractIdFromUrl(data.pokemon?.url),
+        version_group_id: extractIdFromUrl(data.version_group?.url),
+        form_names: data.form_names || [],
+        form_sprites: data.sprites || {},
+        updated_at: new Date().toISOString(),
+      }))
+
+      const { error } = await supabase
+        .from("pokemon_forms")
+        .upsert(records, { onConflict: "form_id" })
+
       if (error) {
-        console.error(`[Pokemon] Error upserting:`, error)
+        console.error(`[PokemonForm] Error upserting:`, error)
         totalErrors += successful.length
       } else {
         totalSynced += successful.length
@@ -1398,14 +1778,109 @@ async function syncPokemonPhase(supabase: any, job: SyncJob) {
     }
 
     totalErrors += results.filter((r) => r.status === "rejected").length
+    
+    // Memory cleanup
+    cleanupMemory(results, successful)
+    
     await new Promise((resolve) => setTimeout(resolve, BATCH_DELAY_MS))
   }
 
+  console.log(`[PokemonForm] Synced ${totalSynced} forms`)
   return { synced: totalSynced, errors: totalErrors }
 }
 
 // ============================================================================
-// PHASE 5: Relationships Sync (Types, Abilities, Stats)
+// PHASE 6: Generic Simple Endpoint Sync (Items, Berries, Natures, etc.)
+// ============================================================================
+
+async function syncSimpleEndpointPhase(
+  supabase: any,
+  job: SyncJob,
+  endpoint: string,
+  table: string,
+  idField: string
+): Promise<{ synced: number; errors: number }> {
+  let totalSynced = 0
+  let totalErrors = 0
+
+  // Fetch list
+  const listResponse = await fetch(`${POKEAPI_BASE_URL}/${endpoint}/?limit=1000`)
+  if (!listResponse.ok) {
+    return { synced: 0, errors: 1 }
+  }
+
+  const listData: ResourceList = await listResponse.json()
+
+  // Update total chunks if first run
+  if (job.current_chunk === 0 && job.total_chunks === 0) {
+    const config = ENDPOINT_CONFIG[endpoint] || { chunkSize: 50, concurrency: CONCURRENT_REQUESTS }
+    const totalChunks = Math.ceil(listData.count / config.chunkSize)
+    await supabase
+      .from("sync_jobs")
+      .update({ total_chunks: totalChunks, end_id: listData.count })
+      .eq("job_id", job.job_id)
+  }
+
+  const config = ENDPOINT_CONFIG[endpoint] || { chunkSize: 50, concurrency: CONCURRENT_REQUESTS }
+  const batchStart = job.current_chunk * job.chunk_size
+  const batchEnd = Math.min(batchStart + job.chunk_size, listData.results.length)
+  const resources = listData.results.slice(batchStart, batchEnd)
+
+  const batches = chunkArray(resources, config.concurrency)
+
+  for (const batch of batches) {
+    const results = await Promise.allSettled(
+      batch.map(async (resource) => {
+        const { data, cached } = await fetchWithRetry(resource.url, supabase, endpoint)
+        if (cached) {
+          return null // Skip unchanged resources
+        }
+        if (!data) throw new Error(`Failed to fetch ${resource.url}`)
+        return data
+      })
+    )
+
+    const successful = results
+      .filter((r): r is PromiseFulfilledResult<any> => r.status === "fulfilled" && r.value !== null)
+      .map((r) => r.value)
+    
+    const cachedCount = results.filter((r) => r.status === "fulfilled" && r.value === null).length
+    if (cachedCount > 0) {
+      console.log(`[${endpoint}] ${cachedCount} resources unchanged (ETag cache hit)`)
+      totalSynced += cachedCount
+    }
+
+    if (successful.length > 0) {
+      const records = successful.map((data) => ({
+        [idField]: data.id || extractIdFromUrl(data.url),
+        name: data.name,
+        ...data, // Store full data as JSONB-compatible structure
+        updated_at: new Date().toISOString(),
+      }))
+
+      const { error } = await supabase
+        .from(table)
+        .upsert(records, { onConflict: idField })
+
+      if (error) {
+        console.error(`[${endpoint}] Error upserting:`, error)
+        totalErrors += successful.length
+      } else {
+        totalSynced += successful.length
+      }
+    }
+
+    totalErrors += results.filter((r) => r.status === "rejected").length
+    cleanupMemory(results, successful)
+    await new Promise((resolve) => setTimeout(resolve, BATCH_DELAY_MS))
+  }
+
+  console.log(`[${endpoint}] Synced ${totalSynced} records`)
+  return { synced: totalSynced, errors: totalErrors }
+}
+
+// ============================================================================
+// PHASE 7: Relationships Sync (DEPRECATED - Now synced in pokemon phase)
 // ============================================================================
 
 async function syncRelationshipsPhase(supabase: any, job: SyncJob) {
@@ -1542,16 +2017,108 @@ async function retryWithBackoff<T>(
 }
 
 /**
- * Fetch with retry logic and memory-efficient response handling
+ * Fetch ETag from cache for a resource URL
  */
-async function fetchWithRetry(url: string): Promise<any> {
+async function getCachedETag(supabase: any, url: string): Promise<string | null> {
+  try {
+    const { data, error } = await supabase
+      .from("pokeapi_resource_cache")
+      .select("etag")
+      .eq("url", url)
+      .single()
+    
+    if (error || !data) return null
+    return data.etag || null
+  } catch (error) {
+    console.warn(`[ETag] Error fetching cached ETag for ${url}:`, error)
+    return null
+  }
+}
+
+/**
+ * Store ETag in cache for a resource URL
+ */
+async function storeCachedETag(
+  supabase: any,
+  url: string,
+  etag: string | null,
+  resourceType: string,
+  resourceId?: number,
+  resourceName?: string
+): Promise<void> {
+  if (!etag) return // Don't store null ETags
+  
+  try {
+    const resourceIdFromUrl = resourceId || extractIdFromUrl(url)
+    const cacheData: any = {
+      url,
+      etag,
+      resource_type: resourceType,
+      updated_at: new Date().toISOString(),
+    }
+    
+    if (resourceIdFromUrl) cacheData.resource_id = resourceIdFromUrl
+    if (resourceName) cacheData.resource_name = resourceName
+    
+    await supabase
+      .from("pokeapi_resource_cache")
+      .upsert(cacheData, { onConflict: "url" })
+  } catch (error) {
+    console.warn(`[ETag] Error storing ETag for ${url}:`, error)
+    // Don't throw - ETag caching is optional optimization
+  }
+}
+
+/**
+ * Fetch with retry logic, ETag conditional requests, and memory-efficient response handling
+ * Returns: { data, etag, cached } where cached=true means 304 Not Modified
+ */
+async function fetchWithRetry(
+  url: string,
+  supabase?: any,
+  resourceType?: string
+): Promise<{ data: any; etag: string | null; cached: boolean }> {
+  // Get cached ETag if supabase client provided
+  let storedEtag: string | null = null
+  if (supabase && resourceType) {
+    storedEtag = await getCachedETag(supabase, url)
+  }
+  
   return await retryWithBackoff(async () => {
-    const response = await fetch(url)
+    const headers: HeadersInit = {}
+    if (storedEtag) {
+      headers["If-None-Match"] = storedEtag
+    }
+    
+    const response = await fetch(url, { headers })
+    
+    // Handle 304 Not Modified (resource unchanged)
+    if (response.status === 304) {
+      console.log(`[ETag] Resource unchanged (304): ${url}`)
+      return { data: null, etag: storedEtag, cached: true }
+    }
+    
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`)
     }
+    
+    // Extract ETag from response
+    const etag = response.headers.get("ETag")
+    const lastModified = response.headers.get("Last-Modified")
+    
+    // Parse response data
     const data = await response.json()
-    return data
+    
+    // Store ETag in cache for future requests
+    if (supabase && resourceType && etag) {
+      // Extract resource ID and name from data if available
+      const resourceId = data.id || extractIdFromUrl(url)
+      const resourceName = data.name || null
+      
+      await storeCachedETag(supabase, url, etag, resourceType, resourceId, resourceName)
+    }
+    
+    return { data, etag, cached: false }
   })
 }
 

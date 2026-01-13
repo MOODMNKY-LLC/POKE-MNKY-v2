@@ -5,7 +5,7 @@
 **Project Name**: Average at Best Draft League - Pokemon Draft League Operating System  
 **Status**: Development Phase (v0 → Production)  
 **Current Version**: v1.0.0-beta  
-**Last Updated**: January 2026
+**Last Updated**: January 13, 2026
 
 ---
 
@@ -612,6 +612,403 @@ Transform a Discord-based Pokemon draft league with Google Sheets management int
 
 ---
 
+## Tools & Resources Roadmap
+
+### Overview
+
+The project now includes local development tools and resources to reduce dependency on external APIs and improve development workflow:
+
+1. **Local PokeAPI Instance** (`tools/pokeapi-local`) - Docker-based local API
+2. **PokeAPI Sprites Repository** (`resources/sprites`) - Comprehensive sprite collection
+3. **PokeAPI API Data** (`resources/api-data`) - Static JSON data + JSON Schema (baseline dataset)
+4. **Ditto** (`tools/ditto`) - Tool for meta operations over PokéAPI data (clone, analyze, transform)
+
+### Local PokeAPI Instance (`tools/pokeapi-local`)
+
+#### Current Status ✅
+- Docker Compose setup complete
+- All containers running (app, db, cache, web, graphql-engine)
+- Database populated with all Pokemon data
+- Accessible at `http://localhost/api/v2/`
+- GraphQL console at `http://localhost:8080`
+
+#### Next Steps & Use Cases
+
+**Phase 1: Development Integration** (Immediate)
+- [ ] **Create new sync scripts** using local PokeAPI
+  - Bulk import scripts for initial data seeding
+  - Incremental sync scripts with ETag caching
+  - Queue-based sync system integration
+- [ ] **Configure Edge Functions** to use local instance
+  - Set `POKEAPI_BASE_URL` secret for local development
+  - Test Edge Functions with local API
+  - Verify queue system works with local instance
+- [ ] **Development workflow documentation**
+  - Quick start guide for new developers
+  - Troubleshooting common issues
+  - Performance comparison (local vs production)
+
+**Phase 2: Advanced Features** (Short-term)
+- [ ] **Custom data modifications**
+  - Add custom Pokemon variants for league
+  - Modify stats for draft league balance
+  - Create league-specific metadata
+- [ ] **GraphQL integration**
+  - Explore GraphQL API for complex queries
+  - Build GraphQL-based sync tools
+  - Create GraphQL resolvers for custom data
+- [ ] **Data export/backup**
+  - Export Pokemon data to JSON/SQL
+  - Create backup scripts for local database
+  - Version control for custom modifications
+
+**Phase 3: Production Optimization** (Medium-term)
+- [ ] **Hybrid sync strategy**
+  - Use local instance for bulk imports
+  - Use production API for incremental updates
+  - Implement smart routing based on operation type
+- [ ] **Performance testing**
+  - Benchmark local vs production API
+  - Test rate limiting scenarios
+  - Measure sync performance improvements
+- [ ] **CI/CD integration**
+  - Use local instance in test environments
+  - Automated data validation against local API
+  - Pre-deployment data consistency checks
+
+**Phase 4: Advanced Tooling** (Long-term)
+- [ ] **Custom API endpoints**
+  - Create league-specific endpoints
+  - Add caching layers
+  - Implement custom filtering/sorting
+- [ ] **Data analytics**
+  - Analyze Pokemon usage patterns
+  - Generate draft statistics
+  - Create predictive models
+- [ ] **Multi-instance support**
+  - Run multiple local instances for testing
+  - A/B testing with different data sets
+  - Staging environment with production-like data
+
+### PokeAPI Sprites Repository (`resources/sprites`)
+
+#### Current Status ✅
+- Repository cloned to `resources/sprites`
+- 59,000+ sprite files available
+- All generations (I-IX) included
+- Multiple variants (shiny, female, back, etc.)
+- Official artwork, icons, and items
+
+#### Next Steps & Use Cases
+
+**Phase 1: Sprite Integration** (Immediate)
+- [ ] **CDN/Static hosting setup**
+  - Configure Next.js to serve sprites from `public/` or CDN
+  - Set up Vercel Blob Storage or Supabase Storage
+  - Create sprite URL helper functions
+- [ ] **Sprite loading optimization**
+  - Implement lazy loading for sprites
+  - Create sprite preloading strategies
+  - Add sprite caching headers
+- [ ] **Sprite selection logic**
+  - Create utility to select best sprite variant
+  - Support for generation-specific sprites
+  - Fallback chain for missing sprites
+
+**Phase 2: Enhanced Features** (Short-term)
+- [ ] **Sprite API endpoints**
+  - Create API routes for sprite serving
+  - Add sprite metadata endpoints
+  - Implement sprite search/filtering
+- [ ] **Sprite management tools**
+  - Script to sync sprites to Supabase Storage
+  - Sprite validation and integrity checks
+  - Sprite update automation
+- [ ] **Custom sprite support**
+  - Add league-specific custom sprites
+  - Support for team logos/branding
+  - Custom shiny variants
+
+**Phase 3: Advanced Sprite Features** (Medium-term)
+- [ ] **Sprite optimization**
+  - Image compression and optimization
+  - WebP/AVIF format conversion
+  - Sprite atlasing for performance
+- [ ] **Sprite analytics**
+  - Track sprite usage patterns
+  - Identify unused sprites
+  - Performance metrics for sprite loading
+- [ ] **Sprite variants system**
+  - Dynamic sprite selection based on context
+  - User preferences for sprite styles
+  - Theme-based sprite selection
+
+**Phase 4: Integration Features** (Long-term)
+- [ ] **Sprite editor tools**
+  - Web-based sprite editor
+  - Custom sprite upload interface
+  - Sprite versioning system
+- [ ] **Sprite API integration**
+  - Replace external sprite URLs with local
+  - Implement sprite proxy for external requests
+  - Create sprite CDN with edge caching
+- [ ] **Advanced sprite features**
+  - Animated sprite support
+  - Sprite effects and overlays
+  - Sprite customization for teams
+
+### Ditto (`tools/ditto`)
+
+#### Current Status ✅
+- Repository cloned to `tools/ditto`
+- Docker installation with `docker-compose.yml` and `Dockerfile`
+- Python-based tool for meta operations over PokéAPI data
+- Commands available: `clone`, `analyze`, `transform`
+- **Primary Role**: Foundation Load engine for Poképedia bulk data ingestion
+
+#### Poképedia Integration Use Case
+
+Ditto is the **critical tool** for Phase A "Foundation Load" - the one-time bulk import of all PokéAPI data into Supabase. This approach:
+- Respects PokeAPI fair use policies (official recommended tool)
+- Avoids rate limits during bulk import
+- Provides complete REST v2 corpus for offline development
+- Generates JSON schema for validation and TypeScript types
+
+#### Next Steps & Use Cases
+
+**Phase 1: Foundation Load - Bulk Data Ingestion** (Immediate - IN PROGRESS)
+- [x] **Install ditto** in `tools/ditto` with Docker support
+- [x] **Verify local PokeAPI** is running and accessible
+- [x] **Create import scripts** for api-data and ditto data
+  - `scripts/import-api-data.ts` - Baseline dataset import
+  - `scripts/import-ditto-data.ts` - Comprehensive data import
+  - `scripts/build-pokepedia-projections.ts` - Projection table builder
+  - `scripts/mirror-sprites-to-storage.ts` - Sprite uploader
+- [ ] **Run ditto clone** against local PokeAPI instance
+  - Clone complete REST v2 corpus to `tools/ditto/data/`
+  - All endpoints: pokemon, moves, abilities, types, items, etc.
+  - Store as JSON files organized by resource type
+  - **Status**: Clone in progress (1 resource type completed)
+- [ ] **Generate JSON schema** with `ditto analyze`
+  - Create schema for data validation
+  - Use for TypeScript type generation
+  - Validate data integrity before import
+- [ ] **Import baseline data** from api-data
+  - Run `pnpm tsx scripts/import-api-data.ts`
+  - Fast baseline import (no network calls)
+  - Populates `pokeapi_resources` table
+- [ ] **Import comprehensive data** from ditto
+  - Run `pnpm tsx scripts/import-ditto-data.ts` after clone completes
+  - Upserts will update existing records
+  - Complete REST v2 corpus coverage
+- [ ] **Build Projections** - Fast Query Tables
+  - Run `pnpm tsx scripts/build-pokepedia-projections.ts`
+  - Extract Pokemon data from `pokeapi_resources` JSONB
+  - Build `pokepedia_pokemon` table with:
+    - id, name, height, weight, base_experience
+    - types, abilities (normalized)
+    - "best sprite path" logic (official-artwork preferred)
+  - Create indexes for fast UI queries
+- [ ] **Mirror sprites** to Supabase Storage
+  - Run `pnpm tsx scripts/mirror-sprites-to-storage.ts`
+  - Upload to `pokedex-sprites` bucket
+  - Track metadata in `pokepedia_assets` table
+
+**Phase 2: Incremental Sync Setup** (Short-term)
+- [ ] **Transition to queue-based sync**
+  - After foundation load, switch to incremental updates
+  - Use Supabase Queues (`pokepedia_ingest`) for delta ingestion
+  - Schedule periodic refresh jobs
+- [ ] **Data validation and monitoring**
+  - Compare ditto-cloned data vs queue-synced data
+  - Track data freshness and completeness
+  - Alert on data inconsistencies
+- [ ] **Selective re-cloning**
+  - Use ditto for targeted endpoint updates
+  - Re-clone specific resource types when needed
+  - Maintain data versioning and audit trail
+
+**Phase 3: Advanced Integration** (Medium-term)
+- [ ] **Custom transformation pipeline**
+  - Transform ditto data for league-specific needs
+  - Merge with custom metadata (draft points, league rules)
+  - Create enriched Pokemon records for draft system
+- [ ] **Schema evolution**
+  - Use ditto analyze for schema changes detection
+  - Update TypeScript types automatically
+  - Migrate existing data when schema changes
+- [ ] **CI/CD integration**
+  - Automated ditto runs in CI pipeline
+  - Data validation in tests
+  - Automated schema generation and type updates
+
+**Phase 4: Advanced Features** (Long-term)
+- [ ] **Custom ditto commands**
+  - Create league-specific ditto extensions
+  - Add custom data sources
+  - Implement custom transformations
+- [ ] **Data analytics**
+  - Analyze cloned data for insights
+  - Generate statistics and reports
+  - Track data changes over time
+- [ ] **Multi-source sync**
+  - Sync from multiple PokeAPI instances
+  - Merge data from different sources
+  - Handle conflicts and duplicates
+
+### PokeAPI API Data (`resources/api-data`)
+
+#### Current Status ✅
+- Repository cloned to `resources/api-data`
+- Static JSON data available in `data/api/v2/`
+- JSON Schema available in `data/schema/`
+- 48+ endpoint types included (pokemon, moves, abilities, types, etc.)
+
+#### Next Steps & Use Cases
+
+**Phase 1: Baseline Dataset** (Immediate)
+- [ ] **Use as initial seed** for Supabase import
+  - Faster than ditto clone (no network calls needed)
+  - Complete structured dataset ready to use
+  - Import directly from `resources/api-data/data/api/v2/`
+- [ ] **Schema validation**
+  - Use JSON Schema from `data/schema/` for validation
+  - Validate ditto-cloned data against schema
+  - Generate TypeScript types from schema
+- [ ] **Deterministic backfills**
+  - Use api-data for repeatable imports
+  - Track data versioning with git commits
+  - Compare against ditto-cloned data for completeness
+
+**Phase 2: Integration** (Short-term)
+- [ ] **Hybrid import strategy**
+  - Use api-data for baseline (fast)
+  - Use ditto for comprehensive coverage
+  - Merge and deduplicate data sources
+- [ ] **Schema-driven development**
+  - Generate Postgres table schemas from JSON Schema
+  - Create TypeScript types automatically
+  - Validate all imports against schema
+- [ ] **Data comparison tools**
+  - Compare api-data vs ditto-cloned data
+  - Identify missing or updated resources
+  - Track data freshness
+
+**Phase 3: Advanced Features** (Medium-term)
+- [ ] **Automated updates**
+  - Pull api-data updates regularly
+  - Track schema changes
+  - Update TypeScript types automatically
+- [ ] **Data quality checks**
+  - Validate data integrity using schema
+  - Compare structure across versions
+  - Generate data quality reports
+
+### PokeAPI Cries (`resources/cries`)
+
+#### Current Status ✅
+- Repository cloned to `resources/cries`
+- Latest cries: 1,302+ OGG files (Generations 1-9)
+- Legacy cries: 649 OGG files (historical)
+- Files mapped by Pokémon ID for easy lookup
+
+#### Next Steps & Use Cases
+
+**Phase 1: Audio Integration** (Short-term)
+- [ ] **Mirror to Supabase Storage**
+  - Create `pokedex-cries` bucket
+  - Upload latest and legacy cries
+  - Preserve directory structure
+  - Track metadata in `pokepedia_assets` table
+- [ ] **CDN Access**
+  - Serve cries via Supabase Storage CDN
+  - Fast audio delivery for Poképedia features
+  - Fallback to local files during development
+
+**Phase 2: Feature Integration** (Medium-term)
+- [ ] **Pokémon Detail Pages**
+  - Play cry when viewing Pokémon information
+  - Audio preview controls
+  - Latest vs legacy cry comparison
+- [ ] **Battle Simulations**
+  - Play cries when Pokémon enter battle
+  - Enhance battle experience with authentic audio
+  - Sound effects integration
+- [ ] **Interactive Features**
+  - Click-to-play cry buttons
+  - Audio galleries for Pokémon collections
+  - Cry comparison tools
+
+**Phase 3: Advanced Features** (Long-term)
+- [ ] **Audio Analytics**
+  - Track most-played cries
+  - User preferences for audio
+  - Audio quality metrics
+- [ ] **Custom Audio**
+  - Support for user-uploaded cries
+  - Community audio contributions
+  - Audio versioning and history
+
+### Integration Opportunities
+
+**Combined Workflows**
+- [ ] **Unified sync system**
+  - Use api-data for baseline (fast seeding)
+  - Use ditto to clone comprehensive data from local PokeAPI
+  - Transform and import to Supabase
+  - Automatically fetch and cache sprites
+  - Mirror cries to storage
+  - Create complete Pokemon records with sprites and audio
+- [ ] **Development tools**
+  - Scripts that use api-data, ditto, local API, sprites, and cries
+  - Data validation across all resources using JSON Schema
+  - Comprehensive Pokemon data management (visual + audio)
+- [ ] **Testing infrastructure**
+  - Use api-data for test datasets (deterministic)
+  - Use ditto to create custom test scenarios
+  - Use local tools for integration testing
+  - Mock external dependencies
+  - Faster test execution
+  - Audio testing with local cries
+
+**Performance Benefits**
+- [ ] **Reduced external dependencies**
+  - No rate limits during development
+  - Faster local development cycles
+  - Offline development capability
+- [ ] **Cost optimization**
+  - Reduced API calls to production
+  - Lower bandwidth usage
+  - Better development experience
+- [ ] **Data consistency**
+  - Single source of truth with ditto clones
+  - Version-controlled data
+  - Reproducible builds
+
+### Implementation Priority
+
+**High Priority** (Next Sprint)
+1. ✅ **Ditto Installation** - Complete (installed in `tools/ditto`)
+2. ✅ **Local PokeAPI Running** - Verified and accessible
+3. ✅ **API Data Repository** - Installed in `resources/api-data` (baseline dataset + schema)
+4. 🔄 **Ditto Clone** - Currently running (Phase A Foundation Load)
+5. ⏳ **Import to Supabase** - Import data (api-data baseline + ditto comprehensive) into `pokeapi_resources` table
+6. ⏳ **Build Projections** - Create `pokepedia_pokemon` from canonical data
+7. ⏳ **Set up sprite CDN/static hosting** - Mirror `resources/sprites` to Supabase Storage
+8. ⏳ **Configure Edge Functions** - Set up for local development with local PokeAPI
+
+**Medium Priority** (Next Month)
+1. Sprite API endpoints
+2. GraphQL integration with local PokeAPI
+3. Sprite optimization and caching
+
+**Low Priority** (Future)
+1. Custom data modifications
+2. Advanced sprite features
+3. Multi-instance support
+
+---
+
 ## Team & Resources
 
 ### Current Team
@@ -677,6 +1074,14 @@ With focused effort over the next 3 months, the app can be fully production-read
 
 ## Change Log
 
+### v1.0.1-beta (January 13, 2026)
+- **Tools & Resources Integration**
+  - Installed local PokeAPI instance (`tools/pokeapi-local`)
+  - Cloned PokeAPI sprites repository (`resources/sprites`)
+  - Created comprehensive roadmap for tools and resources
+  - Removed legacy sync scripts (preparing for new sync system)
+  - Updated documentation with new tooling information
+
 ### v1.0.0-beta (January 2026)
 - Initial build with all core pages
 - Supabase auth and database setup
@@ -692,5 +1097,38 @@ With focused effort over the next 3 months, the app can be fully production-read
 
 ---
 
-**Last Updated**: January 12, 2026  
+**Last Updated**: January 13, 2026  
 **Next Review**: February 1, 2026
+
+---
+
+## Poképedia Ingestion Pipeline Status
+
+### Current Phase: Foundation Load (Phase A)
+
+**Status**: 🔄 In Progress
+
+#### Completed ✅
+- [x] Local PokeAPI instance installed and running (`tools/pokeapi-local`)
+- [x] PokeAPI sprites repository cloned (`resources/sprites`)
+- [x] Ditto tool installed (`tools/ditto`)
+- [x] Local PokeAPI verified and accessible
+- [x] Ditto clone process initiated
+
+#### In Progress 🔄
+- [ ] Ditto clone completing (running in background)
+- [ ] Data validation and schema generation
+
+#### Next Steps ⏳
+- [ ] Import ditto data to `pokeapi_resources` table
+- [ ] Mirror sprites to Supabase Storage (`pokedex-sprites` bucket)
+- [ ] Build `pokepedia_pokemon` projections from canonical data
+- [ ] Set up incremental sync with Supabase Queues
+
+### Architecture Reference
+
+See `temp/pokepedia-infra.md` for complete architecture details:
+- Three data planes (canonical, projection, media)
+- Ingestion strategy (ditto for bulk, queues for incremental)
+- Sprite mirroring approach
+- Best practices and fair use compliance
