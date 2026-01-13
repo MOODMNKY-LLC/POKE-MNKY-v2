@@ -240,6 +240,22 @@ export default function AdminPage() {
               </Button>
             </CardContent>
           </Card>
+
+          {/* Poképedia Dashboard */}
+          <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5">
+            <CardHeader>
+              <Database className="mb-2 h-8 w-8 text-primary" />
+              <CardTitle>Poképedia Dashboard</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-4 text-sm text-muted-foreground">
+                Comprehensive Supabase management and Poképedia sync monitoring.
+              </p>
+              <Button asChild className="w-full">
+                <Link href="/admin/pokepedia-dashboard">Open Dashboard</Link>
+              </Button>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Poképedia Sync Status */}

@@ -23,12 +23,29 @@ export function StorageTab({ projectRef }: { projectRef: string }) {
   async function loadBuckets() {
     setLoading(true)
     try {
+      // Try using client-side storage API first
       const { data, error } = await supabase.storage.listBuckets()
 
-      if (error) throw error
+      if (error) {
+        // If client-side fails, try via Management API proxy
+        console.warn("Client-side bucket list failed, trying Management API:", error.message)
+        const projectRef = process.env.NEXT_PUBLIC_SUPABASE_URL?.split("//")[1]?.split(".")[0] || ""
+        if (projectRef) {
+          const response = await fetch(`/api/supabase-proxy/v1/projects/${projectRef}/storage/buckets`)
+          if (response.ok) {
+            const bucketsData = await response.json()
+            setBuckets(bucketsData || [])
+            return
+          }
+        }
+        throw error
+      }
+
       setBuckets(data || [])
     } catch (error: any) {
-      toast.error("Failed to load buckets: " + error.message)
+      console.error("Failed to load buckets:", error)
+      toast.error("Failed to load buckets: " + (error.message || "Unknown error"))
+      setBuckets([])
     } finally {
       setLoading(false)
     }
@@ -41,17 +58,36 @@ export function StorageTab({ projectRef }: { projectRef: string }) {
     }
 
     try {
+      // Try client-side API first
       const { data, error } = await supabase.storage.createBucket(newBucketName, {
         public: false,
         fileSizeLimit: 52428800, // 50MB
       })
 
-      if (error) throw error
+      if (error) {
+        // If client-side fails, try via admin API (uses service role)
+        const response = await fetch("/api/admin/storage", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: newBucketName,
+            public: false,
+            fileSizeLimit: 52428800,
+          }),
+        })
+        
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.error || "Failed to create bucket")
+        }
+      }
+      
       toast.success("Bucket created successfully")
       setNewBucketName("")
       loadBuckets()
     } catch (error: any) {
-      toast.error("Failed to create bucket: " + error.message)
+      console.error("Failed to create bucket:", error)
+      toast.error("Failed to create bucket: " + (error.message || "Unknown error"))
     }
   }
 
@@ -66,14 +102,15 @@ export function StorageTab({ projectRef }: { projectRef: string }) {
       toast.success("Bucket deleted successfully")
       loadBuckets()
     } catch (error: any) {
-      toast.error("Failed to delete bucket: " + error.message)
+      console.error("Failed to delete bucket:", error)
+      toast.error("Failed to delete bucket: " + (error.message || "Unknown error"))
     }
   }
 
   return (
     <div className="space-y-4">
       <Card>
-        <CardHeader>
+      <CardHeader>
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">

@@ -35,14 +35,31 @@ export function LogsTab({ projectRef }: { projectRef: string }) {
   async function loadLogs() {
     setLoading(true)
     try {
-      const response = await fetch(`/api/supabase-proxy/v1/projects/${projectRef}/logs?service=${service}`)
-      if (!response.ok) throw new Error("Failed to fetch logs")
+      // Ensure we have a valid projectRef
+      let ref = projectRef
+      if (!ref || ref === "default") {
+        // Extract from URL if not provided
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
+        ref = supabaseUrl.split("//")[1]?.split(".")[0] || ""
+      }
+
+      if (!ref) {
+        throw new Error("Project reference not found. Check NEXT_PUBLIC_SUPABASE_URL.")
+      }
+
+      const response = await fetch(`/api/supabase-proxy/v1/projects/${ref}/logs?service=${service}`)
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error?.message || `Failed to fetch logs: ${response.status}`)
+      }
 
       const data = await response.json()
       // Logs come in reverse chronological order
       setLogs((data.result || []).slice(0, 100)) // Limit to 100 most recent
     } catch (error: any) {
-      toast.error("Failed to load logs: " + error.message)
+      console.error("Failed to load logs:", error)
+      toast.error("Failed to load logs: " + (error.message || "Unknown error"))
+      setLogs([])
     } finally {
       setLoading(false)
     }

@@ -29,3 +29,7 @@ next-env.d.ts
 # Google Cloud Service Account credentials
 temp/*.json
 **/mood-mnky-*.json
+
+# Database dumps (too large for git)
+*.sql
+!supabase/migrations/*.sql

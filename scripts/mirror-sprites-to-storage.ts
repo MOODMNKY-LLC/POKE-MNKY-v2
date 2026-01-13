@@ -55,7 +55,19 @@ async function uploadSprite(
     const fileBuffer = fs.readFileSync(filePath)
     const checksum = calculateChecksum(filePath)
 
-    // Check if file already exists with same checksum
+    // Check if file already exists in storage (not just database)
+    // Try to get file metadata - if it exists, the file is in storage
+    const { data: storageFile, error: storageError } = await supabase.storage
+      .from(BUCKET_NAME)
+      .list(path.dirname(storagePath) || "", {
+        limit: 1000,
+        search: path.basename(storagePath),
+      })
+
+    const fileExistsInStorage = !storageError && storageFile && 
+      storageFile.some(f => f.name === path.basename(storagePath))
+
+    // Check if file already exists with same checksum in database
     const { data: existing } = await supabase
       .from("pokepedia_assets")
       .select("sha256")
@@ -63,7 +75,9 @@ async function uploadSprite(
       .eq("path", storagePath)
       .single()
 
-    if (existing?.sha256 === checksum) {
+    // Only skip if BOTH database metadata exists AND file exists in storage
+    // This handles the case where database was synced but storage files weren't
+    if (existing?.sha256 === checksum && fileExistsInStorage) {
       return { success: true, checksum, skipped: true }
     }
 

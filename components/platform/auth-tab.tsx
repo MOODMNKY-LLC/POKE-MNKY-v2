@@ -26,14 +26,44 @@ export function AuthTab({ projectRef }: { projectRef: string }) {
 
   async function loadAuthStatus() {
     try {
-      // Check Discord OAuth availability via environment
-      const hasDiscord = !!process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID
+      // Check Discord OAuth via health check API (more reliable)
+      const healthResponse = await fetch("/api/admin/health-check")
+      let discordEnabled = false
+      
+      if (healthResponse.ok) {
+        const health = await healthResponse.json()
+        discordEnabled = health.discordOAuth?.enabled || false
+      } else {
+        // Fallback: check environment variable
+        discordEnabled = !!(process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID || process.env.DISCORD_CLIENT_ID)
+      }
+
+      // Also check if any users have Discord linked (additional verification)
+      const { data: discordUsers } = await supabase
+        .from("profiles")
+        .select("discord_id")
+        .not("discord_id", "is", null)
+        .limit(1)
+
+      const hasDiscordUsers = (discordUsers?.length || 0) > 0
+      
       setProviders([
         { id: "email", name: "Email/Password", enabled: true, type: "built-in" },
-        { id: "discord", name: "Discord OAuth", enabled: hasDiscord, type: "oauth" },
+        { 
+          id: "discord", 
+          name: "Discord OAuth", 
+          enabled: discordEnabled || hasDiscordUsers, 
+          type: "oauth",
+          verified: discordEnabled && hasDiscordUsers,
+        },
       ])
     } catch (error) {
       console.error("Error loading auth status:", error)
+      // Fallback on error
+      setProviders([
+        { id: "email", name: "Email/Password", enabled: true, type: "built-in" },
+        { id: "discord", name: "Discord OAuth", enabled: false, type: "oauth" },
+      ])
     } finally {
       setLoading(false)
     }
