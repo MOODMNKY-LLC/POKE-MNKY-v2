@@ -59,6 +59,9 @@ export interface CachedPokemonExtended {
   generation: number
   draft_cost: number
   tier: string | null
+  height?: number // in decimeters
+  weight?: number // in hectograms
+  base_experience?: number | null
   payload: any
   fetched_at: string
   expires_at: string
@@ -74,10 +77,11 @@ export async function getPokemonDataExtended(
   nameOrId: string | number,
   includeMoveDetails = false,
 ): Promise<CachedPokemonExtended | null> {
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  )
+  // Use service role key for server-side caching (bypasses RLS)
+  // Fallback to anon key only if service role not available (will fail on insert due to RLS)
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  const supabase = createClient(supabaseUrl, supabaseKey)
 
   try {
     // Try cache first
@@ -200,18 +204,40 @@ export async function getPokemonDataExtended(
       generation: determineGeneration(pokemon.id),
       draft_cost: calculateDraftCost(pokemon),
       tier: determineTier(pokemon),
+      height: pokemon.height,
+      weight: pokemon.weight,
+      base_experience: pokemon.base_experience,
       payload: pokemon,
       fetched_at: new Date().toISOString(),
       expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days
     }
 
-    // Store in cache
-    const { error: insertError } = await supabase
-      .from("pokemon_cache")
-      .upsert(extendedData, { onConflict: "pokemon_id" })
+    // Store in cache (non-blocking - cache failures shouldn't break the app)
+    // Only cache if service role key is available (server-side) or if explicitly enabled
+    const shouldCache = !!process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.ENABLE_POKEMON_CACHE === "true"
+    
+    if (shouldCache) {
+      const { error: insertError } = await supabase
+        .from("pokemon_cache")
+        .upsert(extendedData, { onConflict: "pokemon_id" })
 
-    if (insertError) {
-      console.error("[v0] Failed to cache extended Pokemon:", insertError)
+      if (insertError) {
+        // Log detailed error information (but don't throw)
+        const errorInfo = {
+          pokemon_id: extendedData.pokemon_id,
+          pokemon_name: extendedData.name,
+          error_message: insertError.message || "Unknown error",
+          error_code: insertError.code || "unknown",
+          error_details: insertError.details || null,
+          error_hint: insertError.hint || null,
+          using_service_role: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+        }
+        
+        console.warn("[v0] Failed to cache extended Pokemon (non-blocking):", errorInfo)
+      }
+    } else {
+      // Client-side: Skip caching to avoid RLS issues
+      // Data is still returned, just not cached
     }
 
     return extendedData

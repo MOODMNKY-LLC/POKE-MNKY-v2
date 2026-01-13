@@ -43,6 +43,10 @@ export function usePokepediaSync(autoStart = true) {
     localCount: 0,
     estimatedTimeRemaining: null,
     isStale: false,
+    itemsSynced: 0,
+    currentChunk: 0,
+    totalChunks: 0,
+    databaseConnected: true, // Assume connected initially
   })
   
   // Track progress history for rate calculation
@@ -87,56 +91,212 @@ export function usePokepediaSync(autoStart = true) {
     return Math.max(0, estimatedSeconds)
   }, [])
 
+  // Clean up stale jobs in database
+  const cleanupStaleJobs = useCallback(async () => {
+    try {
+      // Find stale running jobs (>10 minutes without heartbeat)
+      const { data: staleJobs } = await supabase
+        .from("sync_jobs")
+        .select("job_id, last_heartbeat, started_at")
+        .eq("sync_type", "pokepedia")
+        .eq("status", "running")
+      
+      if (!staleJobs || staleJobs.length === 0) return
+      
+      const now = Date.now()
+      const staleJobIds: string[] = []
+      
+      for (const job of staleJobs) {
+        const lastHeartbeat = job.last_heartbeat 
+          ? new Date(job.last_heartbeat).getTime() 
+          : new Date(job.started_at).getTime()
+        const minutesSinceHeartbeat = (now - lastHeartbeat) / (1000 * 60)
+        
+        if (minutesSinceHeartbeat > 10) {
+          staleJobIds.push(job.job_id)
+        }
+      }
+      
+      if (staleJobIds.length > 0) {
+        // Mark stale jobs as failed
+        await supabase
+          .from("sync_jobs")
+          .update({ 
+            status: "failed",
+            error_log: { reason: "Stale job detected - no heartbeat in 10+ minutes" }
+          })
+          .in("job_id", staleJobIds)
+        
+        console.log(`[Sync] Cleaned up ${staleJobIds.length} stale job(s)`)
+      }
+    } catch (error) {
+      console.error("[Sync] Error cleaning up stale jobs:", error)
+    }
+  }, [])
+
+  // Check database connectivity via health check
+  const checkDatabaseHealth = useCallback(async (): Promise<boolean> => {
+    try {
+      // Simple connectivity check - try to query a small table
+      const { error } = await supabase
+        .from("types")
+        .select("type_id")
+        .limit(1)
+      
+      return !error
+    } catch (error) {
+      console.error("[Sync] Database health check failed:", error)
+      return false
+    }
+  }, [])
+
   // Check local database status and active sync jobs
   const checkLocalStatus = useCallback(async () => {
     const { needsSync, syncStatus } = await initializeOfflineDB()
     const localCount = await getLocalPokemonCount()
+    const dbConnected = await checkDatabaseHealth()
 
       // Check for active sync jobs in database
       try {
-        const { data: activeJob } = await supabase
+        const { data: activeJob, error: jobError } = await supabase
           .from("sync_jobs")
-          .select("job_id, phase, status, progress_percent, current_chunk, total_chunks")
+          .select("job_id, phase, status, progress_percent, current_chunk, total_chunks, pokemon_synced, last_heartbeat, started_at")
           .eq("sync_type", "pokepedia")
           .eq("status", "running")
           .order("started_at", { ascending: false })
           .limit(1)
-          .single()
+          .maybeSingle()
 
-      if (activeJob) {
-        // Active sync job found - update state to show real progress
+      if (activeJob && !jobError) {
+        // Check if job is stale (no heartbeat in last 2 minutes for banner display)
+        // Use stricter threshold - only show truly active syncs in banner
+        const lastHeartbeat = activeJob.last_heartbeat 
+          ? new Date(activeJob.last_heartbeat).getTime() 
+          : new Date(activeJob.started_at).getTime()
+        const minutesSinceHeartbeat = (Date.now() - lastHeartbeat) / (1000 * 60)
+        const isStale = minutesSinceHeartbeat > 2 // Stricter: 2 min for banner (was 5 min)
+        
+        const itemsSynced = activeJob.pokemon_synced || 0
+        const currentChunk = activeJob.current_chunk || 0
+        const totalChunks = activeJob.total_chunks || 0
+        const phaseName = activeJob.phase || "unknown"
+        
+        if (isStale) {
+          // Check if there's a more recent completed job
+          const { data: recentCompletedJob } = await supabase
+            .from("sync_jobs")
+            .select("job_id, phase, status, completed_at, pokemon_synced")
+            .eq("sync_type", "pokepedia")
+            .eq("status", "completed")
+            .order("completed_at", { ascending: false })
+            .limit(1)
+            .maybeSingle()
+          
+          // If stale job and there's a recent completed job, ignore stale job
+          if (recentCompletedJob && new Date(recentCompletedJob.completed_at).getTime() > lastHeartbeat) {
+            // Sync actually completed - show completion status
+            setState((prev) => ({
+              ...prev,
+              localCount,
+              status: "completed",
+              progress: 100,
+              phase: null,
+              isStale: false,
+              itemsSynced: 0,
+              currentChunk: 0,
+              totalChunks: 0,
+              databaseConnected: dbConnected,
+              message: localCount > 0 
+                ? `Sync completed. ${localCount.toLocaleString()} Pokemon available locally.`
+                : "Sync completed",
+            }))
+            return { needsSync: false, syncStatus }
+          }
+          
+          // Stale job - mark as stopped, prioritize items synced in message
+          setState((prev) => ({
+            ...prev,
+            localCount,
+            status: "stopped",
+            progress: activeJob.progress_percent || 0,
+            phase: phaseName,
+            isStale: true,
+            itemsSynced,
+            currentChunk,
+            totalChunks,
+            databaseConnected: dbConnected,
+            message: itemsSynced > 0 
+              ? `Sync appears stopped (no update in ${Math.round(minutesSinceHeartbeat)}min). ${itemsSynced.toLocaleString()} items synced in ${phaseName.charAt(0).toUpperCase() + phaseName.slice(1)} phase`
+              : `Sync appears stopped (no update in ${Math.round(minutesSinceHeartbeat)}min). Last: ${phaseName.charAt(0).toUpperCase() + phaseName.slice(1)} phase${totalChunks > 0 ? ` (${currentChunk}/${totalChunks} chunks)` : ''}`,
+          }))
+          return { needsSync: false, syncStatus }
+        }
+        
+        // Job is active - update state to show real progress
         const realProgress = activeJob.progress_percent || 0
         const estimatedSeconds = calculateTimeRemaining(
           realProgress,
-          activeJob.total_chunks || 0,
-          activeJob.current_chunk || 0
+          totalChunks,
+          currentChunk
         )
+        
+        // Create descriptive message - prioritize items synced over chunks
+        let phaseDisplay = phaseName.charAt(0).toUpperCase() + phaseName.slice(1)
+        let message = ""
+        
+        if (itemsSynced > 0) {
+          message = `Syncing ${phaseDisplay}: ${itemsSynced.toLocaleString()} items synced`
+          if (totalChunks > 0) {
+            message += ` (${currentChunk}/${totalChunks} chunks, ${realProgress.toFixed(1)}%)`
+          } else {
+            message += ` (${realProgress.toFixed(1)}%)`
+          }
+        } else {
+          // No items synced yet - show chunks
+          if (totalChunks > 0) {
+            message = `Syncing ${phaseDisplay}: ${currentChunk}/${totalChunks} chunks (${realProgress.toFixed(1)}%)`
+          } else {
+            message = `Syncing ${phaseDisplay} (${realProgress.toFixed(1)}%)`
+          }
+        }
         
         setState((prev) => ({
           ...prev,
           localCount,
           status: "syncing",
           progress: realProgress,
-          phase: activeJob.phase,
+          phase: phaseName,
           estimatedTimeRemaining: estimatedSeconds,
-          message: `Syncing ${activeJob.phase} phase: ${activeJob.current_chunk || 0}/${activeJob.total_chunks || 0} chunks (${realProgress.toFixed(1)}%)`,
+          isStale: false,
+          itemsSynced,
+          currentChunk,
+          totalChunks,
+          databaseConnected: dbConnected,
+          message,
         }))
         return { needsSync: false, syncStatus } // Don't trigger new sync if one is running
       }
     } catch (error) {
       // No active job or error - continue with normal flow
-      console.log("[Sync] No active sync job found")
+      console.log("[Sync] No active sync job found:", error)
     }
 
+    // On mount, don't show "stopped" - just set to idle/completed silently
+    // Banner will only show for active syncs
     setState((prev) => ({
       ...prev,
       localCount,
       status: needsSync ? "idle" : "completed",
-      message: needsSync ? "Ready to sync" : `Local: ${localCount} Pokemon`,
+      message: needsSync ? "Ready to sync" : localCount > 0 ? `Sync completed. ${localCount.toLocaleString()} Pokemon available locally.` : "Sync completed",
+      isStale: false,
+      databaseConnected: dbConnected,
+      itemsSynced: 0,
+      currentChunk: 0,
+      totalChunks: 0,
     }))
 
     return { needsSync, syncStatus }
-  }, [])
+  }, [calculateTimeRemaining, checkDatabaseHealth])
 
   // Trigger background comprehensive sync via Edge Function
   // Uses new phase-based approach: master → reference → species → pokemon → relationships
@@ -502,13 +662,24 @@ export function usePokepediaSync(autoStart = true) {
 
   // Poll sync_jobs table for real progress updates
   useEffect(() => {
-    // Poll when syncing or stopped (to detect if it resumes)
-    if (state.status !== "syncing" && state.status !== "stopped") return
-
+    // Always poll on mount and when syncing, stopped, idle, or completed (to detect new jobs)
+    let hasPolledOnce = false
+    
     // Poll sync_jobs table every 2 seconds to get real progress
     const pollProgress = async () => {
+      // Always poll on first run (mount), then check status
+      const shouldPoll = hasPolledOnce 
+        ? (state.status === "syncing" || state.status === "stopped" || state.status === "idle" || state.status === "completed")
+        : true // Always poll on mount
+      
+      if (!shouldPoll) return
+      hasPolledOnce = true
+      
       try {
-        // First check for running jobs
+        // Clean up stale jobs first
+        await cleanupStaleJobs()
+        
+        // Check for running jobs
         const { data: runningJobs, error: runningError } = await supabase
           .from("sync_jobs")
           .select("job_id, phase, status, current_chunk, total_chunks, pokemon_synced, progress_percent, started_at, last_heartbeat")
@@ -524,76 +695,133 @@ export function usePokepediaSync(autoStart = true) {
           const phase = job.phase || "unknown"
           const currentChunk = job.current_chunk || 0
           const totalChunks = job.total_chunks || 0
+          const itemsSynced = job.pokemon_synced || 0
           
-          // Check if sync is stale (no heartbeat in last 5 minutes)
-          const lastHeartbeat = job.last_heartbeat ? new Date(job.last_heartbeat).getTime() : Date.now()
+          // Check if sync is stale (no heartbeat in last 2 minutes for banner display)
+          // Use stricter threshold for banner - only show truly active syncs
+          const lastHeartbeat = job.last_heartbeat 
+            ? new Date(job.last_heartbeat).getTime() 
+            : new Date(job.started_at).getTime()
           const minutesSinceHeartbeat = (Date.now() - lastHeartbeat) / (1000 * 60)
-          const isStale = minutesSinceHeartbeat > 5
+          const isStale = minutesSinceHeartbeat > 2 // Stricter: 2 min for banner (was 5 min)
           
-          // Calculate estimated time remaining
-          const estimatedSeconds = calculateTimeRemaining(realProgress, totalChunks, currentChunk)
+          // Calculate estimated time remaining (only if not stale)
+          const estimatedSeconds = isStale ? null : calculateTimeRemaining(realProgress, totalChunks, currentChunk)
+          
+          // Create descriptive message based on phase
+          let phaseDisplay = phase.charAt(0).toUpperCase() + phase.slice(1)
+          let message = ""
+          
+          // Prioritize items synced over chunks for display
+          if (isStale) {
+            if (itemsSynced > 0) {
+              message = `Sync appears stopped (no update in ${Math.round(minutesSinceHeartbeat)}min). ${itemsSynced.toLocaleString()} items synced in ${phaseDisplay} phase`
+            } else {
+              message = `Sync appears stopped (no update in ${Math.round(minutesSinceHeartbeat)}min). Last: ${phaseDisplay} phase`
+              if (totalChunks > 0) {
+                message += ` (${currentChunk}/${totalChunks} chunks)`
+              }
+            }
+          } else {
+            // Active sync - show items synced as primary metric, chunks as secondary
+            if (itemsSynced > 0) {
+              message = `Syncing ${phaseDisplay}: ${itemsSynced.toLocaleString()} items synced`
+              if (totalChunks > 0) {
+                message += ` (${currentChunk}/${totalChunks} chunks, ${realProgress.toFixed(1)}%)`
+              } else {
+                message += ` (${realProgress.toFixed(1)}%)`
+              }
+            } else {
+              // No items synced yet - show chunks
+              if (totalChunks > 0) {
+                message = `Syncing ${phaseDisplay}: ${currentChunk}/${totalChunks} chunks (${realProgress.toFixed(1)}%)`
+              } else {
+                message = `Syncing ${phaseDisplay} (${realProgress.toFixed(1)}%)`
+              }
+            }
+          }
+          
+          const dbConnected = await checkDatabaseHealth()
           
           setState((prev) => ({
             ...prev,
-            progress: Math.max(prev.progress, realProgress),
+            progress: isStale ? prev.progress : realProgress, // Don't update progress if stale
             phase: phase,
             estimatedTimeRemaining: estimatedSeconds,
             isStale: isStale,
             status: isStale ? "stopped" : "syncing",
-            message: isStale 
-              ? `Sync appears stopped (no update in ${Math.round(minutesSinceHeartbeat)}min). Last: ${phase} phase: ${currentChunk}/${totalChunks} chunks`
-              : `Syncing ${phase} phase: ${currentChunk}/${totalChunks} chunks (${realProgress.toFixed(1)}%)`,
+            itemsSynced,
+            currentChunk,
+            totalChunks,
+            databaseConnected: dbConnected,
+            message,
           }))
           return // Found running job, exit early
         }
 
-        // No running job found - check for recent failed/completed jobs
-        const { data: recentJobs, error: recentError } = await supabase
-          .from("sync_jobs")
-          .select("job_id, phase, status, progress_percent, started_at, completed_at")
-          .eq("sync_type", "pokepedia")
-          .in("status", ["failed", "completed"])
-          .order("started_at", { ascending: false })
-          .limit(1)
-          .maybeSingle()
-
-        if (!recentError && recentJobs) {
-          const job = recentJobs as any
-          if (job.status === "failed") {
-            setState((prev) => ({
-              ...prev,
-              status: "error",
-              estimatedTimeRemaining: null,
-              isStale: false,
-              message: "Sync job failed. Click Start to retry.",
-            }))
-            progressHistoryRef.current = [] // Clear history
-            return
-          } else if (job.status === "completed") {
-            setState((prev) => ({
-              ...prev,
-              status: "completed",
-              progress: 100,
-              estimatedTimeRemaining: null,
-              isStale: false,
-              message: "Sync completed!",
-            }))
-            progressHistoryRef.current = [] // Clear history
-            checkLocalStatus()
-            return
-          }
-        }
-
-        // No jobs found at all - set to idle
+        // No running job found - reset to idle (banner will hide automatically)
+        // Don't show "stopped" state - just reset to idle silently
         if (state.status === "syncing" || state.status === "stopped") {
+          const localCount = await getLocalPokemonCount()
+          const dbConnected = await checkDatabaseHealth()
           setState((prev) => ({
             ...prev,
-            status: "idle",
+            status: "idle", // Reset to idle, banner won't show
+            progress: 0,
+            phase: null,
             estimatedTimeRemaining: null,
             isStale: false,
-            message: "No active sync job. Click Start to begin sync.",
+            localCount,
+            databaseConnected: dbConnected,
+            itemsSynced: 0,
+            currentChunk: 0,
+            totalChunks: 0,
+            message: localCount > 0 
+              ? `Local: ${localCount} Pokemon` 
+              : "Ready to sync",
           }))
           progressHistoryRef.current = [] // Clear history
+          return
+        }
+
+        // Check for recent failed/completed jobs (only if idle)
+        if (state.status === "idle") {
+          const { data: recentJobs, error: recentError } = await supabase
+            .from("sync_jobs")
+            .select("job_id, phase, status, progress_percent, started_at, completed_at")
+            .eq("sync_type", "pokepedia")
+            .in("status", ["failed", "completed"])
+            .order("started_at", { ascending: false })
+            .limit(1)
+            .maybeSingle()
+
+          if (!recentError && recentJobs) {
+            const job = recentJobs as any
+            if (job.status === "failed") {
+              setState((prev) => ({
+                ...prev,
+                status: "error",
+                estimatedTimeRemaining: null,
+                isStale: false,
+                message: "Sync job failed. Click Start to retry.",
+              }))
+              progressHistoryRef.current = [] // Clear history
+              return
+            } else if (job.status === "completed") {
+              const localCount = await getLocalPokemonCount()
+              setState((prev) => ({
+                ...prev,
+                status: "completed",
+                progress: 100,
+                estimatedTimeRemaining: null,
+                isStale: false,
+                localCount,
+                message: `Sync completed! Local: ${localCount} Pokemon`,
+              }))
+              progressHistoryRef.current = [] // Clear history
+              return
+            }
+          }
         }
       } catch (error) {
         console.error("[Sync] Error polling sync progress:", error)
@@ -616,6 +844,7 @@ export function usePokepediaSync(autoStart = true) {
             ...prev,
             progress: Math.max(prev.progress, progress_percent),
             message: `Syncing: ${current}/${total} Pokemon`,
+            isStale: false, // Reset stale flag on real update
           }))
         }
       )
@@ -627,6 +856,7 @@ export function usePokepediaSync(autoStart = true) {
             ...prev,
             status: "completed",
             progress: 100,
+            isStale: false,
             message: "Sync completed!",
           }))
           checkLocalStatus()
@@ -638,7 +868,7 @@ export function usePokepediaSync(autoStart = true) {
       clearInterval(interval)
       channel.unsubscribe()
     }
-  }, [state.status, checkLocalStatus, calculateTimeRemaining])
+  }, [state.status, cleanupStaleJobs, checkLocalStatus, calculateTimeRemaining, checkDatabaseHealth])
 
   // Main sync function (progressive)
   const startSync = useCallback(async () => {
@@ -700,6 +930,7 @@ export function usePokepediaSync(autoStart = true) {
     ...state,
     startSync,
     checkLocalStatus,
+    cleanupStaleJobs,
     syncMasterData,
     syncCriticalPokemon,
     triggerBackgroundSync,

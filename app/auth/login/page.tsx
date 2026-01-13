@@ -79,7 +79,7 @@ function LoginForm() {
           {/* Header */}
           <div className="text-center space-y-2">
             <h1 className="text-3xl font-bold text-pokemon">Average at Best</h1>
-            <p className="text-muted-foreground">Pokémon Draft League Platform</p>
+            <p className="text-muted-foreground">Pokémon Battle League Platform</p>
           </div>
 
           {/* Auth Card */}
@@ -192,7 +192,7 @@ function LoginForm() {
               <PokemonSprite name="Blastoise" pokemonId={9} size="xl" mode="artwork" />
             </div>
             <h2 className="text-4xl font-bold text-pokemon">Average at Best</h2>
-            <p className="text-xl text-muted-foreground">Pokémon Draft League Platform</p>
+            <p className="text-xl text-muted-foreground">Pokémon Battle League Platform</p>
           </div>
 
           {/* Features */}
@@ -251,7 +251,7 @@ function LoginForm() {
           {/* Footer Note */}
           <div className="pt-8 border-t">
             <p className="text-sm text-muted-foreground">
-              Join coaches and players competing in the most advanced Pokémon draft league platform
+              Join coaches and players competing in the most advanced Pokémon battle league platform
             </p>
           </div>
         </div>

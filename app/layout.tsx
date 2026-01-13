@@ -1,9 +1,11 @@
-import type React from "react"
+import React from "react"
 import type { Metadata, Viewport } from "next"
 import { Fredoka, Permanent_Marker, Geist_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { ThemeProvider } from "@/components/theme-provider"
 import { PokepediaSyncProvider } from "@/components/pokepedia-sync-provider"
+import { ServiceWorkerRegistration } from "@/components/service-worker-registration"
+import { PWAInstallPrompt } from "@/components/pwa-install-prompt"
 import "./globals.css"
 
 const fredoka = Fredoka({
@@ -22,44 +24,58 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "Average at Best Draft League | Pokémon Competitive Platform",
+  title: "Average at Best Battle League | Pokémon Competitive Platform",
   description:
-    "Complete Pokémon Draft League platform with AI-powered insights, Discord integration, Showdown battle engine, and real-time analytics. Join the competitive scene today!",
+    "Complete Pokémon Battle League platform with AI-powered insights, Discord integration, Showdown battle engine, and real-time analytics. Join the competitive scene today!",
   keywords: [
-    "pokémon draft league",
+    "pokémon battle league",
     "competitive pokémon",
     "pokémon showdown",
-    "draft league platform",
+    "battle league platform",
     "pokémon ai",
     "discord pokémon",
   ],
   openGraph: {
-    title: "Average at Best Draft League",
-    description: "Competitive Pokémon Draft League with AI insights and Discord integration",
+    title: "Average at Best Battle League",
+    description: "Competitive Pokémon Battle League with AI insights and Discord integration",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Average at Best Draft League",
-    description: "Competitive Pokémon Draft League platform",
+    title: "Average at Best Battle League",
+    description: "Competitive Pokémon Battle League platform",
   },
   generator: "v0.app",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "AAB Battle League",
+  },
   icons: {
     icon: [
       {
-        url: "/icon-light-32x32.png",
-        media: "(prefers-color-scheme: light)",
+        url: "/favicon-16x16.png",
+        sizes: "16x16",
+        type: "image/png",
       },
       {
-        url: "/icon-dark-32x32.png",
-        media: "(prefers-color-scheme: dark)",
+        url: "/favicon-32x32.png",
+        sizes: "32x32",
+        type: "image/png",
       },
       {
-        url: "/icon.svg",
-        type: "image/svg+xml",
+        url: "/android-chrome-192x192.png",
+        sizes: "192x192",
+        type: "image/png",
+      },
+      {
+        url: "/android-chrome-512x512.png",
+        sizes: "512x512",
+        type: "image/png",
       },
     ],
-    apple: "/apple-icon.png",
+    apple: "/apple-touch-icon.png",
   },
 }
 
@@ -68,6 +84,11 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   userScalable: true,
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#CC0000" },
+    { media: "(prefers-color-scheme: dark)", color: "#1a1a1a" },
+  ],
+  viewportFit: "cover", // Support for devices with notches
 }
 
 export default function RootLayout({
@@ -80,12 +101,20 @@ export default function RootLayout({
       <body
         className={`${fredoka.variable} ${permanentMarker.variable} ${geistMono.variable} font-sans antialiased`}
       >
+        {/* Branded background with dark/light mode support */}
+        <div className="fixed inset-0 -z-10 overflow-hidden">
+          <div className="absolute inset-0 bg-[url('/league-bg-light.png')] dark:bg-[url('/league-bg-dark.png')] bg-cover bg-center bg-no-repeat opacity-5 dark:opacity-10" />
+          <div className="absolute inset-0 bg-background/80 dark:bg-background/90" />
+        </div>
+        
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <PokepediaSyncProvider autoStart={true}>
             <div className="relative min-h-screen">{children}</div>
           </PokepediaSyncProvider>
         </ThemeProvider>
         <Analytics />
+        <ServiceWorkerRegistration />
+        <PWAInstallPrompt />
       </body>
     </html>
   )

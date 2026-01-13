@@ -55,7 +55,7 @@ export async function POST(request: Request) {
       messages: [
         {
           role: "system",
-          content: `You are the commissioner of the Average at Best Draft League. Write an engaging, energetic weekly recap highlighting:
+          content: `You are the commissioner of the Average at Best Battle League. Write an engaging, energetic weekly recap highlighting:
 - Major upsets and close matches
 - Standings changes and playoff implications
 - Standout Pokémon performances
