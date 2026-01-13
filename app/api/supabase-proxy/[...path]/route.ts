@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase/server"
 
-export async function GET(request: NextRequest, { params }: { params: { path: string[] } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   const supabase = await createServerClient()
   const {
     data: { user },
@@ -11,8 +11,11 @@ export async function GET(request: NextRequest, { params }: { params: { path: st
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
+  // Await params (Next.js 16+ requirement)
+  const { path: pathArray } = await params
+
   // Forward request to Supabase Management API
-  const path = params.path.join("/")
+  const path = pathArray.join("/")
   const searchParams = request.nextUrl.searchParams.toString()
   const url = `https://api.supabase.com/${path}${searchParams ? `?${searchParams}` : ""}`
 
@@ -28,7 +31,7 @@ export async function GET(request: NextRequest, { params }: { params: { path: st
   return NextResponse.json(data)
 }
 
-export async function POST(request: NextRequest, { params }: { params: { path: string[] } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   const supabase = await createServerClient()
   const {
     data: { user },
@@ -38,7 +41,10 @@ export async function POST(request: NextRequest, { params }: { params: { path: s
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const path = params.path.join("/")
+  // Await params (Next.js 16+ requirement)
+  const { path: pathArray } = await params
+
+  const path = pathArray.join("/")
   const url = `https://api.supabase.com/${path}`
   const body = await request.json()
 
@@ -52,5 +58,11 @@ export async function POST(request: NextRequest, { params }: { params: { path: s
   })
 
   const data = await response.json()
+  
+  // Forward the response with the same status code
+  if (!response.ok) {
+    return NextResponse.json(data, { status: response.status })
+  }
+  
   return NextResponse.json(data)
 }

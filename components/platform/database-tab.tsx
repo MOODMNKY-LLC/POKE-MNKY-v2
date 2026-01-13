@@ -18,32 +18,105 @@ export function DatabaseTab({ projectRef }: DatabaseTabProps) {
   const [loading, setLoading] = useState(false)
   const [aiLoading, setAiLoading] = useState(false)
 
+  // Validate and extract projectRef
+  const getValidProjectRef = () => {
+    // First, use the prop if it's valid
+    if (projectRef && projectRef !== "default" && projectRef !== "") {
+      return projectRef
+    }
+    
+    // Fallback: try to extract from environment variable
+    // Note: NEXT_PUBLIC_ vars are available at runtime in client components
+    const envUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
+    const isLocal = envUrl.includes("localhost") || envUrl.includes("127.0.0.1")
+    
+    if (isLocal) {
+      // For local development, check for explicit override
+      const explicitRef = process.env.NEXT_PUBLIC_SUPABASE_PROJECT_REF
+      if (explicitRef) return explicitRef
+      // Otherwise return "local" as marker (Management API won't work)
+      return "local"
+    }
+    
+    if (envUrl) {
+      const ref = envUrl.split("//")[1]?.split(".")[0] || ""
+      if (ref && ref !== "default") return ref
+    }
+    
+    // Last resort: return the original prop (even if invalid, for error handling)
+    return projectRef || ""
+  }
+
+  const validProjectRef = getValidProjectRef()
+
+  // Clean SQL from markdown code blocks and extra whitespace
+  const cleanSQL = (sql: string): string => {
+    return sql
+      .replace(/^```(?:sql)?\s*/i, "") // Remove opening ```sql or ```
+      .replace(/\s*```$/i, "") // Remove closing ```
+      .trim()
+  }
+
   const runQuery = async () => {
-    if (!query.trim()) {
+    const cleanedQuery = cleanSQL(query)
+    
+    if (!cleanedQuery.trim()) {
       toast.error("Please enter a SQL query")
+      return
+    }
+
+    if (!validProjectRef || validProjectRef === "default") {
+      toast.error("Project reference not configured. Check NEXT_PUBLIC_SUPABASE_URL.")
       return
     }
 
     setLoading(true)
     try {
-      const response = await fetch(`/api/supabase-proxy/v1/projects/${projectRef}/database/query`, {
+      const response = await fetch(`/api/supabase-proxy/v1/projects/${validProjectRef}/database/query`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          query,
+          query: cleanedQuery,
           read_only: true,
         }),
       })
 
       if (!response.ok) {
-        throw new Error("Query failed")
+        const errorData = await response.json().catch(() => ({}))
+        const errorMessage = errorData.error?.message || errorData.message || `Query failed: ${response.status}`
+        throw new Error(errorMessage)
       }
 
       const data = await response.json()
-      setResults(data)
-      toast.success("Query executed successfully")
+      
+      // Handle different response formats from Management API
+      // Response might be: { result: [...] } or directly an array
+      let queryResults = data
+      if (data.result !== undefined) {
+        queryResults = data.result
+      } else if (data.data !== undefined) {
+        queryResults = data.data
+      } else if (Array.isArray(data)) {
+        queryResults = data
+      }
+      
+      setResults(queryResults)
+      
+      // Show appropriate message based on results
+      if (Array.isArray(queryResults)) {
+        if (queryResults.length === 0) {
+          toast.info("Query executed successfully but returned no results")
+        } else {
+          toast.success(`Query executed successfully. Returned ${queryResults.length} row(s)`)
+        }
+      } else {
+        toast.success("Query executed successfully")
+      }
     } catch (error: any) {
-      toast.error(error.message || "Failed to run query")
+      console.error("Query error:", error)
+      const errorMessage = error.message || "Failed to run query"
+      toast.error(errorMessage)
+      setResults(null)
     } finally {
       setLoading(false)
     }
@@ -57,21 +130,36 @@ export function DatabaseTab({ projectRef }: DatabaseTabProps) {
 
     setAiLoading(true)
     try {
+      if (!validProjectRef || validProjectRef === "default") {
+        toast.error("Project reference not configured. Check NEXT_PUBLIC_SUPABASE_URL.")
+        return
+      }
+
+      if (validProjectRef === "local") {
+        toast.error("AI SQL generation requires Management API, which is not available for local Supabase. Set NEXT_PUBLIC_SUPABASE_PROJECT_REF to your production project ref.")
+        return
+      }
+
       const response = await fetch("/api/ai/sql", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           prompt: aiPrompt,
-          projectRef,
+          projectRef: validProjectRef,
         }),
       })
 
       if (!response.ok) {
-        throw new Error("AI generation failed")
+        const errorData = await response.json().catch(() => ({}))
+        const errorMessage = errorData.error?.message || errorData.message || "AI generation failed"
+        throw new Error(errorMessage)
       }
 
       const data = await response.json()
-      setQuery(data.sql)
+      
+      // Clean the SQL before setting it (in case API didn't clean it)
+      const cleanedSQL = cleanSQL(data.sql || "")
+      setQuery(cleanedSQL)
       toast.success("SQL generated successfully")
     } catch (error: any) {
       toast.error(error.message || "Failed to generate SQL")
@@ -112,12 +200,26 @@ export function DatabaseTab({ projectRef }: DatabaseTabProps) {
         </Button>
       </Card>
 
-      {results && (
+      {results !== null && (
         <Card className="p-4">
-          <h3 className="text-sm font-semibold mb-2">Results</h3>
-          <pre className="bg-muted p-4 rounded-lg overflow-auto max-h-96 text-xs">
-            {JSON.stringify(results, null, 2)}
-          </pre>
+          <h3 className="text-sm font-semibold mb-2">
+            Results
+            {Array.isArray(results) && (
+              <span className="ml-2 text-sm font-normal text-muted-foreground">
+                ({results.length} row{results.length !== 1 ? "s" : ""})
+              </span>
+            )}
+          </h3>
+          {Array.isArray(results) && results.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground space-y-2">
+              <p>Query executed successfully but returned no results.</p>
+              <p className="text-xs">Tip: Check table/column names. Common tables: <code className="bg-muted px-1 rounded">pokepedia_pokemon</code>, <code className="bg-muted px-1 rounded">pokemon</code>, <code className="bg-muted px-1 rounded">teams</code></p>
+            </div>
+          ) : (
+            <pre className="bg-muted p-4 rounded-lg overflow-auto max-h-96 text-xs">
+              {JSON.stringify(results, null, 2)}
+            </pre>
+          )}
         </Card>
       )}
     </div>
