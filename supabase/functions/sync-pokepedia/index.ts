@@ -825,15 +825,16 @@ async function processChunk(supabase: any, job: SyncJob) {
 
   // Update job progress
   const newCurrent = job.current_chunk + 1
-  const newSynced = job.pokemon_synced + synced
-  const newFailed = job.pokemon_failed + errors
-  // Calculate progress: if total_chunks is set, use it; otherwise try to calculate from synced items
+  const newSynced = (job.pokemon_synced || 0) + synced // Track items synced (works for all phases)
+  const newFailed = (job.pokemon_failed || 0) + errors
+  // Calculate progress: prioritize items synced over chunks for accuracy
   let progress = 0
-  if (job.total_chunks > 0) {
-    progress = Math.min((newCurrent / job.total_chunks) * 100, 100)
-  } else if (job.end_id > 0) {
-    // Fallback: estimate progress from synced items vs expected total
+  if (job.end_id > 0 && newSynced > 0) {
+    // Most accurate: items synced vs expected total
     progress = Math.min((newSynced / job.end_id) * 100, 100)
+  } else if (job.total_chunks > 0) {
+    // Fallback: chunks completed vs total chunks
+    progress = Math.min((newCurrent / job.total_chunks) * 100, 100)
   }
 
   const updateData = {
@@ -1033,6 +1034,29 @@ async function syncMasterDataPhase(supabase: any, job: SyncJob) {
             return baseRecord
           })
 
+          // Store canonical data in pokeapi_resources (three-plane architecture)
+          const canonicalRecords = successful.map((data) => ({
+            resource_type: endpoint,
+            resource_key: (data.id || extractIdFromUrl(data.url))?.toString(),
+            name: data.name,
+            url: data.url || resource.url || `${POKEAPI_BASE_URL}/${endpoint}/${data.id}/`,
+            data: data, // Full JSONB payload
+            etag: null, // Will be updated by fetchWithRetry if available
+            fetched_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          }))
+
+          // Store canonical data first
+          const { error: canonicalError } = await supabase
+            .from("pokeapi_resources")
+            .upsert(canonicalRecords, { onConflict: "resource_type,resource_key" })
+
+          if (canonicalError) {
+            console.warn(`[Master] Warning storing canonical data for ${endpoint}:`, canonicalError.message)
+            // Continue - canonical storage is optional optimization
+          }
+
+          // Then store in normalized table
           const { data: upsertData, error } = await supabase
             .from(table)
             .upsert(records, { onConflict: idField })
@@ -1496,7 +1520,7 @@ async function syncPokemonPhase(supabase: any, job: SyncJob) {
     }
 
     if (successful.length > 0) {
-      // Sync Pokemon records
+      // Prepare records for backward compatibility (pokemon_comprehensive)
       const records = successful.map((pokemon) => {
         const speciesId = extractIdFromUrl(pokemon.species?.url)
         
@@ -1520,15 +1544,86 @@ async function syncPokemonPhase(supabase: any, job: SyncJob) {
         }
       })
 
+      // Store canonical data in pokeapi_resources (three-plane architecture)
+      const canonicalRecords = successful.map((pokemon) => ({
+        resource_type: "pokemon",
+        resource_key: pokemon.id.toString(),
+        name: pokemon.name,
+        url: `${POKEAPI_BASE_URL}/pokemon/${pokemon.id}/`,
+        data: pokemon, // Full JSONB payload
+        etag: null, // Will be updated by fetchWithRetry if available
+        fetched_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }))
+
+      const { error: canonicalError } = await supabase
+        .from("pokeapi_resources")
+        .upsert(canonicalRecords, { onConflict: "resource_type,resource_key" })
+
+      if (canonicalError) {
+        console.error(`[Pokemon] Error storing canonical data:`, canonicalError)
+        // Continue anyway - try projection and backward compat
+      }
+
+      // Build projection in pokepedia_pokemon
+      const projectionRecords = successful.map((pokemon) => {
+        const speciesId = extractIdFromUrl(pokemon.species?.url)
+        const types = (pokemon.types || []).map((t: any) => t.type?.name).filter(Boolean)
+        const stats = (pokemon.stats || []).reduce((acc: any, s: any) => {
+          acc[s.stat?.name || 'unknown'] = s.base_stat
+          return acc
+        }, {})
+        const totalBaseStat = (pokemon.stats || []).reduce((sum: number, s: any) => sum + (s.base_stat || 0), 0)
+        const abilities = (pokemon.abilities || []).map((a: any) => ({
+          name: a.ability?.name,
+          is_hidden: a.is_hidden,
+          slot: a.slot,
+        }))
+
+        return {
+          id: pokemon.id,
+          name: pokemon.name,
+          species_name: pokemon.species?.name || null,
+          height: pokemon.height,
+          weight: pokemon.weight,
+          base_experience: pokemon.base_experience,
+          is_default: pokemon.is_default || true,
+          sprite_front_default_path: pokemon.sprites?.front_default || null,
+          sprite_official_artwork_path: pokemon.sprites?.other?.["official-artwork"]?.front_default || null,
+          types: types.length > 0 ? types : null,
+          type_primary: types[0] || null,
+          type_secondary: types[1] || null,
+          base_stats: Object.keys(stats).length > 0 ? stats : null,
+          total_base_stat: totalBaseStat || null,
+          abilities: abilities.length > 0 ? abilities : null,
+          ability_primary: abilities.find((a: any) => !a.is_hidden)?.name || null,
+          ability_hidden: abilities.find((a: any) => a.is_hidden)?.name || null,
+          order: pokemon.order || null,
+          generation: pokemon.order ? Math.ceil(pokemon.order / 151) : null,
+          updated_at: new Date().toISOString(),
+        }
+      })
+
+      const { error: projectionError } = await supabase
+        .from("pokepedia_pokemon")
+        .upsert(projectionRecords, { onConflict: "id" })
+
+      if (projectionError) {
+        console.error(`[Pokemon] Error building projection:`, projectionError)
+        // Don't fail entire sync if projection fails - canonical data is stored
+      }
+
+      // Also maintain backward compatibility with pokemon_comprehensive if it exists
       const { error: pokemonError } = await supabase
         .from("pokemon_comprehensive")
         .upsert(records, { onConflict: "pokemon_id" })
 
       if (pokemonError) {
-        console.error(`[Pokemon] Error upserting:`, pokemonError)
-        totalErrors += successful.length
-      } else {
-        totalSynced += successful.length
+        // Table may not exist - that's okay, we're using new architecture
+        console.warn(`[Pokemon] Warning: pokemon_comprehensive upsert failed (may not exist):`, pokemonError.message)
+      }
+
+      totalSynced += successful.length
         
         // OPTIMIZATION: Extract and sync relationships in the same pass
         // This eliminates the need for a separate relationships phase

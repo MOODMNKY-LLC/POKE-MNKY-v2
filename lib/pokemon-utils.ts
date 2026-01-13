@@ -48,6 +48,9 @@ export interface PokemonDisplayData {
   tier: string | null
   generation?: number
   hidden_ability?: string | null
+  height?: number // in decimeters
+  weight?: number // in hectograms
+  base_experience?: number | null
 }
 
 /**
@@ -132,6 +135,9 @@ export function parsePokemonFromCache(pokemon: any): PokemonDisplayData {
     tier: pokemon.tier,
     generation: pokemon.generation,
     hidden_ability: pokemon.hidden_ability,
+    height: pokemon.height,
+    weight: pokemon.weight,
+    base_experience: pokemon.base_experience,
   }
 }
 
@@ -336,12 +342,49 @@ export function getSpriteUrl(
 /**
  * Fallback sprite URL from PokeAPI (when cache doesn't have sprite)
  * Priority: MinIO (if SPRITES_BASE_URL set) > Supabase Storage > GitHub
+ * 
+ * MinIO path structure:
+ * - Regular: sprites/pokemon/{id}.png
+ * - Shiny: sprites/pokemon/shiny/{id}.png
+ * - Back: sprites/pokemon/back/{id}.png
+ * - Official Artwork: sprites/pokemon/other/official-artwork/{id}.png (if uploaded to MinIO)
  */
-export function getFallbackSpriteUrl(pokemonId: number, shiny = false, supabaseUrl?: string): string {
-  // Construct storage path
-  const storagePath = shiny
-    ? `sprites/pokemon/${pokemonId}/front_shiny.png`
-    : `sprites/pokemon/${pokemonId}/front_default.png`
+export function getFallbackSpriteUrl(
+  pokemonId: number, 
+  shiny = false, 
+  mode: "front" | "back" | "artwork" = "front",
+  supabaseUrl?: string
+): string {
+  // Handle official artwork mode (higher quality images)
+  if (mode === "artwork") {
+    // Try MinIO first (if we've uploaded official artwork)
+    const artworkPath = `sprites/pokemon/other/official-artwork/${shiny ? "shiny/" : ""}${pokemonId}.png`
+    const minioUrl = getMinIOSpriteUrl(artworkPath)
+    if (minioUrl) {
+      return minioUrl
+    }
+    
+    // Fallback to Supabase Storage
+    const supabaseUrl_result = getSupabaseSpriteUrl(artworkPath, supabaseUrl)
+    if (supabaseUrl_result) {
+      return supabaseUrl_result
+    }
+    
+    // Final fallback to GitHub official artwork URL
+    return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${
+      shiny ? "shiny/" : ""
+    }${pokemonId}.png`
+  }
+  
+  // Construct storage path based on actual MinIO structure for sprites
+  let storagePath: string
+  if (mode === "back") {
+    storagePath = `sprites/pokemon/back/${pokemonId}.png`
+  } else if (shiny) {
+    storagePath = `sprites/pokemon/shiny/${pokemonId}.png`
+  } else {
+    storagePath = `sprites/pokemon/${pokemonId}.png`
+  }
   
   // Try MinIO first (if SPRITES_BASE_URL is set)
   const minioUrl = getMinIOSpriteUrl(storagePath)
@@ -354,6 +397,6 @@ export function getFallbackSpriteUrl(pokemonId: number, shiny = false, supabaseU
   
   // Final fallback to GitHub if both fail
   return supabaseUrl_result || `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${
-    shiny ? "shiny/" : ""
+    mode === "back" ? "back/" : shiny ? "shiny/" : ""
   }${pokemonId}.png`
 }

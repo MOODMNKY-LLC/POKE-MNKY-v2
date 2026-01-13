@@ -12,16 +12,18 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { MessageSquare, Sparkles, Menu, Database, Brain, Trophy, Calendar, Users, BookOpen, LogOut } from "lucide-react"
+import { MessageSquare, Sparkles, Menu, Database, Brain, Trophy, Calendar, Users, BookOpen, LogOut, Info, Loader2, CheckCircle2, Swords, ChevronDown } from "lucide-react"
 import { ThemeSwitcher } from "@/components/theme-switcher"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
+import { Badge } from "@/components/ui/badge"
 
 export function SiteHeader() {
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [syncState, setSyncState] = useState<any>(null)
   const router = useRouter()
   const supabase = createClient()
 
@@ -47,6 +49,28 @@ export function SiteHeader() {
     return () => subscription.unsubscribe()
   }, [supabase.auth])
 
+  // Get sync state from window (exposed by PokepediaSyncProvider)
+  useEffect(() => {
+    const checkSyncState = () => {
+      if (typeof window !== 'undefined' && (window as any).__syncState) {
+        setSyncState((window as any).__syncState)
+      }
+    }
+    
+    checkSyncState()
+    const interval = setInterval(checkSyncState, 1000) // Update every second
+    return () => clearInterval(interval)
+  }, [])
+
+  const handleOpenSyncStatus = () => {
+    // Call function exposed by PokepediaSyncProvider
+    if (typeof window !== 'undefined' && typeof (window as any).__openSyncStatus === 'function') {
+      (window as any).__openSyncStatus()
+    } else {
+      console.warn('[Header] Sync status function not available yet')
+    }
+  }
+
   const handleSignOut = async () => {
     await supabase.auth.signOut()
     router.push("/")
@@ -62,11 +86,16 @@ export function SiteHeader() {
       <div className="container flex h-16 items-center">
         <div className="mr-4 flex items-center gap-2">
           <Link href="/" className="flex items-center space-x-2 group">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary via-primary to-secondary group-hover:scale-110 transition-transform shadow-lg shadow-primary/20">
-              <span className="text-xl font-bold text-primary-foreground">P</span>
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary via-primary to-secondary group-hover:scale-110 transition-transform shadow-lg shadow-primary/20 overflow-hidden">
+              <img 
+                src="/league-logo.png" 
+                alt="Average at Best Battle League" 
+                className="h-full w-full object-contain p-1"
+                loading="eager"
+              />
             </div>
             <span className="hidden font-bold text-foreground lg:inline-block group-hover:text-primary transition-colors">
-              Average at Best Draft League
+              Average at Best Battle League
             </span>
             <span className="hidden font-bold text-foreground sm:inline-block lg:hidden">AAB League</span>
           </Link>
@@ -75,6 +104,7 @@ export function SiteHeader() {
         {/* Desktop Navigation */}
         <nav className="hidden lg:flex flex-1 items-center justify-between gap-6">
           <div className="flex items-center gap-1">
+            {/* League Management Section */}
             <Link href="/standings">
               <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
                 <Trophy className="h-4 w-4 mr-1.5" />
@@ -93,6 +123,39 @@ export function SiteHeader() {
                 Schedule
               </Button>
             </Link>
+            
+            {/* Divider */}
+            <div className="h-6 w-px bg-border mx-1" />
+            
+            {/* Showdown Section */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+                  <Swords className="h-4 w-4 mr-1.5" />
+                  Showdown
+                  <ChevronDown className="h-3 w-3 ml-1" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem asChild>
+                  <Link href="/showdown" className="cursor-pointer">
+                    <Swords className="mr-2 h-4 w-4" />
+                    Battle Simulator
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/teams/builder" className="cursor-pointer">
+                    <Brain className="mr-2 h-4 w-4" />
+                    Team Builder
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            
+            {/* Divider */}
+            <div className="h-6 w-px bg-border mx-1" />
+            
+            {/* Reference & Insights Section */}
             <Link href="/pokedex">
               <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
                 <BookOpen className="h-4 w-4 mr-1.5" />
@@ -107,15 +170,38 @@ export function SiteHeader() {
             </Link>
           </div>
           <div className="flex items-center gap-2">
-            <ThemeSwitcher />
+            {/* Sync Status Indicator - Always visible */}
             <Button
-              asChild
-              variant="outline"
+              variant="ghost"
               size="sm"
-              className="bg-transparent hover:bg-primary/10 hover:text-primary hover:border-primary/50"
+              onClick={handleOpenSyncStatus}
+              className="relative gap-1.5"
+              title="Sync Status"
             >
-              <Link href="/teams/builder">Team Builder</Link>
+              {syncState?.status === "syncing" && !syncState?.isStale ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-500" />
+                  <span className="hidden xl:inline text-xs">Syncing</span>
+                  {syncState.progress > 0 && (
+                    <Badge variant="outline" className="ml-1 h-4 px-1 text-[10px]">
+                      {syncState.progress.toFixed(0)}%
+                    </Badge>
+                  )}
+                </>
+              ) : syncState?.status === "completed" ? (
+                <>
+                  <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                  <span className="hidden xl:inline text-xs">Synced</span>
+                </>
+              ) : (
+                <Info className="h-3.5 w-3.5 text-muted-foreground" />
+              )}
             </Button>
+            
+            {/* Divider */}
+            <div className="h-6 w-px bg-border" />
+            
+            <ThemeSwitcher />
             {!isLoading &&
               (user ? (
                 <DropdownMenu>
@@ -165,12 +251,28 @@ export function SiteHeader() {
 
         {/* Mobile Navigation */}
         <div className="flex flex-1 items-center justify-end lg:hidden gap-2">
+          {/* Sync Status Indicator - Mobile - Always visible */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleOpenSyncStatus}
+            className="p-1.5"
+            title="Sync Status"
+          >
+            {syncState?.status === "syncing" && !syncState?.isStale ? (
+              <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+            ) : syncState?.status === "completed" ? (
+              <CheckCircle2 className="h-4 w-4 text-green-500" />
+            ) : (
+              <Info className="h-4 w-4 text-muted-foreground" />
+            )}
+          </Button>
           <ThemeSwitcher />
           {!isLoading &&
             (user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="p-1">
+                  <Button variant="ghost" size="sm" className="p-1" suppressHydrationWarning>
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={discordAvatar || "/placeholder.svg"} alt={discordUsername} />
                       <AvatarFallback className="bg-[#5865F2] text-white text-xs">{userInitials}</AvatarFallback>
@@ -210,61 +312,92 @@ export function SiteHeader() {
             ))}
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="sm" className="px-2">
+              <Button variant="ghost" size="sm" className="px-2" suppressHydrationWarning>
                 <Menu className="h-5 w-5" />
                 <span className="sr-only">Toggle menu</span>
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="w-[300px] sm:w-[400px]">
               <nav className="flex flex-col gap-4 mt-8">
-                <Link
-                  href="/standings"
-                  className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors"
-                >
-                  <Trophy className="h-5 w-5" />
-                  Standings
-                </Link>
-                <Link
-                  href="/teams"
-                  className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors"
-                >
-                  <Users className="h-5 w-5" />
-                  Teams
-                </Link>
-                <Link
-                  href="/schedule"
-                  className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors"
-                >
-                  <Calendar className="h-5 w-5" />
-                  Schedule
-                </Link>
-                <Link
-                  href="/pokedex"
-                  className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors"
-                >
-                  <BookOpen className="h-5 w-5" />
-                  Pokédex
-                </Link>
-                <Link
-                  href="/insights"
-                  className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors"
-                >
-                  <Sparkles className="h-5 w-5" />
-                  AI Insights
-                </Link>
+                {/* League Management Section */}
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase px-2">League</p>
+                  <Link
+                    href="/standings"
+                    className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2"
+                  >
+                    <Trophy className="h-5 w-5" />
+                    Standings
+                  </Link>
+                  <Link
+                    href="/teams"
+                    className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2"
+                  >
+                    <Users className="h-5 w-5" />
+                    Teams
+                  </Link>
+                  <Link
+                    href="/schedule"
+                    className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2"
+                  >
+                    <Calendar className="h-5 w-5" />
+                    Schedule
+                  </Link>
+                </div>
+                
+                {/* Divider */}
+                <div className="h-px bg-border" />
+                
+                {/* Showdown Section */}
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase px-2">Showdown</p>
+                  <Link
+                    href="/showdown"
+                    className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2"
+                  >
+                    <Swords className="h-5 w-5" />
+                    Battle Simulator
+                  </Link>
+                  <Link
+                    href="/teams/builder"
+                    className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2"
+                  >
+                    <Brain className="h-5 w-5" />
+                    Team Builder
+                  </Link>
+                </div>
+                
+                {/* Divider */}
+                <div className="h-px bg-border" />
+                
+                {/* Reference & Insights Section */}
+                <div className="space-y-2">
+                  <Link
+                    href="/pokedex"
+                    className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2"
+                  >
+                    <BookOpen className="h-5 w-5" />
+                    Pokédex
+                  </Link>
+                  <Link
+                    href="/insights"
+                    className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2"
+                  >
+                    <Sparkles className="h-5 w-5" />
+                    AI Insights
+                  </Link>
+                </div>
+                
+                {/* Divider */}
+                <div className="h-px bg-border" />
+                
+                {/* Admin Section */}
                 <Link
                   href="/admin"
-                  className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors"
+                  className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2"
                 >
                   <Database className="h-5 w-5" />
                   Admin Dashboard
-                </Link>
-                <Link
-                  href="/teams/builder"
-                  className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors"
-                >
-                  <Brain className="h-5 w-5" />
-                  Team Builder
                 </Link>
                 <div className="pt-4 mt-4 border-t border-border">
                   {user ? (

@@ -6,11 +6,12 @@
 
 "use client"
 
-import { createContext, useContext, ReactNode, useState } from "react"
+import { createContext, useContext, ReactNode, useState, useEffect, useCallback, useRef } from "react"
 import { usePokepediaSync } from "@/hooks/use-pokepedia-sync"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Play, RotateCw, Loader2, CheckCircle2, XCircle, AlertCircle } from "lucide-react"
+import { Play, RotateCw, Loader2, CheckCircle2, XCircle, AlertCircle, Info } from "lucide-react"
+import { PokepediaComprehensiveStatus } from "./pokepedia-comprehensive-status"
 
 // Format time remaining in a human-readable way
 function formatTimeRemaining(seconds: number): string {
@@ -35,8 +36,13 @@ interface PokepediaSyncContextType {
   localCount: number
   estimatedTimeRemaining: number | null
   isStale?: boolean
+  itemsSynced?: number
+  currentChunk?: number
+  totalChunks?: number
+  databaseConnected?: boolean
   startSync: () => Promise<void>
-  checkLocalStatus: () => Promise<void>
+  checkLocalStatus: () => Promise<{ needsSync: boolean; syncStatus: any }>
+  cleanupStaleJobs: () => Promise<void>
 }
 
 const PokepediaSyncContext = createContext<PokepediaSyncContextType | undefined>(undefined)
@@ -104,6 +110,50 @@ function getStatusConfig(status: string) {
 export function PokepediaSyncProvider({ children, autoStart = true }: PokepediaSyncProviderProps) {
   const syncState = usePokepediaSync(autoStart)
   const [isStarting, setIsStarting] = useState(false)
+  const [showComprehensiveStatus, setShowComprehensiveStatus] = useState(false)
+  const [completedBannerVisible, setCompletedBannerVisible] = useState(true)
+  const isMountedRef = useRef(false)
+  
+  // Stable function to open modal
+  const openSyncStatus = useCallback(() => {
+    setShowComprehensiveStatus(true)
+  }, [])
+
+  // Mark as mounted on client side
+  useEffect(() => {
+    isMountedRef.current = true
+  }, [])
+
+  // Expose function to open modal from external components (like header)
+  useEffect(() => {
+    // Only run on client side after mount - multiple checks for safety
+    const isClient = typeof window !== 'undefined' && window && typeof window === 'object'
+    if (!isMountedRef.current || !isClient) return
+    
+    const win = window as any
+    try {
+      // Store function in window for header to access
+      win.__openSyncStatus = openSyncStatus
+      // Always set syncState (even if null/undefined) so header can check for it
+      win.__syncState = syncState ?? null
+    } catch (error) {
+      // Silently fail if window is not available (shouldn't happen, but safety check)
+      console.warn('[PokepediaSyncProvider] Failed to set window properties:', error)
+    }
+    
+    return () => {
+      try {
+        const isClientCleanup = typeof window !== 'undefined' && window && typeof window === 'object'
+        if (isMountedRef.current && isClientCleanup) {
+          const winCleanup = window as any
+          delete winCleanup.__openSyncStatus
+          delete winCleanup.__syncState
+        }
+      } catch (error) {
+        // Silently fail during cleanup
+      }
+    }
+  }, [syncState, openSyncStatus])
   
   const statusConfig = getStatusConfig(syncState.status)
   const StatusIcon = statusConfig.icon
@@ -127,104 +177,118 @@ export function PokepediaSyncProvider({ children, autoStart = true }: PokepediaS
     }
   }
 
-  // Show banner for all statuses except when completed and progress is 100%
-  const shouldShowBanner = syncState.status !== "completed" || syncState.progress < 100
+  const handleRefresh = async () => {
+    setIsStarting(true)
+    try {
+      // Clean up stale jobs and refresh status
+      await syncState.cleanupStaleJobs()
+      await syncState.checkLocalStatus()
+    } catch (error) {
+      console.error("[Sync] Refresh error:", error)
+    } finally {
+      setIsStarting(false)
+    }
+  }
+
+  // Show banner ONLY for active syncs (heartbeat <2 min) or just completed (<5 min)
+  // Hide for stopped/idle/error/stale states - those are handled in comprehensive modal
+  const isActiveSync = syncState.status === "syncing" && !syncState.isStale
+  const isJustCompleted = syncState.status === "completed" && syncState.progress === 100 && completedBannerVisible
+  
+  // Auto-hide completed banner after 5 seconds
+  useEffect(() => {
+    if (syncState.status === "completed" && syncState.progress === 100) {
+      setCompletedBannerVisible(true)
+      const timer = setTimeout(() => {
+        setCompletedBannerVisible(false)
+      }, 5000) // Hide after 5 seconds
+      return () => clearTimeout(timer)
+    } else if (syncState.status !== "completed") {
+      setCompletedBannerVisible(true) // Reset when status changes
+    }
+  }, [syncState.status, syncState.progress])
+  
+  // Only show banner if there's an active sync happening RIGHT NOW
+  // Or if sync just completed (brief success message, auto-hides after 5s)
+  const shouldShowBanner = isActiveSync || isJustCompleted
 
   return (
     <PokepediaSyncContext.Provider value={syncState}>
       {children}
-      {/* Sync status banner with controls */}
-      {shouldShowBanner && (
-        <div className="fixed bottom-4 right-4 z-50 rounded-lg bg-background border p-4 shadow-lg max-w-sm animate-in slide-in-from-bottom-4">
-          {/* Header with status badge */}
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <StatusIcon className={`h-4 w-4 ${statusConfig.badgeColor.includes('blue') ? 'text-blue-500 animate-spin' : statusConfig.badgeColor.includes('green') ? 'text-green-500' : statusConfig.badgeColor.includes('red') ? 'text-red-500' : statusConfig.badgeColor.includes('yellow') ? 'text-yellow-500' : 'text-gray-500'}`} />
-              <Badge variant={statusConfig.badgeVariant} className={statusConfig.badgeColor}>
-                {statusConfig.label}
-              </Badge>
+      {/* Comprehensive Status Modal */}
+      {showComprehensiveStatus && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto scrollbar-hide bg-background rounded-lg shadow-xl">
+            <div className="sticky top-0 bg-background border-b p-4 flex items-center justify-between z-10">
+              <h2 className="text-lg font-semibold">Pokepedia Comprehensive Status</h2>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowComprehensiveStatus(false)}
+              >
+                Close
+              </Button>
             </div>
-            {/* Control buttons */}
-            <div className="flex items-center gap-1">
-              {syncState.status === "idle" || syncState.status === "error" || syncState.status === "stopped" ? (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleStartSync}
-                  disabled={isStarting}
-                  className="h-7 px-2 text-xs"
-                >
-                  {isStarting ? (
-                    <>
-                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                      Starting...
-                    </>
-                  ) : (
-                    <>
-                      <Play className="h-3 w-3 mr-1" />
-                      {syncState.status === "stopped" ? "Restart" : "Start"}
-                    </>
-                  )}
-                </Button>
-              ) : syncState.status === "syncing" ? (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleRestartSync}
-                  disabled={isStarting}
-                  className="h-7 px-2 text-xs"
-                >
-                  {isStarting ? (
-                    <>
-                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                      Restarting...
-                    </>
-                  ) : (
-                    <>
-                      <RotateCw className="h-3 w-3 mr-1" />
-                      Restart
-                    </>
-                  )}
-                </Button>
-              ) : null}
+            <div className="p-6">
+              <PokepediaComprehensiveStatus />
             </div>
           </div>
-
-          {/* Progress bar (show when syncing or stopped) */}
-          {(syncState.status === "syncing" || syncState.status === "stopped") && syncState.progress > 0 && (
-            <div className="flex items-center gap-2 mb-2">
-              <div className="h-2 flex-1 bg-muted rounded-full overflow-hidden">
+        </div>
+      )}
+      {/* Minimal sync banner - ONLY shows for active syncs */}
+      {shouldShowBanner && (
+        <div className="fixed bottom-4 right-4 z-50 rounded-lg bg-background border p-3 shadow-lg max-w-sm animate-in slide-in-from-bottom-4">
+          <div className="flex items-center justify-between gap-3">
+            {/* Status badge and message */}
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              {isActiveSync ? (
+                <Loader2 className="h-4 w-4 text-blue-500 animate-spin flex-shrink-0" />
+              ) : (
+                <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
+              )}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <Badge 
+                    variant={isActiveSync ? "default" : "default"} 
+                    className={isActiveSync ? "bg-blue-500 text-white" : "bg-green-500 text-white"}
+                  >
+                    {isActiveSync ? "Syncing" : "Completed"}
+                  </Badge>
+                  {isActiveSync && syncState.progress > 0 && (
+                    <span className="text-xs font-medium text-muted-foreground">
+                      {syncState.progress.toFixed(1)}%
+                    </span>
+                  )}
+                </div>
+                {/* Brief message */}
+                <p className="text-xs text-muted-foreground truncate">
+                  {syncState.message || (isActiveSync ? "Syncing Pokepedia data..." : "Sync completed")}
+                </p>
+              </div>
+            </div>
+            
+            {/* Info button to open comprehensive modal */}
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setShowComprehensiveStatus(true)}
+              className="h-7 w-7 p-0 flex-shrink-0"
+              title="View detailed sync status"
+            >
+              <Info className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+          
+          {/* Progress bar - only show when actively syncing */}
+          {isActiveSync && syncState.progress > 0 && (
+            <div className="mt-2">
+              <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                 <div
-                  className={`h-full ${statusConfig.color} transition-all duration-300`}
+                  className="h-full bg-blue-500 transition-all duration-300"
                   style={{ width: `${syncState.progress}%` }}
                 />
               </div>
-              <span className="text-sm font-medium min-w-[3rem] text-right">{syncState.progress.toFixed(1)}%</span>
             </div>
-          )}
-
-          {/* Status message */}
-          <p className="text-xs text-muted-foreground">{syncState.message}</p>
-
-          {/* Estimated time remaining */}
-          {syncState.status === "syncing" && syncState.estimatedTimeRemaining !== null && syncState.estimatedTimeRemaining > 0 && (
-            <p className="text-xs text-muted-foreground mt-1">
-              Estimated time remaining: {formatTimeRemaining(syncState.estimatedTimeRemaining)}
-            </p>
-          )}
-
-          {/* Local count */}
-          {syncState.localCount > 0 && (
-            <p className="text-xs text-muted-foreground mt-1">
-              {syncState.localCount} Pokemon cached locally
-            </p>
-          )}
-
-          {/* Phase info */}
-          {syncState.phase && (
-            <p className="text-xs text-muted-foreground mt-1 capitalize">
-              Phase: {syncState.phase}
-            </p>
           )}
         </div>
       )}

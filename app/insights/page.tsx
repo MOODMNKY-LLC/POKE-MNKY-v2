@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 const MOCK_INSIGHTS = {
-  weekly_recap: `Week 14 brought several thrilling matchups to the Average at Best Draft League! The Detroit Drakes secured a commanding 6-4 victory over the Grand Rapids Garchomp, extending their winning streak to 3 games. Meanwhile, the Lansing Legends pulled off the upset of the week, defeating the previously undefeated Ann Arbor Alakazams in a nail-biter that went down to the final Pokémon.
+  weekly_recap: `Week 14 brought several thrilling matchups to the Average at Best Battle League! The Detroit Drakes secured a commanding 6-4 victory over the Grand Rapids Garchomp, extending their winning streak to 3 games. Meanwhile, the Lansing Legends pulled off the upset of the week, defeating the previously undefeated Ann Arbor Alakazams in a nail-biter that went down to the final Pokémon.
 
 In the Lance Conference, standings remain tight with three teams tied at 9-5. The Flint Fireblasts continue to dominate the Kanto Division, while the Sinnoh Division sees a four-way race for playoff positioning.
 

@@ -111,7 +111,7 @@ export default async function HomePage() {
                   <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none text-balance">
                     Average at Best
                     <span className="block bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
-                      Draft League
+                      Battle League
                     </span>
                   </h1>
                   <p className="max-w-[600px] text-muted-foreground text-lg md:text-xl text-pretty">
@@ -168,10 +168,10 @@ export default async function HomePage() {
             <div className="flex flex-col items-center justify-center space-y-4 text-center mb-12">
               <div className="space-y-3">
                 <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
-                  <span className="text-pokemon-bold">Complete Draft League Platform</span>
+                  <span className="text-pokemon-bold">Complete Battle League Platform</span>
                 </h2>
                 <p className="mx-auto max-w-[700px] text-muted-foreground text-lg md:text-xl text-balance">
-                  Everything you need to run a competitive Pokémon draft league, all in one place
+                  Everything you need to run a competitive Pokémon battle league, all in one place
                 </p>
               </div>
             </div>
@@ -512,7 +512,7 @@ export default async function HomePage() {
               </div>
             </div>
             <div className="mt-8 border-t border-border/40 pt-8 text-center text-sm text-muted-foreground">
-              <p>&copy; 2026 Average at Best Draft League. Built with Next.js, Supabase, and AI.</p>
+              <p>&copy; 2026 Average at Best Battle League. Built with Next.js, Supabase, and AI.</p>
             </div>
           </div>
         </footer>
