@@ -37,9 +37,9 @@ All components of the Poképedia sync system have been successfully created and 
 ### Method 1: Admin Dashboard (Easiest)
 
 1. **Start Next.js dev server:**
-   ```bash
+   \`\`\`bash
    pnpm dev
-   ```
+   \`\`\`
 
 2. **Visit:** `http://127.0.0.1:3000/admin`
 
@@ -53,37 +53,37 @@ All components of the Poképedia sync system have been successfully created and 
 ### Method 2: API Routes
 
 **Seed (test with one resource type):**
-```bash
+\`\`\`bash
 curl -X POST http://127.0.0.1:3000/api/pokepedia/seed \
   -H "Content-Type: application/json" \
   -d '{"resourceTypes": ["type"], "limit": 20}'
-```
+\`\`\`
 
 **Process Worker:**
-```bash
+\`\`\`bash
 curl -X POST http://127.0.0.1:3000/api/pokepedia/worker \
   -H "Content-Type: application/json" \
   -d '{"batchSize": 5, "concurrency": 2}'
-```
+\`\`\`
 
 ## 📊 Verification
 
 ### Check Queue Stats
-```sql
+\`\`\`sql
 SELECT * FROM get_pokepedia_queue_stats();
-```
+\`\`\`
 
 ### Check Sync Progress  
-```sql
+\`\`\`sql
 SELECT * FROM get_pokepedia_sync_progress();
-```
+\`\`\`
 
 ### Check Synced Data
-```sql
+\`\`\`sql
 SELECT resource_type, COUNT(*) 
 FROM pokeapi_resources 
 GROUP BY resource_type;
-```
+\`\`\`
 
 ## 🔧 Known Issues & Fixes
 

@@ -45,7 +45,7 @@
 
 **Simple 3-Step Process:**
 
-```bash
+\`\`\`bash
 # 1. Pull migrations from production
 supabase db pull
 
@@ -55,7 +55,7 @@ pnpm exec tsx --env-file=.env.local scripts/full-sync-pokemon.ts
 
 # 3. Verify
 supabase migration list
-```
+\`\`\`
 
 **Note**: If production already has Pokemon cache data, you can skip step 2 and just pull the data!
 
@@ -71,7 +71,7 @@ supabase migration list
 
 ## Key Commands Reference
 
-```bash
+\`\`\`bash
 # Link to production
 supabase link --project-ref chmrszrwlfeqovwxyrmt
 
@@ -87,7 +87,7 @@ supabase migration list
 # Run sync scripts
 pnpm exec tsx --env-file=.env.local scripts/pre-cache-competitive-pokemon.ts
 pnpm exec tsx --env-file=.env.local scripts/full-sync-pokemon.ts
-```
+\`\`\`
 
 ---
 

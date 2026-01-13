@@ -4,7 +4,7 @@
 
 Based on `supabase status`, add the following to `.cursor/mcp.json`:
 
-```json
+\`\`\`json
 {
   "mcpServers": {
     "supabase-dev": {
@@ -12,7 +12,7 @@ Based on `supabase status`, add the following to `.cursor/mcp.json`:
     }
   }
 }
-```
+\`\`\`
 
 ## Connection Details
 

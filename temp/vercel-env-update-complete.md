@@ -45,14 +45,14 @@ All MinIO production environment variables have been successfully added to Verce
 ## Verification Commands
 
 **Check Environment Variables:**
-```powershell
+\`\`\`powershell
 vercel env ls production | Select-String -Pattern "MINIO|SPRITES"
-```
+\`\`\`
 
 **Trigger Deployment:**
-```powershell
+\`\`\`powershell
 vercel --prod
-```
+\`\`\`
 
 Or push to main branch (auto-deploys if configured).
 

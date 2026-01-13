@@ -14,13 +14,13 @@ Added comprehensive error logging throughout the sync Edge Function to help debu
 - Service role key prefix (first 20 chars)
 
 **Example:**
-```
+\`\`\`
 [Edge Function] Supabase client initialized: {
   url: "http://127.0.0.1:54321...",
   hasServiceKey: true,
   serviceKeyPrefix: "sb_secret_N7UND0UgjK..."
 }
-```
+\`\`\`
 
 ### 2. Job Creation
 **Location:** `handleManualSync` function
@@ -31,7 +31,7 @@ Added comprehensive error logging throughout the sync Edge Function to help debu
 - Success confirmation with job_id
 
 **Example Error:**
-```
+\`\`\`
 [handleManualSync] Error creating job: {
   error: "new row violates row-level security policy",
   code: "42501",
@@ -39,7 +39,7 @@ Added comprehensive error logging throughout the sync Edge Function to help debu
   hint: "...",
   fullError: {...}
 }
-```
+\`\`\`
 
 ### 3. Master Data Upserts
 **Location:** `syncMasterDataPhase` function
@@ -51,14 +51,14 @@ Added comprehensive error logging throughout the sync Edge Function to help debu
 - Warning if verification count doesn't match upserted count
 
 **Example:**
-```
+\`\`\`
 [Master] Upserting 5 records to types (endpoint: type)
 [Master] Successfully synced 5/5 type records to types
 [Master] Verified: 5 total records in types (expected at least 5)
-```
+\`\`\`
 
 **Example RLS Error:**
-```
+\`\`\`
 [Master] Error upserting types: {
   error: "new row violates row-level security policy",
   code: "42501",
@@ -69,7 +69,7 @@ Added comprehensive error logging throughout the sync Edge Function to help debu
   fullError: {...}
 }
 [Master] PERMISSION DENIED (RLS) for types - check service role key
-```
+\`\`\`
 
 ### 4. Job Progress Updates
 **Location:** `processChunk` function
@@ -80,7 +80,7 @@ Added comprehensive error logging throughout the sync Edge Function to help debu
 - Success confirmation with updated values
 
 **Example:**
-```
+\`\`\`
 [processChunk] Updating job edfe096d-fc2f-4ee4-b871-a3daf382a432: {
   current_chunk: 89,
   pokemon_synced: 1300,
@@ -93,7 +93,7 @@ Added comprehensive error logging throughout the sync Edge Function to help debu
   current_chunk: 89,
   pokemon_synced: 1300
 }
-```
+\`\`\`
 
 ## What to Look For
 
@@ -108,10 +108,10 @@ Added comprehensive error logging throughout the sync Edge Function to help debu
 
 ### Missing Data After Successful Upsert
 **Look for:**
-```
+\`\`\`
 [Master] Verified: 0 total records in types (expected at least 5)
 [Master] WARNING: Verification count (0) is less than upserted count (5) for types
-```
+\`\`\`
 
 **This indicates:**
 - Upsert appears to succeed but data isn't actually persisted
@@ -120,9 +120,9 @@ Added comprehensive error logging throughout the sync Edge Function to help debu
 
 ### Job Creation Failures
 **Look for:**
-```
+\`\`\`
 [handleManualSync] Error creating job: {...}
-```
+\`\`\`
 
 **Common causes:**
 - RLS blocking inserts
@@ -132,10 +132,10 @@ Added comprehensive error logging throughout the sync Edge Function to help debu
 
 ### Silent Failures
 **Look for:**
-```
+\`\`\`
 [handleManualSync] Job creation returned no data but no error
 [processChunk] Job update returned no data but no error
-```
+\`\`\`
 
 **This indicates:**
 - Database operation completed but returned no data
@@ -160,12 +160,12 @@ Added comprehensive error logging throughout the sync Edge Function to help debu
 
 To test with enhanced logging:
 
-```bash
+\`\`\`bash
 # Trigger sync with continueUntilComplete
 curl -X POST http://127.0.0.1:3000/api/sync/pokepedia \
   -H "Content-Type: application/json" \
   -d '{"action": "start", "phase": "master", "priority": "critical", "continueUntilComplete": true}'
-```
+\`\`\`
 
 Watch the Edge Function logs for:
 - `[Edge Function] Supabase client initialized`

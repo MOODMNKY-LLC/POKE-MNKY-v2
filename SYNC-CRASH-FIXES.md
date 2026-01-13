@@ -25,52 +25,52 @@ After 80+ chunks with 10 concurrent requests each:
 
 ### 1. Reduced Concurrency (Critical)
 **Before:**
-```typescript
+\`\`\`typescript
 const CONCURRENT_REQUESTS = 10 // Too high
-```
+\`\`\`
 
 **After:**
-```typescript
+\`\`\`typescript
 const CONCURRENT_REQUESTS = 5 // Conservative, aligns with sync plan (3-8 recommended)
-```
+\`\`\`
 
 **Impact:** Reduces memory pressure and respects PokéAPI fair use guidelines.
 
 ### 2. Increased Batch Delays
 **Before:**
-```typescript
+\`\`\`typescript
 const BATCH_DELAY_MS = 100 // Too short
-```
+\`\`\`
 
 **After:**
-```typescript
+\`\`\`typescript
 const BATCH_DELAY_MS = 250 // Better PokéAPI fair use
-```
+\`\`\`
 
 **Impact:** Reduces request rate and gives memory time to be freed.
 
 ### 3. Added Retry Logic with Exponential Backoff
 **New Function:**
-```typescript
+\`\`\`typescript
 async function retryWithBackoff<T>(
   fn: () => Promise<T>,
   maxRetries: number = MAX_RETRIES,
   baseDelay: number = RETRY_BASE_DELAY_MS
 ): Promise<T>
-```
+\`\`\`
 
 **New Helper:**
-```typescript
+\`\`\`typescript
 async function fetchWithRetry(url: string): Promise<any>
-```
+\`\`\`
 
 **Impact:** Handles transient failures gracefully, reduces crashes from network issues.
 
 ### 4. Added Memory Cleanup
 **New Function:**
-```typescript
+\`\`\`typescript
 function cleanupMemory(...objects: any[]): void
-```
+\`\`\`
 
 **Applied After:**
 - Each batch processing
@@ -82,7 +82,7 @@ function cleanupMemory(...objects: any[]): void
 
 ### 5. Periodic Heartbeat Updates
 **Added:**
-```typescript
+\`\`\`typescript
 // Update heartbeat periodically to prevent "stuck" detection during long runs
 if (chunksProcessed % 10 === 0) {
   await supabase
@@ -90,31 +90,31 @@ if (chunksProcessed % 10 === 0) {
     .update({ last_heartbeat: new Date().toISOString() })
     .eq("job_id", job.job_id)
 }
-```
+\`\`\`
 
 **Impact:** Prevents jobs from being marked as "stuck" during legitimate long-running syncs.
 
 ### 6. Memory Cleanup Hints
 **Added:**
-```typescript
+\`\`\`typescript
 // Force garbage collection hint every 20 chunks
 if (chunksProcessed % 20 === 0) {
   console.log(`[handleManualSync] Processed ${chunksProcessed} chunks, memory cleanup hint`)
   await new Promise((resolve) => setTimeout(resolve, 50))
 }
-```
+\`\`\`
 
 **Impact:** Helps Deno's garbage collector free memory during long runs.
 
 ## Configuration Constants
 
-```typescript
+\`\`\`typescript
 const CONCURRENT_REQUESTS = 5        // Reduced from 10 (sync plan recommends 3-8)
 const BATCH_DELAY_MS = 250           // Increased from 100ms
 const MAX_RETRIES = 3                // New: retry failed requests
 const RETRY_BASE_DELAY_MS = 1000     // New: exponential backoff base delay
 const MAX_EXECUTION_TIME_MS = 50 * 1000 // Unchanged: 50 seconds timeout
-```
+\`\`\`
 
 ## Expected Improvements
 

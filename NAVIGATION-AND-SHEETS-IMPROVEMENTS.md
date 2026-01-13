@@ -104,16 +104,16 @@
 ## 🔧 Technical Details
 
 ### AdminLayout Props
-```typescript
+\`\`\`typescript
 interface AdminLayoutProps {
   children: React.ReactNode
   title?: string
   description?: string
 }
-```
+\`\`\`
 
 ### Auto-Detection Response
-```typescript
+\`\`\`typescript
 {
   success: true,
   spreadsheet_title: string,
@@ -129,7 +129,7 @@ interface AdminLayoutProps {
     range: string
   }>
 }
-```
+\`\`\`
 
 ### Pattern Matching
 - Uses keyword matching on sheet names

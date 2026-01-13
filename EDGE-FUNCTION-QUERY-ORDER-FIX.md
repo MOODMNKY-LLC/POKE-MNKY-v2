@@ -19,13 +19,13 @@ After analyzing Docker containers and database queries, we discovered:
 
 Added `ORDER BY started_at DESC` to ensure consistent, predictable results:
 
-```typescript
+\`\`\`typescript
 const { data: testData, error: testError } = await supabase
   .from("sync_jobs")
   .select("job_id, sync_type, phase, status")
   .order("started_at", { ascending: false })  // ✅ Added ORDER BY
   .limit(10)  // ✅ Increased limit to see more jobs
-```
+\`\`\`
 
 ### Why This Matters
 

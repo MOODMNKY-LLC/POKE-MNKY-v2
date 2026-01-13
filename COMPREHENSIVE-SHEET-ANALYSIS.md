@@ -54,7 +54,7 @@ Master data sheets typically contain:
 - **Schema**: Multi-table extraction schema with relationship detection
 
 **Implementation**:
-```typescript
+\`\`\`typescript
 // MasterDataParser should:
 1. Detect table boundaries using formatting, blank rows, headers
 2. Extract each table with its own schema
@@ -64,7 +64,7 @@ Master data sheets typically contain:
    - type_effectiveness
    - league_config
    - scoring_rules
-```
+\`\`\`
 
 **Special Handling**:
 - `multi_table_extraction`: Extract multiple tables from one sheet
@@ -107,7 +107,7 @@ Rules sheets typically contain:
 - **Schema**: Hierarchical document structure with sections and content
 
 **Implementation**:
-```typescript
+\`\`\`typescript
 // RulesParser should:
 1. Detect sections using formatting patterns:
    - Bold text = Section headers
@@ -121,7 +121,7 @@ Rules sheets typically contain:
 3. Map to database:
    - rules table: id, section, subsection, content, order
    - Or store as JSON document in a single field
-```
+\`\`\`
 
 **Special Handling**:
 - `text_extraction`: Extract prose text while preserving meaning
@@ -172,7 +172,7 @@ Draft boards typically contain:
 - **Schema**: Structured draft pick data
 
 **Implementation**:
-```typescript
+\`\`\`typescript
 // DraftParser should:
 1. Detect grid structure:
    - Identify team columns (from headers or first row)
@@ -188,7 +188,7 @@ Draft boards typically contain:
    - Even rounds: pick order = 12, 11, 10, ..., 1
 4. Map to database:
    - team_rosters table: team_id, pokemon_id, draft_round, draft_order
-```
+\`\`\`
 
 **Special Handling**:
 - `round_tracking`: Track draft rounds and pick order
@@ -240,7 +240,7 @@ Team sheets typically contain:
 - **Schema**: Team data with nested sections
 
 **Implementation**:
-```typescript
+\`\`\`typescript
 // TeamPageParser should:
 1. Extract team name:
    - From sheet name (e.g., "Team Name Roster")
@@ -259,7 +259,7 @@ Team sheets typically contain:
    - Logo: Usually in header section
    - Banner: Usually at top of sheet
    - Avatar: Usually small image in header
-```
+\`\`\`
 
 **Special Handling**:
 - `extract_team_name_from_sheet`: Get team name from sheet name or header

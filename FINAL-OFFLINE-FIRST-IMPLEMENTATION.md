@@ -43,19 +43,19 @@
 ## 🚀 Quick Start
 
 ### 1. Install Dexie
-```bash
+\`\`\`bash
 pnpm add dexie
-```
+\`\`\`
 
 ### 2. Apply Migrations
-```bash
+\`\`\`bash
 supabase db push
-```
+\`\`\`
 
 ### 3. Deploy Edge Function
-```bash
+\`\`\`bash
 supabase functions deploy sync-pokepedia
-```
+\`\`\`
 
 ### 4. Test
 - Open app → Sync starts automatically

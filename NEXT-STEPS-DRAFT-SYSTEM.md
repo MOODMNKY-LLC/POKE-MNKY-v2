@@ -25,13 +25,13 @@
 **Issue**: Parser can't consistently access spreadsheet ID
 
 **Solution**: Use same pattern as `DraftParser`:
-```typescript
+\`\`\`typescript
 // Ensure sheet info is loaded first
 await this.sheet.loadInfo()
 
 // Then access via parent spreadsheet
 const spreadsheetId = (this.sheet as any)._spreadsheet?.spreadsheetId
-```
+\`\`\`
 
 **Status**: ✅ Fixed in latest code
 
@@ -40,35 +40,35 @@ const spreadsheetId = (this.sheet as any)._spreadsheet?.spreadsheetId
 ### 2. Verify Migrations Applied
 
 **Check**:
-```sql
+\`\`\`sql
 SELECT table_name 
 FROM information_schema.tables 
 WHERE table_schema = 'public' 
 AND table_name IN ('draft_pool', 'draft_sessions');
-```
+\`\`\`
 
 **If missing**, apply migrations:
-```bash
+\`\`\`bash
 supabase migration up
-```
+\`\`\`
 
 **Or manually apply**:
-```bash
+\`\`\`bash
 # Apply draft_pool migration
 psql -h localhost -U postgres -d postgres -f supabase/migrations/20260112000000_create_draft_pool.sql
 
 # Apply draft_sessions migration  
 psql -h localhost -U postgres -d postgres -f supabase/migrations/20260112000001_create_draft_sessions.sql
-```
+\`\`\`
 
 ---
 
 ### 3. Test Draft Pool Extraction
 
 **Run test script**:
-```bash
+\`\`\`bash
 npx tsx scripts/test-draft-pool-parser.ts
-```
+\`\`\`
 
 **Expected Results**:
 - ✅ Extracts Pokemon from all point value columns
@@ -96,7 +96,7 @@ npx tsx scripts/test-draft-pool-parser.ts
 - [ ] Check `draft_pool` table exists
 - [ ] Verify RLS policies applied
 - [ ] Test queries:
-  ```sql
+  \`\`\`sql
   -- Count available Pokemon
   SELECT COUNT(*) FROM draft_pool WHERE is_available = true;
   
@@ -112,7 +112,7 @@ npx tsx scripts/test-draft-pool-parser.ts
   FROM draft_pool 
   WHERE generation IS NOT NULL
   GROUP BY generation;
-  ```
+  \`\`\`
 
 ### Phase 3: Draft System Testing
 - [ ] Create test draft session
@@ -133,10 +133,10 @@ npx tsx scripts/test-draft-pool-parser.ts
 ## 🚀 Integration Steps
 
 ### Step 1: Extract Draft Pool
-```bash
+\`\`\`bash
 # Run parser to extract all available Pokemon
 npx tsx scripts/test-draft-pool-parser.ts
-```
+\`\`\`
 
 **Verify**:
 - Pokemon stored in database
@@ -148,7 +148,7 @@ npx tsx scripts/test-draft-pool-parser.ts
 ### Step 2: Create Draft Session
 
 **Via API** (when UI is ready):
-```typescript
+\`\`\`typescript
 POST /api/draft/create-session
 {
   "season_id": "uuid",
@@ -156,10 +156,10 @@ POST /api/draft/create-session
   "draft_type": "snake",
   "pick_time_limit": 45
 }
-```
+\`\`\`
 
 **Or directly**:
-```typescript
+\`\`\`typescript
 import { DraftSystem } from "@/lib/draft-system"
 
 const draftSystem = new DraftSystem()
@@ -167,23 +167,23 @@ const session = await draftSystem.createSession(seasonId, teamIds, {
   draftType: "snake",
   pickTimeLimit: 45,
 })
-```
+\`\`\`
 
 ---
 
 ### Step 3: Register Discord Commands
 
 **Update Discord bot**:
-```bash
+\`\`\`bash
 # Register new commands
 npm run register-discord-commands
-```
+\`\`\`
 
 **Or manually**:
-```typescript
+\`\`\`typescript
 import { registerDiscordCommands } from "@/lib/discord-bot"
 await registerDiscordCommands()
-```
+\`\`\`
 
 ---
 

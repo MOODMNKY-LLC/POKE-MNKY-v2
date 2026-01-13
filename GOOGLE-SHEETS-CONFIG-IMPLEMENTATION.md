@@ -125,14 +125,14 @@ Needs:
 
 ### Immediate (To Enable Sync)
 1. **Install package**:
-   ```bash
+   \`\`\`bash
    pnpm add node-google-spreadsheet
-   ```
+   \`\`\`
 
 2. **Run migration**:
-   ```bash
+   \`\`\`bash
    supabase migration up
-   ```
+   \`\`\`
 
 3. **Configure in UI**:
    - Navigate to `/admin/google-sheets`

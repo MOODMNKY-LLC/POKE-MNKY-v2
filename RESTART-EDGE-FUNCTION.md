@@ -12,7 +12,7 @@ The Edge Function is connecting to a **different database instance** than what w
 
 Restart the Edge Function server with the explicit environment file:
 
-```bash
+\`\`\`bash
 # Stop current Edge Function server (Ctrl+C in the terminal where it's running)
 
 # Then restart (env file at supabase/functions/.env is automatically loaded):
@@ -21,7 +21,7 @@ supabase functions serve sync-pokepedia --no-verify-jwt
 # OR use explicit env file path:
 supabase functions serve sync-pokepedia --no-verify-jwt --env-file .env.local
 # (Note: --env-file path is relative to supabase/functions/ directory)
-```
+\`\`\`
 
 ## What This Does
 
@@ -34,7 +34,7 @@ The `.env` file at `supabase/functions/.env` is automatically loaded, ensuring:
 
 After restarting, check Edge Function logs for:
 
-```
+\`\`\`
 [Edge Function] Supabase client initialized: {
   url: "http://127.0.0.1:54321",  // ✅ Should be localhost, not kong:8000
   urlIsLocal: true,
@@ -49,6 +49,6 @@ After restarting, check Edge Function logs for:
   runningJobsCount: 0,  // ✅ Should be 0
   ...
 }
-```
+\`\`\`
 
 If the job counts and IDs match after restart, the database connection is fixed!

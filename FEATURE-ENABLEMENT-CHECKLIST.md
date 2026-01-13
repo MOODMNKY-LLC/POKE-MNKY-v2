@@ -29,7 +29,7 @@ Re-enable all features disabled for v0 preview and prepare for production deploy
 **Action Required**:
 Run the following SQL scripts in Supabase SQL Editor or via CLI:
 
-```sql
+\`\`\`sql
 -- 1. Run base schema
 -- File: scripts/002_enhanced_schema.sql
 -- Creates: teams, coaches, divisions, conferences, matches, etc.
@@ -37,7 +37,7 @@ Run the following SQL scripts in Supabase SQL Editor or via CLI:
 -- 2. Run extended Pokemon fields
 -- File: scripts/003_add_extended_pokemon_fields.sql
 -- Adds: sprite support, abilities, moves, evolution chains
-```
+\`\`\`
 
 **How to Execute**:
 
@@ -50,18 +50,18 @@ Run the following SQL scripts in Supabase SQL Editor or via CLI:
 6. Repeat for `scripts/003_add_extended_pokemon_fields.sql`
 
 **Option B: Supabase CLI**
-```bash
+\`\`\`bash
 supabase db push
-```
+\`\`\`
 
 **Verification**:
-```sql
+\`\`\`sql
 -- Should show 20+ tables
 SELECT table_name 
 FROM information_schema.tables 
 WHERE table_schema = 'public'
 ORDER BY table_name;
-```
+\`\`\`
 
 **Expected Tables**:
 - auth_providers
@@ -125,9 +125,9 @@ ORDER BY table_name;
 ### Step 4: Install Missing Dependencies
 
 **Missing Packages**:
-```bash
+\`\`\`bash
 pnpm add node-google-spreadsheet
-```
+\`\`\`
 
 **Why It's Missing**: Removed to prevent v0 preview build errors
 
@@ -167,9 +167,9 @@ pnpm add node-google-spreadsheet
 - ✅ `DISCORD_CLIENT_SECRET`
 
 **Action**: Bot will work when run separately:
-```bash
+\`\`\`bash
 pnpm run discord-bot
-```
+\`\`\`
 
 **Note**: Discord bot runs as separate process (not in Next.js app)
 
@@ -182,10 +182,10 @@ pnpm run discord-bot
 **Purpose**: Populate Pokemon cache to minimize PokéAPI calls
 
 **Action**:
-```bash
+\`\`\`bash
 # After database schema is created
 node scripts/pre-cache-competitive-pokemon.ts
-```
+\`\`\`
 
 **Impact**:
 - Caches top 50 competitive Pokemon
@@ -251,7 +251,7 @@ node scripts/pre-cache-competitive-pokemon.ts
 ## 🔧 Deployment Commands
 
 ### Local Development (with database)
-```bash
+\`\`\`bash
 # 1. Install dependencies
 pnpm install
 
@@ -265,10 +265,10 @@ pnpm dev
 
 # 5. (Separate terminal) Start Discord bot
 pnpm run discord-bot
-```
+\`\`\`
 
 ### Production Deployment (Vercel)
-```bash
+\`\`\`bash
 # 1. Ensure all env vars set in Vercel dashboard
 
 # 2. Install Google Sheets package
@@ -288,7 +288,7 @@ node scripts/pre-cache-competitive-pokemon.ts
 curl -X POST https://your-app.vercel.app/api/sync/google-sheets
 
 # 8. Deploy Discord bot to separate service (Railway, Render, etc.)
-```
+\`\`\`
 
 ---
 
@@ -323,8 +323,8 @@ You'll know everything is working when:
 - **Discord Developer Portal**: https://discord.com/developers/applications
 - **Vercel Dashboard**: https://vercel.com/dashboard
 - **Documentation**: See `ARCHITECTURE-BREAKDOWN.md`
-```
+\`\`\`
 
 Now let me update the actual code files to remove mock data and enable real features:
 
-```typescript file="" isHidden
+\`\`\`typescript file="" isHidden

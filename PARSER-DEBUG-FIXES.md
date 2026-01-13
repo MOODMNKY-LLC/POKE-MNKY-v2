@@ -51,7 +51,7 @@
 ## ✅ Fixes Applied
 
 ### 1. BaseParser.getResult() Method
-```typescript
+\`\`\`typescript
 protected getResult(): ParserResult {
   return {
     success: this.errors.length === 0,
@@ -60,7 +60,7 @@ protected getResult(): ParserResult {
     warnings: [...this.warnings],
   }
 }
-```
+\`\`\`
 
 ### 2. Optimized getAllRows() Method
 - Changed from row-by-row loading to batch loading
@@ -83,22 +83,22 @@ protected getResult(): ParserResult {
 
 Use the safe test script with timeouts:
 
-```bash
+\`\`\`bash
 # Test specific sheet with specific parser
 npx tsx scripts/test-parsers-safe.ts [spreadsheet_id] [sheet_name] [parser_type]
 
 # Test first 5 sheets (default)
 npx tsx scripts/test-parsers-safe.ts [spreadsheet_id]
-```
+\`\`\`
 
 **Example**:
-```bash
+\`\`\`bash
 # Test Trade Block with generic parser
 npx tsx scripts/test-parsers-safe.ts 1sVQD6_CsoYtGmguRhc07IDlnz2V4Q2uWTt8Owpl5JE0 "Trade Block" "generic"
 
 # Test Master Data Sheet with master_data parser
 npx tsx scripts/test-parsers-safe.ts 1sVQD6_CsoYtGmguRhc07IDlnz2V4Q2uWTt8Owpl5JE0 "Master Data Sheet" "master_data"
-```
+\`\`\`
 
 ---
 

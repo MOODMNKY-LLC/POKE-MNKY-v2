@@ -43,19 +43,19 @@ Provides GraphQL queries for:
 
 ### Query Pokemon via GraphQL
 
-```typescript
+\`\`\`typescript
 import { getPokemonRangeGraphQL } from "@/lib/supabase/graphql-client"
 
 // Fetch Pokemon 1-50 with all relationships
 const pokemon = await getPokemonRangeGraphQL(1, 50)
 // Returns Pokemon with types, abilities, stats already included
-```
+\`\`\`
 
 ### Fallback Pattern
 
 The sync hook automatically falls back to REST if GraphQL fails:
 
-```typescript
+\`\`\`typescript
 try {
   // Try GraphQL first
   const data = await getPokemonRangeGraphQL(1, 50)
@@ -63,7 +63,7 @@ try {
   // Fallback to REST
   const { data } = await supabase.from("pokemon_comprehensive").select("*")
 }
-```
+\`\`\`
 
 ## GraphQL vs REST Comparison
 
@@ -78,12 +78,12 @@ try {
 ## Testing
 
 1. **Test GraphQL endpoint**:
-   ```bash
+   \`\`\`bash
    curl -X POST http://127.0.0.1:54321/graphql/v1 \
      -H "Content-Type: application/json" \
      -H "apikey: YOUR_ANON_KEY" \
      -d '{"query": "{ pokemon_comprehensive(limit: 1) { pokemon_id name } }"}'
-   ```
+   \`\`\`
 
 2. **Verify sync hook uses GraphQL**:
    - Check browser console for "[Sync] Fetched X Pokemon via GraphQL"

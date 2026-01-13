@@ -80,10 +80,10 @@ Refactored Google Sheets configuration to use environment variables for service 
 ### For Administrators/Developers
 
 1. **Set Environment Variables**:
-   ```bash
+   \`\`\`bash
    GOOGLE_SERVICE_ACCOUNT_EMAIL=your-service-account@project.iam.gserviceaccount.com
    GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
-   ```
+   \`\`\`
 
 2. **Share Google Sheet**: Share with service account email (Viewer permissions)
 
@@ -107,7 +107,7 @@ The `extractSpreadsheetId()` function handles:
 - Invalid formats: Returns `null`
 
 ### Credential Flow
-```
+\`\`\`
 1. User enters spreadsheet ID
    ↓
 2. API validates credentials exist (env vars)
@@ -115,7 +115,7 @@ The `extractSpreadsheetId()` function handles:
 3. Save spreadsheet_id to database
    ↓
 4. Sync uses env vars for authentication
-```
+\`\`\`
 
 ### Error Handling
 - Clear error if credentials not configured

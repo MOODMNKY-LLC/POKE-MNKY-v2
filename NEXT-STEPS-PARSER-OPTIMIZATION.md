@@ -22,14 +22,14 @@
 ### 1. Test All Parsers Individually ⚡ HIGH PRIORITY
 **Goal**: Identify all remaining issues
 
-```bash
+\`\`\`bash
 # Test each parser type
 npx tsx scripts/test-parsers-safe.ts [spreadsheet_id] "Standings" "teams"
 npx tsx scripts/test-parsers-safe.ts [spreadsheet_id] "Draft Board" "draft"
 npx tsx scripts/test-parsers-safe.ts [spreadsheet_id] "Master Data Sheet" "master_data"
 npx tsx scripts/test-parsers-safe.ts [spreadsheet_id] "Rules" "rules"
 npx tsx scripts/test-parsers-safe.ts [spreadsheet_id] "[Team Name]" "team_page"
-```
+\`\`\`
 
 **Expected Outcomes**:
 - Identify which parsers work
@@ -110,7 +110,7 @@ npx tsx scripts/test-parsers-safe.ts [spreadsheet_id] "[Team Name]" "team_page"
 **Goal**: Handle transient failures gracefully
 
 **Implementation**:
-```typescript
+\`\`\`typescript
 async function callOpenAIWithRetry(promise: Promise<any>, maxRetries = 2) {
   for (let i = 0; i < maxRetries; i++) {
     try {
@@ -121,7 +121,7 @@ async function callOpenAIWithRetry(promise: Promise<any>, maxRetries = 2) {
     }
   }
 }
-```
+\`\`\`
 
 **Files**: All AI-powered parsers
 
@@ -139,7 +139,7 @@ async function callOpenAIWithRetry(promise: Promise<any>, maxRetries = 2) {
 **File**: `lib/google-sheets-parsers/generic-parser.ts`
 
 **Implementation**:
-```typescript
+\`\`\`typescript
 async parse(): Promise<ParserResult> {
   // 1. Try to detect headers
   // 2. Extract data rows
@@ -147,7 +147,7 @@ async parse(): Promise<ParserResult> {
   // 4. Upsert to database
   // 5. Return results
 }
-```
+\`\`\`
 
 ---
 
@@ -316,9 +316,9 @@ async parse(): Promise<ParserResult> {
 ## 🚀 Quick Start: Next Actions
 
 1. **Run comprehensive parser tests**:
-   ```bash
+   \`\`\`bash
    npx tsx scripts/test-parsers-safe.ts [spreadsheet_id]
-   ```
+   \`\`\`
 
 2. **Review test results**:
    - Check `parser-test-results.json`

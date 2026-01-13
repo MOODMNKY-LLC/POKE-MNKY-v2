@@ -42,7 +42,7 @@ This guide explains how to deploy the Discord bot to Coolify using Docker.
    - Command: `pnpm exec tsx scripts/start-discord-bot.ts`
 
 4. **Set Environment Variables:**
-   ```
+   \`\`\`
    DISCORD_BOT_TOKEN=your-discord-bot-token
    DISCORD_CLIENT_ID=your-discord-client-id
    DISCORD_CLIENT_SECRET=your-discord-client-secret
@@ -51,7 +51,7 @@ This guide explains how to deploy the Discord bot to Coolify using Docker.
    SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
    NODE_ENV=production
-   ```
+   \`\`\`
 
 5. **Deploy**
    - Click "Deploy"
@@ -79,7 +79,7 @@ This guide explains how to deploy the Discord bot to Coolify using Docker.
 
 If you prefer to deploy manually:
 
-```bash
+\`\`\`bash
 # Build the image
 docker build -f Dockerfile.discord-bot -t poke-mnky-discord-bot .
 
@@ -98,24 +98,24 @@ docker run -d \
   -e SUPABASE_SERVICE_ROLE_KEY=your-key \
   -e NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key \
   poke-mnky-discord-bot
-```
+\`\`\`
 
 ## Verification
 
 After deployment, check logs:
 
-```bash
+\`\`\`bash
 # In Coolify UI: View logs
 # Or via Docker:
 docker logs poke-mnky-discord-bot
-```
+\`\`\`
 
 You should see:
-```
+\`\`\`
 [v0] Registering Discord slash commands...
 [v0] Discord commands registered successfully!
 [v0] Discord bot is running...
-```
+\`\`\`
 
 ## Health Checks
 
@@ -156,7 +156,7 @@ The Dockerfile includes a health check. Coolify will monitor:
 
 ## Architecture
 
-```
+\`\`\`
 ┌─────────────────┐
 │   Coolify       │
 │                 │
@@ -188,7 +188,7 @@ The Dockerfile includes a health check. Coolify will monitor:
 │  │ Database  │ │
 │  └───────────┘ │
 └─────────────────┘
-```
+\`\`\`
 
 ## Notes
 

@@ -14,7 +14,7 @@ The database migrations were failing due to dependency issues:
 - **Solution**: FK constraints will be added in a later migration after both tables exist
 
 ### Changes Made:
-```sql
+\`\`\`sql
 -- Before:
 season_id UUID REFERENCES public.seasons(id),
 current_team_id UUID REFERENCES public.teams(id),
@@ -22,7 +22,7 @@ current_team_id UUID REFERENCES public.teams(id),
 -- After:
 season_id UUID, -- FK constraint added in later migration after seasons table exists
 current_team_id UUID, -- FK constraint added in later migration after teams table exists
-```
+\`\`\`
 
 ## Next Steps
 

@@ -24,28 +24,28 @@
 **Problem**: PostgREST can't see `draft_pool` table
 
 **Solution**:
-```bash
+\`\`\`bash
 # Stop and restart Supabase
 supabase stop
 supabase start
 
 # Wait for services to start (30-60 seconds)
 # Then verify table is accessible
-```
+\`\`\`
 
 **Verify**:
-```sql
+\`\`\`sql
 SELECT COUNT(*) FROM draft_pool;
-```
+\`\`\`
 
 ---
 
 ### 2. Re-run Draft Pool Parser 🔴 CRITICAL
 
 **After schema refresh**:
-```bash
+\`\`\`bash
 npx tsx scripts/test-draft-pool-parser.ts
-```
+\`\`\`
 
 **Expected**:
 - ✅ Extracts 98+ Pokemon
@@ -58,7 +58,7 @@ npx tsx scripts/test-draft-pool-parser.ts
 ### 3. Verify Data Quality 🟡 HIGH
 
 **Check extracted data**:
-```sql
+\`\`\`sql
 -- Total Pokemon
 SELECT COUNT(*) FROM draft_pool;
 
@@ -74,7 +74,7 @@ SELECT pokemon_name, point_value, is_available, generation
 FROM draft_pool
 ORDER BY point_value DESC, pokemon_name
 LIMIT 30;
-```
+\`\`\`
 
 **Expected Results**:
 - ~98-200 Pokemon entries
@@ -87,7 +87,7 @@ LIMIT 30;
 ### 4. Test Draft System Core 🟡 HIGH
 
 **Create test session**:
-```typescript
+\`\`\`typescript
 import { DraftSystem } from "@/lib/draft-system"
 import { createServiceRoleClient } from "@/lib/supabase/service"
 
@@ -127,14 +127,14 @@ if (teams && teams.length > 0) {
   
   console.log("Draft session created:", session.id)
 }
-```
+\`\`\`
 
 ---
 
 ### 5. Test Pick Validation 🟡 HIGH
 
 **Make a test pick**:
-```typescript
+\`\`\`typescript
 // Get available Pokemon
 const available = await draftSystem.getAvailablePokemon({ minPoints: 15 })
 
@@ -146,7 +146,7 @@ if (result.success) {
 } else {
   console.error("Pick failed:", result.error)
 }
-```
+\`\`\`
 
 **Verify**:
 - ✅ Pick recorded in `team_rosters`
@@ -159,17 +159,17 @@ if (result.success) {
 ### 6. Register Discord Commands 🟢 MEDIUM
 
 **Update Discord bot**:
-```typescript
+\`\`\`typescript
 import { registerDiscordCommands } from "@/lib/discord-bot"
 
 await registerDiscordCommands()
-```
+\`\`\`
 
 **Or via script**:
-```bash
+\`\`\`bash
 # Create scripts/register-discord-commands.ts
 npx tsx scripts/register-discord-commands.ts
-```
+\`\`\`
 
 **Verify**:
 - Commands appear in Discord
@@ -225,21 +225,21 @@ npx tsx scripts/register-discord-commands.ts
 
 **Solutions**:
 1. **Full Reset**:
-   ```bash
+   \`\`\`bash
    supabase db reset
-   ```
+   \`\`\`
 
 2. **Manual Refresh**:
-   ```sql
+   \`\`\`sql
    -- Connect via psql
    NOTIFY pgrst, 'reload schema';
-   ```
+   \`\`\`
 
 3. **Check Table Exists**:
-   ```sql
+   \`\`\`sql
    SELECT * FROM information_schema.tables 
    WHERE table_name = 'draft_pool';
-   ```
+   \`\`\`
 
 ---
 
@@ -261,10 +261,10 @@ npx tsx scripts/register-discord-commands.ts
 
 **Solutions**:
 1. **Populate Cache**:
-   ```typescript
+   \`\`\`typescript
    // Update pokemon_cache with generation data
    // Or fetch from PokeAPI and update
-   ```
+   \`\`\`
 
 2. **Skip Generation** (acceptable):
    - Parser works without generation data

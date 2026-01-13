@@ -59,9 +59,9 @@
 **Status:** Tested and working correctly  
 **Script:** `scripts/incremental-sync-pokemon.ts`  
 **Test Result:** 
-```
+\`\`\`
 ✅ Cache is up to date! Nothing to sync.
-```
+\`\`\`
 **Behavior:** Correctly detects no new Pokemon and no expired entries  
 **Next Run:** Set up as daily cron job
 
@@ -86,55 +86,55 @@
 **Usage:** `/standings`  
 **Expected:** Top 10 teams with W-L records and differential  
 **Test:** 
-```
+\`\`\`
 /standings
-```
+\`\`\`
 
 #### 2. `/matchups week:1`
 **Description:** View matchups for a specific week  
 **Usage:** `/matchups week:1`  
 **Expected:** List of matchups for Week 1  
 **Test Examples:**
-```
+\`\`\`
 /matchups week:1
 /matchups week:2
 /matchups week:5
-```
+\`\`\`
 
 #### 3. `/pokemon name:Pikachu`
 **Description:** Look up Pokémon information  
 **Usage:** `/pokemon name:Pikachu`  
 **Expected:** Pokemon name, types, tier, draft cost, base stat total, and link to full details  
 **Test Examples:**
-```
+\`\`\`
 /pokemon name:Pikachu
 /pokemon name:Mewtwo
 /pokemon name:Charizard
 /pokemon name:Garchomp
 /pokemon name:Rayquaza
-```
+\`\`\`
 
 #### 4. `/submit result:"Team A beat Team B 6-4"`
 **Description:** Submit a match result (uses AI parsing)  
 **Usage:** `/submit result:"Your result text here"`  
 **Expected:** Parsed result with week, winner, and KO differential  
 **Test Examples:**
-```
+\`\`\`
 /submit result:"Team Fire beat Team Water 6-4"
 /submit result:"Water Dragons defeated Electric Eels 7-3 in Week 2"
 /submit result:"Grass Snakes won 5-5 against Flying Birds"
-```
+\`\`\`
 
 #### 5. `/recap week:1`
 **Description:** Generate AI-powered weekly recap  
 **Usage:** `/recap week:1`  
 **Expected:** AI-generated summary of the week's matches  
 **Test Examples:**
-```
+\`\`\`
 /recap week:1
 /recap week:2
 /recap week:3
-```
+\`\`\`
 
 ---
 
@@ -145,29 +145,29 @@
 2. ✅ Commands appear in Discord (type `/` to see available commands)
 
 ### Step 2: Pokemon Lookup (Requires Cache)
-```bash
+\`\`\`bash
 # Start Next.js app first
 pnpm dev
-```
+\`\`\`
 
 Then in Discord:
-```
+\`\`\`
 /pokemon name:Pikachu
 /pokemon name:Mewtwo
 /pokemon name:Charizard
-```
+\`\`\`
 
 ### Step 3: Standings & Matchups (Requires Database Data)
-```
+\`\`\`
 /standings
 /matchups week:1
-```
+\`\`\`
 
 ### Step 4: AI Features (Requires OpenAI & Database)
-```
+\`\`\`
 /submit result:"Team A beat Team B 6-4"
 /recap week:1
-```
+\`\`\`
 
 ---
 

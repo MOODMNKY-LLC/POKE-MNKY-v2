@@ -246,7 +246,7 @@ This document outlines the comprehensive plan for implementing the **Showdown** 
 - `@pkmn/sim` - Battle simulation (optional)
 
 **Architecture**:
-```
+\`\`\`
 Battle Flow:
 1. Create Battle → Initialize engine with teams
 2. Get Request → Engine returns legal actions
@@ -254,7 +254,7 @@ Battle Flow:
 4. Apply Choice → Engine processes turn
 5. Update State → Store battle state in Supabase
 6. Repeat until battle ends
-```
+\`\`\`
 
 ### Database Schema
 
@@ -287,7 +287,7 @@ Battle Flow:
 
 ### Battle Interface Layout
 
-```
+\`\`\`
 ┌─────────────────────────────────────────────────────────┐
 │  Battle: Player vs AI Opponent                    [X]   │
 ├─────────────────────────────────────────────────────────┤
@@ -310,7 +310,7 @@ Battle Flow:
 │  │  Turn 2: Opponent's Charizard fainted!           │  │
 │  └───────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────┘
-```
+\`\`\`
 
 ### Team Builder Enhancements
 

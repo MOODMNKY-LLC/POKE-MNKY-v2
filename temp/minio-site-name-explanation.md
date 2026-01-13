@@ -37,21 +37,21 @@ Setting a site name does **NOT**:
 
 ### Option 1: Leave Empty (Recommended for Single Instance)
 If you only have one MinIO instance and don't plan multi-site replication:
-```
+\`\`\`
 site name= region=us-east-1
-```
+\`\`\`
 - Site name can remain empty
 - Region is useful for S3 compatibility
 
 ### Option 2: Set to Server Identifier
 If you want to label your MinIO instance:
-```
+\`\`\`
 site name=truenas-data region=us-east-1
-```
+\`\`\`
 or
-```
+\`\`\`
 site name=moodmnky-minio region=us-east-1
-```
+\`\`\`
 - Identifies the MinIO server/cluster
 - Useful for logging and identification
 - Doesn't affect project separation
@@ -69,13 +69,13 @@ Both are optional but region is more commonly used for S3 compatibility.
 For your setup (single instance, multiple projects via buckets):
 
 **Config File:**
-```
+\`\`\`
 site name= region=us-east-1
-```
+\`\`\`
 
 Or if you want to identify the server:
-```
+\`\`\`
 site name=truenas-data region=us-east-1
-```
+\`\`\`
 
 **Key Takeaway**: Site name is just a label for the MinIO server. Your project separation via buckets remains unchanged.

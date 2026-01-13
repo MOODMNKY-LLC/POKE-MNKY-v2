@@ -10,7 +10,7 @@ This guide explains how to use the comprehensive Google Sheets analysis system t
 
 Use the analysis endpoint to get a complete breakdown of your spreadsheet:
 
-```typescript
+\`\`\`typescript
 // POST /api/admin/google-sheets/analyze
 const response = await fetch('/api/admin/google-sheets/analyze', {
   method: 'POST',
@@ -21,13 +21,13 @@ const response = await fetch('/api/admin/google-sheets/analyze', {
 })
 
 const result = await response.json()
-```
+\`\`\`
 
 ### 2. Review Analysis Results
 
 The response includes:
 
-```json
+\`\`\`json
 {
   "success": true,
   "spreadsheet_title": "Your Spreadsheet Name",
@@ -102,7 +102,7 @@ The response includes:
     "no_headers_count": 1
   }
 }
-```
+\`\`\`
 
 ## Understanding Sheet Types
 
@@ -171,11 +171,11 @@ You can override suggestions in the admin panel:
 
 ### Step 1: Analyze Spreadsheet
 
-```bash
+\`\`\`bash
 curl -X POST http://localhost:3000/api/admin/google-sheets/analyze \
   -H "Content-Type: application/json" \
   -d '{"spreadsheet_id": "1wwH5XUHxQnivm90wGtNLQI_g7P3nPi5ZRcbZ3JU3-YQ"}'
-```
+\`\`\`
 
 ### Step 2: Review Analysis
 
@@ -214,39 +214,39 @@ Run sync to extract data using configured parsers:
 **Problem**: Sheet has "Week 14" as header instead of column names
 
 **Solution**:
-```json
+\`\`\`json
 {
   "parser_type": "teams",
   "use_ai": true,
   "special_handling": ["no_headers"]
 }
-```
+\`\`\`
 
 ### Pattern 2: Master Data Sheet
 
 **Problem**: Sheet contains multiple data types (teams, matches, rosters)
 
 **Solution**:
-```json
+\`\`\`json
 {
   "parser_type": "master_data",
   "use_ai": true,
   "special_handling": ["multi_table_extraction"]
 }
-```
+\`\`\`
 
 ### Pattern 3: Team-Specific Sheets
 
 **Problem**: Each team has its own sheet with different structure
 
 **Solution**:
-```json
+\`\`\`json
 {
   "parser_type": "team_page",
   "use_ai": true,
   "special_handling": ["extract_team_name_from_sheet"]
 }
-```
+\`\`\`
 
 ## Troubleshooting
 
@@ -299,14 +299,14 @@ Run sync to extract data using configured parsers:
 ### POST `/api/admin/google-sheets/analyze`
 
 **Request**:
-```json
+\`\`\`json
 {
   "spreadsheet_id": "string"
 }
-```
+\`\`\`
 
 **Response**:
-```json
+\`\`\`json
 {
   "success": true,
   "spreadsheet_title": "string",
@@ -315,7 +315,7 @@ Run sync to extract data using configured parsers:
   "analysis": [...],
   "summary": {...}
 }
-```
+\`\`\`
 
 ## Support
 

@@ -7,31 +7,31 @@ The Edge Function runtime detected file changes and automatically restarted with
 ## Restart Logs Analysis
 
 ### File Changes Detected
-```
+\`\`\`
 File change detected: C:\DEV-MNKY\MOOD_MNKY\POKE-MNKY-v2\supabase\functions\sync-pokepedia\index.ts (WRITE)
-```
+\`\`\`
 
 The runtime detected changes to `sync-pokepedia/index.ts` and automatically reloaded.
 
 ### Environment Variables
 
-```
+\`\`\`
 Env name cannot start with SUPABASE_, skipping: SUPABASE_URL
 Env name cannot start with SUPABASE_, skipping: SUPABASE_SERVICE_ROLE_KEY
 Env name cannot start with SUPABASE_, skipping: SUPABASE_ANON_KEY
-```
+\`\`\`
 
 **This is expected behavior!** The Supabase CLI automatically injects environment variables with the `SUPABASE_` prefix. Skipping them from `.env` files prevents conflicts and ensures the CLI's injected values are used.
 
 ### Functions Available
 
-```
+\`\`\`
 Serving functions on http://127.0.0.1:54321/functions/v1/<function-name>
  - http://127.0.0.1:54321/functions/v1/pokepedia-seed
  - http://127.0.0.1:54321/functions/v1/pokepedia-sprite-worker
  - http://127.0.0.1:54321/functions/v1/pokepedia-worker
  - http://127.0.0.1:54321/functions/v1/sync-pokepedia
-```
+\`\`\`
 
 All Edge Functions are now available, including the updated `sync-pokepedia` function.
 
@@ -55,12 +55,12 @@ The Edge Function is ready to test. When you trigger it, you should see:
 
 To test the updated Edge Function:
 
-```bash
+\`\`\`bash
 # Trigger manual sync
 curl -X POST http://127.0.0.1:54321/functions/v1/sync-pokepedia \
   -H "Content-Type: application/json" \
   -d '{"action": "start", "phase": "master", "priority": "critical"}'
-```
+\`\`\`
 
 Or use the Supabase MCP to trigger it programmatically.
 

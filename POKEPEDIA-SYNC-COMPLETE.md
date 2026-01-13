@@ -66,17 +66,17 @@ In Supabase Dashboard → Storage:
 - Set to **Public**
 
 ### 2. Set Edge Function Secrets
-```bash
+\`\`\`bash
 supabase secrets set SERVICE_ROLE_KEY="your-service-role-key"
 supabase secrets set POKEAPI_BASE_URL="https://pokeapi.co/api/v2"
-```
+\`\`\`
 
 ### 3. Deploy Edge Functions
-```bash
+\`\`\`bash
 supabase functions deploy pokepedia-seed --no-verify-jwt
 supabase functions deploy pokepedia-worker --no-verify-jwt
 supabase functions deploy pokepedia-sprite-worker --no-verify-jwt
-```
+\`\`\`
 
 ### 4. Test the System
 1. Visit `/admin` → Poképedia Sync Status

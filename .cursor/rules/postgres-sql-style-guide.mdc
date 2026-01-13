@@ -37,14 +37,14 @@ alwaysApply: false
 
 #### Examples:
 
-```sql
+\`\`\`sql
 create table books (
   id bigint generated always as identity primary key,
   title text not null,
   author_id bigint references authors (id)
 );
 comment on table books is 'A list of all the books in the library.';
-```
+\`\`\`
 
 ## Queries
 
@@ -53,7 +53,7 @@ comment on table books is 'A list of all the books in the library.';
 
 Smaller queries:
 
-```sql
+\`\`\`sql
 select *
 from employees
 where end_date is null;
@@ -61,24 +61,24 @@ where end_date is null;
 update employees
 set end_date = '2023-12-31'
 where employee_id = 1001;
-```
+\`\`\`
 
 Larger queries:
 
-```sql
+\`\`\`sql
 select
   first_name,
   last_name
 from employees
 where start_date between '2021-01-01' and '2021-12-31' and status = 'employed';
-```
+\`\`\`
 
 ### Joins and Subqueries
 
 - Format joins and subqueries for clarity, aligning them with related SQL clauses.
 - Prefer full table names when referencing tables. This helps for readability.
 
-```sql
+\`\`\`sql
 select
   employees.employee_name,
   departments.department_name
@@ -86,17 +86,17 @@ from
   employees
   join departments on employees.department_id = departments.department_id
 where employees.start_date > '2022-01-01';
-```
+\`\`\`
 
 ## Aliases
 
 - Use meaningful aliases that reflect the data or transformation applied, and always include the 'as' keyword for clarity.
 
-```sql
+\`\`\`sql
 select count(*) as total_employees
 from employees
 where end_date is null;
-```
+\`\`\`
 
 ## Complex queries and CTEs
 
@@ -104,7 +104,7 @@ where end_date is null;
 - Make sure the CTE is clear and linear. Prefer readability over performance.
 - Add comments to each block.
 
-```sql
+\`\`\`sql
 with
   department_employees as (
     -- Get all employees and their departments
@@ -130,4 +130,4 @@ select
   num_employees
 from employee_counts
 order by department_name;
-```
+\`\`\`

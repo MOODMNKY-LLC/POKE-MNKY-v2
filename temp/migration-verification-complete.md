@@ -133,13 +133,13 @@
    - No breaking changes required
 
 2. **Update Production Environment Variables**
-   ```env
+   \`\`\`env
    MINIO_ENDPOINT_EXTERNAL=https://s3-api-data.moodmnky.com
    MINIO_ACCESS_KEY=your_access_key
    MINIO_SECRET_KEY=your_secret_key
    SPRITES_BASE_URL=https://s3-api-data.moodmnky.com/pokedex-sprites
    NEXT_PUBLIC_SPRITES_BASE_URL=https://s3-api-data.moodmnky.com/pokedex-sprites
-   ```
+   \`\`\`
 
 3. **Test in Production**
    - Verify sprite URLs load correctly

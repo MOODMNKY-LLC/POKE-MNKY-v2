@@ -4,12 +4,12 @@
 
 Updated all Google Sheets authentication to use **both** required scopes:
 
-```typescript
+\`\`\`typescript
 scopes: [
   "https://www.googleapis.com/auth/spreadsheets.readonly",  // Read spreadsheet data
   "https://www.googleapis.com/auth/drive.readonly",          // Access images & metadata
 ]
-```
+\`\`\`
 
 ---
 
@@ -83,13 +83,13 @@ After enabling APIs, verify they're enabled:
 
 Run the test scripts to verify scopes are working:
 
-```bash
+\`\`\`bash
 # Test comprehensive analysis
 npx tsx scripts/test-sheet-analysis.ts
 
 # Test all parsers
 npx tsx scripts/test-parsers.ts
-```
+\`\`\`
 
 ---
 

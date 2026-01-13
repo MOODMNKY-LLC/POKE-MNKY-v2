@@ -24,10 +24,10 @@
 - **Concurrent Uploads:** 20 files at once
 
 ### Monitoring
-```powershell
+\`\`\`powershell
 # Check progress
 Get-Content "C:\Users\Simeon\.cursor\projects\c-DEV-MNKY-MOOD-MNKY-POKE-MNKY-v2\terminals\147650.txt" -Tail 10
-```
+\`\`\`
 
 ---
 
@@ -50,10 +50,10 @@ Get-Content "C:\Users\Simeon\.cursor\projects\c-DEV-MNKY-MOOD-MNKY-POKE-MNKY-v2\
 - **Expected Time:** ~1-3 minutes (smaller files)
 
 ### Monitoring
-```powershell
+\`\`\`powershell
 # Check progress
 Get-Content "C:\Users\Simeon\.cursor\projects\c-DEV-MNKY-MOOD-MNKY-POKE-MNKY-v2\terminals\366552.txt" -Tail 10
-```
+\`\`\`
 
 ---
 
@@ -78,16 +78,16 @@ Get-Content "C:\Users\Simeon\.cursor\projects\c-DEV-MNKY-MOOD-MNKY-POKE-MNKY-v2\
 ### After Phase 3 Completes
 
 **Check MinIO Sprite Count:**
-```powershell
+\`\`\`powershell
 mc ls -r local/pokedex-sprites/sprites | Measure-Object -Line
-```
+\`\`\`
 
 **Verify Database Records:**
-```sql
+\`\`\`sql
 SELECT COUNT(*) FROM pokepedia_assets 
 WHERE bucket = 'pokedex-sprites' 
 AND source_url LIKE 'http://10.0.0.5:30090%';
-```
+\`\`\`
 
 **Test Sprite URL:**
 - Open: `http://10.0.0.5:30090/pokedex-sprites/sprites/pokemon/25.png`
@@ -95,9 +95,9 @@ AND source_url LIKE 'http://10.0.0.5:30090%';
 ### After Phase 4 Completes
 
 **Check MinIO PokeAPI Data Count:**
-```powershell
+\`\`\`powershell
 mc ls -r local/poke-mnky/v2 | Measure-Object -Line
-```
+\`\`\`
 
 **Test JSON URL:**
 - Open: `http://10.0.0.5:30090/poke-mnky/v2/pokemon/1/index.json`

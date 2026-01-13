@@ -16,26 +16,26 @@
 
 ### Step 1: Refresh Schema Cache 🔴 CRITICAL
 
-```bash
+\`\`\`bash
 supabase stop
 supabase start
-```
+\`\`\`
 
 **Wait**: 30-60 seconds
 
 **Verify**:
-```sql
+\`\`\`sql
 SELECT COUNT(*) FROM draft_pool;
 -- Should return 0 (empty table, ready for data)
-```
+\`\`\`
 
 ---
 
 ### Step 2: Run Draft Pool Parser 🔴 CRITICAL
 
-```bash
+\`\`\`bash
 npx tsx scripts/test-draft-pool-parser.ts
-```
+\`\`\`
 
 **Expected**: 98+ Pokemon stored in `draft_pool` table
 
@@ -43,7 +43,7 @@ npx tsx scripts/test-draft-pool-parser.ts
 
 ### Step 3: Verify Data 🟡 HIGH
 
-```sql
+\`\`\`sql
 -- Check total
 SELECT COUNT(*) FROM draft_pool WHERE is_available = true;
 
@@ -59,7 +59,7 @@ SELECT generation, COUNT(*)
 FROM draft_pool 
 WHERE generation IS NOT NULL
 GROUP BY generation;
-```
+\`\`\`
 
 ---
 

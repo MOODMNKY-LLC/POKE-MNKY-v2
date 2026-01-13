@@ -45,7 +45,7 @@ The sync now follows a strict phase order to ensure foreign keys always exist:
 
 ### Manual Sync Trigger
 
-```typescript
+\`\`\`typescript
 // Trigger master data sync
 POST /api/sync/pokepedia
 {
@@ -85,7 +85,7 @@ POST /api/sync/pokepedia
   "phase": "relationships",
   "priority": "standard"
 }
-```
+\`\`\`
 
 ### Recommended Sync Order
 
@@ -165,7 +165,7 @@ The new system:
 ## Next Steps
 
 1. **Test the new sync system**:
-   ```bash
+   \`\`\`bash
    # Start Edge Function
    supabase functions serve sync-pokepedia --no-verify-jwt
    
@@ -173,7 +173,7 @@ The new system:
    curl -X POST http://localhost:3000/api/sync/pokepedia \
      -H "Content-Type: application/json" \
      -d '{"action":"start","phase":"master","priority":"critical"}'
-   ```
+   \`\`\`
 
 2. **Monitor progress**:
    - Check `sync_jobs` table for progress

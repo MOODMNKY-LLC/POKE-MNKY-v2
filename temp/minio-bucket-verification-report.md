@@ -22,7 +22,7 @@ All buckets are visible and accessible:
 ### ✅ Bucket Policies Verified
 
 **`pokedex-sprites`:**
-```json
+\`\`\`json
 {
   "Version": "2012-10-17",
   "Statement": [
@@ -34,11 +34,11 @@ All buckets are visible and accessible:
     }
   ]
 }
-```
+\`\`\`
 ✅ **Public read access configured**
 
 **`poke-mnky`:**
-```json
+\`\`\`json
 {
   "Version": "2012-10-17",
   "Statement": [
@@ -50,15 +50,15 @@ All buckets are visible and accessible:
     }
   ]
 }
-```
+\`\`\`
 ✅ **Public read access configured**
 
 ### ✅ Global CORS Configuration
 
 **Current Setting:**
-```
+\`\`\`
 cors_allow_origin=*
-```
+\`\`\`
 
 ✅ **Allows requests from any origin**  
 ✅ **Applies globally to all buckets**
@@ -96,27 +96,27 @@ cors_allow_origin=*
 
 ### Export Current Config
 
-```powershell
+\`\`\`powershell
 # Export current configuration
 .\scripts\minio-config-manager.ps1 -Action export -ConfigFile "temp\minio-config-export.conf"
-```
+\`\`\`
 
 Or using `mc` directly:
-```powershell
+\`\`\`powershell
 mc admin config export local > temp\minio-config-export.conf
-```
+\`\`\`
 
 ### Import Updated Config
 
-```powershell
+\`\`\`powershell
 # Import updated configuration (with confirmation prompt)
 .\scripts\minio-config-manager.ps1 -Action import -ConfigFile "temp\minio-server-config-updated.conf"
-```
+\`\`\`
 
 Or using `mc` directly:
-```powershell
+\`\`\`powershell
 Get-Content temp\minio-server-config-updated.conf | mc admin config import local
-```
+\`\`\`
 
 **⚠️ Warning:** Importing config will update server settings. Some changes may require server restart.
 
@@ -126,14 +126,14 @@ Get-Content temp\minio-server-config-updated.conf | mc admin config import local
 
 ### Quick Verification
 
-```powershell
+\`\`\`powershell
 # Run full verification
 .\scripts\minio-config-manager.ps1 -Action verify
-```
+\`\`\`
 
 ### Manual Verification
 
-```powershell
+\`\`\`powershell
 # List buckets
 mc ls local
 
@@ -146,7 +146,7 @@ mc admin config get local api | Select-String "cors"
 
 # Check site/region
 mc admin config get local site
-```
+\`\`\`
 
 ---
 
@@ -214,31 +214,31 @@ mc admin config get local site
 
 ### If buckets don't appear
 
-```powershell
+\`\`\`powershell
 # Verify connection
 mc ls local
 
 # Check if buckets exist but aren't listed
 mc admin info local
-```
+\`\`\`
 
 ### If policies aren't working
 
-```powershell
+\`\`\`powershell
 # Re-apply bucket policy
 mc anonymous set download local/pokedex-sprites
 mc anonymous set download local/poke-mnky
-```
+\`\`\`
 
 ### If CORS isn't working
 
-```powershell
+\`\`\`powershell
 # Verify CORS setting
 mc admin config get local api | Select-String "cors"
 
 # Re-set if needed
 mc admin config set local api cors_allow_origin="*"
-```
+\`\`\`
 
 ---
 

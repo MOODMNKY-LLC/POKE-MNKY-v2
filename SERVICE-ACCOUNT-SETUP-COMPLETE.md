@@ -48,7 +48,7 @@ If the service account doesn't exist:
 
 Open the downloaded JSON file. It should look like:
 
-```json
+\`\`\`json
 {
   "type": "service_account",
   "project_id": "mood-mnky",
@@ -57,7 +57,7 @@ Open the downloaded JSON file. It should look like:
   "client_email": "poke-mnky-service@mood-mnky.iam.gserviceaccount.com",
   ...
 }
-```
+\`\`\`
 
 **Extract these values**:
 - `client_email` → This is your `GOOGLE_SERVICE_ACCOUNT_EMAIL`
@@ -69,10 +69,10 @@ Open the downloaded JSON file. It should look like:
 
 Add these to your `.env.local` file:
 
-```bash
+\`\`\`bash
 GOOGLE_SERVICE_ACCOUNT_EMAIL=poke-mnky-service@mood-mnky.iam.gserviceaccount.com
 GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
-```
+\`\`\`
 
 **Important**: 
 - Keep the private key in quotes
@@ -105,9 +105,9 @@ GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END P
 3. **In the "Add people and groups" field**:
    - **DO NOT** try to search (service account won't appear)
    - **INSTEAD**, **paste the full email address directly**:
-     ```
+     \`\`\`
      poke-mnky-service@mood-mnky.iam.gserviceaccount.com
-     ```
+     \`\`\`
 
 4. **Set permission**:
    - **Viewer** (recommended) - Sufficient for read-only operations
@@ -125,9 +125,9 @@ GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END P
 
 Run the verification script:
 
-```bash
+\`\`\`bash
 npx tsx scripts/verify-service-account.ts
-```
+\`\`\`
 
 This will check:
 - ✅ Environment variables are set
@@ -142,15 +142,15 @@ This will check:
 
 After sharing the spreadsheet, test access:
 
-```bash
+\`\`\`bash
 npx tsx scripts/test-scopes-direct.ts 1sVQD6_CsoYtGmguRhc07IDlnz2V4Q2uWTt8Owpl5JE0
-```
+\`\`\`
 
 **Expected Output**:
-```
+\`\`\`
 ✅ Success! Spreadsheet: "[Spreadsheet Name]"
 ✅ Sheets found: [number]
-```
+\`\`\`
 
 ---
 
@@ -221,9 +221,9 @@ npx tsx scripts/test-scopes-direct.ts 1sVQD6_CsoYtGmguRhc07IDlnz2V4Q2uWTt8Owpl5J
 6. ✅ APIs must be enabled in Google Cloud Console
 
 **Your Service Account Email** (if it exists):
-```
+\`\`\`
 poke-mnky-service@mood-mnky.iam.gserviceaccount.com
-```
+\`\`\`
 
 **Next Steps**:
 1. Verify service account exists (or create it)

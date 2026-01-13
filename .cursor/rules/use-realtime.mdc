@@ -48,13 +48,13 @@ You are an expert developer assistant specializing in Supabase Realtime implemen
 Using dedicated, granular topics ensures messages are only sent to relevant listeners, significantly improving scalability:
 
 **❌ Avoid Broad Topics:**
-```javascript
+\`\`\`javascript
 // This broadcasts to ALL users, even those not interested
 const channel = supabase.channel('global:notifications')
-```
+\`\`\`
 
 **✅ Use Dedicated Topics:**
-```javascript
+\`\`\`javascript
 // This only broadcasts to users in a specific room
 const channel = supabase.channel(`room:${roomId}:messages`)
 
@@ -63,7 +63,7 @@ const channel = supabase.channel(`user:${userId}:notifications`)
 
 // This only broadcasts to users with specific permissions
 const channel = supabase.channel(`admin:${orgId}:alerts`)
-```
+\`\`\`
 
 ### Benefits of Dedicated Topics:
 - **Reduced Network Traffic**: Messages only reach interested clients
@@ -92,7 +92,7 @@ const channel = supabase.channel(`admin:${orgId}:alerts`)
 
 ## Client Setup Patterns
 
-```javascript
+\`\`\`javascript
 // Basic setup
 const supabase = createClient('URL', 'ANON_KEY')
 
@@ -104,7 +104,7 @@ const channel = supabase.channel('room:123:messages', {
     private: true  // Required for RLS authorization
   }
 })
-```
+\`\`\`
 
 ### Configuration Options
 
@@ -123,7 +123,7 @@ const channel = supabase.channel('room:123:messages', {
 ## Frontend Framework Integration
 
 ### React Pattern
-```javascript
+\`\`\`javascript
 const channelRef = useRef(null)
 
 useEffect(() => {
@@ -149,13 +149,13 @@ useEffect(() => {
     }
   }
 }, [roomId])
-```
+\`\`\`
 
 ## Database Triggers
 
 ### Using realtime.broadcast_changes (Recommended for database changes)
 This would be an example of catch all trigger function that would broadcast to topics starting with the table name and the id of the row.
-```sql
+\`\`\`sql
 CREATE OR REPLACE FUNCTION notify_table_changes()
 RETURNS TRIGGER AS $$
 SECURITY DEFINER
@@ -174,10 +174,10 @@ BEGIN
   RETURN COALESCE(NEW, OLD);
 END;
 $$;
-```
+\`\`\`
 But you can also create more specific trigger functions for specific tables and events so adapt to your use case:
 
-```sql
+\`\`\`sql
 CREATE OR REPLACE FUNCTION room_messages_broadcast_trigger()
 RETURNS TRIGGER AS $$
 SECURITY DEFINER
@@ -196,12 +196,12 @@ BEGIN
   RETURN COALESCE(NEW, OLD);
 END;
 $$;
-```
+\`\`\`
 
 By default, `realtime.broadcast_changes` requires you to use private channels as we did this to prevent security incidents.
 
 ### Using realtime.send (For custom messages)
-```sql
+\`\`\`sql
 CREATE OR REPLACE FUNCTION notify_custom_event()
 RETURNS TRIGGER AS $$
 SECURITY DEFINER
@@ -217,12 +217,12 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-```
+\`\`\`
 This allows us to broadcast to a specific room with any content that is not bound to a table or if you need to send data to public channels. It's also a good way to integrate with other services and extensions.
 
 ### Conditional Broadcasting
 If you need to broadcast only significant changes, you can use the following pattern:
-```sql
+\`\`\`sql
 -- Only broadcast significant changes
 IF TG_OP = 'UPDATE' AND OLD.status IS DISTINCT FROM NEW.status THEN
   PERFORM realtime.broadcast_changes(
@@ -235,14 +235,14 @@ IF TG_OP = 'UPDATE' AND OLD.status IS DISTINCT FROM NEW.status THEN
     OLD
   );
 END IF;
-```
+\`\`\`
 This is just an example as you can use any logic you want that is SQL compatible.
 
 ## Authorization Setup
 
 ### Basic RLS Setup
 To access a private channel you need to set RLS policies against `realtime.messages` table for SELECT operations.
-```sql
+\`\`\`sql
 -- Simple policy with indexed columns
 CREATE POLICY "room_members_can_read" ON realtime.messages
 FOR SELECT TO authenticated
@@ -258,11 +258,11 @@ USING (
 -- Required index for performance
 CREATE INDEX idx_room_members_user_room
 ON room_members(user_id, room_id);
-```
+\`\`\`
 
 To write to a private channel you need to set RLS policies against `realtime.messages` table for INSERT operations.
 
-```sql
+\`\`\`sql
 -- Simple policy with indexed columns
 CREATE POLICY "room_members_can_write" ON realtime.messages
 FOR INSERT TO authenticated
@@ -274,10 +274,10 @@ USING (
     AND room_id = SPLIT_PART(topic, ':', 2)::uuid
   )
 );
-```
+\`\`\`
 
 ### Client Authorization
-```javascript
+\`\`\`javascript
 const channel = supabase.channel('room:123:messages', {
   config: { private: true }
 })
@@ -289,7 +289,7 @@ await supabase.realtime.setAuth()
 
 // Subscribe after auth is set
 await channel.subscribe()
-```
+\`\`\`
 
 ### Enhanced Security: Private-Only Channels
 **Enable private-only channels** in Realtime Settings (Dashboard > Project Settings > Realtime Settings) to enforce authorization on all channels and prevent public channel access. This setting requires all clients to use `private: true` and proper authentication, providing additional security for production applications.
@@ -309,7 +309,7 @@ The client automatically manages these states:
 - **`CLOSED`** - Channel is closed
 - **`CHANNEL_ERROR`** - Error occurred, client will automatically retry
 
-```javascript
+\`\`\`javascript
 // Client automatically reconnects with built-in logic
 const supabase = createClient('URL', 'ANON_KEY', {
   realtime: {
@@ -335,7 +335,7 @@ channel.subscribe((status, err) => {
       break
   }
 })
-```
+\`\`\`
 
 ## Performance & Scaling Guidelines
 
@@ -347,18 +347,18 @@ channel.subscribe((status, err) => {
 ## Debugging
 
 ### Enhanced Logging
-```javascript
+\`\`\`javascript
 const supabase = createClient(url, key, {
   realtime: {
     params: { log_level: 'info' }
   }
 })
-```
+\`\`\`
 
 ## Migration from Postgres Changes
 
 ### Step 1: Replace Client Code
-```javascript
+\`\`\`javascript
 // ❌ Remove postgres_changes
 const oldChannel = supabase.channel('changes').on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, callback)
 
@@ -370,20 +370,20 @@ const newChannel = supabase.channel(`messages:${room_id}:changes`, {
 .on('broadcast', { event: 'INSERT' }, callback)
 .on('broadcast', { event: 'DELETE' }, callback)
 .on('broadcast', { event: 'UPDATE' }, callback)
-```
+\`\`\`
 
 ### Step 2: Add Database Trigger (Only if using broadcast)
-```sql
+\`\`\`sql
 CREATE TRIGGER messages_broadcast_trigger
   AFTER INSERT OR UPDATE OR DELETE ON messages
   FOR EACH ROW EXECUTE FUNCTION notify_table_changes();
-```
+\`\`\`
 
 ### Step 3: Setup Authorization (Only if using broadcast)
-```sql
+\`\`\`sql
 CREATE POLICY "users_can_receive_broadcasts" ON realtime.messages
   FOR SELECT TO authenticated USING (true);
-```
+\`\`\`
 
 ## LLM Implementation Guidelines
 

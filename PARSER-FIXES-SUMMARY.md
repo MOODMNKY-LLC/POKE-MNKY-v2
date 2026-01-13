@@ -8,7 +8,7 @@
 **Error**: `this.getResult is not a function`
 
 **Fix**: Added `getResult()` method to BaseParser:
-```typescript
+\`\`\`typescript
 protected getResult(): ParserResult {
   return {
     success: this.errors.length === 0,
@@ -17,7 +17,7 @@ protected getResult(): ParserResult {
     warnings: [...this.warnings],
   }
 }
-```
+\`\`\`
 
 ---
 

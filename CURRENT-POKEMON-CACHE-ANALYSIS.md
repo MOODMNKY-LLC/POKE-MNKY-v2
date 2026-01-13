@@ -3,7 +3,7 @@
 ## 🔍 How Pokemon Caching Currently Works
 
 ### Flow Diagram
-```
+\`\`\`
 App Request → getPokemonDataExtended()
     ↓
 Check pokemon_cache table (expires_at > now?)
@@ -21,7 +21,7 @@ Fetch move details (from /move/{id}) [optional]
 Store in pokemon_cache table
     ↓
 Return data ✅
-```
+\`\`\`
 
 ### Current Implementation
 
@@ -40,7 +40,7 @@ Return data ✅
 
 ### Current Schema (`pokemon_cache`)
 
-```sql
+\`\`\`sql
 pokemon_id INTEGER PRIMARY KEY
 name TEXT
 types TEXT[]                    -- Array: ["fire", "flying"]
@@ -60,7 +60,7 @@ tier TEXT                      -- Calculated from base stat total
 payload JSONB                  -- Full PokeAPI response
 fetched_at TIMESTAMPTZ
 expires_at TIMESTAMPTZ         -- fetched_at + 30 days
-```
+\`\`\`
 
 ### What's Currently Cached
 
@@ -148,7 +148,7 @@ expires_at TIMESTAMPTZ         -- fetched_at + 30 days
 ## 🔧 How to Verify Current Cache
 
 ### Direct SQL Query (Bypasses PostgREST)
-```sql
+\`\`\`sql
 -- Check total Pokemon
 SELECT COUNT(*) FROM public.pokemon_cache;
 
@@ -172,10 +172,10 @@ SELECT
   COUNT(CASE WHEN move_details IS NOT NULL THEN 1 END) as with_moves,
   COUNT(CASE WHEN generation IS NOT NULL THEN 1 END) as with_generation
 FROM public.pokemon_cache;
-```
+\`\`\`
 
 ### Via Supabase Client
-```typescript
+\`\`\`typescript
 import { createServiceRoleClient } from "@/lib/supabase/service"
 
 const supabase = createServiceRoleClient()
@@ -185,7 +185,7 @@ const { data, error } = await supabase
   .limit(10)
 
 console.log("Pokemon in cache:", data)
-```
+\`\`\`
 
 ---
 
@@ -194,18 +194,18 @@ console.log("Pokemon in cache:", data)
 ### Immediate Actions
 
 1. **Refresh Schema Cache**:
-   ```bash
+   \`\`\`bash
    supabase stop
    supabase start
-   ```
+   \`\`\`
 
 2. **Verify Cache Access**:
-   ```sql
+   \`\`\`sql
    SELECT COUNT(*) FROM pokemon_cache;
-   ```
+   \`\`\`
 
 3. **Run Comprehensive Sync** (if needed):
-   ```bash
+   \`\`\`bash
    # Step 1: Master data
    npx tsx scripts/comprehensive-pokedex-sync.ts master
    
@@ -214,7 +214,7 @@ console.log("Pokemon in cache:", data)
    
    # Step 3: Evolution chains
    npx tsx scripts/comprehensive-pokedex-sync.ts evolution
-   ```
+   \`\`\`
 
 ---
 

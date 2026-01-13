@@ -25,10 +25,10 @@ Redesigned the Pokemon showcase component to look like an actual Pokemon card wi
 **Problem:** Artwork mode wasn't being passed correctly to `getFallbackSpriteUrl`
 
 **Fix:**
-```typescript
+\`\`\`typescript
 const fallbackMode = mode === "artwork" ? "artwork" : mode === "back" ? "back" : "front"
 spriteUrl = getFallbackSpriteUrl(pokemonId, mode === "shiny", fallbackMode)
-```
+\`\`\`
 
 **Also:**
 - Increased artwork size to 320px (from 196px)
@@ -50,10 +50,10 @@ spriteUrl = getFallbackSpriteUrl(pokemonId, mode === "shiny", fallbackMode)
   - Provides background, border, and text colors
 
 **Usage:**
-```typescript
+\`\`\`typescript
 const typeColors = getPokemonTypeColors(["fire", "flying"])
 // Returns: { bg: "#F08030", border: "#9C531F", text: "#FFFFFF", gradient: "linear-gradient(...)" }
-```
+\`\`\`
 
 ---
 
@@ -101,9 +101,9 @@ const typeColors = getPokemonTypeColors(["fire", "flying"])
 ### 4. Installed Magic Card Component
 
 **Command:**
-```bash
+\`\`\`bash
 pnpm dlx shadcn@latest add "https://magicui.design/r/magic-card.json"
-```
+\`\`\`
 
 **Result:**
 - Created `components/ui/magic-card.tsx`
@@ -152,7 +152,7 @@ When a Pokemon has two types, a gradient is created:
 
 ## 📊 Component Structure
 
-```
+\`\`\`
 PokemonShowcase
 ├── MagicCard (hover effect wrapper)
 │   └── Card Content
@@ -163,7 +163,7 @@ PokemonShowcase
     ├── Previous Button
     ├── Dot Indicators
     └── Next Button
-```
+\`\`\`
 
 ---
 

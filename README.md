@@ -115,7 +115,7 @@ Leveraging **OpenAI GPT-4.1 & GPT-5.2** for intelligent automation:
 
 ### High-Level System Design
 
-```
+\`\`\`
 ┌─────────────────────────────────────────────────────────────────┐
 │                        CLIENT LAYER                             │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐         │
@@ -157,11 +157,11 @@ Leveraging **OpenAI GPT-4.1 & GPT-5.2** for intelligent automation:
 │  │  (Legacy)    │  │     API      │  │   Analytics  │         │
 │  └──────────────┘  └──────────────┘  └──────────────┘         │
 └─────────────────────────────────────────────────────────────────┘
-```
+\`\`\`
 
 ### Authentication & Authorization Flow
 
-```
+\`\`\`
 ┌─────────────┐
 │   Browser   │
 └──────┬──────┘
@@ -181,7 +181,7 @@ Leveraging **OpenAI GPT-4.1 & GPT-5.2** for intelligent automation:
        ├─── User Found ────► Allow Access + Refresh Cookie
        │
        └─── No User ──────► Redirect to /auth/login
-```
+\`\`\`
 
 **Key Features**:
 - Cookie-based sessions (HTTP-only, secure)
@@ -193,7 +193,7 @@ Leveraging **OpenAI GPT-4.1 & GPT-5.2** for intelligent automation:
 ### Data Flow Architecture
 
 #### Match Result Submission Flow
-```
+\`\`\`
 Discord User → Discord Bot → /api/ai/parse-result → GPT-4.1 → Structured Data
                                                                ↓
 Team Validation ← Supabase ← /api/matches/submit ← Structured Data
@@ -201,10 +201,10 @@ Team Validation ← Supabase ← /api/matches/submit ← Structured Data
 Update Standings → Supabase → Real-time Broadcast → All Connected Clients
        ↓
 Trigger Recap → Cron Job → GPT-5.2 → Weekly Summary → Discord Webhook
-```
+\`\`\`
 
 #### Pokémon Data Caching Flow
-```
+\`\`\`
 User Request → getPokemonDataExtended() → Check Supabase Cache
                                           ↓
                                     Cache Hit?
@@ -214,7 +214,7 @@ User Request → getPokemonDataExtended() → Check Supabase Cache
                                 Sub-100ms             Transform & Store
                                                              ↓
                                                        Return + Cache
-```
+\`\`\`
 
 ---
 
@@ -282,7 +282,7 @@ User Request → getPokemonDataExtended() → Check Supabase Cache
 ## Data Flow
 
 ### 1. User Authentication
-```typescript
+\`\`\`typescript
 // User visits /admin
 proxy.ts → updateSession(request)
           ↓
@@ -292,10 +292,10 @@ lib/supabase/proxy.ts → createServerClient()
                         ↓
             User exists? → YES: Continue with cookies refreshed
                          → NO: Redirect to /auth/login
-```
+\`\`\`
 
 ### 2. League Data Sync
-```typescript
+\`\`\`typescript
 // Admin triggers Google Sheets sync
 /admin → Click "Sync" button → POST /api/sync/google-sheets
                                 ↓
@@ -312,10 +312,10 @@ lib/supabase/proxy.ts → createServerClient()
                           Upsert to Supabase
                                 ↓
                           Log sync_jobs entry
-```
+\`\`\`
 
 ### 3. AI-Powered Pokédex Query
-```typescript
+\`\`\`typescript
 // User asks "What are Pikachu's weaknesses?"
 /pokedex → AI Assistant tab → POST /api/ai/pokedex
                                ↓
@@ -338,10 +338,10 @@ lib/supabase/proxy.ts → createServerClient()
                          GPT-4.1 generates natural language answer
                                ↓
                          Display to user with Pokemon sprite
-```
+\`\`\`
 
 ### 4. Match Result Submission via Discord
-```typescript
+\`\`\`typescript
 // Coach types: "/submit result:Team A beat Team B 6-4"
 Discord → Discord.js Bot → Command handler
                             ↓
@@ -366,7 +366,7 @@ Discord → Discord.js Bot → Command handler
                       Trigger Discord webhook notification
                             ↓
                       Return confirmation message
-```
+\`\`\`
 
 ---
 
@@ -383,41 +383,41 @@ Discord → Discord.js Bot → Command handler
 ### Local Development Setup
 
 1. **Clone the Repository**
-```bash
+\`\`\`bash
 git clone https://github.com/your-org/poke-mnky-v2.git
 cd poke-mnky-v2
-```
+\`\`\`
 
 2. **Install Dependencies**
-```bash
+\`\`\`bash
 pnpm install
-```
+\`\`\`
 
 3. **Set Up Environment Variables**
-```bash
+\`\`\`bash
 cp .env.example .env.local
-```
+\`\`\`
 
 Edit `.env.local` with your credentials (see [Environment Setup](#environment-setup))
 
 4. **Run Database Migrations** (See [Database Setup](#database-setup))
 
 5. **Start Development Server**
-```bash
+\`\`\`bash
 pnpm dev
-```
+\`\`\`
 
 Visit [http://localhost:3000](http://localhost:3000)
 
 6. **Start Discord Bot** (Optional, separate terminal)
-```bash
+\`\`\`bash
 pnpm run discord-bot
-```
+\`\`\`
 
 7. **Set Up Local PokeAPI** (Optional, recommended for development)
-```bash
+\`\`\`bash
 # See Local PokeAPI Setup section below
-```
+\`\`\`
 
 ---
 
@@ -427,7 +427,7 @@ pnpm run discord-bot
 
 Create a `.env.local` file with the following:
 
-```bash
+\`\`\`bash
 # Supabase Configuration
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key_here
@@ -460,7 +460,7 @@ NODE_ENV=development
 
 # Vercel Cron Secret (Production only)
 CRON_SECRET=your_cron_secret_for_scheduled_jobs
-```
+\`\`\`
 
 ### Obtaining Credentials
 
@@ -518,7 +518,7 @@ The app uses 3 SQL migration files (run in order):
 
 #### Option B: Supabase CLI
 
-```bash
+\`\`\`bash
 # Install Supabase CLI
 npm install -g supabase
 
@@ -527,11 +527,11 @@ supabase link --project-ref your-project-ref
 
 # Run migrations
 supabase db push
-```
+\`\`\`
 
 ### Verifying Database Setup
 
-```sql
+\`\`\`sql
 -- Check tables were created
 SELECT table_name 
 FROM information_schema.tables 
@@ -541,24 +541,24 @@ ORDER BY table_name;
 -- Should show:
 -- teams, team_rosters, matches, battles, battle_events,
 -- pokemon_cache, moves_cache, abilities_cache, sync_jobs, etc.
-```
+\`\`\`
 
 ### Seeding Initial Data
 
 #### 1. Pre-Cache Competitive Pokémon
-```bash
+\`\`\`bash
 # Cache top 50 competitive Pokemon
 node scripts/pre-cache-competitive-pokemon.ts
-```
+\`\`\`
 
 #### 2. Import League Data from Google Sheets (Optional)
-```bash
+\`\`\`bash
 # Trigger sync via API
 curl -X POST https://your-app.vercel.app/api/sync/google-sheets \
   -H "Authorization: Bearer YOUR_TOKEN"
 
 # Or via admin UI: /admin → "Sync Google Sheets" button
-```
+\`\`\`
 
 ---
 
@@ -580,55 +580,55 @@ For development and testing, you can run a local instance of PokeAPI. This provi
 ### Installation
 
 1. **Clone the Repository**
-```bash
+\`\`\`bash
 cd temp
 git clone --recurse-submodules https://github.com/PokeAPI/pokeapi.git pokeapi-local
-```
+\`\`\`
 
 2. **Start Docker Containers**
-```bash
+\`\`\`bash
 cd temp/pokeapi-local
 docker compose up -d
-```
+\`\`\`
 
 3. **Apply Migrations**
-```bash
+\`\`\`bash
 docker compose exec -T app python manage.py migrate --settings=config.docker-compose
-```
+\`\`\`
 
 4. **Build the Database**
-```bash
+\`\`\`bash
 docker compose exec -T app sh -c 'echo "from data.v2.build import build_all; build_all()" | python manage.py shell --settings=config.docker-compose'
-```
+\`\`\`
 
 This process may take 10-20 minutes to load all Pokemon data.
 
 ### Configuration
 
 Add to `.env.local`:
-```env
+\`\`\`env
 POKEAPI_BASE_URL=http://localhost/api/v2
-```
+\`\`\`
 
 ### Verification
 
 Test the local API:
-```bash
+\`\`\`bash
 # Test API endpoint
 curl http://localhost/api/v2/pokemon/1/
 
 # Test configuration
 pnpm tsx --env-file=.env.local scripts/test-local-pokeapi.ts
-```
+\`\`\`
 
 ### Usage
 
 Once configured, all scripts and Edge Functions will use the local instance:
 
-```bash
+\`\`\`bash
 # Run sync scripts (uses local instance)
 pnpm tsx --env-file=.env.local scripts/sync-pokemon-from-api.ts
-```
+\`\`\`
 
 ### Access Points
 
@@ -638,7 +638,7 @@ pnpm tsx --env-file=.env.local scripts/sync-pokemon-from-api.ts
 
 ### Container Management
 
-```bash
+\`\`\`bash
 # Start containers
 cd tools/pokeapi-local
 docker compose up -d
@@ -651,7 +651,7 @@ docker compose logs app
 
 # Check status
 docker compose ps
-```
+\`\`\`
 
 ### Documentation
 
@@ -708,7 +708,7 @@ The sprites repository includes:
 
 Sprites are organized by category and generation:
 
-```
+\`\`\`
 resources/sprites/
 ├── sprites/
 │   ├── pokemon/
@@ -722,16 +722,16 @@ resources/sprites/
 │   │       ├── generation-ii/
 │   │       └── ... (through generation-ix)
 │   └── items/
-```
+\`\`\`
 
 ### Updating Sprites
 
 To update the sprites repository:
 
-```bash
+\`\`\`bash
 cd resources/sprites
 git pull origin master
-```
+\`\`\`
 
 ### Benefits
 
@@ -769,7 +769,7 @@ The platform uses **MinIO** (self-hosted S3-compatible object storage) instead o
 
 #### Storage Architecture
 
-```
+\`\`\`
 ┌─────────────────────────────────────────────────────────┐
 │                    APPLICATION                          │
 │  ┌──────────────────────────────────────────────────┐  │
@@ -790,20 +790,20 @@ The platform uses **MinIO** (self-hosted S3-compatible object storage) instead o
 │  │  59,031 files    │  │  14,332 files    │           │
 │  └──────────────────┘  └──────────────────┘           │
 └─────────────────────────────────────────────────────────┘
-```
+\`\`\`
 
 #### URL Generation
 
 **MinIO URLs** (when `SPRITES_BASE_URL` is set):
-```
+\`\`\`
 http://10.0.0.5:30090/pokedex-sprites/sprites/pokemon/25.png
 https://s3-api-data.moodmnky.com/pokedex-sprites/sprites/pokemon/25.png
-```
+\`\`\`
 
 **Supabase URLs** (fallback when `SPRITES_BASE_URL` not set):
-```
+\`\`\`
 https://chmrszrwlfeqovwxyrmt.supabase.co/storage/v1/object/public/pokedex-sprites/sprites/pokemon/25.png
-```
+\`\`\`
 
 ### Buckets
 
@@ -840,7 +840,7 @@ https://chmrszrwlfeqovwxyrmt.supabase.co/storage/v1/object/public/pokedex-sprite
 
 Command-line tool for managing MinIO:
 
-```powershell
+\`\`\`powershell
 # List buckets
 mc ls local
 
@@ -855,7 +855,7 @@ mc anonymous set download local/pokedex-sprites
 
 # Check CORS configuration
 mc admin config get local api | Select-String "cors"
-```
+\`\`\`
 
 **Location**: `C:\Users\Simeon\.mc\mc.exe`  
 **Alias**: `local` (configured for internal access)
@@ -863,29 +863,29 @@ mc admin config get local api | Select-String "cors"
 #### Upload Scripts
 
 **Sprite Upload:**
-```powershell
+\`\`\`powershell
 # Upload all sprites to MinIO
 pnpm tsx scripts/upload-sprites-to-minio.ts
 
 # Test with small batch
 pnpm tsx scripts/upload-sprites-to-minio.ts --limit=100 --dry-run
-```
+\`\`\`
 
 **PokeAPI Data Upload:**
-```powershell
+\`\`\`powershell
 # Upload PokeAPI JSON data
 pnpm tsx scripts/upload-pokeapi-data-to-minio.ts
 
 # Test with small batch
 pnpm tsx scripts/upload-pokeapi-data-to-minio.ts --limit=100 --dry-run
-```
+\`\`\`
 
 ### Configuration
 
 #### Environment Variables
 
 **`.env.local` (Local Development):**
-```env
+\`\`\`env
 MINIO_ENDPOINT_INTERNAL=http://10.0.0.5:30090
 MINIO_ACCESS_KEY=your_access_key
 MINIO_SECRET_KEY=your_secret_key
@@ -893,10 +893,10 @@ MINIO_BUCKET_NAME=pokedex-sprites
 SPRITES_BASE_URL=http://10.0.0.5:30090/pokedex-sprites
 NEXT_PUBLIC_SPRITES_BASE_URL=http://10.0.0.5:30090/pokedex-sprites
 MINIO_REGION=us-east-1
-```
+\`\`\`
 
 **`.env` (Production):**
-```env
+\`\`\`env
 MINIO_ENDPOINT_EXTERNAL=https://s3-api-data.moodmnky.com
 MINIO_CONSOLE_EXTERNAL=https://s3-console-data.moodmnky.com
 MINIO_ACCESS_KEY=your_access_key
@@ -905,7 +905,7 @@ MINIO_BUCKET_NAME=pokedex-sprites
 SPRITES_BASE_URL=https://s3-api-data.moodmnky.com/pokedex-sprites
 NEXT_PUBLIC_SPRITES_BASE_URL=https://s3-api-data.moodmnky.com/pokedex-sprites
 MINIO_REGION=us-east-1
-```
+\`\`\`
 
 ### Migration & Rollback
 
@@ -946,7 +946,7 @@ MINIO_REGION=us-east-1
 ### Verification
 
 **Check Upload Status:**
-```powershell
+\`\`\`powershell
 # Count sprites in MinIO
 mc ls -r local/pokedex-sprites/sprites | Measure-Object -Line
 
@@ -955,15 +955,15 @@ mc ls -r local/poke-mnky/v2 | Measure-Object -Line
 
 # Test sprite URL
 Start-Process "http://10.0.0.5:30090/pokedex-sprites/sprites/pokemon/25.png"
-```
+\`\`\`
 
 **Database Verification:**
-```sql
+\`\`\`sql
 -- Check MinIO URLs in database
 SELECT COUNT(*) FROM pokepedia_assets 
 WHERE bucket = 'pokedex-sprites' 
 AND source_url LIKE 'http://10.0.0.5:30090%';
-```
+\`\`\`
 
 ---
 
@@ -992,7 +992,7 @@ Ditto is the **primary ingestion engine** for the Poképedia system:
 
 #### Phase A: Foundation Load (One-Time Bulk Import)
 
-```bash
+\`\`\`bash
 # 1. Ensure local PokeAPI is running
 cd tools/pokeapi-local
 docker compose up -d
@@ -1004,7 +1004,7 @@ cd ../ditto
 # Or manually
 docker compose build
 docker compose up ditto
-```
+\`\`\`
 
 This produces:
 - **Complete REST v2 corpus** in `tools/ditto/data/`
@@ -1049,7 +1049,7 @@ After ditto completes, import the data:
 
 For Poképedia ingestion, you may want to customize the Dockerfile:
 
-```dockerfile
+\`\`\`dockerfile
 # Clone all data from local PokeAPI
 CMD poetry run ditto clone --src-url http://localhost/api/v2 --dest-dir ./data && \
     poetry run ditto analyze --data-dir ./data && \
@@ -1057,7 +1057,7 @@ CMD poetry run ditto clone --src-url http://localhost/api/v2 --dest-dir ./data &
         --base-url='http://localhost/api/v2' \
         --src-dir=./data \
         --dest-dir=./_gen
-```
+\`\`\`
 
 ### Integration with Poképedia Architecture
 
@@ -1079,7 +1079,7 @@ Ditto fits into the complete ingestion pipeline:
 
 After running ditto:
 
-```
+\`\`\`
 tools/ditto/
 ├── data/           # Cloned REST v2 data
 │   ├── pokemon/
@@ -1088,7 +1088,7 @@ tools/ditto/
 │   └── ...
 ├── _gen/           # Transformed data
 └── schema.json     # Generated JSON schema
-```
+\`\`\`
 
 ### Next Steps After Ditto
 
@@ -1130,16 +1130,16 @@ The Poképedia system uses a comprehensive data ingestion pipeline that combines
 
 #### Step 1: Baseline Data from api-data (Optional but Recommended)
 
-```bash
+\`\`\`bash
 # Use api-data as baseline for faster initial seeding
 # Data is already available in resources/api-data/data/api/
-```
+\`\`\`
 
 **Benefits**: Faster than cloning, provides JSON Schema for validation
 
 #### Step 2: Clone Complete Data with Ditto
 
-```bash
+\`\`\`bash
 # Ensure local PokeAPI is running
 cd tools/pokeapi-local
 docker compose up -d
@@ -1147,7 +1147,7 @@ docker compose up -d
 # Run ditto to clone all REST v2 data
 cd ../../tools/ditto
 poetry run ditto clone --src-url http://localhost/api/v2 --dest-dir ./data
-```
+\`\`\`
 
 **Output**: Complete REST v2 corpus in `tools/ditto/data/`
 
@@ -1156,28 +1156,28 @@ poetry run ditto clone --src-url http://localhost/api/v2 --dest-dir ./data
 #### Step 3: Import to Supabase
 
 **Option A: Import from api-data (Fast Baseline)**
-```bash
+\`\`\`bash
 # Import baseline dataset from api-data
 pnpm tsx scripts/import-api-data.ts
 
 # Or import specific endpoint with limit
 pnpm tsx scripts/import-api-data.ts --endpoint=pokemon --limit=100
-```
+\`\`\`
 
 **Option B: Import from Ditto (Comprehensive)**
-```bash
+\`\`\`bash
 # Import comprehensive data from ditto clone
 pnpm tsx scripts/import-ditto-data.ts
 
 # Or import specific endpoint with limit
 pnpm tsx scripts/import-ditto-data.ts --endpoint=pokemon --limit=100
-```
+\`\`\`
 
 **Result**: All PokéAPI resources stored as JSONB in `pokeapi_resources`
 
 #### Step 4: Mirror Sprites
 
-```bash
+\`\`\`bash
 # Upload sprites from resources/sprites to Supabase Storage
 # Preserves directory structure
 pnpm tsx scripts/mirror-sprites-to-storage.ts
@@ -1187,25 +1187,25 @@ pnpm tsx scripts/mirror-sprites-to-storage.ts --dry-run
 
 # Limit uploads for testing
 pnpm tsx scripts/mirror-sprites-to-storage.ts --limit=100
-```
+\`\`\`
 
 **Result**: All sprites in `pokedex-sprites` bucket, metadata in `pokepedia_assets`
 
 #### Step 4b: Mirror Cries (Future)
 
-```bash
+\`\`\`bash
 # Upload cries from resources/cries to Supabase Storage
 # Future: pnpm tsx scripts/mirror-cries-to-storage.ts
-```
+\`\`\`
 
 **Result**: All cries in `pokedex-cries` bucket (when implemented), metadata in `pokepedia_assets`
 
 #### Step 5: Build Projections
 
-```bash
+\`\`\`bash
 # Extract fast query tables from canonical JSONB
 pnpm tsx scripts/build-pokepedia-projections.ts
-```
+\`\`\`
 
 **Result**: `pokepedia_pokemon` table with optimized fields for UI queries
 
@@ -1251,14 +1251,14 @@ Per `temp/pokepedia-infra.md`:
 ### Vercel Deployment (Next.js App)
 
 1. **Connect Repository**
-```bash
+\`\`\`bash
 # Install Vercel CLI
 npm install -g vercel
 
 # Login and link project
 vercel login
 vercel link
-```
+\`\`\`
 
 2. **Configure Environment Variables**
 - Go to Vercel Dashboard → Your Project → Settings → Environment Variables
@@ -1266,13 +1266,13 @@ vercel link
 - Set `NEXT_PUBLIC_APP_URL` to your production domain
 
 3. **Deploy**
-```bash
+\`\`\`bash
 # Deploy to production
 vercel --prod
 
 # Or push to main branch (auto-deploys via GitHub integration)
 git push origin main
-```
+\`\`\`
 
 4. **Verify Deployment**
 - Check build logs for errors
@@ -1306,7 +1306,7 @@ The Discord bot needs to run 24/7 separately from the Next.js app.
 
 #### Option C: VPS with PM2
 
-```bash
+\`\`\`bash
 # On your server
 git clone https://github.com/your-org/poke-mnky-v2.git
 cd poke-mnky-v2
@@ -1321,7 +1321,7 @@ pm2 start scripts/start-discord-bot.js --name "pokemon-bot"
 # Setup auto-restart on server reboot
 pm2 startup
 pm2 save
-```
+\`\`\`
 
 ### Post-Deployment Checklist
 
@@ -1346,9 +1346,9 @@ pm2 save
 **Description**: Log out current user  
 **Authentication**: Required  
 **Response**:
-```json
+\`\`\`json
 { "success": true }
-```
+\`\`\`
 
 ### AI Endpoints
 
@@ -1356,13 +1356,13 @@ pm2 save
 **Description**: Pokédex Q&A with GPT-4.1  
 **Authentication**: Not required  
 **Request Body**:
-```json
+\`\`\`json
 {
   "query": "What are Pikachu's best moves for competitive play?"
 }
-```
+\`\`\`
 **Response**:
-```json
+\`\`\`json
 {
   "answer": "Pikachu's top competitive moves are...",
   "pokemon": {
@@ -1372,60 +1372,60 @@ pm2 save
     "sprite": "https://..."
   }
 }
-```
+\`\`\`
 
 #### `POST /api/ai/weekly-recap`
 **Description**: Generate AI weekly summary with GPT-5.2  
 **Authentication**: Required (admin/commissioner)  
 **Request Body**:
-```json
+\`\`\`json
 {
   "week": 14,
   "seasonId": "uuid"
 }
-```
+\`\`\`
 **Response**:
-```json
+\`\`\`json
 {
   "recap": "This week saw intense battles...",
   "highlights": [
     { "team": "Team A", "achievement": "5-game win streak" }
   ]
 }
-```
+\`\`\`
 
 #### `POST /api/ai/coach`
 **Description**: Strategic team analysis with GPT-5.2  
 **Authentication**: Required  
 **Request Body**:
-```json
+\`\`\`json
 {
   "teamId": "uuid",
   "opponent": "Team B",
   "request": "Suggest best lineup against Fire-types"
 }
-```
+\`\`\`
 **Response**:
-```json
+\`\`\`json
 {
   "analysis": "Against Team B's Fire-heavy roster...",
   "recommendations": [
     { "pokemon": "Gyarados", "reason": "Water/Flying resists Fire" }
   ]
 }
-```
+\`\`\`
 
 #### `POST /api/ai/parse-result`
 **Description**: Parse match result text with GPT-4.1  
 **Authentication**: Required  
 **Request Body**:
-```json
+\`\`\`json
 {
   "text": "Team A beat Team B 6-4 this week"
 }
-```
+\`\`\`
 **Response**:
-```json
+\`\`\`json
 {
   "winner": "Team A",
   "loser": "Team B",
@@ -1433,7 +1433,7 @@ pm2 save
   "loserKOs": 4,
   "differential": 2
 }
-```
+\`\`\`
 
 ### Battle Endpoints
 
@@ -1441,35 +1441,35 @@ pm2 save
 **Description**: Create new battle session  
 **Authentication**: Required  
 **Request Body**:
-```json
+\`\`\`json
 {
   "team1": { "name": "Team A", "pokemon": ["Pikachu", "Charizard"] },
   "team2": { "name": "Team B", "pokemon": ["Blastoise", "Venusaur"] },
   "format": "doubles",
   "matchId": "uuid"
 }
-```
+\`\`\`
 **Response**:
-```json
+\`\`\`json
 {
   "battleId": "uuid",
   "state": "team_preview",
   "turn": 0
 }
-```
+\`\`\`
 
 #### `POST /api/battle/[id]/step`
 **Description**: Execute battle turn  
 **Authentication**: Required  
 **Request Body**:
-```json
+\`\`\`json
 {
   "player1Choice": { "type": "move", "move": "Thunderbolt", "target": 1 },
   "player2Choice": { "type": "move", "move": "Water Gun", "target": 0 }
 }
-```
+\`\`\`
 **Response**:
-```json
+\`\`\`json
 {
   "battleId": "uuid",
   "turn": 1,
@@ -1478,13 +1478,13 @@ pm2 save
   ],
   "state": "in_progress"
 }
-```
+\`\`\`
 
 #### `GET /api/battle/[id]/step`
 **Description**: Get current battle state  
 **Authentication**: Required  
 **Response**:
-```json
+\`\`\`json
 {
   "battleId": "uuid",
   "turn": 5,
@@ -1492,7 +1492,7 @@ pm2 save
   "team2HP": [80, 0],
   "state": "in_progress"
 }
-```
+\`\`\`
 
 ### Data Sync Endpoints
 
@@ -1500,20 +1500,20 @@ pm2 save
 **Description**: Import league data from Google Sheets  
 **Authentication**: Required (admin only - TODO)  
 **Response**:
-```json
+\`\`\`json
 {
   "success": true,
   "message": "Synced 87 records",
   "recordsProcessed": 87,
   "errors": []
 }
-```
+\`\`\`
 
 #### `GET /api/sync/google-sheets`
 **Description**: View sync history  
 **Authentication**: Required (admin only - TODO)  
 **Response**:
-```json
+\`\`\`json
 {
   "logs": [
     {
@@ -1525,7 +1525,7 @@ pm2 save
     }
   ]
 }
-```
+\`\`\`
 
 ### Cron Endpoints
 
@@ -1533,17 +1533,17 @@ pm2 save
 **Description**: Scheduled Pokémon data refresh  
 **Authentication**: Vercel Cron (Bearer token)  
 **Headers**:
-```
+\`\`\`
 Authorization: Bearer YOUR_CRON_SECRET
-```
+\`\`\`
 **Response**:
-```json
+\`\`\`json
 {
   "success": true,
   "pokemonSynced": 20,
   "duration": 45000
 }
-```
+\`\`\`
 
 ---
 
@@ -1555,91 +1555,91 @@ Authorization: Bearer YOUR_CRON_SECRET
 **Description**: View weekly matchups  
 **Permissions**: Everyone  
 **Example**:
-```
+\`\`\`
 /matchups week:14
-```
+\`\`\`
 **Response**:
-```
+\`\`\`
 📅 Week 14 Matchups
 Team A vs Team B
 Team C vs Team D
 ...
-```
+\`\`\`
 
 #### `/standings`
 **Description**: View top 10 league standings  
 **Permissions**: Everyone  
 **Example**:
-```
+\`\`\`
 /standings
-```
+\`\`\`
 **Response**:
-```
+\`\`\`
 🏆 League Standings
 1. Team A (12-2, +45)
 2. Team B (11-3, +38)
 ...
-```
+\`\`\`
 
 #### `/submit result:[text]`
 **Description**: Submit match result  
 **Permissions**: Coaches only  
 **Example**:
-```
+\`\`\`
 /submit result:Team A beat Team B 6-4
-```
+\`\`\`
 **Response**:
-```
+\`\`\`
 ✅ Match result submitted!
 Winner: Team A (6 KOs)
 Loser: Team B (4 KOs)
 Differential: +2
-```
+\`\`\`
 
 #### `/recap [week]`
 **Description**: Generate AI weekly recap  
 **Permissions**: Admins only  
 **Example**:
-```
+\`\`\`
 /recap week:14
-```
+\`\`\`
 **Response**:
-```
+\`\`\`
 📝 Week 14 Recap
 This week saw intense battles as Team A extended their win streak...
 [Full AI-generated narrative]
-```
+\`\`\`
 
 #### `/pokemon name:[name]`
 **Description**: Pokédex lookup  
 **Permissions**: Everyone  
 **Example**:
-```
+\`\`\`
 /pokemon name:pikachu
-```
+\`\`\`
 **Response**:
-```
+\`\`\`
 ⚡ Pikachu #025
 Type: Electric
 Abilities: Static, Lightning Rod (Hidden)
 Base Stats: 35/55/40/50/50/90
 [Sprite image attached]
-```
+\`\`\`
 
 #### `/sync-roles`
 **Description**: Sync Discord roles to app  
 **Permissions**: Admins only  
 **Example**:
-```
+\`\`\`
 /sync-roles
-```
+\`\`\`
 **Response**:
-```
+\`\`\`
 🔄 Synced 20 user roles from Discord to app
 Admins: 2
 Commissioners: 1
 Coaches: 17
-```
+\`\`\`
 
 ### Bot Setup
 
@@ -1659,9 +1659,9 @@ Required permissions (integer: 268439552):
 - Use Slash Commands
 
 3. **Invite Bot to Server**
-```
+\`\`\`
 https://discord.com/api/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=268439552&scope=bot%20applications.commands
-```
+\`\`\`
 
 4. **Create Server Roles**
 - @Admin - Full system access
@@ -1786,7 +1786,7 @@ This is currently a private project for the "Average at Best Draft League". Cont
 - Extract reusable logic into custom hooks
 
 3. **Commit Messages**
-```
+\`\`\`
 feat: Add battle replay viewer
 fix: Correct differential calculation
 docs: Update API documentation
@@ -1794,7 +1794,7 @@ style: Format code with Prettier
 refactor: Simplify Pokemon cache logic
 test: Add unit tests for battle engine
 chore: Update dependencies
-```
+\`\`\`
 
 4. **Pull Request Process**
 - Create feature branch from `main`
@@ -1815,10 +1815,10 @@ chore: Update dependencies
 2. Check `SUPABASE_SERVICE_ROLE_KEY` matches your project
 3. Ensure Supabase project is active (not paused)
 4. Test connection:
-```typescript
+\`\`\`typescript
 const { data, error } = await supabase.from('teams').select('count')
 console.log('Connection:', error ? 'Failed' : 'OK')
-```
+\`\`\`
 
 #### Discord Bot Not Responding
 **Symptom**: Commands don't work in Discord  
@@ -1827,9 +1827,9 @@ console.log('Connection:', error ? 'Failed' : 'OK')
 2. Verify `DISCORD_BOT_TOKEN` is correct
 3. Ensure bot has required permissions (Manage Roles, Send Messages, Use Slash Commands)
 4. Check logs for registration errors:
-```bash
+\`\`\`bash
 pm2 logs pokemon-bot
-```
+\`\`\`
 
 #### Google Sheets Sync Fails
 **Symptom**: "Google Sheets API not available"  
@@ -1856,12 +1856,12 @@ pm2 logs pokemon-bot
 ### Debug Mode
 
 Enable verbose logging:
-```typescript
+\`\`\`typescript
 // Add to any file
 console.log("[v0] Debug info:", data)
 
 // Check browser console and server logs
-```
+\`\`\`
 
 ### Getting Help
 

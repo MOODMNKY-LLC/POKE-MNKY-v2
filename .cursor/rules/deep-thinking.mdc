@@ -3,7 +3,7 @@ description: when deep research is requested or needed
 globs: 
 alwaysApply: false
 ---
-```yaml
+\`\`\`yaml
 # Deep Research Protocol
 
 <protocol>
@@ -187,4 +187,4 @@ Note: Final output must be presented as a cohesive research paper with:
 
 Remember: You MUST complete all steps for each theme. No shortcuts or rushed analysis permitted. Show your work and thinking between each tool use.
 </protocol>
-```
+\`\`\`

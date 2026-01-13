@@ -93,16 +93,16 @@
 - Supabase client queries fail (PGRST205 error)
 
 **Solution**:
-```bash
+\`\`\`bash
 supabase stop
 supabase start
-```
+\`\`\`
 
 **Verify**:
-```sql
+\`\`\`sql
 SELECT COUNT(*) FROM pokemon_cache;
 -- Should return 1025
-```
+\`\`\`
 
 ---
 
@@ -110,11 +110,11 @@ SELECT COUNT(*) FROM pokemon_cache;
 **Problem**: Verification script queries wrong database
 
 **Check**:
-```bash
+\`\`\`bash
 # Check environment variables
 echo $NEXT_PUBLIC_SUPABASE_URL
 echo $SUPABASE_SERVICE_ROLE_KEY
-```
+\`\`\`
 
 **Should point to**:
 - Local: `http://127.0.0.1:54321`
@@ -126,11 +126,11 @@ echo $SUPABASE_SERVICE_ROLE_KEY
 **Problem**: `expires_at < now()`
 
 **Check**:
-```sql
+\`\`\`sql
 SELECT COUNT(*) 
 FROM pokemon_cache 
 WHERE expires_at > NOW();
-```
+\`\`\`
 
 **Solution**: Re-run sync script
 
@@ -139,23 +139,23 @@ WHERE expires_at > NOW();
 ## 🚀 Next Steps
 
 ### Step 1: Refresh Schema Cache 🔴 CRITICAL
-```bash
+\`\`\`bash
 supabase stop
 supabase start
-```
+\`\`\`
 
 **Wait**: 30-60 seconds
 
 **Verify**:
-```sql
+\`\`\`sql
 SELECT COUNT(*) FROM pokemon_cache;
 SELECT COUNT(*) FROM draft_pool;
-```
+\`\`\`
 
 ---
 
 ### Step 2: Verify Current Cache
-```sql
+\`\`\`sql
 -- Check pokemon_cache
 SELECT 
   COUNT(*) as total,
@@ -168,12 +168,12 @@ SELECT pokemon_id, name, generation
 FROM pokemon_cache 
 ORDER BY pokemon_id 
 LIMIT 10;
-```
+\`\`\`
 
 ---
 
 ### Step 3: Apply Comprehensive Schema (Optional)
-```bash
+\`\`\`bash
 # Migration already created
 # Verify tables exist:
 npx tsx -e "
@@ -182,12 +182,12 @@ const supabase = createServiceRoleClient();
 const { data } = await supabase.from('types').select('type_id').limit(1);
 console.log('Types table exists:', !!data);
 "
-```
+\`\`\`
 
 ---
 
 ### Step 4: Sync Comprehensive Pokedex (Optional)
-```bash
+\`\`\`bash
 # Step 1: Master data (~30 min)
 npx tsx scripts/comprehensive-pokedex-sync.ts master
 
@@ -196,14 +196,14 @@ npx tsx scripts/comprehensive-pokedex-sync.ts pokemon 1 1025
 
 # Step 3: Evolution chains (~10 min)
 npx tsx scripts/comprehensive-pokedex-sync.ts evolution
-```
+\`\`\`
 
 ---
 
 ## 📊 Data Verification Queries
 
 ### Current Cache (`pokemon_cache`)
-```sql
+\`\`\`sql
 -- Total Pokemon
 SELECT COUNT(*) FROM pokemon_cache;
 
@@ -221,10 +221,10 @@ SELECT
   COUNT(CASE WHEN move_details IS NOT NULL THEN 1 END) as with_moves,
   COUNT(CASE WHEN generation IS NOT NULL THEN 1 END) as with_generation
 FROM pokemon_cache;
-```
+\`\`\`
 
 ### Comprehensive Pokedex (New Schema)
-```sql
+\`\`\`sql
 -- Master data counts
 SELECT 
   (SELECT COUNT(*) FROM types) as types,
@@ -247,7 +247,7 @@ SELECT
   (SELECT COUNT(*) FROM pokemon_types) as pokemon_types,
   (SELECT COUNT(*) FROM pokemon_items) as pokemon_items,
   (SELECT COUNT(*) FROM pokemon_stats_comprehensive) as pokemon_stats;
-```
+\`\`\`
 
 ---
 

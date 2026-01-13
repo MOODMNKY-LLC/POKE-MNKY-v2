@@ -8,7 +8,7 @@ The Pokepedia sync system uses a clear separation of concerns:
 
 ## Architecture Flow
 
-```
+\`\`\`
 ┌─────────────┐
 │   PokeAPI   │
 │   (Source)  │
@@ -28,7 +28,7 @@ The Pokepedia sync system uses a clear separation of concerns:
 │   Client    │
 │  (In-App)   │
 └─────────────┘
-```
+\`\`\`
 
 ## Sync Operations (REST API)
 

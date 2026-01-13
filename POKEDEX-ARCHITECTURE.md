@@ -19,12 +19,12 @@ Build a complete, comprehensive Pokedex in Supabase that caches ALL Pokemon data
 - **Missing**: Items, held items, evolution chains, forms, varieties, species data, location data, etc.
 
 ### Current Schema (pokemon_cache)
-```sql
+\`\`\`sql
 - pokemon_id, name, types[], base_stats{}, abilities[], moves[]
 - sprites{}, ability_details[], move_details[]
 - generation, draft_cost, tier
 - fetched_at, expires_at
-```
+\`\`\`
 
 ### Issues Identified
 1. **Denormalized** - All data in one table (hard to query relationships)
@@ -40,16 +40,16 @@ Build a complete, comprehensive Pokedex in Supabase that caches ALL Pokemon data
 ### Core Tables
 
 #### 1. `pokemon` (Main Pokemon Data)
-```sql
+\`\`\`sql
 - id, pokemon_id, name, base_experience, height, weight, order
 - is_default, location_area_encounters_url
 - sprites (JSONB), stats (JSONB), types (JSONB)
 - species_id (FK), form_id (FK)
 - created_at, updated_at
-```
+\`\`\`
 
 #### 2. `pokemon_species` (Species Information)
-```sql
+\`\`\`sql
 - id, species_id, name, order, gender_rate, capture_rate
 - base_happiness, is_baby, is_legendary, is_mythical
 - hatch_counter, has_gender_differences, forms_switchable
@@ -57,109 +57,109 @@ Build a complete, comprehensive Pokedex in Supabase that caches ALL Pokemon data
 - evolution_chain_id (FK), color_id (FK), shape_id (FK)
 - egg_groups (JSONB), flavor_text_entries (JSONB)
 - created_at, updated_at
-```
+\`\`\`
 
 #### 3. `pokemon_abilities` (Pokemon-Ability Relationships)
-```sql
+\`\`\`sql
 - id, pokemon_id (FK), ability_id (FK)
 - is_hidden, slot
 - created_at
-```
+\`\`\`
 
 #### 4. `abilities` (Ability Master Data)
-```sql
+\`\`\`sql
 - id, ability_id, name, is_main_series
 - effect_entries (JSONB), flavor_text_entries (JSONB)
 - generation_id (FK)
 - created_at, updated_at
-```
+\`\`\`
 
 #### 5. `pokemon_moves` (Pokemon-Move Relationships)
-```sql
+\`\`\`sql
 - id, pokemon_id (FK), move_id (FK)
 - version_group_id (FK), move_learn_method_id (FK)
 - level_learned_at, order
 - created_at
-```
+\`\`\`
 
 #### 6. `moves` (Move Master Data)
-```sql
+\`\`\`sql
 - id, move_id, name, accuracy, effect_chance, pp, priority, power
 - damage_class_id (FK), type_id (FK), target_id (FK)
 - effect_entries (JSONB), flavor_text_entries (JSONB)
 - stat_changes (JSONB), meta (JSONB)
 - generation_id (FK)
 - created_at, updated_at
-```
+\`\`\`
 
 #### 7. `pokemon_types` (Pokemon-Type Relationships)
-```sql
+\`\`\`sql
 - id, pokemon_id (FK), type_id (FK)
 - slot
 - created_at
-```
+\`\`\`
 
 #### 8. `types` (Type Master Data)
-```sql
+\`\`\`sql
 - id, type_id, name
 - damage_relations (JSONB), game_indices (JSONB)
 - generation_id (FK)
 - created_at, updated_at
-```
+\`\`\`
 
 #### 9. `pokemon_items` (Pokemon-Held Item Relationships)
-```sql
+\`\`\`sql
 - id, pokemon_id (FK), item_id (FK)
 - version_details (JSONB) -- rarity, version groups
 - created_at
-```
+\`\`\`
 
 #### 10. `items` (Item Master Data)
-```sql
+\`\`\`sql
 - id, item_id, name, cost, fling_power, fling_effect_id (FK)
 - attributes (JSONB), category_id (FK), effect_entries (JSONB)
 - flavor_text_entries (JSONB), game_indices (JSONB)
 - sprites (JSONB), held_by_pokemon (JSONB)
 - created_at, updated_at
-```
+\`\`\`
 
 #### 11. `evolution_chains` (Evolution Chain Data)
-```sql
+\`\`\`sql
 - id, evolution_chain_id, baby_trigger_item_id (FK)
 - chain_data (JSONB) -- Full evolution chain structure
 - created_at, updated_at
-```
+\`\`\`
 
 #### 12. `pokemon_forms` (Form Data)
-```sql
+\`\`\`sql
 - id, form_id, name, order, form_order
 - is_default, is_battle_only, is_mega
 - pokemon_id (FK), version_group_id (FK)
 - form_names (JSONB), form_sprites (JSONB)
 - created_at, updated_at
-```
+\`\`\`
 
 #### 13. `generations` (Generation Master Data)
-```sql
+\`\`\`sql
 - id, generation_id, name
 - abilities (JSONB), main_region_id (FK), moves (JSONB)
 - pokemon_species (JSONB), types (JSONB)
 - created_at, updated_at
-```
+\`\`\`
 
 #### 14. `pokemon_stats` (Normalized Stats)
-```sql
+\`\`\`sql
 - id, pokemon_id (FK), stat_id (FK)
 - base_stat, effort
 - created_at
-```
+\`\`\`
 
 #### 15. `stats` (Stat Master Data)
-```sql
+\`\`\`sql
 - id, stat_id, name, is_battle_only
 - game_index, move_damage_class_id (FK)
 - created_at, updated_at
-```
+\`\`\`
 
 ---
 
@@ -187,18 +187,18 @@ Build a complete, comprehensive Pokedex in Supabase that caches ALL Pokemon data
 5. **Pokemon-Stat** relationships
 
 ### Sync Order
-```
+\`\`\`
 1. Types → 2. Abilities → 3. Moves → 4. Items → 5. Stats → 6. Generations
 → 7. Pokemon Species → 8. Pokemon → 9. Evolution Chains → 10. Forms
 → 11. Relationships (abilities, moves, types, items, stats)
-```
+\`\`\`
 
 ---
 
 ## 🔍 Search & Indexing Strategy
 
 ### Full-Text Search Indexes
-```sql
+\`\`\`sql
 -- Pokemon name search
 CREATE INDEX idx_pokemon_name_fts ON pokemon USING gin(to_tsvector('english', name));
 
@@ -210,10 +210,10 @@ CREATE INDEX idx_moves_name_fts ON moves USING gin(to_tsvector('english', name))
 
 -- Type search
 CREATE INDEX idx_types_name_fts ON types USING gin(to_tsvector('english', name));
-```
+\`\`\`
 
 ### Relationship Indexes
-```sql
+\`\`\`sql
 -- Fast Pokemon lookups by type
 CREATE INDEX idx_pokemon_types_pokemon ON pokemon_types(pokemon_id);
 CREATE INDEX idx_pokemon_types_type ON pokemon_types(type_id);
@@ -225,15 +225,15 @@ CREATE INDEX idx_pokemon_abilities_ability ON pokemon_abilities(ability_id);
 -- Fast Pokemon lookups by move
 CREATE INDEX idx_pokemon_moves_pokemon ON pokemon_moves(pokemon_id);
 CREATE INDEX idx_pokemon_moves_move ON pokemon_moves(move_id);
-```
+\`\`\`
 
 ### Composite Indexes
-```sql
+\`\`\`sql
 -- Common query patterns
 CREATE INDEX idx_pokemon_species_generation ON pokemon_species(generation_id);
 CREATE INDEX idx_pokemon_generation ON pokemon(generation_id);
 CREATE INDEX idx_pokemon_is_default ON pokemon(is_default);
-```
+\`\`\`
 
 ---
 

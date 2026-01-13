@@ -37,7 +37,7 @@
 ## 🚀 How It Works
 
 ### On App Start (Automatic)
-```
+\`\`\`
 App Loads
     ↓
 PokepediaSyncProvider mounts
@@ -49,10 +49,10 @@ Progressive Sync:
     ├─ Master Data (30s) → IndexedDB ✅
     ├─ Critical Pokemon 1-50 (1min) → IndexedDB ✅
     └─ Trigger Edge Function → Background sync 51-1025
-```
+\`\`\`
 
 ### Data Access (Offline-First)
-```
+\`\`\`
 getPokemonOfflineFirst(id)
     ↓
 IndexedDB? → Yes → Return ✅ (instant, offline)
@@ -60,24 +60,24 @@ IndexedDB? → Yes → Return ✅ (instant, offline)
 Supabase? → Yes → Return ✅ (cache locally)
     ↓ No
 PokeAPI? → Yes → Return ✅ (cache Supabase + IndexedDB)
-```
+\`\`\`
 
 ## 📦 Installation
 
 ### Step 1: Install Dexie
-```bash
+\`\`\`bash
 pnpm add dexie
-```
+\`\`\`
 
 ### Step 2: Apply Migrations
-```bash
+\`\`\`bash
 supabase db push
-```
+\`\`\`
 
 ### Step 3: Deploy Edge Function
-```bash
+\`\`\`bash
 supabase functions deploy sync-pokepedia
-```
+\`\`\`
 
 ## ✅ Features
 
@@ -93,26 +93,26 @@ supabase functions deploy sync-pokepedia
 
 ### Automatic (On App Start)
 Already integrated in `app/layout.tsx`:
-```tsx
+\`\`\`tsx
 <PokepediaSyncProvider autoStart={true}>
   {children}
 </PokepediaSyncProvider>
-```
+\`\`\`
 
 ### Manual Sync
-```tsx
+\`\`\`tsx
 import { usePokepediaSyncContext } from "@/components/pokepedia-sync-provider"
 
 const { startSync, status, progress } = usePokepediaSyncContext()
-```
+\`\`\`
 
 ### Offline-First Data Access
-```tsx
+\`\`\`tsx
 import { getPokemonOfflineFirst } from "@/lib/pokepedia-client"
 
 const pokemon = await getPokemonOfflineFirst(25) // Pikachu
 // Checks: IndexedDB → Supabase → PokeAPI
-```
+\`\`\`
 
 ## 📊 Sync Priority Levels
 

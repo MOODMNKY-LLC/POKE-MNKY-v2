@@ -7,9 +7,9 @@
 ## Phase 1: Sprite Mirroring ✅ PASSED
 
 ### Test Command
-```bash
+\`\`\`bash
 pnpm tsx --env-file=.env.local scripts/mirror-pokepedia-sprites.ts --pokemon-range=1-5
-```
+\`\`\`
 
 ### Results
 - ✅ **Bucket created**: `pokedex-sprites`
@@ -27,9 +27,9 @@ pnpm tsx --env-file=.env.local scripts/mirror-pokepedia-sprites.ts --pokemon-ran
 ## Phase 2: Queue System ⚠️ PARTIAL
 
 ### Activation Check Results
-```bash
+\`\`\`bash
 pnpm tsx --env-file=.env.local scripts/activate-queue-system.ts
-```
+\`\`\`
 
 **Status**:
 - ✅ Edge Functions: All deployed (`pokepedia-seed`, `pokepedia-worker`, `pokepedia-sprite-worker`)
@@ -39,10 +39,10 @@ pnpm tsx --env-file=.env.local scripts/activate-queue-system.ts
 
 ### Issue
 The migration `20260113010000_create_pokepedia_queue_system.sql` includes:
-```sql
+\`\`\`sql
 SELECT pgmq.create('pokepedia_ingest');
 SELECT pgmq.create('pokepedia_sprites');
-```
+\`\`\`
 
 However, these queues are not being created. Possible causes:
 1. pgmq extension may not be fully initialized
@@ -50,18 +50,18 @@ However, these queues are not being created. Possible causes:
 3. Migration may need to be run with different permissions
 
 ### Test Script Results
-```bash
+\`\`\`bash
 pnpm tsx --env-file=.env.local scripts/test-queue-system.ts
-```
+\`\`\`
 
 **Error**: Permission denied for schema pgmq
 
 ### Next Steps
 1. Manually create queues using SQL:
-   ```sql
+   \`\`\`sql
    SELECT pgmq.create('pokepedia_ingest');
    SELECT pgmq.create('pokepedia_sprites');
-   ```
+   \`\`\`
 2. Or verify pgmq extension is properly installed
 3. Check if queues can be created via Supabase Dashboard
 
@@ -85,9 +85,9 @@ pnpm tsx --env-file=.env.local scripts/test-queue-system.ts
 ## Recommendations
 
 1. **For Phase 1**: Ready to run full mirroring:
-   ```bash
+   \`\`\`bash
    pnpm tsx --env-file=.env.local scripts/mirror-pokepedia-sprites.ts
-   ```
+   \`\`\`
 
 2. **For Phase 2**: Create queues manually:
    - Via Supabase Dashboard SQL Editor

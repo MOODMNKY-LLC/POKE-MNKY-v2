@@ -94,9 +94,9 @@
 **File**: `lib/google-sheets-parsers/rules-parser.ts`
 
 **Current Code**:
-```typescript
+\`\`\`typescript
 await this.supabase.from("league_config").upsert(...)
-```
+\`\`\`
 
 **Fix Options**:
 1. Create `league_config` table migration
@@ -117,7 +117,7 @@ await this.supabase.from("league_config").upsert(...)
 **Fix**: Use raw Google Sheets API calls instead of `loadCells()`
 
 **Implementation**:
-```typescript
+\`\`\`typescript
 // Use googleapis directly
 const sheets = google.sheets({ version: 'v4', auth: serviceAccountAuth })
 const response = await sheets.spreadsheets.values.get({
@@ -125,7 +125,7 @@ const response = await sheets.spreadsheets.values.get({
   range: `${sheet.title}!A1:Z100`
 })
 // This doesn't require Drive scope!
-```
+\`\`\`
 
 ---
 

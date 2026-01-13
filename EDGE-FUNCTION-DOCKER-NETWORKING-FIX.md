@@ -26,32 +26,32 @@ The original `kong:8000` URL was correct. The problem wasn't the URL format - it
 
 Reverted URL normalization - `kong:8000` is the correct URL for containerized Edge Functions:
 
-```typescript
+\`\`\`typescript
 // IMPORTANT: When Edge Function runs in Docker, kong:8000 is the CORRECT URL
 // Edge Function container uses Docker network hostname 'kong' to reach Supabase API gateway
 // Using 127.0.0.1:54321 from inside Docker container would try to connect to the container itself, not the host
 if (isKong && isLocal) {
   console.log("[Edge Function] Using Docker network URL (kong:8000) - this is correct for containerized Edge Functions")
 }
-```
+\`\`\`
 
 ### 2. Enhanced Service Key Verification
 
 Added verification to ensure the service role key matches expected local format:
 
-```typescript
+\`\`\`typescript
 const expectedLocalKeyPrefix = "eyJhbGciOiJIUzI1NiIs"
 const expectedLocalKeyLength = 164
 const serviceKeyMatchesLocal = supabaseServiceKey && 
   supabaseServiceKey.startsWith(expectedLocalKeyPrefix) &&
   supabaseServiceKey.length === expectedLocalKeyLength
-```
+\`\`\`
 
 ### 3. Database Connection Error Handling
 
 Added explicit error handling for connection failures:
 
-```typescript
+\`\`\`typescript
 if (testError) {
   console.error("[Edge Function] ⚠️ CRITICAL: Database connection failed!", {
     url: supabaseUrl,
@@ -59,7 +59,7 @@ if (testError) {
     hint: "If using kong:8000, this is correct for Docker. If using 127.0.0.1:54321, Edge Function container cannot reach host - use kong:8000 instead.",
   })
 }
-```
+\`\`\`
 
 ## Why `kong:8000` Works
 

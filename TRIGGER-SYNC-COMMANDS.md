@@ -10,15 +10,15 @@ You can still override by explicitly setting `continueUntilComplete: false` in t
 
 ### Option 1: Direct Edge Function Call (curl)
 
-```bash
+\`\`\`bash
 curl -X POST http://127.0.0.1:54321/functions/v1/sync-pokepedia \
   -H "Content-Type: application/json" \
   -d '{"action": "start", "phase": "master", "priority": "critical", "continueUntilComplete": true}'
-```
+\`\`\`
 
 ### Option 2: PowerShell (Invoke-RestMethod)
 
-```powershell
+\`\`\`powershell
 $body = @{
   action = "start"
   phase = "master"
@@ -30,25 +30,25 @@ Invoke-RestMethod -Uri "http://127.0.0.1:54321/functions/v1/sync-pokepedia" `
   -Method Post `
   -ContentType "application/json" `
   -Body $body
-```
+\`\`\`
 
 ### Option 3: Via API Route (Next.js)
 
-```bash
+\`\`\`bash
 curl -X POST http://localhost:3000/api/sync/pokepedia \
   -H "Content-Type: application/json" \
   -d '{"action": "start", "phase": "master", "priority": "critical", "continueUntilComplete": true}'
-```
+\`\`\`
 
 ### Option 4: Minimal (Uses Default)
 
 Since default is now `true`, you can omit `continueUntilComplete`:
 
-```bash
+\`\`\`bash
 curl -X POST http://127.0.0.1:54321/functions/v1/sync-pokepedia \
   -H "Content-Type: application/json" \
   -d '{"action": "start", "phase": "master", "priority": "critical"}'
-```
+\`\`\`
 
 ## Behavior
 

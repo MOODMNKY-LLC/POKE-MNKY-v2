@@ -65,7 +65,7 @@
 3. Or update `PokemonSprite` to fetch Pokemon data by name to get ID
 
 **Featured Pokemon Name-to-ID Mapping:**
-```typescript
+\`\`\`typescript
 const FEATURED_POKEMON_IDS = {
   charizard: 6,
   garchomp: 445,
@@ -74,7 +74,7 @@ const FEATURED_POKEMON_IDS = {
   mimikyu: 778,
   corviknight: 823,
 }
-```
+\`\`\`
 
 ---
 
@@ -85,21 +85,21 @@ const FEATURED_POKEMON_IDS = {
 **File:** `lib/pokemon-utils.ts`
 
 **Current (WRONG):**
-```typescript
+\`\`\`typescript
 const storagePath = shiny
   ? `sprites/pokemon/${pokemonId}/front_shiny.png`
   : `sprites/pokemon/${pokemonId}/front_default.png`
-```
+\`\`\`
 
 **Should be:**
-```typescript
+\`\`\`typescript
 const storagePath = shiny
   ? `sprites/pokemon/shiny/${pokemonId}.png`
   : `sprites/pokemon/${pokemonId}.png`
-```
+\`\`\`
 
 **Also handle back mode:**
-```typescript
+\`\`\`typescript
 let storagePath: string
 if (mode === "back") {
   storagePath = `sprites/pokemon/back/${pokemonId}.png`
@@ -108,14 +108,14 @@ if (mode === "back") {
 } else {
   storagePath = `sprites/pokemon/${pokemonId}.png`
 }
-```
+\`\`\`
 
 ### Step 2: Update `PokemonShowcase` to Pass `pokemonId`
 
 **File:** `components/pokemon-showcase.tsx`
 
 **Add name-to-ID mapping:**
-```typescript
+\`\`\`typescript
 const FEATURED_POKEMON_IDS: Record<string, number> = {
   charizard: 6,
   garchomp: 445,
@@ -124,32 +124,32 @@ const FEATURED_POKEMON_IDS: Record<string, number> = {
   mimikyu: 778,
   corviknight: 823,
 }
-```
+\`\`\`
 
 **Update PokemonSprite call:**
-```typescript
+\`\`\`typescript
 <PokemonSprite 
   name={pokemon.name} 
   pokemonId={FEATURED_POKEMON_IDS[pokemon.name.toLowerCase()]} 
   size="xl" 
   className="drop-shadow-2xl animate-scale-in" 
 />
-```
+\`\`\`
 
 ### Step 3: Refactor Sync Component (Optional)
 
 **File:** `components/pokepedia-sync-provider.tsx`
 
 **Option A: Check local status before showing**
-```typescript
+\`\`\`typescript
 const shouldShowBanner = 
   syncState.status === "syncing" || 
   syncState.status === "stopped" ||
   (syncState.status === "idle" && syncState.localCount === 0)
-```
+\`\`\`
 
 **Option B: Make autoStart conditional**
-```typescript
+\`\`\`typescript
 // Only auto-start if IndexedDB is empty
 useEffect(() => {
   if (!autoStart) return
@@ -160,7 +160,7 @@ useEffect(() => {
     }
   })
 }, [autoStart, checkLocalStatus, startSync, syncState.localCount])
-```
+\`\`\`
 
 ---
 

@@ -38,7 +38,7 @@ After comprehensive research and testing, the migration plan to offload sprite s
 ### 2. MinIO S3 Compatibility
 
 **AWS SDK Configuration Requirements:**
-```typescript
+\`\`\`typescript
 const s3Client = new S3Client({
   endpoint: "https://s3-api-data.moodmnky.com",
   credentials: {
@@ -48,7 +48,7 @@ const s3Client = new S3Client({
   forcePathStyle: true,  // REQUIRED for MinIO
   region: "us-east-1",   // MinIO doesn't care about region
 })
-```
+\`\`\`
 
 **Key Points:**
 - ✅ MinIO is fully S3-compatible
@@ -59,11 +59,11 @@ const s3Client = new S3Client({
 ### 3. URL Format Verification
 
 **Correct Format:**
-```
+\`\`\`
 Base URL: https://s3-api-data.moodmnky.com/pokedex-sprites
 Sprite Path: sprites/pokemon/25.png
 Full URL: https://s3-api-data.moodmnky.com/pokedex-sprites/sprites/pokemon/25.png
-```
+\`\`\`
 
 **Database Storage:**
 - Current paths: `sprites/pokemon/25.png` ✅
@@ -79,12 +79,12 @@ Full URL: https://s3-api-data.moodmnky.com/pokedex-sprites/sprites/pokemon/25.pn
 - ✅ MinIO API responding correctly
 
 **Connection Test Output:**
-```
+\`\`\`
 ✅ Connected successfully
 📋 Found 5 bucket(s)
 ✅ Bucket 'pokedex-sprites' exists
 ℹ️  Bucket is empty (ready for migration)
-```
+\`\`\`
 
 ### 5. CORS Configuration
 
@@ -97,7 +97,7 @@ Full URL: https://s3-api-data.moodmnky.com/pokedex-sprites/sprites/pokemon/25.pn
   - CORS headers must be properly configured
 
 **Recommended CORS Policy:**
-```xml
+\`\`\`xml
 <CORSConfiguration>
   <CORSRule>
     <AllowedOrigin>*</AllowedOrigin>
@@ -107,7 +107,7 @@ Full URL: https://s3-api-data.moodmnky.com/pokedex-sprites/sprites/pokemon/25.pn
     <MaxAgeSeconds>3600</MaxAgeSeconds>
   </CORSRule>
 </CORSConfiguration>
-```
+\`\`\`
 
 ---
 
@@ -136,11 +136,11 @@ Full URL: https://s3-api-data.moodmnky.com/pokedex-sprites/sprites/pokemon/25.pn
 - Added to `.env` (production URLs)
 
 **2. Sprite URL Generation** (lib/pokemon-utils.ts)
-```typescript
+\`\`\`typescript
 // Current implementation uses Supabase Storage
 // Needs modification to check SPRITES_BASE_URL env var
 // If set, use MinIO URL; otherwise use Supabase URL
-```
+\`\`\`
 
 **3. Upload Script** (scripts/mirror-sprites-to-storage.ts)
 - Clone existing script
@@ -235,28 +235,28 @@ Full URL: https://s3-api-data.moodmnky.com/pokedex-sprites/sprites/pokemon/25.pn
 ### Environment Variables
 
 **Local (.env.local):**
-```env
+\`\`\`env
 MINIO_ENDPOINT_INTERNAL=http://10.0.0.5:30090
 MINIO_CONSOLE_INTERNAL=http://10.0.0.5:30212
 MINIO_ACCESS_KEY=jp3O2FaYMWDsK03OeMPQ
 MINIO_SECRET_KEY=n9MtRoKbBtPqUFdGRxD8FbsICQdOQabzq1RemJgf
 MINIO_BUCKET_NAME=pokedex-sprites
 SPRITES_BASE_URL=http://10.0.0.5:30090/pokedex-sprites
-```
+\`\`\`
 
 **Production (.env):**
-```env
+\`\`\`env
 MINIO_ENDPOINT_EXTERNAL=https://s3-api-data.moodmnky.com
 MINIO_CONSOLE_EXTERNAL=https://s3-console-data.moodmnky.com
 MINIO_ACCESS_KEY=jp3O2FaYMWDsK03OeMPQ
 MINIO_SECRET_KEY=n9MtRoKbBtPqUFdGRxD8FbsICQdOQabzq1RemJgf
 MINIO_BUCKET_NAME=pokedex-sprites
 SPRITES_BASE_URL=https://s3-api-data.moodmnky.com/pokedex-sprites
-```
+\`\`\`
 
 ### AWS SDK Configuration
 
-```typescript
+\`\`\`typescript
 import { S3Client } from "@aws-sdk/client-s3"
 
 const s3Client = new S3Client({
@@ -268,16 +268,16 @@ const s3Client = new S3Client({
   forcePathStyle: true,  // REQUIRED for MinIO
   region: "us-east-1",
 })
-```
+\`\`\`
 
 ### URL Construction
 
-```typescript
+\`\`\`typescript
 function getSpriteUrl(spritePath: string): string {
   const baseUrl = process.env.SPRITES_BASE_URL || getSupabaseSpriteUrl(spritePath)
   return `${baseUrl}/${spritePath}`
 }
-```
+\`\`\`
 
 ---
 

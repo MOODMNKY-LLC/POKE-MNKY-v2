@@ -65,7 +65,7 @@ The edge function (`supabase/functions/sync-pokepedia/index.ts`) is a comprehens
 3. Configuration (checks env variables)
 
 **Expected Response**:
-```json
+\`\`\`json
 {
   "connected": true,
   "database": {
@@ -79,7 +79,7 @@ The edge function (`supabase/functions/sync-pokepedia/index.ts`) is a comprehens
     "isLocal": true
   }
 }
-```
+\`\`\`
 
 ### Proper Configuration Checklist
 

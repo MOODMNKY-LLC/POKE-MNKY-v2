@@ -15,7 +15,7 @@ Build a complete, comprehensive Pokedex in Supabase that caches **ALL** Pokemon 
 ### How Pokemon Caching Currently Works
 
 **Current Flow**:
-```
+\`\`\`
 App Request → getPokemonDataExtended()
     ↓
 Check pokemon_cache (expires_at > now?)
@@ -31,7 +31,7 @@ Fetch move details (/move/{id}) [optional]
 Store in pokemon_cache
     ↓
 Return ✅
-```
+\`\`\`
 
 **Current Data** (`pokemon_cache`):
 - ✅ 1,025 Pokemon synced
@@ -86,26 +86,26 @@ Return ✅
 Migration created: `20260112000003_create_comprehensive_pokedex.sql`
 
 **Apply**:
-```bash
+\`\`\`bash
 # Already applied via MCP
 # Or manually:
 supabase migration up
-```
+\`\`\`
 
 **Verify**:
-```sql
+\`\`\`sql
 SELECT table_name 
 FROM information_schema.tables 
 WHERE table_schema = 'public' 
   AND table_name IN ('types', 'abilities', 'moves', 'items', 'stats', 'generations', 'pokemon_species', 'pokemon_comprehensive')
 ORDER BY table_name;
-```
+\`\`\`
 
 ### Step 2: Sync Master Data
 
-```bash
+\`\`\`bash
 npx tsx scripts/comprehensive-pokedex-sync.ts master
-```
+\`\`\`
 
 **What it syncs**:
 - Types (~20 items)
@@ -119,9 +119,9 @@ npx tsx scripts/comprehensive-pokedex-sync.ts master
 
 ### Step 3: Sync Pokemon Data
 
-```bash
+\`\`\`bash
 npx tsx scripts/comprehensive-pokedex-sync.ts pokemon 1 1025
-```
+\`\`\`
 
 **What it syncs**:
 - Pokemon Species (1-1025)
@@ -132,15 +132,15 @@ npx tsx scripts/comprehensive-pokedex-sync.ts pokemon 1 1025
 
 ### Step 4: Sync Evolution Chains
 
-```bash
+\`\`\`bash
 npx tsx scripts/comprehensive-pokedex-sync.ts evolution
-```
+\`\`\`
 
 **Estimated Time**: ~10 minutes
 
 ### Step 5: Verify Data
 
-```sql
+\`\`\`sql
 -- Check counts
 SELECT 
   (SELECT COUNT(*) FROM types) as types,
@@ -157,7 +157,7 @@ SELECT
   (SELECT COUNT(*) FROM pokemon_types) as pokemon_types,
   (SELECT COUNT(*) FROM pokemon_items) as pokemon_items,
   (SELECT COUNT(*) FROM pokemon_stats_comprehensive) as pokemon_stats;
-```
+\`\`\`
 
 ---
 
@@ -231,41 +231,41 @@ SELECT
 ## 🔍 Query Examples
 
 ### Find Pokemon by Ability
-```sql
+\`\`\`sql
 SELECT p.name, p.pokemon_id
 FROM pokemon_comprehensive p
 JOIN pokemon_abilities pa ON p.pokemon_id = pa.pokemon_id
 JOIN abilities a ON pa.ability_id = a.ability_id
 WHERE a.name = 'intimidate';
-```
+\`\`\`
 
 ### Find Pokemon by Type
-```sql
+\`\`\`sql
 SELECT p.name, p.pokemon_id
 FROM pokemon_comprehensive p
 JOIN pokemon_types pt ON p.pokemon_id = pt.pokemon_id
 JOIN types t ON pt.type_id = t.type_id
 WHERE t.name = 'fire';
-```
+\`\`\`
 
 ### Find Pokemon by Move
-```sql
+\`\`\`sql
 SELECT DISTINCT p.name, p.pokemon_id
 FROM pokemon_comprehensive p
 JOIN pokemon_moves pm ON p.pokemon_id = pm.pokemon_id
 JOIN moves m ON pm.move_id = m.move_id
 WHERE m.name = 'thunderbolt';
-```
+\`\`\`
 
 ### Semantic Search
-```sql
+\`\`\`sql
 SELECT name, pokemon_id
 FROM pokemon_comprehensive
 WHERE to_tsvector('english', name) @@ to_tsquery('pika*');
-```
+\`\`\`
 
 ### Complete Pokemon Data
-```sql
+\`\`\`sql
 SELECT 
   p.*,
   ps.*,
@@ -285,7 +285,7 @@ LEFT JOIN pokemon_items pi ON p.pokemon_id = pi.pokemon_id
 LEFT JOIN items i ON pi.item_id = i.item_id
 WHERE p.pokemon_id = 25
 GROUP BY p.id, ps.id;
-```
+\`\`\`
 
 ---
 
@@ -295,7 +295,7 @@ GROUP BY p.id, ps.id;
 
 **File**: `app/api/cron/sync-pokedex/route.ts`
 
-```typescript
+\`\`\`typescript
 import { NextResponse } from "next/server"
 import { syncComprehensivePokedex } from "@/lib/pokedex-sync"
 
@@ -320,17 +320,17 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
-```
+\`\`\`
 
 **Vercel Cron** (`vercel.json`):
-```json
+\`\`\`json
 {
   "crons": [{
     "path": "/api/cron/sync-pokedex",
     "schedule": "0 3 * * *"
   }]
 }
-```
+\`\`\`
 
 ---
 

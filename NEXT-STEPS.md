@@ -23,18 +23,18 @@ Sync job is running but `synced: 0, errors: 10` for first chunk (Pokemon 1-10). 
    - **Solution**: Sync master data first before Pokemon
 
 3. **Verify Master Data Tables**
-   ```sql
+   \`\`\`sql
    SELECT COUNT(*) FROM types;
    SELECT COUNT(*) FROM abilities;
    SELECT COUNT(*) FROM stats;
-   ```
+   \`\`\`
 
 4. **Test Direct Insert**
-   ```sql
+   \`\`\`sql
    -- Test if we can insert a Pokemon without relationships
    INSERT INTO pokemon_comprehensive (pokemon_id, name, base_experience, height, weight)
    VALUES (1, 'bulbasaur', 64, 7, 69);
-   ```
+   \`\`\`
 
 ## 📋 Recommended Fix Strategy
 

@@ -28,9 +28,9 @@ The output should use the following instructions:
 
 The output should look like this:
 
-```sql
+\`\`\`sql
 CREATE POLICY "My descriptive policy." ON books FOR INSERT to authenticated USING ( (select auth.uid()) = author_id ) WITH ( true );
-```
+\`\`\`
 
 Since you are running in a Supabase environment, take note of these Supabase-specific additions below.
 
@@ -43,7 +43,7 @@ Supabase maps every request to one of the roles:
 
 These are actually [Postgres Roles](mdc:docs/guides/database/postgres/roles). You can use these roles within your Policies using the `TO` clause:
 
-```sql
+\`\`\`sql
 create policy "Profiles are viewable by everyone"
 on profiles
 for select
@@ -57,29 +57,29 @@ on profiles
 for select
 to authenticated
 using ( true );
-```
+\`\`\`
 
 Note that `for ...` must be added after the table but before the roles. `to ...` must be added after `for ...`:
 
 ### Incorrect
 
-```sql
+\`\`\`sql
 create policy "Public profiles are viewable only by authenticated users"
 on profiles
 to authenticated
 for select
 using ( true );
-```
+\`\`\`
 
 ### Correct
 
-```sql
+\`\`\`sql
 create policy "Public profiles are viewable only by authenticated users"
 on profiles
 for select
 to authenticated
 using ( true );
-```
+\`\`\`
 
 ## Multiple operations
 
@@ -87,18 +87,18 @@ PostgreSQL policies do not support specifying multiple operations in a single FO
 
 ### Incorrect
 
-```sql
+\`\`\`sql
 create policy "Profiles can be created and deleted by any user"
 on profiles
 for insert, delete -- cannot create a policy on multiple operators
 to authenticated
 with check ( true )
 using ( true );
-```
+\`\`\`
 
 ### Correct
 
-```sql
+\`\`\`sql
 create policy "Profiles can be created by any user"
 on profiles
 for insert
@@ -110,7 +110,7 @@ on profiles
 for delete
 to authenticated
 using ( true );
-```
+\`\`\`
 
 ## Helper functions
 
@@ -129,18 +129,18 @@ Returns the JWT of the user making the request. Anything that you store in the u
 
 The `auth.jwt()` function is extremely versatile. For example, if you store some team data inside `app_metadata`, you can use it to determine whether a particular user belongs to a team. For example, if this was an array of IDs:
 
-```sql
+\`\`\`sql
 create policy "User is in team"
 on my_table
 to authenticated
 using ( team_id in (select auth.jwt() -> 'app_metadata' -> 'teams'));
-```
+\`\`\`
 
 ### MFA
 
 The `auth.jwt()` function can be used to check for [Multi-Factor Authentication](mdc:docs/guides/auth/auth-mfa#enforce-rules-for-mfa-logins). For example, you could restrict a user from updating their profile unless they have at least 2 levels of authentication (Assurance Level 2):
 
-```sql
+\`\`\`sql
 create policy "Restrict updates."
 on profiles
 as restrictive
@@ -148,7 +148,7 @@ for update
 to authenticated using (
   (select auth.jwt()->>'aal') = 'aal2'
 );
-```
+\`\`\`
 
 ## RLS performance recommendations
 
@@ -160,37 +160,37 @@ Based on a series of [tests](mdc:https:/github.com/GaryAustin1/RLS-Performance),
 
 Make sure you've added [indexes](mdc:docs/guides/database/postgres/indexes) on any columns used within the Policies which are not already indexed (or primary keys). For a Policy like this:
 
-```sql
+\`\`\`sql
 create policy "Users can access their own records" on test_table
 to authenticated
 using ( (select auth.uid()) = user_id );
-```
+\`\`\`
 
 You can add an index like:
 
-```sql
+\`\`\`sql
 create index userid
 on test_table
 using btree (user_id);
-```
+\`\`\`
 
 ### Call functions with `select`
 
 You can use `select` statement to improve policies that use functions. For example, instead of this:
 
-```sql
+\`\`\`sql
 create policy "Users can access their own records" on test_table
 to authenticated
 using ( auth.uid() = user_id );
-```
+\`\`\`
 
 You can do:
 
-```sql
+\`\`\`sql
 create policy "Users can access their own records" on test_table
 to authenticated
 using ( (select auth.uid()) = user_id );
-```
+\`\`\`
 
 This method works well for JWT functions like `auth.uid()` and `auth.jwt()` as well as `security definer` Functions. Wrapping the function causes an `initPlan` to be run by the Postgres optimizer, which allows it to "cache" the results per-statement, rather than calling the function on each row.
 
@@ -202,7 +202,7 @@ You can often rewrite your Policies to avoid joins between the source and the ta
 
 For example, this is an example of a slow policy which joins the source `test_table` to the target `team_user`:
 
-```sql
+\`\`\`sql
 create policy "Users can access records belonging to their teams" on test_table
 to authenticated
 using (
@@ -212,11 +212,11 @@ using (
     where team_user.team_id = team_id -- joins to the source "test_table.team_id"
   )
 );
-```
+\`\`\`
 
 We can rewrite this to avoid this join, and instead select the filter criteria into a set:
 
-```sql
+\`\`\`sql
 create policy "Users can access records belonging to their teams" on test_table
 to authenticated
 using (
@@ -226,23 +226,23 @@ using (
     where user_id = (select auth.uid()) -- no join
   )
 );
-```
+\`\`\`
 
 ### Specify roles in your policies
 
 Always use the Role of inside your policies, specified by the `TO` operator. For example, instead of this query:
 
-```sql
+\`\`\`sql
 create policy "Users can access their own records" on rls_test
 using ( auth.uid() = user_id );
-```
+\`\`\`
 
 Use:
 
-```sql
+\`\`\`sql
 create policy "Users can access their own records" on rls_test
 to authenticated
 using ( (select auth.uid()) = user_id );
-```
+\`\`\`
 
 This prevents the policy `( (select auth.uid()) = user_id )` from running for any `anon` users, since the execution stops at the `to authenticated` step.

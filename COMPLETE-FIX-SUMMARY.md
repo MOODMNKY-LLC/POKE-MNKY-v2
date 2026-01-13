@@ -11,9 +11,9 @@
 **✅ Solution**: Share the spreadsheet with the service account email.
 
 **Service Account Email**:
-```
+\`\`\`
 poke-mnky-service@mood-mnky.iam.gserviceaccount.com
-```
+\`\`\`
 
 **Steps**:
 1. Open: https://docs.google.com/spreadsheets/d/1wwH5XUHxQnivm90wGtNLQI_g7P3nPi5ZRcbZ3JU3-YQ/edit
@@ -40,18 +40,18 @@ poke-mnky-service@mood-mnky.iam.gserviceaccount.com
 **✅ Solution**: Kill stuck processes.
 
 **Quick Fix**:
-```powershell
+\`\`\`powershell
 # Kill the stuck processes
 Stop-Process -Id 13756,91796,90816 -Force
 
 # Or kill all high-CPU processes
 Get-Process node | Where-Object {$_.CPU -gt 1000} | Stop-Process -Force
-```
+\`\`\`
 
 **Or use the script**:
-```powershell
+\`\`\`powershell
 powershell -ExecutionPolicy Bypass -File scripts\kill-high-cpu-processes.ps1
-```
+\`\`\`
 
 ---
 
@@ -61,15 +61,15 @@ powershell -ExecutionPolicy Bypass -File scripts\kill-high-cpu-processes.ps1
 
 After sharing the spreadsheet, test:
 
-```bash
+\`\`\`bash
 npx tsx scripts/test-scopes-direct.ts
-```
+\`\`\`
 
 **Expected Output**:
-```
+\`\`\`
 ✅ Success! Spreadsheet: "Average at Best Draft League"
 ✅ Sheets found: 30
-```
+\`\`\`
 
 **If you still get 403**:
 - Wait a bit longer (permissions can take 30-60 seconds)
@@ -78,23 +78,23 @@ npx tsx scripts/test-scopes-direct.ts
 
 ### 2. Verify Processes Are Clean
 
-```powershell
+\`\`\`powershell
 # Check process count (should be low: 1-5)
 (Get-Process node).Count
 
 # Check CPU usage (should be low when idle)
 Get-Process node | Select-Object CPU | Measure-Object -Property CPU -Sum
-```
+\`\`\`
 
 ### 3. Run Analysis (After Dev Server Starts)
 
-```bash
+\`\`\`bash
 # Terminal 1: Start dev server
 pnpm dev
 
 # Terminal 2: Run comprehensive analysis
 npx tsx scripts/test-sheet-analysis.ts
-```
+\`\`\`
 
 ---
 
@@ -119,24 +119,24 @@ npx tsx scripts/test-sheet-analysis.ts
    - Wait 30 seconds
 
 2. **Kill stuck processes** ⚠️ **IMPORTANT**
-   ```powershell
+   \`\`\`powershell
    Stop-Process -Id 13756,91796,90816 -Force
-   ```
+   \`\`\`
 
 3. **Test access**
-   ```bash
+   \`\`\`bash
    npx tsx scripts/test-scopes-direct.ts
-   ```
+   \`\`\`
 
 4. **Start dev server** (if needed)
-   ```bash
+   \`\`\`bash
    pnpm dev
-   ```
+   \`\`\`
 
 5. **Run analysis**
-   ```bash
+   \`\`\`bash
    npx tsx scripts/test-sheet-analysis.ts
-   ```
+   \`\`\`
 
 ---
 

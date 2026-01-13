@@ -36,7 +36,7 @@
 ## 📋 Key Changes
 
 ### 1. BaseParser.getResult()
-```typescript
+\`\`\`typescript
 protected getResult(): ParserResult {
   return {
     success: this.errors.length === 0,
@@ -45,7 +45,7 @@ protected getResult(): ParserResult {
     warnings: [...this.warnings],
   }
 }
-```
+\`\`\`
 
 ### 2. Optimized getAllRows()
 - Batch loading: 100 rows at a time
@@ -53,10 +53,10 @@ protected getResult(): ParserResult {
 - Much faster execution
 
 ### 3. ParserFactory - Added "rules" Case
-```typescript
+\`\`\`typescript
 case "rules":
   return new RulesParser(sheet, supabase, config)
-```
+\`\`\`
 
 ### 4. OpenAI API Timeouts
 - 30-second timeout on all AI calls
@@ -105,7 +105,7 @@ case "rules":
 
 ## 📝 Testing Commands
 
-```bash
+\`\`\`bash
 # Test specific parser
 npx tsx scripts/test-parsers-safe.ts [spreadsheet_id] [sheet_name] [parser_type]
 
@@ -113,7 +113,7 @@ npx tsx scripts/test-parsers-safe.ts [spreadsheet_id] [sheet_name] [parser_type]
 npx tsx scripts/test-parsers-safe.ts 1sVQD6_CsoYtGmguRhc07IDlnz2V4Q2uWTt8Owpl5JE0 "Standings" "teams"
 npx tsx scripts/test-parsers-safe.ts 1sVQD6_CsoYtGmguRhc07IDlnz2V4Q2uWTt8Owpl5JE0 "Rules" "rules"
 npx tsx scripts/test-parsers-safe.ts 1sVQD6_CsoYtGmguRhc07IDlnz2V4Q2uWTt8Owpl5JE0 "Draft Board" "draft"
-```
+\`\`\`
 
 ---
 

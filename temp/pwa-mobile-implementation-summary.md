@@ -75,7 +75,7 @@ Successfully transformed the Average at Best Battle League app into a fully mobi
 
 ### 4. File Structure
 
-```
+\`\`\`
 public/
 ├── favicon.ico
 ├── favicon-16x16.png
@@ -95,7 +95,7 @@ app/
 components/
 ├── service-worker-registration.tsx (NEW)
 └── site-header.tsx (UPDATED)
-```
+\`\`\`
 
 ## 🎨 Branding Features
 

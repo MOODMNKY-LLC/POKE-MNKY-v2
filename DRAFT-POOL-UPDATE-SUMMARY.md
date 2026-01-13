@@ -62,51 +62,51 @@ All 19 point value columns found in Draft Board (row 3):
 **File**: `lib/google-sheets-parsers/draft-pool-parser.ts`
 
 1. **Point Value Validation**:
-   ```typescript
+   \`\`\`typescript
    // Changed from:
    if (pointValue >= 12 && pointValue <= 20)
    
    // To:
    if (pointValue >= 2 && pointValue <= 20)
-   ```
+   \`\`\`
 
 2. **Column Range**:
-   ```typescript
+   \`\`\`typescript
    // Changed from:
    range: `${this.sheet.title}!A3:Z3`
    
    // To:
    range: `${this.sheet.title}!A3:ZZ3`
-   ```
+   \`\`\`
 
 3. **Column Scanning**:
-   ```typescript
+   \`\`\`typescript
    // Changed from:
    for (let col = 8; col < Math.min(rowData.length, 75); col += 3)
    
    // To:
    for (let col = 8; col < Math.min(rowData.length, 200); col += 3)
-   ```
+   \`\`\`
 
 ---
 
 ## 🎯 Next Steps
 
 ### 1. Refresh Schema Cache 🔴 CRITICAL
-```bash
+\`\`\`bash
 supabase stop
 supabase start
-```
+\`\`\`
 
 ### 2. Re-run Draft Pool Parser
-```bash
+\`\`\`bash
 npx tsx scripts/test-draft-pool-parser.ts
-```
+\`\`\`
 
 **Expected**: Should now extract Pokemon from all 19 point value columns (2-20pts)
 
 ### 3. Verify Data
-```sql
+\`\`\`sql
 -- Check total Pokemon extracted
 SELECT COUNT(*) FROM draft_pool WHERE is_available = true;
 
@@ -118,7 +118,7 @@ GROUP BY point_value
 ORDER BY point_value DESC;
 
 -- Should show Pokemon from 2pts to 20pts
-```
+\`\`\`
 
 ---
 

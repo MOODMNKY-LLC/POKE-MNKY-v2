@@ -8,18 +8,18 @@ If you're getting a `401 Unauthorized` error when calling the Edge Function, fol
 
 The Edge Function must be served separately from Supabase:
 
-```bash
+\`\`\`bash
 # Start the Edge Function
 supabase functions serve sync-pokepedia --no-verify-jwt
-```
+\`\`\`
 
 **Important**: The `--no-verify-jwt` flag is required for local development. Without it, the Edge Function gateway will reject requests.
 
 ### 2. Verify Supabase is Running
 
-```bash
+\`\`\`bash
 supabase status
-```
+\`\`\`
 
 You should see:
 - Edge Functions URL: `http://127.0.0.1:54321/functions/v1`
@@ -32,25 +32,25 @@ The Edge Function needs these environment variables:
 - `SUPABASE_SERVICE_ROLE_KEY` - Set automatically by Supabase CLI
 
 Verify they're set:
-```bash
+\`\`\`bash
 supabase functions serve sync-pokepedia --no-verify-jwt --env-file .env.local
-```
+\`\`\`
 
 ### 4. Test Edge Function Directly
 
 Test if the Edge Function is accessible:
 
-```bash
+\`\`\`bash
 # Using curl (PowerShell)
 $anonKey = "your-anon-key-here"
 curl.exe -X POST http://127.0.0.1:54321/functions/v1/sync-pokepedia `
   -H "Content-Type: application/json" `
   -H "Authorization: Bearer $anonKey" `
   -d '{\"action\":\"start\",\"phase\":\"master\"}'
-```
+\`\`\`
 
 Or using PowerShell's `Invoke-RestMethod`:
-```powershell
+\`\`\`powershell
 $headers = @{
     "Content-Type" = "application/json"
     "Authorization" = "Bearer YOUR_ANON_KEY_HERE"
@@ -64,16 +64,16 @@ Invoke-RestMethod -Uri "http://127.0.0.1:54321/functions/v1/sync-pokepedia" `
     -Method POST `
     -Headers $headers `
     -Body $body
-```
+\`\`\`
 
 ### 5. Check Edge Function Logs
 
 When the Edge Function is running, you should see logs in the terminal where you started it:
 
-```
+\`\`\`
 [Edge Function] Request received: { method: 'POST', url: '...', hasAuth: true }
 [Edge Function] Request body: { action: 'start', phase: 'master', ... }
-```
+\`\`\`
 
 If you don't see these logs, the request isn't reaching the Edge Function.
 
@@ -84,11 +84,11 @@ If you don't see these logs, the request isn't reaching the Edge Function.
 **Symptom**: Docker container exists but function returns 401
 
 **Solution**: 
-```bash
+\`\`\`bash
 # Stop any existing function processes
 # Then start fresh
 supabase functions serve sync-pokepedia --no-verify-jwt
-```
+\`\`\`
 
 #### Issue: Wrong Auth Key
 
@@ -112,7 +112,7 @@ supabase functions serve sync-pokepedia --no-verify-jwt
 
 If you're still having issues, run this:
 
-```bash
+\`\`\`bash
 # Stop everything
 supabase stop
 
@@ -124,7 +124,7 @@ supabase start
 
 # Start Edge Function in a separate terminal
 supabase functions serve sync-pokepedia --no-verify-jwt
-```
+\`\`\`
 
 ### 8. Verify in Browser
 

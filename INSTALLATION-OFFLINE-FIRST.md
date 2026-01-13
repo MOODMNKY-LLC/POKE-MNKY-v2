@@ -3,35 +3,35 @@
 ## 📦 Required Dependencies
 
 ### Install Dexie.js
-```bash
+\`\`\`bash
 pnpm add dexie
-```
+\`\`\`
 
 ## 🚀 Setup Steps
 
 ### 1. Install Dependencies
-```bash
+\`\`\`bash
 pnpm install
-```
+\`\`\`
 
 ### 2. Apply Migrations
-```bash
+\`\`\`bash
 supabase db push
-```
+\`\`\`
 
 This applies:
 - `20260112000005_enhanced_sync_jobs_for_pokepedia.sql` - Enhanced sync jobs
 - `20260112000007_add_priority_to_sync_jobs.sql` - Priority field
 
 ### 3. Deploy Edge Function
-```bash
+\`\`\`bash
 supabase functions deploy sync-pokepedia
-```
+\`\`\`
 
 ### 4. Setup Cron (Optional - for automatic background sync)
 In Supabase Dashboard → Database → SQL Editor:
 
-```sql
+\`\`\`sql
 -- Replace <project-ref> with your project reference
 SELECT cron.schedule(
   'sync-pokepedia-chunks',
@@ -47,7 +47,7 @@ SELECT cron.schedule(
   ) AS request_id;
   $$
 );
-```
+\`\`\`
 
 ## ✅ Verification
 

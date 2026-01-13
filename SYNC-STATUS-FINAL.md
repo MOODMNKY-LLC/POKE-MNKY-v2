@@ -108,10 +108,10 @@
 ## 📝 Next Steps
 
 1. **Monitor sprite sync** (optional)
-   ```bash
+   \`\`\`bash
    # Check progress
    pnpm tsx scripts/verify-sync-status.ts
-   ```
+   \`\`\`
 
 2. **Start UI integration**
    - Query `pokepedia_pokemon` for Pokemon data

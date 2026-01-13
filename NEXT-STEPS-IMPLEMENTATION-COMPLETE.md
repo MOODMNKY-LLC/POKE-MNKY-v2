@@ -71,11 +71,11 @@ Implemented team name mapping functionality using deep thinking analysis to conn
 
 ## Test Results
 
-```
+\`\`\`
 ✅ Draft Parser: Successfully parsed 168 draft picks
 ✅ Team Page Parser: Successfully extracted 9 picks from Team 1
 ⚠️ Draft Results mapping: Not found (falling back to point-based names)
-```
+\`\`\`
 
 ## Implementation Details
 
@@ -97,7 +97,7 @@ Implemented team name mapping functionality using deep thinking analysis to conn
 
 ### Code Structure
 
-```typescript
+\`\`\`typescript
 // Instance variable
 private teamNameMapping: Map<number, string> = new Map()
 
@@ -112,7 +112,7 @@ private async upsertDraftPicks(picks) {
   const actualTeamName = this.teamNameMapping.get(pick.pointValue) || pick.teamName
   // Use actualTeamName for team lookup/creation
 }
-```
+\`\`\`
 
 ## Success Metrics
 

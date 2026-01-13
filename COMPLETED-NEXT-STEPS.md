@@ -45,9 +45,9 @@ Used deep thinking to systematically proceed with parser testing and improvement
 ## Remaining Work
 
 1. **Apply Database Migration**
-   ```bash
+   \`\`\`bash
    supabase migration up
-   ```
+   \`\`\`
 
 2. **Fix Draft Parser Extraction**
    - Refine Pokemon extraction to match actual column positions

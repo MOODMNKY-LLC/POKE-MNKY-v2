@@ -152,9 +152,9 @@ Successfully implemented all missing parsers for the Google Sheets parsing syste
 **Purpose**: Run comprehensive analysis endpoint and display results
 
 **Usage**:
-```bash
+\`\`\`bash
 npx tsx scripts/test-sheet-analysis.ts [spreadsheet_id]
-```
+\`\`\`
 
 **Features**:
 - Calls `/api/admin/google-sheets/analyze` endpoint
@@ -169,9 +169,9 @@ npx tsx scripts/test-sheet-analysis.ts [spreadsheet_id]
 **Purpose**: Test all parsers with actual sheet data
 
 **Usage**:
-```bash
+\`\`\`bash
 npx tsx scripts/test-parsers.ts [spreadsheet_id] [sheet_name]
-```
+\`\`\`
 
 **Features**:
 - Runs comprehensive analysis first
@@ -223,14 +223,14 @@ npx tsx scripts/test-parsers.ts [spreadsheet_id] [sheet_name]
 ## 🚀 Next Steps
 
 1. **Run Comprehensive Analysis**:
-   ```bash
+   \`\`\`bash
    npx tsx scripts/test-sheet-analysis.ts
-   ```
+   \`\`\`
 
 2. **Test Parsers**:
-   ```bash
+   \`\`\`bash
    npx tsx scripts/test-parsers.ts
-   ```
+   \`\`\`
 
 3. **Review Results**:
    - Check `sheet-analysis-results.json` for detected structures

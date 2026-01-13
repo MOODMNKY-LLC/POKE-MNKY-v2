@@ -36,7 +36,7 @@ Phases 1 and 2 of the Pokepedia Infrastructure Implementation Plan have been com
 
 ### Usage
 
-```bash
+\`\`\`bash
 # Test with small range
 tsx --env-file=.env.local scripts/mirror-pokepedia-sprites.ts --pokemon-range=1-10
 
@@ -45,7 +45,7 @@ tsx --env-file=.env.local scripts/mirror-pokepedia-sprites.ts
 
 # Skip existing sprites
 tsx --env-file=.env.local scripts/mirror-pokepedia-sprites.ts --skip-existing
-```
+\`\`\`
 
 ### Expected Benefits
 
@@ -73,11 +73,11 @@ tsx --env-file=.env.local scripts/mirror-pokepedia-sprites.ts --skip-existing
 
 ### System Architecture
 
-```
+\`\`\`
 Seed Function → pokepedia_ingest Queue → Worker Function → pokeapi_resources + pokepedia_pokemon
                                                               ↓
                                                     pokepedia_sprites Queue → Sprite Worker → Supabase Storage
-```
+\`\`\`
 
 ### Key Features
 
@@ -91,21 +91,21 @@ Seed Function → pokepedia_ingest Queue → Worker Function → pokeapi_resourc
 ### Activation Steps
 
 1. **Run activation check**:
-   ```bash
+   \`\`\`bash
    tsx --env-file=.env.local scripts/activate-queue-system.ts
-   ```
+   \`\`\`
 
 2. **Deploy Edge Functions**:
-   ```bash
+   \`\`\`bash
    supabase functions deploy pokepedia-seed
    supabase functions deploy pokepedia-worker
    supabase functions deploy pokepedia-sprite-worker
-   ```
+   \`\`\`
 
 3. **Test the system**:
-   ```bash
+   \`\`\`bash
    tsx --env-file=.env.local scripts/test-queue-system.ts
-   ```
+   \`\`\`
 
 4. **Configure cron jobs** (see activation guide)
 

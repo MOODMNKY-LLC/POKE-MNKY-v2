@@ -5,14 +5,14 @@
 The terminal logs confirm that our authentication fix is working as intended:
 
 ### API Route Logs (Next.js)
-```
+\`\`\`
 Edge Function auth config: {
   isLocal: true,
   functionUrl: 'http://127.0.0.1:54321/functions/v1/sync-pokepedia',
   authKeyPrefix: 'sb_secret_N7UND0UgjK...',  ✅ Service role key prefix
   usingServiceRoleKey: true                  ✅ Confirmed
 }
-```
+\`\`\`
 
 ### What This Confirms
 

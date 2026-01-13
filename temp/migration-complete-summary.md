@@ -74,20 +74,20 @@
 ### MinIO Verification
 
 **Check Sprite Count:**
-```powershell
+\`\`\`powershell
 mc ls -r local/pokedex-sprites/sprites | Measure-Object -Line
 # Should show ~59,031 files
-```
+\`\`\`
 
 **Test Sprite URL:**
 - Open: `http://10.0.0.5:30090/pokedex-sprites/sprites/pokemon/25.png`
 - Should display Pikachu sprite
 
 **Check PokeAPI Data Count:**
-```powershell
+\`\`\`powershell
 mc ls -r local/poke-mnky/v2 | Measure-Object -Line
 # Should show ~14,332 files
-```
+\`\`\`
 
 **Test JSON URL:**
 - Open: `http://10.0.0.5:30090/poke-mnky/v2/pokemon/1/index.json`
@@ -96,20 +96,20 @@ mc ls -r local/poke-mnky/v2 | Measure-Object -Line
 ### Database Verification
 
 **Check MinIO URLs in Database:**
-```sql
+\`\`\`sql
 SELECT COUNT(*) FROM pokepedia_assets 
 WHERE bucket = 'pokedex-sprites' 
 AND source_url LIKE 'http://10.0.0.5:30090%';
 -- Should match uploaded count
-```
+\`\`\`
 
 ### Supabase Cleanup Verification
 
 **Check Remaining Files:**
-```powershell
+\`\`\`powershell
 pnpm tsx scripts/cleanup-supabase-storage.ts --bucket=pokedex-sprites
 # Should show 0 files after cleanup completes
-```
+\`\`\`
 
 ---
 

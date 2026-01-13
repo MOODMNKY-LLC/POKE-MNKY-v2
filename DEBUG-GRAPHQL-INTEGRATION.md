@@ -46,13 +46,13 @@ The client automatically checks availability on first use. You'll see:
 
 ### Verify GraphQL Endpoint
 
-```bash
+\`\`\`bash
 # Test GraphQL endpoint
 curl -X POST http://127.0.0.1:54321/graphql/v1 \
   -H "Content-Type: application/json" \
   -H "apikey: YOUR_ANON_KEY" \
   -d '{"query": "{ pokemon_comprehensive(limit: 1) { pokemon_id name } }"}'
-```
+\`\`\`
 
 ## Troubleshooting
 

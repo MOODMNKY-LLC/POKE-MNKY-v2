@@ -11,14 +11,14 @@ This guide explains how Discord OAuth authentication is integrated with Supabase
 Our app uses the **Proof Key for Code Exchange (PKCE)** flow, which is the recommended authentication method for server-side applications. The `@supabase/ssr` package automatically configures PKCE flow by default.
 
 **Flow Diagram:**
-```
+\`\`\`
 1. User clicks "Continue with Discord" → signInWithOAuth()
 2. Redirect to Discord → User authorizes app
 3. Discord redirects back → https://poke-mnky.moodmnky.com/auth/callback?code=XXX
 4. exchangeCodeForSession(code) → Receives access + refresh tokens
 5. Tokens stored in secure HTTP-only cookies
 6. Middleware validates and refreshes session on every request
-```
+\`\`\`
 
 ### Session Storage
 
@@ -33,7 +33,7 @@ Sessions are stored in **secure HTTP-only cookies** managed by `@supabase/ssr`. 
 
 ### 1. Client Configuration (`lib/supabase/client.ts`)
 
-```typescript
+\`\`\`typescript
 import { createBrowserClient as createSupabaseBrowserClient } from "@supabase/ssr"
 
 export function createClient() {
@@ -42,7 +42,7 @@ export function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
 }
-```
+\`\`\`
 
 **Key Points:**
 - Uses `@supabase/ssr` for automatic PKCE flow
@@ -51,7 +51,7 @@ export function createClient() {
 
 ### 2. Server Configuration (`lib/supabase/server.ts`)
 
-```typescript
+\`\`\`typescript
 import { createServerClient as createSupabaseServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
 
@@ -79,7 +79,7 @@ export async function createClient() {
     },
   )
 }
-```
+\`\`\`
 
 **Key Points:**
 - Custom cookie adapter for Next.js 15
@@ -88,7 +88,7 @@ export async function createClient() {
 
 ### 3. Middleware (`lib/supabase/proxy.ts`)
 
-```typescript
+\`\`\`typescript
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
@@ -125,7 +125,7 @@ export async function updateSession(request: NextRequest) {
 
   return supabaseResponse
 }
-```
+\`\`\`
 
 **Key Points:**
 - `getUser()` is **critical** - it validates and refreshes sessions
@@ -135,7 +135,7 @@ export async function updateSession(request: NextRequest) {
 
 ### 4. Login Page (`app/auth/login/page.tsx`)
 
-```typescript
+\`\`\`typescript
 const handleDiscordSignIn = async () => {
   const supabase = createClient()
   setIsDiscordLoading(true)
@@ -153,7 +153,7 @@ const handleDiscordSignIn = async () => {
     setIsDiscordLoading(false)
   }
 }
-```
+\`\`\`
 
 **Key Points:**
 - `redirectTo` must match configured callback URL
@@ -162,7 +162,7 @@ const handleDiscordSignIn = async () => {
 
 ### 5. Callback Handler (`app/auth/callback/page.tsx`)
 
-```typescript
+\`\`\`typescript
 const handleCallback = async () => {
   const supabase = createClient()
   const searchParams = new URLSearchParams(window.location.search)
@@ -192,7 +192,7 @@ const handleCallback = async () => {
     router.push("/auth/login?error=unexpected")
   }
 }
-```
+\`\`\`
 
 **Key Points:**
 - Extracts `code` parameter from URL
@@ -207,17 +207,17 @@ const handleCallback = async () => {
 **Navigate to:** Supabase Dashboard → Authentication → URL Configuration
 
 #### 1. Site URL
-```
+\`\`\`
 https://poke-mnky.moodmnky.com
-```
+\`\`\`
 
 #### 2. Redirect URLs
 Add all of these:
-```
+\`\`\`
 https://poke-mnky.moodmnky.com/auth/callback
 http://localhost:3000/auth/callback
 https://*.vercel.app/auth/callback
-```
+\`\`\`
 
 #### 3. Enable Discord Provider
 
@@ -227,9 +227,9 @@ https://*.vercel.app/auth/callback
 - **Client ID**: From Discord Developer Portal
 - **Client Secret**: From Discord Developer Portal
 - **Callback URL (Authorized redirect URIs)**:
-  ```
+  \`\`\`
   https://[your-project-ref].supabase.co/auth/v1/callback
-  ```
+  \`\`\`
 
 ### Session Configuration
 
@@ -248,10 +248,10 @@ https://*.vercel.app/auth/callback
 
 #### Redirect URIs
 Add both:
-```
+\`\`\`
 https://[your-supabase-project-ref].supabase.co/auth/v1/callback
 https://poke-mnky.moodmnky.com/auth/callback
-```
+\`\`\`
 
 #### Scopes
 Required scopes:
@@ -281,23 +281,23 @@ Required scopes:
 ## Session Lifecycle
 
 ### 1. Sign In
-```
+\`\`\`
 User → Discord OAuth → Auth Code → exchangeCodeForSession() 
 → Cookies Set → Redirect to /
-```
+\`\`\`
 
 ### 2. Session Refresh
-```
+\`\`\`
 Middleware runs → getUser() called → Token expired?
 → Yes: Refresh using refresh token → Update cookies
 → No: Continue with existing token
-```
+\`\`\`
 
 ### 3. Sign Out
-```
+\`\`\`
 User clicks Sign Out → supabase.auth.signOut()
 → Cookies cleared → Session terminated
-```
+\`\`\`
 
 ## Testing Session Persistence
 
@@ -330,7 +330,7 @@ User clicks Sign Out → supabase.auth.signOut()
 
 ### Automated Test Code
 
-```typescript
+\`\`\`typescript
 // Test session persistence
 describe("Discord Auth Session Persistence", () => {
   it("should persist session after page refresh", async () => {
@@ -365,7 +365,7 @@ describe("Discord Auth Session Persistence", () => {
     await expect(page).toHaveURL(/\/admin/)
   })
 })
-```
+\`\`\`
 
 ## Common Issues & Solutions
 
@@ -413,7 +413,7 @@ describe("Discord Auth Session Persistence", () => {
 
 Verify these are set in your deployment:
 
-```bash
+\`\`\`bash
 # Required
 NEXT_PUBLIC_SUPABASE_URL=https://[project-ref].supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGc...
@@ -424,7 +424,7 @@ SUPABASE_SERVICE_ROLE_KEY=eyJhbGc...
 # Auto-configured by Supabase
 SUPABASE_AUTH_EXTERNAL_DISCORD_CLIENT_ID=(set in Supabase dashboard)
 SUPABASE_AUTH_EXTERNAL_DISCORD_SECRET=(set in Supabase dashboard)
-```
+\`\`\`
 
 ## Monitoring & Debugging
 
@@ -432,7 +432,7 @@ SUPABASE_AUTH_EXTERNAL_DISCORD_SECRET=(set in Supabase dashboard)
 
 Add to your client initialization for debugging:
 
-```typescript
+\`\`\`typescript
 const supabase = createClient()
 
 // Listen to auth state changes
@@ -440,16 +440,16 @@ supabase.auth.onAuthStateChange((event, session) => {
   console.log('[v0] Auth event:', event)
   console.log('[v0] Session:', session ? 'Active' : 'None')
 })
-```
+\`\`\`
 
 ### Check Session Status
 
-```typescript
+\`\`\`typescript
 // In any component or page
 const supabase = createClient()
 const { data: { session } } = await supabase.auth.getSession()
 console.log('[v0] Current session:', session)
-```
+\`\`\`
 
 ### Verify Cookie Storage
 

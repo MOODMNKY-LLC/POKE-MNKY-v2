@@ -67,15 +67,15 @@ After analyzing the current state of the POKE MNKY application, database schema,
 
 **Changes**:
 1. **Canonical Storage**: Store all PokeAPI responses in `pokeapi_resources` table
-   ```sql
+   \`\`\`sql
    INSERT INTO pokeapi_resources (resource_type, resource_key, data, etag, updated_at)
    VALUES ('pokemon', '25', {...json...}, 'etag-value', NOW())
    ON CONFLICT (resource_type, resource_key) 
    DO UPDATE SET data = EXCLUDED.data, etag = EXCLUDED.etag, updated_at = NOW()
-   ```
+   \`\`\`
 
 2. **Projection Building**: Build `pokepedia_pokemon` from canonical data
-   ```sql
+   \`\`\`sql
    -- Extract fields from pokeapi_resources.data JSONB
    INSERT INTO pokepedia_pokemon (pokemon_id, name, types, base_stats, ...)
    SELECT 
@@ -86,13 +86,13 @@ After analyzing the current state of the POKE MNKY application, database schema,
      ...
    FROM pokeapi_resources
    WHERE resource_type = 'pokemon'
-   ```
+   \`\`\`
 
 3. **Asset Tracking**: Update `pokepedia_assets` with MinIO paths
-   ```sql
+   \`\`\`sql
    INSERT INTO pokepedia_assets (pokemon_id, sprite_type, minio_path, ...)
    VALUES (25, 'front_default', 'http://10.0.0.5:30090/pokedex-sprites/...', ...)
-   ```
+   \`\`\`
 
 ### Phase 2: ETag Support ✅ (Performance)
 
@@ -105,7 +105,7 @@ After analyzing the current state of the POKE MNKY application, database schema,
 4. Track cache hit rate in sync status
 
 **Implementation**:
-```typescript
+\`\`\`typescript
 // Check existing ETag
 const existing = await supabase
   .from('pokeapi_resources')
@@ -123,7 +123,7 @@ if (response.status === 304) {
   // Not modified - skip fetch
   return { cached: true }
 }
-```
+\`\`\`
 
 ### Phase 3: Queue Integration ✅ (Scalability)
 
@@ -136,7 +136,7 @@ if (response.status === 304) {
 4. Track queue status in sync display
 
 **Implementation**:
-```typescript
+\`\`\`typescript
 // Enqueue sync job
 await supabase.rpc('enqueue_pokepedia_sync', {
   phase: 'pokemon',
@@ -148,7 +148,7 @@ const messages = await supabase.rpc('dequeue_pokepedia_sync', { limit: 10 })
 for (const msg of messages) {
   await processSyncMessage(msg)
 }
-```
+\`\`\`
 
 ### Phase 4: New Endpoints ✅ (Completeness)
 

@@ -59,7 +59,7 @@
 
 ## Component Architecture
 
-```
+\`\`\`
 PokepediaSyncProvider (app/layout.tsx)
 ├── Children (app content)
 ├── PokepediaSyncBanner (minimal, active only)
@@ -72,7 +72,7 @@ PokepediaSyncProvider (app/layout.tsx)
     ├── Database counts
     ├── Health checks
     └── Manual triggers
-```
+\`\`\`
 
 ## Expected Behavior
 
@@ -100,27 +100,27 @@ PokepediaSyncProvider (app/layout.tsx)
 ## Key Changes
 
 ### Banner Display Logic
-```typescript
+\`\`\`typescript
 const isActiveSync = syncState.status === "syncing" && !syncState.isStale
 const isJustCompleted = syncState.status === "completed" && syncState.progress === 100 && completedBannerVisible
 const shouldShowBanner = isActiveSync || isJustCompleted
-```
+\`\`\`
 
 ### Stale Detection
-```typescript
+\`\`\`typescript
 // Banner: 2 minutes (stricter)
 const isStale = minutesSinceHeartbeat > 2
 
 // Cleanup: 10 minutes (database cleanup)
 const isStale = minutesSinceHeartbeat > 10
-```
+\`\`\`
 
 ### On Mount
-```typescript
+\`\`\`typescript
 // Don't show "stopped" - just set to idle silently
 status: needsSync ? "idle" : "completed"
 // Banner won't show for idle/completed unless active
-```
+\`\`\`
 
 ---
 

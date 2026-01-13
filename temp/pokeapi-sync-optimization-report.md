@@ -232,7 +232,7 @@ Prioritize critical endpoints:
 
 **Solution:** Store ETag from responses, send If-None-Match header on subsequent requests.
 
-```typescript
+\`\`\`typescript
 // Store ETag in database
 const etag = response.headers.get('ETag')
 await supabase.from('sync_jobs').update({ etag }).eq('job_id', job.job_id)
@@ -247,7 +247,7 @@ if (response.status === 304) {
   // Data unchanged, skip processing
   return { cached: true }
 }
-```
+\`\`\`
 
 **Impact:** 
 - **50-90% bandwidth reduction** for unchanged resources
@@ -263,12 +263,12 @@ if (response.status === 304) {
 - Historical processing time per chunk
 - Remaining time budget (target 80% of timeout)
 
-```typescript
+\`\`\`typescript
 // Calculate optimal chunk size
 const avgResponseTime = historicalData.avgTimePerChunk
 const timeBudget = 120000 // 120 seconds (80% of 150s timeout)
 const optimalChunkSize = Math.floor((timeBudget / avgResponseTime) * CONCURRENT_REQUESTS)
-```
+\`\`\`
 
 **3. Incremental Sync Strategy**
 
@@ -292,7 +292,7 @@ const optimalChunkSize = Math.floor((timeBudget / avgResponseTime) * CONCURRENT_
 **5. Timeout Prediction**
 
 Monitor chunk processing time and predict if timeout risk:
-```typescript
+\`\`\`typescript
 const startTime = Date.now()
 // Process chunk
 const elapsed = Date.now() - startTime
@@ -300,7 +300,7 @@ const estimatedRemaining = (elapsed / currentChunk) * (totalChunks - currentChun
 if (estimatedRemaining > MAX_EXECUTION_TIME_MS * 0.8) {
   // Risk of timeout, reduce chunk size or pause
 }
-```
+\`\`\`
 
 ---
 
@@ -318,7 +318,7 @@ if (estimatedRemaining > MAX_EXECUTION_TIME_MS * 0.8) {
 **Impact:** Cannot display evolution trees, evolution conditions, or evolution relationships in app.
 
 **Required Data Structure:**
-```typescript
+\`\`\`typescript
 interface EvolutionChain {
   id: number
   baby_trigger_item: Item | null
@@ -337,7 +337,7 @@ interface EvolutionDetail {
   item: Item | null
   // ... other conditions
 }
-```
+\`\`\`
 
 **Other Missing Critical Data:**
 - **Items:** Held items, evolution items, battle items
@@ -353,7 +353,7 @@ interface EvolutionDetail {
 
 **Recommended:** Implement completeness verification:
 
-```typescript
+\`\`\`typescript
 async function validateSyncCompleteness(supabase: any) {
   // Check expected counts
   const expectedCounts = {
@@ -376,7 +376,7 @@ async function validateSyncCompleteness(supabase: any) {
   
   return actualCounts
 }
-```
+\`\`\`
 
 ### Relationship Integrity
 
@@ -509,13 +509,13 @@ async function validateSyncCompleteness(supabase: any) {
 **Implementation Steps:**
 
 1. **Add ETag Storage:**
-```sql
+\`\`\`sql
 ALTER TABLE sync_jobs ADD COLUMN IF NOT EXISTS resource_etags JSONB DEFAULT '{}';
 -- Store ETags per endpoint: { "pokemon": "etag1", "type": "etag2" }
-```
+\`\`\`
 
 2. **Modify fetchWithRetry:**
-```typescript
+\`\`\`typescript
 async function fetchWithRetry(url: string, storedEtag?: string): Promise<{ data: any; etag: string | null; cached: boolean }> {
   const headers: HeadersInit = {}
   if (storedEtag) {
@@ -537,10 +537,10 @@ async function fetchWithRetry(url: string, storedEtag?: string): Promise<{ data:
   
   return { data, etag, cached: false }
 }
-```
+\`\`\`
 
 3. **Update Sync Phases:**
-```typescript
+\`\`\`typescript
 // Retrieve stored ETag
 const { data: jobData } = await supabase.from('sync_jobs').select('resource_etags').eq('job_id', job.job_id).single()
 const storedEtag = jobData?.resource_etags?.[endpoint] || null
@@ -557,7 +557,7 @@ if (cached) {
 await supabase.from('sync_jobs').update({
   resource_etags: { ...jobData.resource_etags, [endpoint]: etag }
 }).eq('job_id', job.job_id)
-```
+\`\`\`
 
 **Expected Impact:**
 - First sync: No change (no ETags stored)
@@ -577,7 +577,7 @@ await supabase.from('sync_jobs').update({
 2. Fetch `pokemon` list → Fetch pokemon details → Extract relationships in same pass
 
 **Implementation:**
-```typescript
+\`\`\`typescript
 async function syncPokemonPhaseOptimized(supabase: any, job: SyncJob) {
   // ... existing pokemon sync code ...
   
@@ -600,7 +600,7 @@ async function syncPokemonPhaseOptimized(supabase: any, job: SyncJob) {
   
   // Remove separate relationships phase
 }
-```
+\`\`\`
 
 **Impact:** Eliminates one full pass through Pokemon data, reduces API calls by ~33%.
 
@@ -609,7 +609,7 @@ async function syncPokemonPhaseOptimized(supabase: any, job: SyncJob) {
 **Implementation:**
 
 1. **Add Evolution Chain Table** (if not exists):
-```sql
+\`\`\`sql
 CREATE TABLE IF NOT EXISTS evolution_chains (
   chain_id INTEGER PRIMARY KEY,
   baby_trigger_item_id INTEGER REFERENCES items(item_id),
@@ -629,10 +629,10 @@ CREATE TABLE IF NOT EXISTS evolution_details (
   -- ... other evolution conditions
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
-```
+\`\`\`
 
 2. **Add Evolution Chain Sync Phase:**
-```typescript
+\`\`\`typescript
 async function syncEvolutionChainsPhase(supabase: any, job: SyncJob) {
   // Fetch evolution chain list
   const listResponse = await fetch(`${POKEAPI_BASE_URL}/evolution-chain/?limit=1000`)
@@ -692,7 +692,7 @@ function storeEvolutionDetails(supabase: any, chainId: number, chainLink: any, p
     storeEvolutionDetails(supabase, chainId, nextLink, speciesId)
   }
 }
-```
+\`\`\`
 
 **Impact:** Enables evolution tree display, evolution condition queries, complete Pokemon data.
 
@@ -700,7 +700,7 @@ function storeEvolutionDetails(supabase: any, chainId: number, chainLink: any, p
 
 **Configuration Updates:**
 
-```typescript
+\`\`\`typescript
 // Endpoint-specific configurations
 const ENDPOINT_CONFIG = {
   'type': { chunkSize: 50, concurrency: 15 }, // Small dataset
@@ -717,7 +717,7 @@ const ENDPOINT_CONFIG = {
 // Use in sync functions
 const config = ENDPOINT_CONFIG[endpoint] || { chunkSize: 50, concurrency: 8 }
 const batches = chunkArray(resources, config.concurrency)
-```
+\`\`\`
 
 **Impact:** Faster sync times, reduced timeout risk, better resource utilization.
 
@@ -812,7 +812,7 @@ const batches = chunkArray(resources, config.concurrency)
 
 ### Recommended Monitoring Implementation
 
-```typescript
+\`\`\`typescript
 interface SyncMetrics {
   phase: string
   startTime: number
@@ -833,7 +833,7 @@ await supabase.from('sync_metrics').insert({
   metrics: syncMetrics,
   created_at: new Date().toISOString()
 })
-```
+\`\`\`
 
 ---
 

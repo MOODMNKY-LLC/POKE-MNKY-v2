@@ -9,10 +9,10 @@ Successfully activated Google Sheets sync functionality with full database integ
 ## ✅ Completed Actions
 
 ### 1. Package Installation
-```bash
+\`\`\`bash
 ✅ pnpm add google-spreadsheet      # v5.0.2
 ✅ pnpm add google-auth-library     # v10.5.0
-```
+\`\`\`
 
 ### 2. Database Migration
 ✅ **Migration Applied**: `20260112105000_create_google_sheets_config.sql`
@@ -123,7 +123,7 @@ Successfully activated Google Sheets sync functionality with full database integ
 6. **Logging**: Records in `sync_log` table
 
 ### Pokemon Integration Flow
-```
+\`\`\`
 Sheet Row → Pokemon Name
   ↓
 Check pokemon_cache
@@ -134,7 +134,7 @@ Not Found? → Fetch from API → Cache → Use types
 Create/Update pokemon table (type1, type2)
   ↓
 Link to team_rosters
-```
+\`\`\`
 
 ---
 

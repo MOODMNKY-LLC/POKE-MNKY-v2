@@ -39,7 +39,7 @@ Cleaning up Supabase Storage `pokedex-sprites` bucket to free up space after mig
 **Script:** `scripts/cleanup-supabase-storage.ts`
 
 **Usage:**
-```powershell
+\`\`\`powershell
 # List files only
 pnpm tsx scripts/cleanup-supabase-storage.ts --bucket=pokedex-sprites
 
@@ -48,7 +48,7 @@ pnpm tsx scripts/cleanup-supabase-storage.ts --bucket=pokedex-sprites --delete -
 
 # Actually delete
 pnpm tsx scripts/cleanup-supabase-storage.ts --bucket=pokedex-sprites --delete
-```
+\`\`\`
 
 **Features:**
 - ✅ Recursively lists all files in bucket
@@ -64,9 +64,9 @@ pnpm tsx scripts/cleanup-supabase-storage.ts --bucket=pokedex-sprites --delete
 
 After cleanup completes, verify bucket is empty:
 
-```powershell
+\`\`\`powershell
 pnpm tsx scripts/cleanup-supabase-storage.ts --bucket=pokedex-sprites
-```
+\`\`\`
 
 Expected result: **0 files**
 

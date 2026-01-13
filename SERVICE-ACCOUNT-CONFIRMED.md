@@ -18,15 +18,15 @@ From your screenshot, I can confirm:
 
 ### ✅ Already Set (or being set):
 
-```bash
+\`\`\`bash
 GOOGLE_SERVICE_ACCOUNT_EMAIL=poke-mnky-service@mood-mnky.iam.gserviceaccount.com
-```
+\`\`\`
 
 ### ⚠️ Still Needed:
 
-```bash
+\`\`\`bash
 GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
-```
+\`\`\`
 
 **To get the private key**:
 1. Click on the service account (`poke-mnky-service@mood-mnky.iam.gserviceaccount.com`)
@@ -48,9 +48,9 @@ GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END P
 - Private key
 
 However, if your application specifically requires it, you can add:
-```bash
+\`\`\`bash
 GOOGLE_OAUTH_CLIENT_ID=110692522893766968940
-```
+\`\`\`
 
 ---
 
@@ -68,9 +68,9 @@ GOOGLE_OAUTH_CLIENT_ID=110692522893766968940
 
 After adding the private key, verify:
 
-```bash
+\`\`\`bash
 npx tsx scripts/verify-service-account.ts
-```
+\`\`\`
 
 This will check:
 - ✅ Environment variables are set

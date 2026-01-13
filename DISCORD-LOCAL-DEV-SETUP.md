@@ -25,10 +25,10 @@ This guide explains how to configure Discord OAuth authentication for local deve
 **Navigate to:** OAuth2 → General → Redirects
 
 **Add these redirect URIs:**
-```
+\`\`\`
 http://localhost:54321/auth/v1/callback
 http://localhost:3000/auth/callback
-```
+\`\`\`
 
 **Important:** The first URI (`http://localhost:54321/auth/v1/callback`) is Supabase's local auth callback endpoint. The second is your Next.js app callback.
 
@@ -59,7 +59,7 @@ http://localhost:3000/auth/callback
 
 Create or update your `.env.local` file in the project root:
 
-```bash
+\`\`\`bash
 # Discord OAuth Configuration (for Supabase Auth)
 DISCORD_CLIENT_ID=your-discord-client-id-here
 DISCORD_CLIENT_SECRET=your-discord-client-secret-here
@@ -73,15 +73,15 @@ DISCORD_PUBLIC_KEY=your-discord-public-key-here
 NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-local-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-local-service-role-key
-```
+\`\`\`
 
 ### 2.2 Get Supabase Local Keys
 
 After running `supabase start`, get your local keys:
 
-```bash
+\`\`\`bash
 supabase status
-```
+\`\`\`
 
 Copy the `anon key` and `service_role key` from the output.
 
@@ -91,7 +91,7 @@ Copy the `anon key` and `service_role key` from the output.
 
 The `supabase/config.toml` file has been configured with Discord OAuth settings:
 
-```toml
+\`\`\`toml
 [auth.external.discord]
 enabled = true
 client_id = "env(DISCORD_CLIENT_ID)"
@@ -99,7 +99,7 @@ secret = "env(DISCORD_CLIENT_SECRET)"
 redirect_uri = "http://localhost:54321/auth/v1/callback"
 skip_nonce_check = false
 email_optional = false
-```
+\`\`\`
 
 **Key Points:**
 - ✅ Uses environment variables for credentials (secure)
@@ -113,9 +113,9 @@ email_optional = false
 
 ### 4.1 Start Supabase Services
 
-```bash
+\`\`\`bash
 supabase start
-```
+\`\`\`
 
 This will:
 - Start PostgreSQL database (port 54322)
@@ -127,9 +127,9 @@ This will:
 
 Check that Discord OAuth is enabled:
 
-```bash
+\`\`\`bash
 supabase status
-```
+\`\`\`
 
 Look for the Auth service status. You should see Discord listed as an enabled provider.
 
@@ -139,9 +139,9 @@ Look for the Auth service status. You should see Discord listed as an enabled pr
 
 ### 5.1 Start Your Next.js App
 
-```bash
+\`\`\`bash
 pnpm dev
-```
+\`\`\`
 
 Visit: `http://localhost:3000`
 

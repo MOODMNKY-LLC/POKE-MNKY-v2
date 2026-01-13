@@ -78,21 +78,21 @@ Your spreadsheet contains **30 sheets**:
 
 Analyze all sheets and get parsing recommendations:
 
-```bash
+\`\`\`bash
 # Make sure dev server is running first
 pnpm dev
 
 # Then in another terminal:
 npx tsx scripts/test-sheet-analysis.ts
-```
+\`\`\`
 
 ### 2. Test Parsers
 
 Test individual parsers on specific sheets:
 
-```bash
+\`\`\`bash
 npx tsx scripts/test-parsers.ts 1sVQD6_CsoYtGmguRhc07IDlnz2V4Q2uWTt8Owpl5JE0
-```
+\`\`\`
 
 ### 3. Use Admin Panel
 
@@ -158,7 +158,7 @@ Your parsers can handle:
 
 ## 💡 Quick Commands
 
-```bash
+\`\`\`bash
 # Verify access (already done ✅)
 npx tsx scripts/test-scopes-direct.ts
 
@@ -171,7 +171,7 @@ npx tsx scripts/test-sheet-analysis.ts  # Terminal 2
 
 # Next: Test parsers
 npx tsx scripts/test-parsers.ts
-```
+\`\`\`
 
 ---
 

@@ -59,13 +59,13 @@ This overhaul implements a robust, scalable queue-based sync system that:
 
 ### 1. Seed the Queue
 
-```bash
+\`\`\`bash
 # Via Edge Function
 curl -X POST http://127.0.0.1:54321/functions/v1/pokepedia-seed \
   -H "Authorization: Bearer <service-role-key>" \
   -H "Content-Type: application/json" \
   -d '{"limit": 200}'
-```
+\`\`\`
 
 Or use the admin dashboard: `/admin` → Poképedia Sync Status → "Seed Queue"
 
@@ -73,7 +73,7 @@ Or use the admin dashboard: `/admin` → Poképedia Sync Status → "Seed Queue"
 
 Workers run automatically via cron (every minute), or trigger manually:
 
-```bash
+\`\`\`bash
 # Process resource queue
 curl -X POST http://127.0.0.1:54321/functions/v1/pokepedia-worker \
   -H "Authorization: Bearer <service-role-key>" \
@@ -85,7 +85,7 @@ curl -X POST http://127.0.0.1:54321/functions/v1/pokepedia-sprite-worker \
   -H "Authorization: Bearer <service-role-key>" \
   -H "Content-Type: application/json" \
   -d '{"batchSize": 10, "concurrency": 3}'
-```
+\`\`\`
 
 ### 3. Monitor Progress
 
@@ -107,9 +107,9 @@ Returns sync progress by resource type (synced vs estimated total).
 
 ### 1. Apply Migrations
 
-```bash
+\`\`\`bash
 supabase db push
-```
+\`\`\`
 
 ### 2. Create Storage Bucket
 
@@ -119,18 +119,18 @@ In Supabase Dashboard → Storage:
 
 ### 3. Set Edge Function Secrets
 
-```bash
+\`\`\`bash
 supabase secrets set SERVICE_ROLE_KEY="your-service-role-key"
 supabase secrets set POKEAPI_BASE_URL="https://pokeapi.co/api/v2"
-```
+\`\`\`
 
 ### 4. Deploy Edge Functions
 
-```bash
+\`\`\`bash
 supabase functions deploy pokepedia-seed --no-verify-jwt
 supabase functions deploy pokepedia-worker --no-verify-jwt
 supabase functions deploy pokepedia-sprite-worker --no-verify-jwt
-```
+\`\`\`
 
 ### 5. Setup Cron Jobs
 

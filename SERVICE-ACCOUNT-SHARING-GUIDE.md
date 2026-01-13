@@ -18,9 +18,9 @@
 3. **In the "Add people and groups" field**:
    - **DO NOT** try to search for the service account (it won't appear)
    - **INSTEAD**, **paste the full email address directly**:
-     ```
+     \`\`\`
      poke-mnky-service@mood-mnky.iam.gserviceaccount.com
-     ```
+     \`\`\`
 
 4. **Set the permission level**:
    - **Viewer** (recommended) - Sufficient for read-only operations
@@ -38,9 +38,9 @@
 
 Run the verification script to check your service account configuration:
 
-```bash
+\`\`\`bash
 npx tsx scripts/verify-service-account.ts
-```
+\`\`\`
 
 This will check:
 - ✅ Environment variables are set
@@ -54,9 +54,9 @@ This will check:
 ## 📋 Your Service Account Details
 
 **Service Account Email**:
-```
+\`\`\`
 poke-mnky-service@mood-mnky.iam.gserviceaccount.com
-```
+\`\`\`
 
 **Required Permissions**:
 - **Viewer** (recommended) - Can read spreadsheet data
@@ -125,8 +125,8 @@ After sharing, verify everything works:
 5. ✅ Wait 30 seconds after sharing for permissions to propagate
 
 **Your Service Account Email**:
-```
+\`\`\`
 poke-mnky-service@mood-mnky.iam.gserviceaccount.com
-```
+\`\`\`
 
 **Action Required**: Share your spreadsheet with this email by pasting it directly into the share dialog.

@@ -6,7 +6,7 @@ Comprehensive Pokepedia sync system using Supabase Edge Functions with chunked p
 
 ## 🏗️ Architecture
 
-```
+\`\`\`
 ┌─────────────────┐
 │  Cron Job       │─── Every 5 minutes
 │  (pg_cron)      │
@@ -21,7 +21,7 @@ Comprehensive Pokepedia sync system using Supabase Edge Functions with chunked p
          ├──► Updates sync_jobs table
          ├──► Broadcasts via Realtime
          └──► Calls PokeAPI
-```
+\`\`\`
 
 ## 📊 Components
 
@@ -62,19 +62,19 @@ Comprehensive Pokepedia sync system using Supabase Edge Functions with chunked p
 ## 🚀 Deployment
 
 ### Step 1: Apply Migrations
-```bash
+\`\`\`bash
 supabase db push
-```
+\`\`\`
 
 ### Step 2: Deploy Edge Function
-```bash
+\`\`\`bash
 supabase functions deploy sync-pokepedia
-```
+\`\`\`
 
 ### Step 3: Setup Cron Job
 In Supabase Dashboard → Database → SQL Editor:
 
-```sql
+\`\`\`sql
 -- Replace <project-ref> with your project reference
 SELECT cron.schedule(
   'sync-pokepedia-chunks',
@@ -90,7 +90,7 @@ SELECT cron.schedule(
   ) AS request_id;
   $$
 );
-```
+\`\`\`
 
 ## 📡 Realtime Channels
 
@@ -98,7 +98,7 @@ SELECT cron.schedule(
 
 **Events**:
 - `sync_progress` - Progress updates
-  ```json
+  \`\`\`json
   {
     "job_id": "uuid",
     "phase": "pokemon",
@@ -106,19 +106,19 @@ SELECT cron.schedule(
     "total": 1025,
     "progress_percent": 48.8
   }
-  ```
+  \`\`\`
 - `sync_complete` - Job completion
-  ```json
+  \`\`\`json
   {
     "job_id": "uuid",
     "phase": "pokemon"
   }
-  ```
+  \`\`\`
 
 ## 🎮 Usage
 
 ### Manual Sync Trigger
-```bash
+\`\`\`bash
 curl -X POST https://<project-ref>.supabase.co/functions/v1/sync-pokepedia \
   -H "Authorization: Bearer <service-role-key>" \
   -H "Content-Type: application/json" \
@@ -128,14 +128,14 @@ curl -X POST https://<project-ref>.supabase.co/functions/v1/sync-pokepedia \
     "start_id": 1,
     "end_id": 100
   }'
-```
+\`\`\`
 
 ### Via Admin Dashboard
-```tsx
+\`\`\`tsx
 import { SyncStatus } from "@/components/admin/sync-status"
 
 <SyncStatus />
-```
+\`\`\`
 
 ## ✅ Benefits
 

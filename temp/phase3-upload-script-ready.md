@@ -39,24 +39,24 @@ Created `scripts/upload-sprites-to-minio.ts` - a high-performance upload script 
 ## Usage
 
 ### Dry Run (Test)
-```powershell
+\`\`\`powershell
 pnpm tsx scripts/upload-sprites-to-minio.ts --dry-run --limit=10
-```
+\`\`\`
 
 ### Small Batch Test
-```powershell
+\`\`\`powershell
 pnpm tsx scripts/upload-sprites-to-minio.ts --limit=100
-```
+\`\`\`
 
 ### Full Upload (All 58,824+ files)
-```powershell
+\`\`\`powershell
 pnpm tsx scripts/upload-sprites-to-minio.ts
-```
+\`\`\`
 
 ### Custom Batch Size
-```powershell
+\`\`\`powershell
 pnpm tsx scripts/upload-sprites-to-minio.ts --batch-size=200
-```
+\`\`\`
 
 ---
 
@@ -107,16 +107,16 @@ pnpm tsx scripts/upload-sprites-to-minio.ts --batch-size=200
 After upload completes:
 
 1. **Check MinIO:**
-   ```powershell
+   \`\`\`powershell
    mc ls -r local/pokedex-sprites/sprites | Measure-Object -Line
-   ```
+   \`\`\`
 
 2. **Verify Database:**
-   ```sql
+   \`\`\`sql
    SELECT COUNT(*) FROM pokepedia_assets 
    WHERE bucket = 'pokedex-sprites' 
    AND source_url LIKE 'http://10.0.0.5:30090%';
-   ```
+   \`\`\`
 
 3. **Test URLs:**
    - Open: `http://10.0.0.5:30090/pokedex-sprites/sprites/pokemon/25.png`
@@ -135,9 +135,9 @@ After upload completes:
 ## Next Steps
 
 1. **Run Full Upload:**
-   ```powershell
+   \`\`\`powershell
    pnpm tsx scripts/upload-sprites-to-minio.ts
-   ```
+   \`\`\`
 
 2. **Monitor Progress:**
    - Watch console output

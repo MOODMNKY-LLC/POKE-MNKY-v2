@@ -105,30 +105,30 @@ Implemented a comprehensive draft pool extraction and interactive drafting syste
 
 ### Step 1: Extract Draft Pool
 
-```bash
+\`\`\`bash
 # Run draft pool parser
 npx tsx scripts/test-draft-pool-parser.ts
-```
+\`\`\`
 
 This extracts ALL Pokemon from the Draft Board and stores them in `draft_pool` table.
 
 ### Step 2: Start Draft Session
 
-```typescript
+\`\`\`typescript
 const draftSystem = new DraftSystem()
 const session = await draftSystem.createSession(seasonId, teamIds, {
   draftType: "snake",
   pickTimeLimit: 45,
 })
-```
+\`\`\`
 
 ### Step 3: Draft via Discord
 
 Users can draft Pokemon directly from Discord:
 
-```
+\`\`\`
 /draft Pikachu
-```
+\`\`\`
 
 The system will:
 1. Verify it's their turn
@@ -144,7 +144,7 @@ The system will:
 ## 📊 Database Structure
 
 ### `draft_pool` Table
-```sql
+\`\`\`sql
 - pokemon_name: TEXT (e.g., "Pikachu")
 - point_value: INTEGER (12-20)
 - is_available: BOOLEAN (true if not drafted)
@@ -152,10 +152,10 @@ The system will:
 - sheet_name: TEXT (e.g., "Draft Board")
 - sheet_row: INTEGER (row number in sheet)
 - sheet_column: TEXT (column letter, e.g., "J")
-```
+\`\`\`
 
 ### `draft_sessions` Table
-```sql
+\`\`\`sql
 - season_id: UUID (links to seasons)
 - status: TEXT (pending/active/paused/completed)
 - current_pick_number: INTEGER (1, 2, 3...)
@@ -163,7 +163,7 @@ The system will:
 - current_team_id: UUID (whose turn it is)
 - turn_order: JSONB (array of team IDs)
 - draft_type: TEXT (snake/linear/auction)
-```
+\`\`\`
 
 ---
 
@@ -191,21 +191,21 @@ The system will:
 Draft a Pokemon (must be your turn)
 
 **Example**:
-```
+\`\`\`
 /draft Flutter Mane
-```
+\`\`\`
 
 **Response**:
-```
+\`\`\`
 ✅ Draft Pick Confirmed!
 Flutter Mane (20pts) drafted in Round 1, Pick #1
-```
+\`\`\`
 
 ### `/draft-status`
 View current draft progress
 
 **Response**:
-```
+\`\`\`
 📊 Draft Status
 
 Round: 1/11
@@ -214,25 +214,25 @@ Current Team: Team Alpha
 Status: active
 
 Next: Team Beta
-```
+\`\`\`
 
 ### `/draft-available`
 List available Pokemon (grouped by point value)
 
 **Response**:
-```
+\`\`\`
 📋 Available Pokémon
 
 20pts: Flutter Mane, Mewtwo, Archaludon +15 more
 19pts: Chi-Yu, Deoxys, Zapdos +12 more
 ...
-```
+\`\`\`
 
 ### `/draft-my-team`
 View your team's picks and budget
 
 **Response**:
-```
+\`\`\`
 👥 Your Team
 
 Budget: 45/120pts (75 remaining)
@@ -241,7 +241,7 @@ Picks:
 1. Flutter Mane (20pts) - Round 1
 2. Pikachu (12pts) - Round 1
 3. Charizard (15pts) - Round 2
-```
+\`\`\`
 
 ---
 
@@ -249,12 +249,12 @@ Picks:
 
 The system can filter Pokemon by generation:
 
-```typescript
+\`\`\`typescript
 // Get only Gen 8-9 Pokemon
 const gen8_9 = await draftSystem.getAvailablePokemon({
   generation: 8, // or 9
 })
-```
+\`\`\`
 
 **Note**: Generation data comes from `pokemon_cache` table. If generation is not populated, filtering won't work.
 
@@ -264,19 +264,19 @@ const gen8_9 = await draftSystem.getAvailablePokemon({
 
 ### Immediate
 1. **Run Migration**: Apply database migrations
-   ```bash
+   \`\`\`bash
    supabase migration up
-   ```
+   \`\`\`
 
 2. **Test Draft Pool Parser**: Extract Pokemon pool
-   ```bash
+   \`\`\`bash
    npx tsx scripts/test-draft-pool-parser.ts
-   ```
+   \`\`\`
 
 3. **Verify Data**: Check `draft_pool` table
-   ```sql
+   \`\`\`sql
    SELECT COUNT(*) FROM draft_pool WHERE is_available = true;
-   ```
+   \`\`\`
 
 ### Short-term
 1. **Discord Bot Setup**: Register new commands
@@ -295,9 +295,9 @@ const gen8_9 = await draftSystem.getAvailablePokemon({
 ## 🧪 Testing
 
 ### Test Draft Pool Parser
-```bash
+\`\`\`bash
 npx tsx scripts/test-draft-pool-parser.ts
-```
+\`\`\`
 
 **Expected Output**:
 - Extracts all Pokemon from Draft Board
@@ -306,7 +306,7 @@ npx tsx scripts/test-draft-pool-parser.ts
 - Displays sample Pokemon
 
 ### Test Draft System
-```typescript
+\`\`\`typescript
 // Create session
 const session = await draftSystem.createSession(seasonId, teamIds)
 
@@ -315,7 +315,7 @@ const result = await draftSystem.makePick(session.id, teamId, "Pikachu")
 
 // Check available Pokemon
 const available = await draftSystem.getAvailablePokemon({ minPoints: 15 })
-```
+\`\`\`
 
 ---
 

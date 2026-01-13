@@ -10,7 +10,7 @@ If scripts are crashing or causing performance issues, here's how to debug and f
 
 ### Option 1: Using PowerShell (Windows)
 
-```powershell
+\`\`\`powershell
 # List all Node.js processes
 Get-Process | Where-Object {$_.ProcessName -eq "node"} | Format-Table Id, CPU, WorkingSet
 
@@ -19,7 +19,7 @@ Stop-Process -Id <PID> -Force
 
 # Kill all Node.js processes (⚠️ Will kill dev server too!)
 Get-Process node | Stop-Process -Force
-```
+\`\`\`
 
 ### Option 2: Using Task Manager
 
@@ -31,10 +31,10 @@ Get-Process node | Stop-Process -Force
 
 ### Option 3: Kill Specific Scripts
 
-```powershell
+\`\`\`powershell
 # Kill processes running specific scripts
 Get-Process node | Where-Object {$_.Path -like "*incremental-sync*"} | Stop-Process -Force
-```
+\`\`\`
 
 ---
 
@@ -42,13 +42,13 @@ Get-Process node | Where-Object {$_.Path -like "*incremental-sync*"} | Stop-Proc
 
 ### Check What's Running
 
-```powershell
+\`\`\`powershell
 # See all Node.js processes
 Get-Process node | Select-Object Id, ProcessName, CPU, WorkingSet, StartTime | Format-Table
 
 # Check for specific scripts
 Get-WmiObject Win32_Process | Where-Object {$_.CommandLine -like "*tsx*"} | Select-Object ProcessId, CommandLine
-```
+\`\`\`
 
 ### Common Culprits
 
@@ -85,21 +85,21 @@ All test scripts now have proper `process.exit()` calls:
 
 ### 1. Check Current Processes
 
-```powershell
+\`\`\`powershell
 Get-Process node | Select-Object Id, CPU, WorkingSet | Sort-Object CPU -Descending | Select-Object -First 10
-```
+\`\`\`
 
 ### 2. Kill High-CPU Processes
 
 If you see processes with very high CPU (>1000):
-```powershell
+\`\`\`powershell
 # Replace <PID> with the actual process ID
 Stop-Process -Id <PID> -Force
-```
+\`\`\`
 
 ### 3. Restart Dev Server Cleanly
 
-```powershell
+\`\`\`powershell
 # Kill all node processes
 Get-Process node | Stop-Process -Force
 
@@ -109,7 +109,7 @@ Start-Sleep -Seconds 2
 # Start dev server fresh
 cd C:\DEV-MNKY\MOOD_MNKY\POKE-MNKY-v2
 pnpm dev
-```
+\`\`\`
 
 ---
 
@@ -118,12 +118,12 @@ pnpm dev
 ### 1. One Dev Server Instance
 
 Only run **one** dev server at a time:
-```bash
+\`\`\`bash
 # Check if dev server is running
 Get-Process node | Where-Object {$_.Path -like "*next*"}
 
 # If multiple, kill extras
-```
+\`\`\`
 
 ### 2. Test Scripts Should Exit
 
@@ -148,13 +148,13 @@ Scripts like `incremental-sync-pokemon.ts`:
 **Symptoms**: High CPU, port conflicts
 
 **Solution**:
-```powershell
+\`\`\`powershell
 # Kill all node processes
 Get-Process node | Stop-Process -Force
 
 # Start fresh
 pnpm dev
-```
+\`\`\`
 
 ### Issue: Script Stuck in Loop
 
@@ -181,21 +181,21 @@ pnpm dev
 After cleaning up processes:
 
 1. **Check process count**:
-   ```powershell
+   \`\`\`powershell
    (Get-Process node).Count
-   ```
+   \`\`\`
    Should be low (1-3 for dev server)
 
 2. **Check CPU usage**:
-   ```powershell
+   \`\`\`powershell
    Get-Process node | Select-Object CPU | Measure-Object -Property CPU -Sum
-   ```
+   \`\`\`
    Should be low when idle
 
 3. **Test scripts work**:
-   ```bash
+   \`\`\`bash
    npx tsx scripts/test-scopes-direct.ts
-   ```
+   \`\`\`
    Should complete and exit
 
 ---

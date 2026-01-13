@@ -64,7 +64,7 @@ Implemented comprehensive enhancements to address critical issues and improve sy
 
 ### Season Management Flow
 
-```typescript
+\`\`\`typescript
 // Get current season
 let { data: currentSeason } = await this.supabase
   .from("seasons")
@@ -85,11 +85,11 @@ if (!currentSeason) {
     .single()
   currentSeason = newSeason
 }
-```
+\`\`\`
 
 ### Pokemon Name Matching Flow
 
-```typescript
+\`\`\`typescript
 // Try multiple search patterns
 const searchPatterns = [
   pokemonName,                    // Exact
@@ -113,11 +113,11 @@ const baseName = pokemonName
   .replace(/\s*(hisuian|galarian|alolan|...)\s*/gi, "")
   .trim()
 // Search with base name
-```
+\`\`\`
 
 ### Point Validation Flow
 
-```typescript
+\`\`\`typescript
 // Get budget
 const { data: budget } = await this.supabase
   .from("draft_budgets")
@@ -140,17 +140,17 @@ await this.supabase
   .from("draft_budgets")
   .update({ spent_points: budget.spent_points + pick.pointValue })
   .eq("id", budget.id)
-```
+\`\`\`
 
 ## Diagnostic Script Usage
 
-```bash
+\`\`\`bash
 # Find Draft Results table location
 npx tsx scripts/find-draft-results.ts [SPREADSHEET_ID] [SHEET_NAME]
 
 # Example
 npx tsx scripts/find-draft-results.ts 1sVQD6_CsoYtGmguRhc07IDlnz2V4Q2uWTt8Owpl5JE0 "Draft Board"
-```
+\`\`\`
 
 The script will:
 - Search entire sheet for "Draft Results" text
@@ -188,13 +188,13 @@ The script will:
 
 ## Test Results
 
-```
+\`\`\`
 ✅ Draft Parser: Successfully parsed 168 draft picks
 ✅ Season Management: Auto-creates season if needed
 ✅ Pokemon Matching: Improved with multiple patterns
 ✅ Point Validation: Warns on budget exceed
 ✅ Point Tracking: Integrated correctly
-```
+\`\`\`
 
 ## Success Metrics
 

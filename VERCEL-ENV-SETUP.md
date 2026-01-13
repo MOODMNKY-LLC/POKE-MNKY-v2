@@ -4,31 +4,31 @@
 
 ### Step 1: Link Vercel Project
 
-```bash
+\`\`\`bash
 # Link to your Vercel project
 vercel link
 
 # Follow prompts to select project
-```
+\`\`\`
 
 ### Step 2: Pull Environment Variables
 
-```bash
+\`\`\`bash
 # Pull production environment variables
 vercel env pull .env.production
 
 # This creates .env.production with all production vars
-```
+\`\`\`
 
 ### Step 3: Review and Update `.env`
 
-```bash
+\`\`\`bash
 # Review the pulled variables
 cat .env.production
 
 # Merge into .env (production defaults)
 # Keep .env.local for local development
-```
+\`\`\`
 
 ---
 
@@ -70,7 +70,7 @@ Next.js loads environment variables in this order:
 
 ### From Command Line
 
-```bash
+\`\`\`bash
 # Pull latest from Vercel
 vercel env pull .env.production
 
@@ -78,7 +78,7 @@ vercel env pull .env.production
 diff .env .env.production
 
 # Update .env if needed
-```
+\`\`\`
 
 ---
 
@@ -106,7 +106,7 @@ diff .env .env.production
 
 After setup, verify:
 
-```bash
+\`\`\`bash
 # Check local config
 cat .env.local | grep NEXT_PUBLIC_SUPABASE_URL
 # Should show: http://127.0.0.1:54321
@@ -114,4 +114,4 @@ cat .env.local | grep NEXT_PUBLIC_SUPABASE_URL
 # Check production config
 cat .env | grep NEXT_PUBLIC_SUPABASE_URL
 # Should show: https://chmrszrwlfeqovwxyrmt.supabase.co
-```
+\`\`\`

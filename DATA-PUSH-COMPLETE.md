@@ -25,15 +25,15 @@ All local database data has been successfully pushed to production using the off
 ## Process Used
 
 ### Step 1: Dump Local Data
-```bash
+\`\`\`bash
 supabase db dump --local --data-only -f local-data-final.sql --use-copy --schema public --exclude public.role_permissions
-```
+\`\`\`
 
 ### Step 2: Restore to Production
-```bash
+\`\`\`bash
 psql --single-transaction --file local-data-final.sql \
   "postgresql://postgres.chmrszrwlfeqovwxyrmt:MOODMNKY1088@aws-1-us-east-1.pooler.supabase.com:6543/postgres?sslmode=require"
-```
+\`\`\`
 
 ---
 
@@ -50,7 +50,7 @@ psql --single-transaction --file local-data-final.sql \
 ## Verification
 
 Production database verified:
-```sql
+\`\`\`sql
 SELECT 
   'pokeapi_resources' as table_name, COUNT(*) FROM pokeapi_resources
 UNION ALL
@@ -59,7 +59,7 @@ UNION ALL
 SELECT 'pokepedia_assets', COUNT(*) FROM pokepedia_assets
 UNION ALL
 SELECT 'sync_jobs', COUNT(*) FROM sync_jobs;
-```
+\`\`\`
 
 **Result:** All tables match expected row counts ✅
 
@@ -69,14 +69,14 @@ SELECT 'sync_jobs', COUNT(*) FROM sync_jobs;
 
 To push local data to production in the future:
 
-```bash
+\`\`\`bash
 # 1. Dump local data
 supabase db dump --local --data-only -f local-data.sql --use-copy --schema public
 
 # 2. Restore to production
 psql --single-transaction --file local-data.sql \
   "postgresql://postgres.chmrszrwlfeqovwxyrmt:[PASSWORD]@aws-1-us-east-1.pooler.supabase.com:6543/postgres?sslmode=require"
-```
+\`\`\`
 
 **Note:** Exclude system tables (`--exclude public.role_permissions`) if they cause conflicts.
 

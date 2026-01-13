@@ -36,19 +36,19 @@
 ## 🚀 Quick Start
 
 ### Step 1: Install Dexie
-```bash
+\`\`\`bash
 pnpm add dexie
-```
+\`\`\`
 
 ### Step 2: Apply Migrations
-```bash
+\`\`\`bash
 supabase db push
-```
+\`\`\`
 
 ### Step 3: Deploy Edge Function
-```bash
+\`\`\`bash
 supabase functions deploy sync-pokepedia
-```
+\`\`\`
 
 ### Step 4: Test Sync
 App will auto-sync on start. Check browser console for progress.
@@ -63,7 +63,7 @@ App will auto-sync on start. Check browser console for progress.
 5. **Background Sync** → Edge Function syncs remaining Pokemon
 
 ### Data Access (Offline-First)
-```
+\`\`\`
 getPokemonOfflineFirst(id)
     ↓
 IndexedDB (local) → Hit? Return ✅
@@ -71,32 +71,32 @@ IndexedDB (local) → Hit? Return ✅
 Supabase → Hit? Return ✅ (cache locally)
     ↓ Miss
 PokeAPI → Hit? Return ✅ (cache Supabase + IndexedDB)
-```
+\`\`\`
 
 ## 🎮 Usage Examples
 
 ### Check Sync Status
-```tsx
+\`\`\`tsx
 import { usePokepediaSyncContext } from "@/components/pokepedia-sync-provider"
 
 const { status, progress, localCount } = usePokepediaSyncContext()
-```
+\`\`\`
 
 ### Get Pokemon (Offline-First)
-```tsx
+\`\`\`tsx
 import { getPokemonOfflineFirst } from "@/lib/pokepedia-client"
 
 const pikachu = await getPokemonOfflineFirst(25)
 // Checks: IndexedDB → Supabase → PokeAPI
-```
+\`\`\`
 
 ### Search Pokemon (Offline-First)
-```tsx
+\`\`\`tsx
 import { searchPokemonOfflineFirst } from "@/lib/pokepedia-client"
 
 const results = await searchPokemonOfflineFirst("pika")
 // Searches local IndexedDB first
-```
+\`\`\`
 
 ## ✅ Features
 

@@ -1,4 +1,3 @@
-
 I would like to create an in-app function, preferably a SuperBase Edge function, that queries the Poké API comprehensively and stores all of its data in our SuperBase database, providing us a complete in-app Poképedia.
 ChatGPT said:
 
@@ -1373,4 +1372,3 @@ SQL to compute queue depth and error rates
 Next.js admin page scaffolding (ShadCN + Tailwind) for running/monitoring ingestion
 
 A deterministic mapping layer so you can reliably pick “best sprite variant” per Pokémon for UI (official artwork vs home vs showdown, etc.).
-

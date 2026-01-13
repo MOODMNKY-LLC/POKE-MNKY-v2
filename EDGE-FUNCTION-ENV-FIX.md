@@ -20,7 +20,7 @@ According to Supabase documentation, when developing Edge Functions locally:
 
 This file contains explicit local Supabase values from `supabase status`:
 
-```bash
+\`\`\`bash
 # Local Supabase Edge Function Environment Variables
 # Generated from: supabase status
 # Use with: supabase functions serve sync-pokepedia --no-verify-jwt --env-file supabase/.env.local
@@ -28,19 +28,19 @@ This file contains explicit local Supabase values from `supabase status`:
 SUPABASE_URL=http://127.0.0.1:54321
 SUPABASE_SERVICE_ROLE_KEY=<local-service-role-key>
 SUPABASE_ANON_KEY=<local-anon-key>
-```
+\`\`\`
 
 ### 2. Updated Edge Function Serve Command
 
 **Before:**
-```bash
+\`\`\`bash
 supabase functions serve sync-pokepedia --no-verify-jwt
-```
+\`\`\`
 
 **After:**
-```bash
+\`\`\`bash
 supabase functions serve sync-pokepedia --no-verify-jwt --env-file supabase/.env.local
-```
+\`\`\`
 
 ## Benefits
 
@@ -53,7 +53,7 @@ supabase functions serve sync-pokepedia --no-verify-jwt --env-file supabase/.env
 
 After restarting with `--env-file`, check Edge Function logs for:
 
-```
+\`\`\`
 [Edge Function] Supabase client initialized: {
   url: "http://127.0.0.1:54321",  // ✅ Explicit localhost URL
   urlIsLocal: true,
@@ -63,7 +63,7 @@ After restarting with `--env-file`, check Edge Function logs for:
   serviceKeyLength: 200+,
   serviceKeyLooksValid: true
 }
-```
+\`\`\`
 
 ## References
 

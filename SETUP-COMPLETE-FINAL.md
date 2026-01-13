@@ -18,24 +18,24 @@
 ## 📋 Current Configuration
 
 ### `.env` (Production)
-```bash
+\`\`\`bash
 NEXT_PUBLIC_SUPABASE_URL=https://chmrszrwlfeqovwxyrmt.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=<production-key>
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<production-anon-key>
 NEXT_PUBLIC_APP_URL=https://poke-mnky.moodmnky.com
 # ... other production values from Vercel
-```
+\`\`\`
 
 **Used by:** Vercel deployment, production builds
 
 ### `.env.local` (Local Development)
-```bash
+\`\`\`bash
 NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
 SUPABASE_SERVICE_ROLE_KEY=sb_secret_N7UND0UgjKTVK-Uodkm0Hg_xSvEMPvz
 NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 # ... other local values
-```
+\`\`\`
 
 **Used by:** `next dev`, local scripts, development
 
@@ -50,12 +50,12 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 
 ### Pull Production Variables
 
-```bash
+\`\`\`bash
 # Pull production env vars from Vercel
 vercel env pull .env.production --environment=production
 
 # Review and merge into .env if needed
-```
+\`\`\`
 
 ---
 
@@ -75,7 +75,7 @@ vercel env pull .env.production --environment=production
 
 ### Local Development
 
-```bash
+\`\`\`bash
 # Start local Supabase (if not running)
 supabase start
 
@@ -86,15 +86,15 @@ pnpm dev
 # Run scripts (uses .env.local)
 pnpm exec tsx --env-file=.env.local scripts/pre-cache-competitive-pokemon.ts
 # → Syncs to LOCAL Supabase ✅
-```
+\`\`\`
 
 ### Production Deployment
 
-```bash
+\`\`\`bash
 # Deploy to Vercel (uses .env)
 vercel --prod
 # → Connects to PRODUCTION Supabase ✅
-```
+\`\`\`
 
 ---
 
@@ -115,7 +115,7 @@ Next.js loads in this order:
 
 ### Check Which Database You're Using
 
-```bash
+\`\`\`bash
 # Local (should show localhost)
 cat .env.local | grep NEXT_PUBLIC_SUPABASE_URL
 # Output: http://127.0.0.1:54321
@@ -123,15 +123,15 @@ cat .env.local | grep NEXT_PUBLIC_SUPABASE_URL
 # Production (should show production URL)
 cat .env | grep NEXT_PUBLIC_SUPABASE_URL
 # Output: https://chmrszrwlfeqovwxyrmt.supabase.co
-```
+\`\`\`
 
 ### Check Local Cache Progress
 
-```bash
+\`\`\`bash
 psql -h 127.0.0.1 -p 54322 -U postgres -d postgres -c "SELECT COUNT(*) FROM pokemon_cache;"
 # Currently: 332/1025 (in progress)
 # Will be: 1025 (when complete)
-```
+\`\`\`
 
 ---
 

@@ -122,18 +122,18 @@ Implemented comprehensive improvements to Draft parser and point system integrat
 
 ## Test Results
 
-```
+\`\`\`
 ✅ Draft Parser: Successfully parsed 168 draft picks
 ✅ Point Tracking: Integrated with draft_budgets table
 ⚠️ Draft Results: Not found (falling back to point-based names)
 ✅ System: Working correctly with fallback
-```
+\`\`\`
 
 ## Code Structure
 
 ### Point System Integration
 
-```typescript
+\`\`\`typescript
 // After upserting draft pick
 const { data: currentSeason } = await this.supabase
   .from("seasons")
@@ -168,7 +168,7 @@ if (currentSeason) {
       })
   }
 }
-```
+\`\`\`
 
 ## Success Metrics
 

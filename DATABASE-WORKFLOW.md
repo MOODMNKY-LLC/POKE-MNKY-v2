@@ -18,10 +18,10 @@ This guide explains how to manage database migrations and sync scripts between l
 
 After resetting your local database, pull the schema from production:
 
-```bash
+\`\`\`bash
 # Pull migrations and schema from production
 supabase db pull
-```
+\`\`\`
 
 This will:
 - Download any missing migrations from production
@@ -32,24 +32,24 @@ This will:
 
 Migrations are automatically applied when you run `supabase db pull`, but if needed:
 
-```bash
+\`\`\`bash
 # Start local Supabase (if not running)
 supabase start
 
 # Migrations are applied automatically on start
-```
+\`\`\`
 
 ### Step 3: Run Sync Scripts
 
 Populate the Pokemon cache:
 
-```bash
+\`\`\`bash
 # Pre-cache competitive Pokemon (fast, ~5 seconds)
 pnpm exec tsx --env-file=.env.local scripts/pre-cache-competitive-pokemon.ts
 
 # Full sync all Pokemon (slow, ~6 minutes)
 pnpm exec tsx --env-file=.env.local scripts/full-sync-pokemon.ts
-```
+\`\`\`
 
 **Note**: The full sync runs in the background and can take ~6 minutes for 1,025 Pokemon.
 
@@ -57,14 +57,14 @@ pnpm exec tsx --env-file=.env.local scripts/full-sync-pokemon.ts
 
 Check that everything is working:
 
-```bash
+\`\`\`bash
 # Check migration status
 supabase migration list
 
 # Check Pokemon cache
 # Run in Supabase SQL Editor:
 SELECT COUNT(*) FROM pokemon_cache;
-```
+\`\`\`
 
 ---
 
@@ -79,10 +79,10 @@ Push to production when you:
 
 ### How to Push
 
-```bash
+\`\`\`bash
 # Push local migrations to production
 supabase db push
-```
+\`\`\`
 
 This will:
 - Apply any new migrations to production
@@ -97,33 +97,33 @@ This will:
 
 ### View Migration Status
 
-```bash
+\`\`\`bash
 # List all migrations (local vs remote)
 supabase migration list
-```
+\`\`\`
 
 ### Repair Migration History
 
 If migrations get out of sync:
 
-```bash
+\`\`\`bash
 # Mark a migration as reverted
 supabase migration repair --status reverted <migration_version>
 
 # Mark a migration as applied
 supabase migration repair --status applied <migration_version>
-```
+\`\`\`
 
 ### Create New Migration
 
-```bash
+\`\`\`bash
 # Create a new migration file
 supabase migration new <migration_name>
 
 # Edit the file in supabase/migrations/
 # Then push to production
 supabase db push
-```
+\`\`\`
 
 ---
 
@@ -135,9 +135,9 @@ supabase db push
 **Duration**: ~5 seconds  
 **When to run**: After database reset, when new competitive Pokemon emerge
 
-```bash
+\`\`\`bash
 pnpm exec tsx --env-file=.env.local scripts/pre-cache-competitive-pokemon.ts
-```
+\`\`\`
 
 ### Full Pokemon Sync
 
@@ -145,9 +145,9 @@ pnpm exec tsx --env-file=.env.local scripts/pre-cache-competitive-pokemon.ts
 **Duration**: ~6 minutes  
 **When to run**: After database reset, when new generation releases
 
-```bash
+\`\`\`bash
 pnpm exec tsx --env-file=.env.local scripts/full-sync-pokemon.ts
-```
+\`\`\`
 
 ### Incremental Sync
 
@@ -155,9 +155,9 @@ pnpm exec tsx --env-file=.env.local scripts/full-sync-pokemon.ts
 **Duration**: Varies (usually < 1 minute)  
 **When to run**: Daily cron job, or manually when needed
 
-```bash
+\`\`\`bash
 pnpm exec tsx --env-file=.env.local scripts/incremental-sync-pokemon.ts
-```
+\`\`\`
 
 ---
 
@@ -168,36 +168,36 @@ pnpm exec tsx --env-file=.env.local scripts/incremental-sync-pokemon.ts
 **Error**: "Remote migration versions not found in local migrations directory"
 
 **Solution**:
-```bash
+\`\`\`bash
 # Repair migration history
 supabase migration repair --status reverted <remote_version>
 supabase migration repair --status applied <local_version>
 
 # Then pull
 supabase db pull
-```
+\`\`\`
 
 ### Schema Drift
 
 **Error**: "The remote database's migration history does not match local files"
 
 **Solution**:
-```bash
+\`\`\`bash
 # Pull to sync
 supabase db pull
 
 # This creates a migration file for differences
 # Review and commit if needed
-```
+\`\`\`
 
 ### Cache Empty After Reset
 
 **Solution**:
-```bash
+\`\`\`bash
 # Run sync scripts
 pnpm exec tsx --env-file=.env.local scripts/pre-cache-competitive-pokemon.ts
 pnpm exec tsx --env-file=.env.local scripts/full-sync-pokemon.ts
-```
+\`\`\`
 
 ---
 

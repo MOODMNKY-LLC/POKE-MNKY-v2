@@ -96,17 +96,17 @@ All remaining parser work has been completed successfully using deep thinking an
 ## Test Results
 
 ### Draft Parser
-```
+\`\`\`
 ✅ Successfully parsed 168 draft picks
 ⚠️ Teams created with placeholder values (expected)
-```
+\`\`\`
 
 ### Team Page Parser  
-```
+\`\`\`
 ✅ Extracted team name: "Arkansas Fighting Hogs"
 ✅ Extracted 9 draft picks
 ⚠️ AI section detection schema issue (optional feature)
-```
+\`\`\`
 
 ## Next Immediate Steps
 

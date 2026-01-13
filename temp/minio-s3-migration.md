@@ -188,4 +188,4 @@ Minio Secret Key: n9MtRoKbBtPqUFdGRxD8FbsICQdOQabzq1RemJgf
 Truenas Scale (internal): 
     Host: 10.0.0.5
     root password: MOODMNKY88
-    ssh pass may be needed for cursor access. 
+    ssh pass may be needed for cursor access.

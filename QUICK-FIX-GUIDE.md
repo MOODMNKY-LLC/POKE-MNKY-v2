@@ -10,9 +10,9 @@
 ## ✅ Fix #1: Share Spreadsheet (CRITICAL)
 
 ### Your Service Account Email:
-```
+\`\`\`
 poke-mnky-service@mood-mnky.iam.gserviceaccount.com
-```
+\`\`\`
 
 ### Steps:
 
@@ -30,9 +30,9 @@ poke-mnky-service@mood-mnky.iam.gserviceaccount.com
 4. **Wait 10-30 seconds** for permissions to propagate
 
 5. **Test**:
-   ```bash
+   \`\`\`bash
    npx tsx scripts/test-scopes-direct.ts
-   ```
+   \`\`\`
 
 ---
 
@@ -40,7 +40,7 @@ poke-mnky-service@mood-mnky.iam.gserviceaccount.com
 
 ### Quick Kill (PowerShell):
 
-```powershell
+\`\`\`powershell
 # Kill processes with CPU > 1000
 Get-Process node | Where-Object {$_.CPU -gt 1000} | Stop-Process -Force
 
@@ -48,7 +48,7 @@ Get-Process node | Where-Object {$_.CPU -gt 1000} | Stop-Process -Force
 Stop-Process -Id 13756 -Force  # Very high CPU
 Stop-Process -Id 91796 -Force  # High memory
 Stop-Process -Id 90816 -Force  # Suspicious
-```
+\`\`\`
 
 ### Or Use Task Manager:
 
@@ -62,7 +62,7 @@ Stop-Process -Id 90816 -Force  # Suspicious
 
 ## ✅ Fix #3: Restart Clean
 
-```powershell
+\`\`\`powershell
 # Kill all Node.js processes
 Get-Process node | Stop-Process -Force
 
@@ -72,13 +72,13 @@ Start-Sleep -Seconds 2
 # Start dev server fresh
 cd C:\DEV-MNKY\MOOD_MNKY\POKE-MNKY-v2
 pnpm dev
-```
+\`\`\`
 
 ---
 
 ## 🧪 Test After Fixes
 
-```bash
+\`\`\`bash
 # Test 1: Verify spreadsheet access
 npx tsx scripts/test-scopes-direct.ts
 
@@ -88,7 +88,7 @@ Get-Process node | Measure-Object -Property CPU -Sum
 # Test 3: Run analysis (requires dev server)
 # Terminal 1: pnpm dev
 # Terminal 2: npx tsx scripts/test-sheet-analysis.ts
-```
+\`\`\`
 
 ---
 

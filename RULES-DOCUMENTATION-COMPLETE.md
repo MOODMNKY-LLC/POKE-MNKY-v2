@@ -99,13 +99,13 @@ The AI context file (`.cursor/rules/league-rules.mdc`) ensures that:
 
 ## Script Usage
 
-```bash
+\`\`\`bash
 # Fetch and document rules (safe, fast)
 npx tsx scripts/fetch-rules-simple.ts
 
 # Parse with AI and store in database (slower, richer)
 npx tsx scripts/test-parsers-safe.ts [spreadsheet_id] "Rules" "rules"
-```
+\`\`\`
 
 ## Success Metrics
 

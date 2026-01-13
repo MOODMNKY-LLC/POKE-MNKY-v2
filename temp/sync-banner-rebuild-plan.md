@@ -31,7 +31,7 @@
 
 ### Component Structure
 
-```
+\`\`\`
 PokepediaSyncProvider (Context)
 ├── Children (app content)
 ├── PokepediaSyncBanner (minimal, active only)
@@ -45,7 +45,7 @@ PokepediaSyncProvider (Context)
     ├── Health checks
     ├── Manual triggers
     └── Historical data
-```
+\`\`\`
 
 ### Hook Changes
 

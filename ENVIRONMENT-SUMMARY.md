@@ -58,7 +58,7 @@ Next.js loads in this order (later overrides earlier):
 
 ### Local Development
 
-```bash
+\`\`\`bash
 # Start local Supabase
 supabase start
 
@@ -67,16 +67,16 @@ pnpm dev
 
 # Run scripts (uses .env.local automatically)
 pnpm exec tsx --env-file=.env.local scripts/pre-cache-competitive-pokemon.ts
-```
+\`\`\`
 
 **Result:** Everything uses **local Supabase**
 
 ### Production Deployment
 
-```bash
+\`\`\`bash
 # Deploy to Vercel (uses .env automatically)
 vercel --prod
-```
+\`\`\`
 
 **Result:** Everything uses **production Supabase**
 
@@ -86,20 +86,20 @@ vercel --prod
 
 ### Update Production Variables
 
-```bash
+\`\`\`bash
 # Pull latest from Vercel
 vercel env pull .env.production --environment=production
 
 # Review and merge into .env
 # (Keep .env.local unchanged)
-```
+\`\`\`
 
 ### Update Local Variables
 
-```bash
+\`\`\`bash
 # Edit .env.local directly
 # Changes take effect on next dev server restart
-```
+\`\`\`
 
 ---
 
@@ -107,24 +107,24 @@ vercel env pull .env.production --environment=production
 
 ### Check Local Config
 
-```bash
+\`\`\`bash
 cat .env.local | grep NEXT_PUBLIC_SUPABASE_URL
 # Should show: http://127.0.0.1:54321
-```
+\`\`\`
 
 ### Check Production Config
 
-```bash
+\`\`\`bash
 cat .env | grep NEXT_PUBLIC_SUPABASE_URL
 # Should show: https://chmrszrwlfeqovwxyrmt.supabase.co
-```
+\`\`\`
 
 ### Check Local Cache
 
-```bash
+\`\`\`bash
 psql -h 127.0.0.1 -p 54322 -U postgres -d postgres -c "SELECT COUNT(*) FROM pokemon_cache;"
 # Should show: 1025 (after full sync completes)
-```
+\`\`\`
 
 ---
 

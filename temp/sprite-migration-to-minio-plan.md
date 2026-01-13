@@ -76,9 +76,9 @@ Migrate sprite files directly from local storage to MinIO (home server) using lo
    - Track progress and errors
 
 2. Run upload:
-   ```powershell
+   \`\`\`powershell
    pnpm tsx scripts/upload-sprites-to-minio.ts
-   ```
+   \`\`\`
 
 3. Verify upload:
    - Compare file counts (should be ~58,824)
@@ -106,9 +106,9 @@ Migrate sprite files directly from local storage to MinIO (home server) using lo
    - Track progress
 
 2. Run upload:
-   ```powershell
+   \`\`\`powershell
    pnpm tsx scripts/upload-pokeapi-data-to-minio.ts
-   ```
+   \`\`\`
 
 3. Verify upload:
    - Compare file counts (should be ~14,332 JSON files)
@@ -245,7 +245,7 @@ Migrate sprite files directly from local storage to MinIO (home server) using lo
 - Update `pokepedia_assets` table with MinIO URLs
 
 **Key Code:**
-```typescript
+\`\`\`typescript
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3"
 import { createClient } from "@supabase/supabase-js"
 
@@ -271,7 +271,7 @@ async function uploadToMinIO(filePath: string, storagePath: string) {
   })
   await s3Client.send(command)
 }
-```
+\`\`\`
 
 ### Script 2: Upload PokeAPI Data to MinIO
 

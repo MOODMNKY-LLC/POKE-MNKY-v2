@@ -6,15 +6,15 @@ Edge Function for chunked Pokepedia sync processing. Processes sync jobs in smal
 
 ## Deployment
 
-```bash
+\`\`\`bash
 supabase functions deploy sync-pokepedia
-```
+\`\`\`
 
 ## Usage
 
 ### Manual Trigger
 
-```bash
+\`\`\`bash
 curl -X POST https://<project-ref>.supabase.co/functions/v1/sync-pokepedia \
   -H "Authorization: Bearer <anon-key>" \
   -H "Content-Type: application/json" \
@@ -24,13 +24,13 @@ curl -X POST https://<project-ref>.supabase.co/functions/v1/sync-pokepedia \
     "start_id": 1,
     "end_id": 100
   }'
-```
+\`\`\`
 
 ### Cron Setup
 
 In Supabase Dashboard → Database → Cron Jobs:
 
-```sql
+\`\`\`sql
 SELECT cron.schedule(
   'sync-pokepedia',
   '*/5 * * * *', -- Every 5 minutes
@@ -43,7 +43,7 @@ SELECT cron.schedule(
   ) AS request_id;
   $$
 );
-```
+\`\`\`
 
 ## Phases
 

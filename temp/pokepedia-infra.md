@@ -1,4 +1,3 @@
-
 https://github.com/PokeAPI there are several projects here that I think we can incorporate into our app to augment it. Can you investigate each of them and give me your assessment? 
 ChatGPT said:
 

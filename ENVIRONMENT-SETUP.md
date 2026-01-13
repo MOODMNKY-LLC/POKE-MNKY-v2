@@ -17,13 +17,13 @@
 **Used by:** Vercel, production builds  
 **Supabase:** Production instance (`chmrszrwlfeqovwxyrmt`)
 
-```bash
+\`\`\`bash
 NEXT_PUBLIC_SUPABASE_URL=https://chmrszrwlfeqovwxyrmt.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=<production-service-role-key>
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<production-anon-key>
 NEXT_PUBLIC_APP_URL=https://your-app.vercel.app
 # ... other production values
-```
+\`\`\`
 
 ### `.env.local` (Local Development)
 
@@ -31,13 +31,13 @@ NEXT_PUBLIC_APP_URL=https://your-app.vercel.app
 **Used by:** `next dev`, local scripts  
 **Supabase:** Local instance (`127.0.0.1:54321`)
 
-```bash
+\`\`\`bash
 NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
 SUPABASE_SERVICE_ROLE_KEY=sb_secret_N7UND0UgjKTVK-Uodkm0Hg_xSvEMPvz
 NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 # ... other local values
-```
+\`\`\`
 
 ---
 
@@ -58,7 +58,7 @@ Next.js loads environment variables in this order (later files override earlier)
 
 ### Option 1: Vercel CLI (Recommended)
 
-```bash
+\`\`\`bash
 # Link to Vercel project (if not already linked)
 vercel link
 
@@ -67,7 +67,7 @@ vercel env pull .env.production
 
 # Review and merge into .env
 # Then update .env.local for local development
-```
+\`\`\`
 
 ### Option 2: Manual Setup
 
@@ -98,25 +98,25 @@ vercel env pull .env.production
 
 ### 1. Start Local Supabase
 
-```bash
+\`\`\`bash
 supabase start
-```
+\`\`\`
 
 ### 2. Run Next.js App
 
-```bash
+\`\`\`bash
 pnpm dev
-```
+\`\`\`
 
 **Result:** App connects to **local Supabase** (via `.env.local`)
 
 ### 3. Run Scripts
 
-```bash
+\`\`\`bash
 # Scripts use .env.local automatically
 pnpm exec tsx --env-file=.env.local scripts/pre-cache-competitive-pokemon.ts
 pnpm exec tsx --env-file=.env.local scripts/full-sync-pokemon.ts
-```
+\`\`\`
 
 **Result:** Scripts sync to **local Supabase**
 
@@ -130,9 +130,9 @@ Vercel automatically uses `.env` values (or env vars set in dashboard)
 
 ### 2. Deploy
 
-```bash
+\`\`\`bash
 vercel --prod
-```
+\`\`\`
 
 **Result:** App connects to **production Supabase**
 
@@ -152,20 +152,20 @@ vercel --prod
 
 ### Update Production Variables
 
-```bash
+\`\`\`bash
 # Pull from Vercel
 vercel env pull .env.production
 
 # Review changes
 # Update .env if needed
-```
+\`\`\`
 
 ### Update Local Variables
 
-```bash
+\`\`\`bash
 # Edit .env.local directly
 # Changes take effect on next dev server restart
-```
+\`\`\`
 
 ---
 
@@ -173,7 +173,7 @@ vercel env pull .env.production
 
 ### Check Which Database You're Using
 
-```bash
+\`\`\`bash
 # Check .env.local (local development)
 cat .env.local | grep NEXT_PUBLIC_SUPABASE_URL
 # Should show: http://127.0.0.1:54321
@@ -181,15 +181,15 @@ cat .env.local | grep NEXT_PUBLIC_SUPABASE_URL
 # Check .env (production defaults)
 cat .env | grep NEXT_PUBLIC_SUPABASE_URL
 # Should show: https://chmrszrwlfeqovwxyrmt.supabase.co
-```
+\`\`\`
 
 ### Verify Local Cache
 
-```bash
+\`\`\`bash
 # Check local Supabase
 psql -h 127.0.0.1 -p 54322 -U postgres -d postgres -c "SELECT COUNT(*) FROM pokemon_cache;"
 # Should show: 1025 (after full sync completes)
-```
+\`\`\`
 
 ---
 

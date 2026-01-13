@@ -100,11 +100,11 @@
 - ⚠️ Calls mock sync function (returns error)
 
 **Environment Variables Required**:
-```bash
+\`\`\`bash
 GOOGLE_SHEETS_ID=your_spreadsheet_id
 GOOGLE_SERVICE_ACCOUNT_EMAIL=your-service-account@project.iam.gserviceaccount.com
 GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
-```
+\`\`\`
 
 ### What Needs to Be Built
 

@@ -4,13 +4,13 @@
 
 The terminal logs revealed an important detail:
 
-```
+\`\`\`
 headerKeys: [
   "accept", "accept-encoding", "accept-language", "authorization", ...
 ]
 hasAuth: false
 authPrefix: "..."
-```
+\`\`\`
 
 **The header IS present** (`"authorization"` in headerKeys), but `req.headers.get("Authorization")` returns `null`.
 
@@ -20,24 +20,24 @@ The Supabase Edge Function gateway **normalizes HTTP headers to lowercase** befo
 
 ### The Problem
 
-```typescript
+\`\`\`typescript
 // ❌ This returns null if header is lowercase "authorization"
 const authHeader = req.headers.get("Authorization")
 
 // ✅ This works - check lowercase first
 const authHeader = req.headers.get("authorization") || req.headers.get("Authorization")
-```
+\`\`\`
 
 ## Fix Applied
 
 Updated the Edge Function to check for both cases:
 
-```typescript
+\`\`\`typescript
 // Headers are normalized to lowercase by Edge Function gateway
 const authHeader = req.headers.get("authorization") || req.headers.get("Authorization")
 const allHeaders = Object.fromEntries(req.headers.entries())
 const authValue = authHeader || allHeaders["authorization"] || allHeaders["Authorization"]
-```
+\`\`\`
 
 ## Why This Matters
 
@@ -48,17 +48,17 @@ const authValue = authHeader || allHeaders["authorization"] || allHeaders["Autho
 ## Expected Behavior After Fix
 
 ### Before Fix:
-```
+\`\`\`
 hasAuth: false
 authPrefix: "..."
-```
+\`\`\`
 
 ### After Fix:
-```
+\`\`\`
 hasAuth: true
 authPrefix: "sb_secret_N7UND0UgjK..."
 authHeaderPresent: true
-```
+\`\`\`
 
 ## Verification
 

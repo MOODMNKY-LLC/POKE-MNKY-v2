@@ -1,4 +1,3 @@
-
 Below is a concrete, end-to-end build plan that uses the PokeAPI org assets (especially api-data, ditto, sprites) to produce a resumable, auditable, Supabase-native Poképedia with a public Storage bucket for sprites.
 
 This plan is optimized for:
@@ -831,4 +830,3 @@ Auto-refresh (every 5–10 seconds)
 Failure table with replay buttons (re-enqueue a failed message payload)
 
 Say the word and I’ll provide that upgrade in the same copy/paste format.
-

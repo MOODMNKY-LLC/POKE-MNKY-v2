@@ -23,9 +23,9 @@ Redesigned the Pokemon showcase component to display comprehensive Pokemon data 
 - Provides Pokemon data to components
 
 **Usage:**
-```typescript
+\`\`\`typescript
 const { pokemon, loading, error } = usePokemonData(pokemonId)
-```
+\`\`\`
 
 ---
 
@@ -238,15 +238,15 @@ const { pokemon, loading, error } = usePokemonData(pokemonId)
 
 ### Pokemon Card Component
 
-```tsx
+\`\`\`tsx
 import { PokemonCard } from "@/components/pokemon-card"
 
 <PokemonCard pokemonId={6} />
-```
+\`\`\`
 
 ### Pokemon Showcase
 
-```tsx
+\`\`\`tsx
 import { PokemonShowcase } from "@/components/pokemon-showcase"
 
 <PokemonShowcase />
@@ -255,7 +255,7 @@ import { PokemonShowcase } from "@/components/pokemon-showcase"
   { name: "pikachu", id: 25 },
   { name: "charizard", id: 6 }
 ]} />
-```
+\`\`\`
 
 ---
 

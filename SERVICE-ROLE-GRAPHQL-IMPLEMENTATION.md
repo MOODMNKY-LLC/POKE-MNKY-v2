@@ -8,7 +8,7 @@ Successfully implemented **server-side GraphQL** using **service role key** for 
 
 ### Three-Tier Approach
 
-```
+\`\`\`
 ┌─────────────────┐
 │  Client Hook    │ (Browser - React Hook)
 │  (use-pokepedia │
@@ -20,7 +20,7 @@ Successfully implemented **server-side GraphQL** using **service role key** for 
          ├─→ Fallback: Client GraphQL (Anon Key) ← GOOD  
          │
          └─→ Fallback: REST API (Anon Key) ← SAFE
-```
+\`\`\`
 
 ## Implementation
 
@@ -68,25 +68,25 @@ Successfully implemented **server-side GraphQL** using **service role key** for 
 ## Key Usage
 
 ### Server-Side (Service Role Key)
-```typescript
+\`\`\`typescript
 // In API routes, Edge Functions, Server Components
 import { getPokemonRangeGraphQLServer } from "@/lib/supabase/graphql-server-client"
 
 const pokemon = await getPokemonRangeGraphQLServer(1, 50)
 // Bypasses RLS, uses service role key
-```
+\`\`\`
 
 ### Client-Side (Anon Key)
-```typescript
+\`\`\`typescript
 // In React hooks, client components
 import { getPokemonRangeGraphQL } from "@/lib/supabase/graphql-client"
 
 const pokemon = await getPokemonRangeGraphQL(1, 50)
 // Respects RLS, uses anon key
-```
+\`\`\`
 
 ### Via API Route (Recommended for Sync)
-```typescript
+\`\`\`typescript
 // Client calls API route, API route uses service role key
 const response = await fetch("/api/pokepedia/query", {
   method: "POST",
@@ -96,7 +96,7 @@ const response = await fetch("/api/pokepedia/query", {
   }),
 })
 // Service role key stays on server!
-```
+\`\`\`
 
 ## Security Considerations
 

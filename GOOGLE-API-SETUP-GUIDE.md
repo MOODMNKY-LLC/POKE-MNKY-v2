@@ -62,14 +62,14 @@ To use the Google Sheets integration with image extraction, you need to enable t
 
 Add these to your `.env.local` file:
 
-```bash
+\`\`\`bash
 # Google Service Account Credentials
 GOOGLE_SERVICE_ACCOUNT_EMAIL=your-service-account@project-id.iam.gserviceaccount.com
 GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
 
 # Google Sheet ID (extracted from URL)
 GOOGLE_SHEET_ID=1wwH5XUHxQnivm90wGtNLQI_g7P3nPi5ZRcbZ3JU3-YQ
-```
+\`\`\`
 
 **Important Notes**:
 - The `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` must include the full key with `\n` characters preserved
@@ -82,12 +82,12 @@ GOOGLE_SHEET_ID=1wwH5XUHxQnivm90wGtNLQI_g7P3nPi5ZRcbZ3JU3-YQ
 
 ### Current Implementation Uses:
 
-```typescript
+\`\`\`typescript
 scopes: [
   "https://www.googleapis.com/auth/spreadsheets.readonly",  // Read spreadsheet data
   "https://www.googleapis.com/auth/drive.readonly",          // Access images & metadata
 ]
-```
+\`\`\`
 
 ### Why Both Scopes?
 
@@ -122,9 +122,9 @@ scopes: [
 
 Run the test script to verify everything is configured correctly:
 
-```bash
+\`\`\`bash
 npx tsx scripts/test-sheet-analysis.ts
-```
+\`\`\`
 
 This will:
 1. Test authentication

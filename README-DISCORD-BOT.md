@@ -2,14 +2,14 @@
 
 ## 🚀 Quick Start (Local Development)
 
-```bash
+\`\`\`bash
 # 1. Set up environment variables
 cp .env.example .env.local
 # Edit .env.local with your credentials
 
 # 2. Run bot with hot-reload
 pnpm run discord-bot:dev
-```
+\`\`\`
 
 That's it! The bot will start and automatically restart when you make code changes.
 
@@ -42,13 +42,13 @@ That's it! The bot will start and automatically restart when you make code chang
 ## ⚡ Tips
 
 1. **Run Next.js and Bot Together:**
-   ```bash
+   \`\`\`bash
    # Terminal 1
    pnpm dev
    
    # Terminal 2
    pnpm run discord-bot:dev
-   ```
+   \`\`\`
 
 2. **Test Commands:**
    - `/standings` - View standings

@@ -32,7 +32,7 @@ Fixed two issues:
 - Updated function signature to accept `mode: "front" | "back" = "front"`
 
 **Code:**
-```typescript
+\`\`\`typescript
 export function getFallbackSpriteUrl(
   pokemonId: number, 
   shiny = false, 
@@ -49,7 +49,7 @@ export function getFallbackSpriteUrl(
   }
   // ... rest of function
 }
-```
+\`\`\`
 
 ---
 
@@ -62,14 +62,14 @@ export function getFallbackSpriteUrl(
 - Removed fallback to invalid GitHub URL when only name is provided (now returns null to show placeholder)
 
 **Code:**
-```typescript
+\`\`\`typescript
 } else if (pokemonId) {
   spriteUrl = getFallbackSpriteUrl(pokemonId, mode === "shiny", mode === "back" ? "back" : "front")
 } else {
   // Last resort: return null to show placeholder instead of invalid URL
   spriteUrl = null
 }
-```
+\`\`\`
 
 ---
 
@@ -84,7 +84,7 @@ export function getFallbackSpriteUrl(
 - Updated `PokemonSprite` call to pass `pokemonId` prop
 
 **Code:**
-```typescript
+\`\`\`typescript
 const FEATURED_POKEMON = [
   { name: "charizard", type: "Fire/Flying", id: 6 },
   { name: "garchomp", type: "Dragon/Ground", id: 445 },
@@ -101,7 +101,7 @@ const FEATURED_POKEMON = [
   size="xl" 
   className="drop-shadow-2xl animate-scale-in" 
 />
-```
+\`\`\`
 
 ---
 
@@ -120,14 +120,14 @@ const FEATURED_POKEMON = [
   - Sync is completed but progress < 100%
 
 **Code:**
-```typescript
+\`\`\`typescript
 const shouldShowBanner = 
   syncState.status === "syncing" || 
   syncState.status === "stopped" ||
   syncState.status === "error" ||
   (syncState.status === "idle" && syncState.localCount === 0) ||
   (syncState.status === "completed" && syncState.progress < 100)
-```
+\`\`\`
 
 **Result:**
 - Banner no longer shows when data is already cached locally

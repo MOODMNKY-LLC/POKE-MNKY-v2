@@ -36,16 +36,16 @@ Successfully updated sprite URL generation to support MinIO with full backward c
 ### 2. Environment Variables
 
 #### `.env.local` (Local Development)
-```env
+\`\`\`env
 SPRITES_BASE_URL=http://10.0.0.5:30090/pokedex-sprites
 NEXT_PUBLIC_SPRITES_BASE_URL=http://10.0.0.5:30090/pokedex-sprites
-```
+\`\`\`
 
 #### `.env` (Production)
-```env
+\`\`\`env
 SPRITES_BASE_URL=https://s3-api-data.moodmnky.com/pokedex-sprites
 NEXT_PUBLIC_SPRITES_BASE_URL=https://s3-api-data.moodmnky.com/pokedex-sprites
-```
+\`\`\`
 
 **Note:** `NEXT_PUBLIC_` prefix required for client-side access in Next.js
 
@@ -56,18 +56,18 @@ NEXT_PUBLIC_SPRITES_BASE_URL=https://s3-api-data.moodmnky.com/pokedex-sprites
 ### URL Generation Flow
 
 1. **If `SPRITES_BASE_URL` is set:**
-   ```
+   \`\`\`
    Storage Path: "sprites/pokemon/25.png"
    Base URL: "http://10.0.0.5:30090/pokedex-sprites"
    Result: "http://10.0.0.5:30090/pokedex-sprites/sprites/pokemon/25.png"
-   ```
+   \`\`\`
 
 2. **If `SPRITES_BASE_URL` is NOT set (backward compatible):**
-   ```
+   \`\`\`
    Storage Path: "sprites/pokemon/25.png"
    Supabase URL: "https://chmrszrwlfeqovwxyrmt.supabase.co"
    Result: "https://chmrszrwlfeqovwxyrmt.supabase.co/storage/v1/object/public/pokedex-sprites/sprites/pokemon/25.png"
-   ```
+   \`\`\`
 
 ### Rollback Capability
 
@@ -85,22 +85,22 @@ NEXT_PUBLIC_SPRITES_BASE_URL=https://s3-api-data.moodmnky.com/pokedex-sprites
 ### 🔄 Next Steps for Testing
 
 1. **Local Testing:**
-   ```powershell
+   \`\`\`powershell
    # Start dev server
    pnpm dev
    
    # Verify sprite URLs use MinIO
    # Check browser console for sprite URLs
-   ```
+   \`\`\`
 
 2. **Test URL Generation:**
-   ```typescript
+   \`\`\`typescript
    // In browser console or test file
    import { getMinIOSpriteUrl } from '@/lib/pokemon-utils'
    
    const url = getMinIOSpriteUrl('sprites/pokemon/25.png')
    console.log(url) // Should show MinIO URL if env var set
-   ```
+   \`\`\`
 
 3. **Test Fallback:**
    - Temporarily remove `SPRITES_BASE_URL` from `.env.local`

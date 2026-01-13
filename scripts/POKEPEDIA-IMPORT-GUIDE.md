@@ -29,7 +29,7 @@ Both sources import into the same `pokeapi_resources` table (canonical JSONB sto
 
 If you want comprehensive data coverage:
 
-```bash
+\`\`\`bash
 # Ensure local PokeAPI is running
 cd tools/pokeapi-local
 docker compose up -d
@@ -38,7 +38,7 @@ docker compose up -d
 cd ../ditto
 poetry install  # One-time setup
 poetry run ditto clone --src-url http://localhost/api/v2 --dest-dir ./data
-```
+\`\`\`
 
 **Note**: This can take a while (30+ minutes). You can proceed with api-data import while ditto runs.
 
@@ -46,7 +46,7 @@ poetry run ditto clone --src-url http://localhost/api/v2 --dest-dir ./data
 
 Fast baseline import:
 
-```bash
+\`\`\`bash
 # Import all endpoints
 pnpm tsx scripts/import-api-data.ts
 
@@ -55,7 +55,7 @@ pnpm tsx scripts/import-api-data.ts --endpoint=pokemon
 
 # Or import with limit for testing
 pnpm tsx scripts/import-api-data.ts --endpoint=pokemon --limit=100
-```
+\`\`\`
 
 **Benefits**:
 - Fast (no network calls)
@@ -66,7 +66,7 @@ pnpm tsx scripts/import-api-data.ts --endpoint=pokemon --limit=100
 
 After ditto clone completes:
 
-```bash
+\`\`\`bash
 # Import all endpoints
 pnpm tsx scripts/import-ditto-data.ts
 
@@ -75,7 +75,7 @@ pnpm tsx scripts/import-ditto-data.ts --endpoint=pokemon
 
 # Or import with limit for testing
 pnpm tsx scripts/import-ditto-data.ts --endpoint=pokemon --limit=100
-```
+\`\`\`
 
 **Note**: Upserts will update existing records from api-data import.
 
@@ -83,13 +83,13 @@ pnpm tsx scripts/import-ditto-data.ts --endpoint=pokemon --limit=100
 
 Extract fast query tables from JSONB:
 
-```bash
+\`\`\`bash
 # Build all Pokemon projections
 pnpm tsx scripts/build-pokepedia-projections.ts
 
 # Or build with limit for testing
 pnpm tsx scripts/build-pokepedia-projections.ts --limit=100
-```
+\`\`\`
 
 **Result**: `pokepedia_pokemon` table populated with:
 - id, name, species_name
@@ -100,7 +100,7 @@ pnpm tsx scripts/build-pokepedia-projections.ts --limit=100
 
 Upload sprites to Supabase Storage:
 
-```bash
+\`\`\`bash
 # Upload all sprites
 pnpm tsx scripts/mirror-sprites-to-storage.ts
 
@@ -109,7 +109,7 @@ pnpm tsx scripts/mirror-sprites-to-storage.ts --dry-run
 
 # Or upload with limit for testing
 pnpm tsx scripts/mirror-sprites-to-storage.ts --limit=100
-```
+\`\`\`
 
 **Result**:
 - Sprites uploaded to `pokedex-sprites` bucket
@@ -127,9 +127,9 @@ Imports static JSON from `resources/api-data/data/api/v2/`.
 - `--limit=<number>` - Limit number of files per endpoint
 
 **Example**:
-```bash
+\`\`\`bash
 pnpm tsx scripts/import-api-data.ts --endpoint=pokemon --limit=50
-```
+\`\`\`
 
 ### `import-ditto-data.ts`
 
@@ -140,9 +140,9 @@ Imports cloned data from `tools/ditto/data/`.
 - `--limit=<number>` - Limit number of files per endpoint
 
 **Example**:
-```bash
+\`\`\`bash
 pnpm tsx scripts/import-ditto-data.ts --endpoint=moves --limit=100
-```
+\`\`\`
 
 ### `build-pokepedia-projections.ts`
 
@@ -152,9 +152,9 @@ Builds fast query tables from `pokeapi_resources` JSONB.
 - `--limit=<number>` - Limit number of Pokemon to process
 
 **Example**:
-```bash
+\`\`\`bash
 pnpm tsx scripts/build-pokepedia-projections.ts --limit=50
-```
+\`\`\`
 
 ### `mirror-sprites-to-storage.ts`
 
@@ -165,13 +165,13 @@ Uploads sprites from `resources/sprites` to Supabase Storage.
 - `--limit=<number>` - Limit number of files to upload
 
 **Example**:
-```bash
+\`\`\`bash
 pnpm tsx scripts/mirror-sprites-to-storage.ts --dry-run --limit=10
-```
+\`\`\`
 
 ## Data Flow
 
-```
+\`\`\`
 api-data (baseline) ──┐
                       ├──> pokeapi_resources (JSONB)
 ditto (comprehensive) ─┘
@@ -179,7 +179,7 @@ ditto (comprehensive) ─┘
                               ├──> pokepedia_pokemon (projection)
                               │
                               └──> pokepedia_assets (sprite metadata)
-```
+\`\`\`
 
 ## Troubleshooting
 

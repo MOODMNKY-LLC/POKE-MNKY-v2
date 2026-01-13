@@ -4,9 +4,9 @@
 
 After fixing the ORDER BY issue, the Edge Function started working correctly and connecting to the database. However, validation logs were showing false warnings:
 
-```
+\`\`\`
 ⚠️ DATABASE MISMAATCH: Expected 4 jobs (1 pokepedia), but found 10 jobs (10 pokepedia)
-```
+\`\`\`
 
 ### Root Cause
 
@@ -21,7 +21,7 @@ The database state had changed over time, but the validation expectations were s
 Changed validation from **hardcoded expectations** to **dynamic state reporting**:
 
 ### Before (Hardcoded Expectations)
-```typescript
+\`\`\`typescript
 const expectedPokepediaCount = 1
 const expectedTotalCount = 4
 const dataMatches = actualPokepediaCount === expectedPokepediaCount && 
@@ -30,10 +30,10 @@ const dataMatches = actualPokepediaCount === expectedPokepediaCount &&
 if (!dataMatches) {
   console.error("⚠️ DATABASE MISMAATCH: Expected...")
 }
-```
+\`\`\`
 
 ### After (Dynamic State Reporting)
-```typescript
+\`\`\`typescript
 // Connection successful - log database state for diagnostics
 const pokepediaJobs = testData.filter((j: any) => j.sync_type === "pokepedia")
 const runningJobs = testData.filter((j: any) => j.status === "running")
@@ -45,7 +45,7 @@ console.log("[Edge Function] Database connection successful - current state:", {
   runningJobIds: runningJobs.map((j: any) => j.job_id),
   sampleJobIds: testData.slice(0, 5).map(...),
 })
-```
+\`\`\`
 
 ## Benefits
 

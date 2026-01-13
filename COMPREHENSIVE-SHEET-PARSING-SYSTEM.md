@@ -10,7 +10,7 @@ This document describes the comprehensive parsing system designed to handle mult
 
 The system uses a **Factory Pattern** to create appropriate parsers based on sheet type and configuration:
 
-```
+\`\`\`
 ParserFactory
   ├── TeamsParser (standings, rankings)
   ├── DraftParser (draft results, rosters)
@@ -18,7 +18,7 @@ ParserFactory
   ├── MasterDataParser (master/reference data)
   ├── TeamPageParser (individual team sheets)
   └── GenericParser (fallback for unknown types)
-```
+\`\`\`
 
 ### Key Components
 
@@ -86,7 +86,7 @@ Users can also manually configure parsing:
 - ✅ Handles sheets with/without headers
 
 **Configuration:**
-```typescript
+\`\`\`typescript
 {
   parser_type: "teams",
   table_name: "teams",
@@ -99,7 +99,7 @@ Users can also manually configure parsing:
   },
   special_handling: ["no_headers"] // if needed
 }
-```
+\`\`\`
 
 ### 2. Draft Parser (`DraftParser`)
 
@@ -114,7 +114,7 @@ Users can also manually configure parsing:
 - Pokemon/team associations
 
 **Configuration:**
-```typescript
+\`\`\`typescript
 {
   parser_type: "draft",
   table_name: "team_rosters",
@@ -126,7 +126,7 @@ Users can also manually configure parsing:
     // ...
   }
 }
-```
+\`\`\`
 
 ### 3. Matches Parser (`MatchesParser`)
 
@@ -141,7 +141,7 @@ Users can also manually configure parsing:
 - Week tracking
 
 **Configuration:**
-```typescript
+\`\`\`typescript
 {
   parser_type: "matches",
   table_name: "matches",
@@ -153,7 +153,7 @@ Users can also manually configure parsing:
     // ...
   }
 }
-```
+\`\`\`
 
 ### 4. Master Data Parser (`MasterDataParser`)
 
@@ -168,14 +168,14 @@ Users can also manually configure parsing:
 - Multiple data type support
 
 **Configuration:**
-```typescript
+\`\`\`typescript
 {
   parser_type: "master_data",
   table_name: "various", // May extract to multiple tables
   use_ai: true, // Required for complex structures
   special_handling: ["multi_table_extraction"]
 }
-```
+\`\`\`
 
 ### 5. Team Page Parser (`TeamPageParser`)
 
@@ -190,14 +190,14 @@ Users can also manually configure parsing:
 - AI-powered parsing
 
 **Configuration:**
-```typescript
+\`\`\`typescript
 {
   parser_type: "team_page",
   table_name: "teams", // or team_rosters, etc.
   use_ai: true, // Team pages vary widely
   special_handling: ["extract_team_name_from_sheet"]
 }
-```
+\`\`\`
 
 ### 6. Generic Parser (`GenericParser`)
 
@@ -215,7 +215,7 @@ Users can also manually configure parsing:
 
 ### Step 1: Analyze Spreadsheet
 
-```typescript
+\`\`\`typescript
 // POST /api/admin/google-sheets/analyze
 const response = await fetch('/api/admin/google-sheets/analyze', {
   method: 'POST',
@@ -224,7 +224,7 @@ const response = await fetch('/api/admin/google-sheets/analyze', {
 
 const analysis = await response.json()
 // Returns comprehensive analysis of all sheets
-```
+\`\`\`
 
 ### Step 2: Review Analysis
 
@@ -245,11 +245,11 @@ For each sheet, configure:
 
 ### Step 4: Sync Data
 
-```typescript
+\`\`\`typescript
 // The sync system uses parser factory to create appropriate parsers
 const parser = ParserFactory.createParser(config, sheet, supabase)
 const result = await parser.parse()
-```
+\`\`\`
 
 ## AI Integration
 
@@ -328,7 +328,7 @@ AI parsing is automatically used when:
 
 ## Example: Analyzing a Spreadsheet
 
-```bash
+\`\`\`bash
 # 1. Analyze spreadsheet
 curl -X POST http://localhost:3000/api/admin/google-sheets/analyze \
   -H "Content-Type: application/json" \
@@ -339,7 +339,7 @@ curl -X POST http://localhost:3000/api/admin/google-sheets/analyze \
 # - Suggested parser types
 # - Column mapping suggestions
 # - Data samples
-```
+\`\`\`
 
 ## Benefits
 

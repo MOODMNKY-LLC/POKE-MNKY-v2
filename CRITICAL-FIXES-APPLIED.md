@@ -63,21 +63,21 @@
 ## 🧪 Next Test Steps
 
 ### Test Rules Parser Again
-```bash
+\`\`\`bash
 npx tsx scripts/test-parsers-safe.ts [spreadsheet_id] "Rules" "rules"
-```
+\`\`\`
 **Expected**: Should complete successfully (already works, just logs database note)
 
 ### Test Master Data Parser
-```bash
+\`\`\`bash
 npx tsx scripts/test-parsers-safe.ts [spreadsheet_id] "Master Data Sheet" "master_data"
-```
+\`\`\`
 **Expected**: Should load data using raw API, complete AI analysis
 
 ### Test Draft Parser
-```bash
+\`\`\`bash
 npx tsx scripts/test-parsers-safe.ts [spreadsheet_id] "Draft Board" "draft"
-```
+\`\`\`
 **Expected**: Should load data using raw API, may need cell access fix
 
 ---

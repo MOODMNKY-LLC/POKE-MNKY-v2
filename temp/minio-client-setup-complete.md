@@ -31,7 +31,7 @@
 
 ### Alias Configuration
 
-```json
+\`\`\`json
 {
   "local": {
     "url": "http://10.0.0.5:30090",
@@ -41,21 +41,21 @@
     "path": "auto"
   }
 }
-```
+\`\`\`
 
 ### Environment Variables Added
 
 **`.env.local`:**
-```env
+\`\`\`env
 MINIO_REGION=us-east-1
 MINIO_SERVER_LOCATION=us-east-1
-```
+\`\`\`
 
 **`.env`:**
-```env
+\`\`\`env
 MINIO_REGION=us-east-1
 MINIO_SERVER_LOCATION=us-east-1
-```
+\`\`\`
 
 ---
 
@@ -63,7 +63,7 @@ MINIO_SERVER_LOCATION=us-east-1
 
 ### Basic Operations
 
-```powershell
+\`\`\`powershell
 # List buckets
 mc ls local
 
@@ -81,11 +81,11 @@ mc anonymous get-json local/pokedex-sprites
 
 # Set bucket to public read
 mc anonymous set download local/pokedex-sprites
-```
+\`\`\`
 
 ### Admin Operations
 
-```powershell
+\`\`\`powershell
 # Get global CORS configuration
 mc admin config get local api | Select-String "cors_allow_origin"
 
@@ -97,11 +97,11 @@ mc admin config get local api
 
 # List configuration history
 mc admin config history local
-```
+\`\`\`
 
 ### Bucket Management
 
-```powershell
+\`\`\`powershell
 # Create a bucket
 mc mb local/new-bucket-name
 
@@ -110,7 +110,7 @@ mc rb local/bucket-name
 
 # Set bucket policy via JSON file
 mc anonymous set-json local/bucket-name policy.json
-```
+\`\`\`
 
 ---
 
@@ -121,7 +121,7 @@ mc anonymous set-json local/bucket-name policy.json
 **Location:** `scripts/minio-cli-helpers.ps1`
 
 **Usage:**
-```powershell
+\`\`\`powershell
 # Import the module
 . .\scripts\minio-cli-helpers.ps1
 
@@ -131,17 +131,17 @@ Get-MinIOBuckets
 Set-MinIOBucketPublic -Bucket "pokedex-sprites"
 Get-MinIOCORS
 Upload-ToMinIO -Bucket "pokedex-sprites" -LocalPath "file.txt" -RemotePath "test/file.txt"
-```
+\`\`\`
 
 ### Setup Script
 
 **Location:** `scripts/setup-minio-client.ps1`
 
 **Usage:**
-```powershell
+\`\`\`powershell
 # Configure alias (if needed)
 .\scripts\setup-minio-client.ps1 -Alias "local" -Endpoint "http://10.0.0.5:30090" -AccessKey "..." -SecretKey "..."
-```
+\`\`\`
 
 ---
 
@@ -149,9 +149,9 @@ Upload-ToMinIO -Bucket "pokedex-sprites" -LocalPath "file.txt" -RemotePath "test
 
 ### ✅ Connection Test
 
-```powershell
+\`\`\`powershell
 mc ls local
-```
+\`\`\`
 
 **Result:** Successfully lists all 5 buckets:
 - flowise
@@ -162,9 +162,9 @@ mc ls local
 
 ### ✅ CORS Configuration
 
-```powershell
+\`\`\`powershell
 mc admin config get local api | Select-String "cors_allow_origin"
-```
+\`\`\`
 
 **Result:** `cors_allow_origin=*` ✅
 
@@ -192,15 +192,15 @@ mc admin config get local api | Select-String "cors_allow_origin"
 ## Next Steps
 
 1. **Test CORS in Browser**
-   ```javascript
+   \`\`\`javascript
    // In browser console
    fetch('http://10.0.0.5:30090/pokedex-sprites/test-file.txt')
      .then(r => r.text())
      .then(console.log)
-   ```
+   \`\`\`
 
 2. **Upload Test File**
-   ```powershell
+   \`\`\`powershell
    # Create test file
    "test content" | Out-File test.txt
    
@@ -209,7 +209,7 @@ mc admin config get local api | Select-String "cors_allow_origin"
    
    # Or use helper
    Upload-ToMinIO -Bucket "pokedex-sprites" -LocalPath "test.txt" -RemotePath "test/test.txt"
-   ```
+   \`\`\`
 
 3. **Verify Public Access**
    - Open URL: `http://10.0.0.5:30090/pokedex-sprites/test/test.txt`
@@ -226,14 +226,14 @@ mc admin config get local api | Select-String "cors_allow_origin"
 ### mc command not found
 
 If `mc` is not in PATH, use full path:
-```powershell
+\`\`\`powershell
 & "$env:USERPROFILE\.mc\mc.exe" ls local
-```
+\`\`\`
 
 Or add to PATH:
-```powershell
+\`\`\`powershell
 $env:Path += ";$env:USERPROFILE\.mc"
-```
+\`\`\`
 
 ### Connection Errors
 
@@ -245,16 +245,16 @@ $env:Path += ";$env:USERPROFILE\.mc"
 ### CORS Still Not Working
 
 1. Verify global CORS is set:
-   ```powershell
+   \`\`\`powershell
    mc admin config get local api | Select-String "cors"
-   ```
+   \`\`\`
 
 2. Check if using external endpoint (may need Cloudflare CORS config)
 
 3. Verify bucket policy allows public read:
-   ```powershell
+   \`\`\`powershell
    mc anonymous get-json local/pokedex-sprites
-   ```
+   \`\`\`
 
 ---
 

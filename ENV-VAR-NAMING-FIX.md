@@ -43,7 +43,7 @@ Updated `lib/utils/google-sheets.ts` to support **both naming conventions** for 
 ### 2. Debug Logging
 
 Added development-mode logging to help identify missing variables:
-```typescript
+\`\`\`typescript
 if (process.env.NODE_ENV === "development") {
   console.log("[Google Sheets] Credential check:", {
     email: email ? "✓ Found" : "✗ Missing",
@@ -51,23 +51,23 @@ if (process.env.NODE_ENV === "development") {
     foundEnvVars: [...]
   })
 }
-```
+\`\`\`
 
 ---
 
 ## 📋 Recommended Variable Names
 
 **For new setups**, use:
-```bash
+\`\`\`bash
 GOOGLE_SERVICE_ACCOUNT_EMAIL=your-service-account@project.iam.gserviceaccount.com
 GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
-```
+\`\`\`
 
 **For existing setups**, both work:
-```bash
+\`\`\`bash
 GOOGLE_SERVICE_ACCOUNT_EMAIL=your-service-account@project.iam.gserviceaccount.com
 GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
-```
+\`\`\`
 
 ---
 

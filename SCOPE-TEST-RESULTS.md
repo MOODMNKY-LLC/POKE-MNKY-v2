@@ -46,12 +46,12 @@
 ## Scope Configuration
 
 ### ✅ Configured Scopes:
-```typescript
+\`\`\`typescript
 scopes: [
   "https://www.googleapis.com/auth/spreadsheets.readonly",  // ✅ Working
   "https://www.googleapis.com/auth/drive.readonly",          // ✅ Working
 ]
-```
+\`\`\`
 
 ### ✅ API Status:
 - **Google Sheets API**: ✅ Enabled and working
@@ -90,27 +90,27 @@ All files now use consistent scope configuration:
 ## Running Tests
 
 ### Direct Scope Test (No dev server needed):
-```bash
+\`\`\`bash
 npx tsx scripts/test-scopes-direct.ts
-```
+\`\`\`
 
 ### Comprehensive Analysis (Requires dev server):
-```bash
+\`\`\`bash
 # Terminal 1: Start dev server
 pnpm dev
 
 # Terminal 2: Run analysis
 npx tsx scripts/test-sheet-analysis.ts
-```
+\`\`\`
 
 ### Parser Tests (Requires dev server):
-```bash
+\`\`\`bash
 # Terminal 1: Start dev server
 pnpm dev
 
 # Terminal 2: Run parser tests
 npx tsx scripts/test-parsers.ts
-```
+\`\`\`
 
 ---
 

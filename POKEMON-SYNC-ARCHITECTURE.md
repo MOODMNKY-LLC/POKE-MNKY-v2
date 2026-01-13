@@ -63,7 +63,7 @@ This document outlines a robust architecture for synchronizing Pokémon data fro
 
 ### System Components
 
-```
+\`\`\`
 ┌──────────────────┐
 │   PokéAPI v2     │  External Data Source (Rate Limited: 100 req/min)
 │  pokeapi.co/api │
@@ -129,7 +129,7 @@ This document outlines a robust architecture for synchronizing Pokémon data fro
 │  │     UI       │  │      UI      │  │      UI       │     │
 │  └──────────────┘  └──────────────┘  └───────────────┘     │
 └──────────────────────────────────────────────────────────────┘
-```
+\`\`\`
 
 ### Data Flow
 
@@ -156,7 +156,7 @@ This document outlines a robust architecture for synchronizing Pokémon data fro
 
 #### `pokemon_cache` (Primary Storage)
 
-```sql
+\`\`\`sql
 CREATE TABLE public.pokemon_cache (
   pokemon_id INTEGER PRIMARY KEY,
   name TEXT NOT NULL,
@@ -195,7 +195,7 @@ CREATE INDEX idx_pokemon_cache_generation ON pokemon_cache(generation);
 CREATE INDEX idx_pokemon_cache_regional_forms ON pokemon_cache USING GIN(regional_forms);
 CREATE INDEX idx_pokemon_cache_types ON pokemon_cache USING GIN(types);
 CREATE INDEX idx_pokemon_cache_expires ON pokemon_cache(expires_at);
-```
+\`\`\`
 
 **Field Descriptions**:
 
@@ -216,7 +216,7 @@ CREATE INDEX idx_pokemon_cache_expires ON pokemon_cache(expires_at);
 
 #### `moves_cache` (Supplementary - Optional)
 
-```sql
+\`\`\`sql
 CREATE TABLE public.moves_cache (
   move_id INTEGER PRIMARY KEY,
   name TEXT NOT NULL,
@@ -235,13 +235,13 @@ CREATE TABLE public.moves_cache (
 CREATE INDEX idx_moves_cache_name ON moves_cache(name);
 CREATE INDEX idx_moves_cache_type ON moves_cache(type);
 CREATE INDEX idx_moves_cache_category ON moves_cache(category);
-```
+\`\`\`
 
 **Usage**: Store all 900+ moves separately for advanced filtering (e.g., "Show all Fire-type physical moves"). **Optional** - can embed top moves in `pokemon_cache.move_details` instead.
 
 #### `abilities_cache` (Supplementary - Optional)
 
-```sql
+\`\`\`sql
 CREATE TABLE public.abilities_cache (
   ability_id INTEGER PRIMARY KEY,
   name TEXT NOT NULL,
@@ -253,13 +253,13 @@ CREATE TABLE public.abilities_cache (
 );
 
 CREATE INDEX idx_abilities_cache_name ON abilities_cache(name);
-```
+\`\`\`
 
 **Usage**: Store all 350+ abilities separately for advanced searching. **Optional** - can embed in `pokemon_cache.ability_details` instead.
 
 #### `sync_jobs` (Audit Trail)
 
-```sql
+\`\`\`sql
 CREATE TABLE public.sync_jobs (
   job_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   job_type TEXT NOT NULL, -- 'full', 'incremental', 'competitive', 'single'
@@ -286,7 +286,7 @@ CREATE TABLE public.sync_jobs (
 
 CREATE INDEX idx_sync_jobs_status ON sync_jobs(status);
 CREATE INDEX idx_sync_jobs_started ON sync_jobs(started_at DESC);
-```
+\`\`\`
 
 **Usage**: Track all sync operations for monitoring, debugging, and auditing.
 
@@ -302,7 +302,7 @@ CREATE INDEX idx_sync_jobs_started ON sync_jobs(started_at DESC);
 **Duration**: ~2-3 hours (rate-limited to 100 req/min)  
 **Process**:
 
-```typescript
+\`\`\`typescript
 async function fullSync(): Promise<void> {
   const supabase = createClient(...)
   const totalPokemon = 1025 // Current gen 9 total
@@ -365,7 +365,7 @@ async function fullSync(): Promise<void> {
       .eq('job_id', jobId)
   }
 }
-```
+\`\`\`
 
 **Optimizations**:
 - Run overnight or during low-traffic periods
@@ -378,7 +378,7 @@ async function fullSync(): Promise<void> {
 **Duration**: ~5-15 minutes  
 **Process**:
 
-```typescript
+\`\`\`typescript
 async function incrementalSync(): Promise<void> {
   const supabase = createClient(...)
   
@@ -401,7 +401,7 @@ async function incrementalSync(): Promise<void> {
     await new Promise(resolve => setTimeout(resolve, 100))
   }
 }
-```
+\`\`\`
 
 **Benefits**:
 - Minimal API usage (only refreshes expired data)
@@ -416,13 +416,13 @@ async function incrementalSync(): Promise<void> {
 
 Already implemented in `scripts/pre-cache-competitive-pokemon.ts`:
 
-```typescript
+\`\`\`typescript
 import { batchCacheCompetitivePokemon, COMPETITIVE_POKEMON_IDS } from "@/lib/pokemon-api-enhanced"
 
 async function main() {
   await batchCacheCompetitivePokemon(COMPETITIVE_POKEMON_IDS)
 }
-```
+\`\`\`
 
 **Benefits**:
 - Fast initial population for draft leagues
@@ -437,7 +437,7 @@ async function main() {
 
 Already implemented in `lib/pokemon-api-enhanced.ts`:
 
-```typescript
+\`\`\`typescript
 export async function getPokemonDataExtended(
   nameOrId: string | number,
   includeMoveDetails = false
@@ -467,7 +467,7 @@ export async function getPokemonDataExtended(
   
   return extendedData
 }
-```
+\`\`\`
 
 **Benefits**:
 - Zero upfront sync time
@@ -477,7 +477,7 @@ export async function getPokemonDataExtended(
 ### Scheduling Options
 
 #### Option A: Vercel Cron Jobs
-```typescript
+\`\`\`typescript
 // app/api/cron/sync-pokemon/route.ts
 export const revalidate = 0
 export const maxDuration = 300 // 5 minutes
@@ -492,20 +492,20 @@ export async function GET(request: Request) {
   
   return Response.json({ success: true })
 }
-```
+\`\`\`
 
 Add to `vercel.json`:
-```json
+\`\`\`json
 {
   "crons": [{
     "path": "/api/cron/sync-pokemon",
     "schedule": "0 3 * * *"
   }]
 }
-```
+\`\`\`
 
 #### Option B: GitHub Actions
-```yaml
+\`\`\`yaml
 # .github/workflows/sync-pokemon.yml
 name: Sync Pokemon Data
 on:
@@ -524,7 +524,7 @@ jobs:
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-```
+\`\`\`
 
 #### Option C: External Scheduler (Railway/Render)
 Deploy `scripts/sync-pokemon.ts` as standalone service with environment-based scheduling.
@@ -536,7 +536,7 @@ Deploy `scripts/sync-pokemon.ts` as standalone service with environment-based sc
 ### Validation Rules
 
 #### 1. **Schema Validation**
-```typescript
+\`\`\`typescript
 const PokemonCacheSchema = z.object({
   pokemon_id: z.number().int().positive(),
   name: z.string().min(1).max(50),
@@ -561,12 +561,12 @@ const PokemonCacheSchema = z.object({
 
 // Validate before insert
 const validated = PokemonCacheSchema.parse(pokemonData)
-```
+\`\`\`
 
 #### 2. **Conflict Resolution**
 **Strategy**: Last Write Wins (LWW) with timestamp comparison
 
-```sql
+\`\`\`sql
 -- Upsert with conflict resolution
 INSERT INTO pokemon_cache (...)
 VALUES (...)
@@ -581,10 +581,10 @@ DO UPDATE SET
   fetched_at = EXCLUDED.fetched_at,
   expires_at = EXCLUDED.expires_at
 WHERE pokemon_cache.fetched_at < EXCLUDED.fetched_at;
-```
+\`\`\`
 
 #### 3. **Data Integrity Checks**
-```typescript
+\`\`\`typescript
 async function validateCacheIntegrity(): Promise<ValidationReport> {
   const supabase = createClient(...)
   
@@ -614,10 +614,10 @@ async function validateCacheIntegrity(): Promise<ValidationReport> {
     total_cached: await getTotalCachedPokemon()
   }
 }
-```
+\`\`\`
 
 #### 4. **Referential Integrity**
-```sql
+\`\`\`sql
 -- Ensure team_rosters reference valid Pokemon
 ALTER TABLE team_rosters 
   ADD CONSTRAINT fk_pokemon_cache 
@@ -631,12 +631,12 @@ ALTER TABLE pokemon_stats
   FOREIGN KEY (pokemon_id) 
   REFERENCES pokemon_cache(pokemon_id) 
   ON DELETE RESTRICT;
-```
+\`\`\`
 
 ### Error Handling
 
 #### Retry Strategy
-```typescript
+\`\`\`typescript
 async function syncWithRetry(
   pokemonId: number, 
   maxRetries = 3
@@ -660,10 +660,10 @@ async function syncWithRetry(
   
   return null
 }
-```
+\`\`\`
 
 #### Partial Failure Handling
-```typescript
+\`\`\`typescript
 async function fullSyncWithCheckpoints(): Promise<void> {
   const checkpoint = await getLastCheckpoint() || 0
   const totalPokemon = 1025
@@ -680,7 +680,7 @@ async function fullSyncWithCheckpoints(): Promise<void> {
     }
   }
 }
-```
+\`\`\`
 
 ---
 
@@ -694,7 +694,7 @@ async function fullSyncWithCheckpoints(): Promise<void> {
 - Reduces sync overhead by 97% after initial load
 
 **Conditional Refresh**:
-```typescript
+\`\`\`typescript
 // Only refresh if expired OR user explicitly requests fresh data
 async function getPokemonWithRefresh(
   nameOrId: string | number,
@@ -716,12 +716,12 @@ async function getPokemonWithRefresh(
   
   return cached
 }
-```
+\`\`\`
 
 ### Delta Detection
 
 **Track New Releases**:
-```typescript
+\`\`\`typescript
 async function detectNewPokemon(): Promise<number[]> {
   const supabase = createClient(...)
   
@@ -758,11 +758,11 @@ async function detectNewPokemon(): Promise<number[]> {
     return [] // No new Pokemon
   }
 }
-```
+\`\`\`
 
 ### Incremental Sync Workflow
 
-```typescript
+\`\`\`typescript
 async function smartIncrementalSync(): Promise<SyncResult> {
   const supabase = createClient(...)
   
@@ -801,7 +801,7 @@ async function smartIncrementalSync(): Promise<SyncResult> {
     errors: failed > 0 ? [`${failed} Pokemon failed to sync`] : []
   }
 }
-```
+\`\`\`
 
 ---
 
@@ -810,7 +810,7 @@ async function smartIncrementalSync(): Promise<SyncResult> {
 ### Query Patterns
 
 #### 1. **Direct Lookup** (by ID or Name)
-```typescript
+\`\`\`typescript
 // Client component
 'use client'
 import { createBrowserClient } from '@/lib/supabase/client'
@@ -843,10 +843,10 @@ export function PokemonDetail({ pokemonId }: { pokemonId: number }) {
     </div>
   )
 }
-```
+\`\`\`
 
 #### 2. **Server Component Fetch** (Zero Latency)
-```typescript
+\`\`\`typescript
 // Server component
 import { createServerClient } from '@/lib/supabase/server'
 
@@ -867,10 +867,10 @@ export default async function PokedexPage() {
     </div>
   )
 }
-```
+\`\`\`
 
 #### 3. **Search & Filter**
-```typescript
+\`\`\`typescript
 async function searchPokemon(
   query: string,
   filters: {
@@ -924,10 +924,10 @@ async function searchPokemon(
   
   return data || []
 }
-```
+\`\`\`
 
 #### 4. **Batch Fetch** (for Team Rosters)
-```typescript
+\`\`\`typescript
 async function getTeamRoster(teamId: string): Promise<CachedPokemonExtended[]> {
   const supabase = createClient(...)
   
@@ -944,10 +944,10 @@ async function getTeamRoster(teamId: string): Promise<CachedPokemonExtended[]> {
   
   return data?.map(r => r.pokemon_cache) || []
 }
-```
+\`\`\`
 
 #### 5. **Aggregation Queries**
-```typescript
+\`\`\`typescript
 // Get type distribution across all cached Pokemon
 async function getTypeDistribution(): Promise<Record<string, number>> {
   const supabase = createClient(...)
@@ -984,12 +984,12 @@ async function getTierDistribution(): Promise<Record<string, number>> {
   
   return distribution
 }
-```
+\`\`\`
 
 ### Caching Strategies (Application-Level)
 
 #### React Query Integration
-```typescript
+\`\`\`typescript
 // lib/queries/pokemon.ts
 import { useQuery } from '@tanstack/react-query'
 
@@ -1018,10 +1018,10 @@ export function usePokedex(filters?: SearchFilters) {
     staleTime: 1000 * 60 * 60, // 1 hour
   })
 }
-```
+\`\`\`
 
 #### Server-Side Caching (Next.js)
-```typescript
+\`\`\`typescript
 // app/api/pokemon/[id]/route.ts
 export const revalidate = 3600 // 1 hour ISR
 
@@ -1039,7 +1039,7 @@ export async function GET(
   
   return Response.json(pokemon)
 }
-```
+\`\`\`
 
 ---
 
@@ -1048,7 +1048,7 @@ export async function GET(
 ### Database Optimizations
 
 #### 1. **Indexes**
-```sql
+\`\`\`sql
 -- Already created in migrations, but verify:
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_pokemon_cache_name ON pokemon_cache(name);
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_pokemon_cache_types ON pokemon_cache USING GIN(types);
@@ -1059,10 +1059,10 @@ CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_pokemon_cache_expires ON pokemon_cac
 -- JSONB indexes for nested queries
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_pokemon_cache_base_stats ON pokemon_cache USING GIN(base_stats);
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_pokemon_cache_sprites ON pokemon_cache USING GIN(sprites);
-```
+\`\`\`
 
 #### 2. **Query Optimization**
-```sql
+\`\`\`sql
 -- BAD: Select all columns with large JSONB payload
 SELECT * FROM pokemon_cache WHERE name = 'pikachu';
 
@@ -1074,10 +1074,10 @@ WHERE name = 'pikachu';
 -- BETTER: Use covering indexes
 CREATE INDEX idx_pokemon_cache_pokedex ON pokemon_cache(name) 
 INCLUDE (pokemon_id, types, tier, draft_cost);
-```
+\`\`\`
 
 #### 3. **Partitioning** (Optional for Large Datasets)
-```sql
+\`\`\`sql
 -- Partition by generation for faster queries
 CREATE TABLE pokemon_cache_partitioned (
   LIKE pokemon_cache INCLUDING ALL
@@ -1086,12 +1086,12 @@ CREATE TABLE pokemon_cache_partitioned (
 CREATE TABLE pokemon_cache_gen1 PARTITION OF pokemon_cache_partitioned FOR VALUES IN (1);
 CREATE TABLE pokemon_cache_gen2 PARTITION OF pokemon_cache_partitioned FOR VALUES IN (2);
 -- ... repeat for all generations
-```
+\`\`\`
 
 ### API Optimizations
 
 #### 1. **Batch Fetching**
-```typescript
+\`\`\`typescript
 // BAD: N+1 queries
 for (const teamRoster of teamRosters) {
   const pokemon = await supabase
@@ -1107,10 +1107,10 @@ const { data: pokemon } = await supabase
   .from('pokemon_cache')
   .select('*')
   .in('pokemon_id', pokemonIds)
-```
+\`\`\`
 
 #### 2. **Cursor Pagination**
-```typescript
+\`\`\`typescript
 async function getPaginatedPokedex(
   cursor: number | null,
   limit = 50
@@ -1139,20 +1139,20 @@ async function getPaginatedPokedex(
   
   return { pokemon, nextCursor }
 }
-```
+\`\`\`
 
 #### 3. **Compression** (for Large JSONB Fields)
-```sql
+\`\`\`sql
 -- Enable pg_zstd for JSONB compression (requires extension)
 CREATE EXTENSION IF NOT EXISTS pg_zstd;
 
 ALTER TABLE pokemon_cache ALTER COLUMN payload SET COMPRESSION zstd;
-```
+\`\`\`
 
 ### Frontend Optimizations
 
 #### 1. **Image Optimization**
-```typescript
+\`\`\`typescript
 // Use Next.js Image component with PokéAPI sprites
 import Image from 'next/image'
 
@@ -1171,10 +1171,10 @@ export function PokemonSprite({ pokemon }: { pokemon: CachedPokemonExtended }) {
     />
   )
 }
-```
+\`\`\`
 
 #### 2. **Virtual Scrolling** (for Large Lists)
-```typescript
+\`\`\`typescript
 import { useVirtualizer } from '@tanstack/react-virtual'
 
 export function PokedexList({ pokemon }: { pokemon: CachedPokemonExtended[] }) {
@@ -1208,7 +1208,7 @@ export function PokedexList({ pokemon }: { pokemon: CachedPokemonExtended[] }) {
     </div>
   )
 }
-```
+\`\`\`
 
 ---
 
@@ -1261,7 +1261,7 @@ export function PokedexList({ pokemon }: { pokemon: CachedPokemonExtended[] }) {
 
 ### Monitoring Queries
 
-```sql
+\`\`\`sql
 -- Dashboard Metrics
 
 -- 1. Total Cached Pokemon
@@ -1301,7 +1301,7 @@ LIMIT 20;
 SELECT 
   pg_size_pretty(pg_total_relation_size('pokemon_cache')) as cache_size,
   pg_size_pretty(pg_database_size(current_database())) as total_db_size;
-```
+\`\`\`
 
 ### Backup & Recovery
 
@@ -1312,7 +1312,7 @@ Supabase provides daily automated backups. To restore:
 3. Click "Restore"
 
 #### Manual Export
-```bash
+\`\`\`bash
 # Export pokemon_cache table
 pg_dump \
   --host=db.YOUR_PROJECT_REF.supabase.co \
@@ -1330,7 +1330,7 @@ psql \
   --username=postgres \
   --dbname=postgres \
   --file=pokemon_cache_backup_20260112.sql
-```
+\`\`\`
 
 #### Disaster Recovery Plan
 1. **Cache Corruption**: Re-run full sync job (2-3 hours)
@@ -1380,7 +1380,7 @@ psql \
 
 ### Quick Reference Commands
 
-```bash
+\`\`\`bash
 # Install dependencies
 npm install pokenode-ts @supabase/supabase-js
 
@@ -1400,10 +1400,10 @@ curl http://localhost:3000/api/pokemon/25 # Pikachu
 
 # Check cache status
 psql -h db.YOUR_PROJECT_REF.supabase.co -U postgres -d postgres -c "SELECT COUNT(*) FROM pokemon_cache;"
-```
+\`\`\`
 
 ### Environment Variables
-```env
+\`\`\`env
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=YOUR_SERVICE_ROLE_KEY
@@ -1411,11 +1411,11 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_ANON_KEY
 
 # Cron Secret (for Vercel Cron)
 CRON_SECRET=YOUR_RANDOM_SECRET_KEY
-```
+\`\`\`
 
 ### Sample SQL Queries
 
-```sql
+\`\`\`sql
 -- Get all Fire-type Pokemon with OU tier
 SELECT pokemon_id, name, types, tier, draft_cost
 FROM pokemon_cache
@@ -1442,35 +1442,35 @@ SELECT name, draft_cost, tier, types
 FROM pokemon_cache
 WHERE draft_cost > 15
 ORDER BY draft_cost DESC;
-```
+\`\`\`
 
 ### Troubleshooting
 
 #### Problem: Cache queries are slow
 **Solution**: Verify indexes exist
-```sql
+\`\`\`sql
 SELECT indexname, indexdef FROM pg_indexes WHERE tablename = 'pokemon_cache';
-```
+\`\`\`
 
 #### Problem: Sync job timing out
 **Solution**: Increase serverless function timeout
-```javascript
+\`\`\`javascript
 // In Vercel serverless function
 export const maxDuration = 300 // 5 minutes
-```
+\`\`\`
 
 #### Problem: PokéAPI rate limit hit
 **Solution**: Add delay between requests
-```typescript
+\`\`\`typescript
 await new Promise(resolve => setTimeout(resolve, 100)) // 100ms = 600 req/min max
-```
+\`\`\`
 
 #### Problem: Sprites not loading
 **Solution**: Check CORS and verify URLs
-```typescript
+\`\`\`typescript
 console.log('[v0] Sprite URL:', pokemon.sprites.front_default)
 // If null, fall back to official artwork or placeholder
-```
+\`\`\`
 
 ---
 
