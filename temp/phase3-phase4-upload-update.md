@@ -89,18 +89,18 @@
 ### After Phase 3 Completes
 
 **Check MinIO Sprite Count:**
-```powershell
+\`\`\`powershell
 mc ls -r local/pokedex-sprites/sprites | Measure-Object -Line
 # Should show ~59,031 files
-```
+\`\`\`
 
 **Verify Database Records:**
-```sql
+\`\`\`sql
 SELECT COUNT(*) FROM pokepedia_assets 
 WHERE bucket = 'pokedex-sprites' 
 AND source_url LIKE 'http://10.0.0.5:30090%';
 -- Should match uploaded count
-```
+\`\`\`
 
 **Test Sprite URL:**
 - Open: `http://10.0.0.5:30090/pokedex-sprites/sprites/pokemon/25.png`
@@ -109,10 +109,10 @@ AND source_url LIKE 'http://10.0.0.5:30090%';
 ### Phase 4 Verification
 
 **Check MinIO PokeAPI Data Count:**
-```powershell
+\`\`\`powershell
 mc ls -r local/poke-mnky/v2 | Measure-Object -Line
 # Should show ~14,332 files
-```
+\`\`\`
 
 **Test JSON URL:**
 - Open: `http://10.0.0.5:30090/poke-mnky/v2/pokemon/1/index.json`

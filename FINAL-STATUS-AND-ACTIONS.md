@@ -36,17 +36,17 @@
 ### Action 1: Refresh Schema Cache 🔴 CRITICAL
 
 **Command**:
-```bash
+\`\`\`bash
 supabase stop
 supabase start
-```
+\`\`\`
 
 **Wait**: 30-60 seconds for services to restart
 
 **Verify**:
-```sql
+\`\`\`sql
 SELECT COUNT(*) FROM draft_pool;
-```
+\`\`\`
 
 **Expected**: Should return 0 (empty table, ready for data)
 
@@ -55,9 +55,9 @@ SELECT COUNT(*) FROM draft_pool;
 ### Action 2: Run Draft Pool Parser 🔴 CRITICAL
 
 **After schema refresh**:
-```bash
+\`\`\`bash
 npx tsx scripts/test-draft-pool-parser.ts
-```
+\`\`\`
 
 **Expected Results**:
 - ✅ Extracts 98+ Pokemon from draft board
@@ -71,7 +71,7 @@ npx tsx scripts/test-draft-pool-parser.ts
 ### Action 3: Verify Data Storage 🟡 HIGH
 
 **Check stored data**:
-```sql
+\`\`\`sql
 -- Total Pokemon in draft pool
 SELECT COUNT(*) FROM draft_pool WHERE is_available = true;
 
@@ -94,7 +94,7 @@ SELECT pokemon_name, point_value, is_available, generation
 FROM draft_pool
 ORDER BY point_value DESC, pokemon_name
 LIMIT 30;
-```
+\`\`\`
 
 **Expected**:
 - ~98-200 Pokemon entries
@@ -122,15 +122,15 @@ LIMIT 30;
 ## 🚀 After Schema Refresh
 
 ### Step 1: Extract Draft Pool
-```bash
+\`\`\`bash
 npx tsx scripts/test-draft-pool-parser.ts
-```
+\`\`\`
 
 ### Step 2: Verify Data
-```sql
+\`\`\`sql
 SELECT COUNT(*) FROM draft_pool;
 SELECT point_value, COUNT(*) FROM draft_pool GROUP BY point_value;
-```
+\`\`\`
 
 ### Step 3: Test Draft System
 - Create draft session

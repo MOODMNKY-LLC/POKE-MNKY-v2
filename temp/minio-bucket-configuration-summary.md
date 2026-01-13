@@ -14,7 +14,7 @@
 - ✅ `poke-mnky` - Public read access configured
 
 Both buckets now have policies allowing public `GetObject` access:
-```json
+\`\`\`json
 {
   "Version": "2012-10-17",
   "Statement": [
@@ -26,7 +26,7 @@ Both buckets now have policies allowing public `GetObject` access:
     }
   ]
 }
-```
+\`\`\`
 
 ### ⚠️ Requires Manual Configuration
 
@@ -55,21 +55,21 @@ Both buckets now have policies allowing public `GetObject` access:
 ### Option 2: Global CORS via Environment Variable
 
 If MinIO is running in TrueNAS Scale, you can set:
-```bash
+\`\`\`bash
 MINIO_API_CORS_ALLOW_ORIGIN=*
-```
+\`\`\`
 
 Or for specific domains:
-```bash
+\`\`\`bash
 MINIO_API_CORS_ALLOW_ORIGIN=https://yourdomain.com,https://app.yourdomain.com
-```
+\`\`\`
 
 ### Option 3: CORS via Reverse Proxy (Nginx/Cloudflare)
 
 Since you're already using Cloudflare, you can configure CORS headers at the Cloudflare level:
 
 **Cloudflare Workers or Transform Rules:**
-```javascript
+\`\`\`javascript
 // Add CORS headers for MinIO responses
 addEventListener('fetch', event => {
   event.respondWith(handleRequest(event.request))
@@ -83,7 +83,7 @@ async function handleRequest(request) {
   newResponse.headers.set('Access-Control-Allow-Headers', '*')
   return newResponse
 }
-```
+\`\`\`
 
 ---
 
@@ -92,9 +92,9 @@ async function handleRequest(request) {
 ### 1. Test Bucket Policy
 
 Run the test script to verify policies:
-```bash
+\`\`\`bash
 pnpm tsx scripts/test-minio-connection.ts
-```
+\`\`\`
 
 Expected output:
 - ✅ Bucket policy found
@@ -104,13 +104,13 @@ Expected output:
 
 After configuring CORS, test with a browser:
 
-```javascript
+\`\`\`javascript
 // In browser console (on your app domain)
 fetch('http://10.0.0.5:30090/pokedex-sprites/test-file.txt')
   .then(r => r.text())
   .then(console.log)
   .catch(console.error)
-```
+\`\`\`
 
 If CORS is configured correctly, the request should succeed. If not, you'll see a CORS error.
 
@@ -118,7 +118,7 @@ If CORS is configured correctly, the request should succeed. If not, you'll see 
 
 Create a test upload script to verify write permissions:
 
-```typescript
+\`\`\`typescript
 // Test upload
 const testFile = Buffer.from('test content')
 const uploadCmd = new PutObjectCommand({
@@ -127,7 +127,7 @@ const uploadCmd = new PutObjectCommand({
   Body: testFile,
 })
 await s3Client.send(uploadCmd)
-```
+\`\`\`
 
 ---
 
@@ -160,7 +160,7 @@ await s3Client.send(uploadCmd)
 
 If you need to configure MinIO via SSH:
 
-```bash
+\`\`\`bash
 # SSH into TrueNAS
 ssh root@10.0.0.5
 # Password: MOODMNKY88
@@ -168,7 +168,7 @@ ssh root@10.0.0.5
 # Check MinIO configuration
 # (Location depends on TrueNAS Scale setup)
 # Usually in: /mnt/pool/dataset/minio/config/
-```
+\`\`\`
 
 ---
 

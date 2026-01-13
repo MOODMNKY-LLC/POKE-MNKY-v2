@@ -24,7 +24,7 @@ Added `continueUntilComplete` parameter to automatically process chunks until co
 ## Usage
 
 ### Process One Chunk (Default)
-```bash
+\`\`\`bash
 curl -X POST http://127.0.0.1:3000/api/sync/pokepedia \
   -H "Content-Type: application/json" \
   -d '{
@@ -32,10 +32,10 @@ curl -X POST http://127.0.0.1:3000/api/sync/pokepedia \
     "phase": "master",
     "priority": "critical"
   }'
-```
+\`\`\`
 
 ### Continue Until Complete
-```bash
+\`\`\`bash
 curl -X POST http://127.0.0.1:3000/api/sync/pokepedia \
   -H "Content-Type: application/json" \
   -d '{
@@ -44,7 +44,7 @@ curl -X POST http://127.0.0.1:3000/api/sync/pokepedia \
     "priority": "critical",
     "continueUntilComplete": true
   }'
-```
+\`\`\`
 
 ## How It Works
 

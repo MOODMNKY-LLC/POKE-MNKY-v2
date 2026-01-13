@@ -30,14 +30,14 @@ The script has been enhanced to log all failed uploads to `sprite-upload-errors.
 - Retry the 8,149 failed files
 - Capture detailed error information
 
-```powershell
+\`\`\`powershell
 # Set production credentials
 $env:NEXT_PUBLIC_SUPABASE_URL="https://chmrszrwlfeqovwxyrmt.supabase.co"
 $env:SUPABASE_SERVICE_ROLE_KEY="***REMOVED***"
 
 # Re-run upload (will skip successful uploads)
 pnpm tsx scripts/mirror-sprites-to-storage.ts
-```
+\`\`\`
 
 ### 2. Analyze Error Patterns
 
@@ -99,7 +99,7 @@ Based on the 13.8% error rate, potential causes:
 ### 2. Update Sprite URLs
 Update `pokepedia_pokemon` table to use storage URLs:
 
-```sql
+\`\`\`sql
 -- Update sprite paths to use Supabase Storage URLs
 UPDATE pokepedia_pokemon
 SET sprite_front_default_path = 
@@ -107,7 +107,7 @@ SET sprite_front_default_path =
   sprite_front_default_path
 WHERE sprite_front_default_path IS NOT NULL 
   AND sprite_front_default_path NOT LIKE 'https://%';
-```
+\`\`\`
 
 ### 3. Verify Production API
 - Test Pokepedia API endpoints with production data

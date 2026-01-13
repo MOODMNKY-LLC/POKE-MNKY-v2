@@ -57,25 +57,25 @@
 
 ### Running Scripts with Local Instance
 
-```bash
+\`\`\`bash
 # Test configuration
 pnpm tsx --env-file=.env.local scripts/test-local-pokeapi.ts
 
 # Run sync scripts
 pnpm tsx --env-file=.env.local scripts/sync-pokemon-from-api.ts
-```
+\`\`\`
 
 ### Edge Functions
 
 To use local instance with Edge Functions:
 
-```bash
+\`\`\`bash
 # Set secret for local development
 supabase secrets set POKEAPI_BASE_URL=http://localhost/api/v2
 
 # Deploy Edge Functions
 supabase functions deploy sync-pokepedia
-```
+\`\`\`
 
 **Note**: Edge Functions running in production should use the production URL.
 

@@ -45,7 +45,7 @@ We've implemented an AI-powered parser using OpenAI GPT-5.2 models to intelligen
 ## Implementation Details
 
 ### Schema Definition
-```typescript
+\`\`\`typescript
 const ParsedTeamDataSchema = z.object({
   name: z.string(),
   coach_name: z.string(),
@@ -59,10 +59,10 @@ const ParsedTeamDataSchema = z.object({
   inferred_fields: z.array(z.string()).optional(),
   warnings: z.array(z.string()).optional(),
 })
-```
+\`\`\`
 
 ### Usage
-```typescript
+\`\`\`typescript
 const responseFormat = zodResponseFormat(ParsedTeamsResponseSchema, "parsed_teams")
 
 const response = await openai.chat.completions.create({
@@ -71,7 +71,7 @@ const response = await openai.chat.completions.create({
   response_format: responseFormat,
   temperature: 0.3,
 })
-```
+\`\`\`
 
 ## Alternative Approaches Considered
 

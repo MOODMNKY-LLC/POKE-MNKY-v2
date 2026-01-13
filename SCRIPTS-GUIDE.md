@@ -27,9 +27,9 @@ This guide explains all available scripts and when to use them.
 - After cache expiry (30 days)
 
 **Usage:**
-```bash
+\`\`\`bash
 pnpm exec tsx scripts/pre-cache-competitive-pokemon.ts
-```
+\`\`\`
 
 **Requirements:**
 - `NEXT_PUBLIC_SUPABASE_URL`
@@ -51,9 +51,9 @@ pnpm exec tsx scripts/pre-cache-competitive-pokemon.ts
 - Overnight maintenance
 
 **Usage:**
-```bash
+\`\`\`bash
 pnpm exec tsx scripts/full-sync-pokemon.ts
-```
+\`\`\`
 
 **Features:**
 - Rate limiting: 100ms delay between requests (respects PokéAPI limits)
@@ -82,9 +82,9 @@ pnpm exec tsx scripts/full-sync-pokemon.ts
 - To maintain cache freshness
 
 **Usage:**
-```bash
+\`\`\`bash
 pnpm exec tsx scripts/incremental-sync-pokemon.ts
-```
+\`\`\`
 
 **Benefits:**
 - Minimal API usage (5-20 requests/day typically)
@@ -96,10 +96,10 @@ pnpm exec tsx scripts/incremental-sync-pokemon.ts
 - `SUPABASE_SERVICE_ROLE_KEY`
 
 **Setup Cron Job (optional):**
-```bash
+\`\`\`bash
 # Add to crontab (runs daily at 3 AM UTC)
 0 3 * * * cd /path/to/project && pnpm exec tsx scripts/incremental-sync-pokemon.ts
-```
+\`\`\`
 
 ---
 
@@ -123,13 +123,13 @@ pnpm exec tsx scripts/incremental-sync-pokemon.ts
 - In development: separate terminal window
 
 **Usage:**
-```bash
+\`\`\`bash
 # Development (separate terminal)
 pnpm exec tsx scripts/start-discord-bot.ts
 
 # Or via npm script
 pnpm run discord-bot
-```
+\`\`\`
 
 **Requirements:**
 - `DISCORD_BOT_TOKEN` - Discord bot token
@@ -165,7 +165,7 @@ pnpm run discord-bot
 
 All scripts require these environment variables:
 
-```bash
+\`\`\`bash
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=https://chmrszrwlfeqovwxyrmt.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
@@ -174,28 +174,28 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 DISCORD_BOT_TOKEN=your-discord-bot-token
 DISCORD_CLIENT_ID=your-discord-client-id
 DISCORD_CLIENT_SECRET=your-discord-client-secret
-```
+\`\`\`
 
 ---
 
 ## Monitoring Sync Jobs
 
 Check sync job status:
-```sql
+\`\`\`sql
 SELECT * FROM sync_jobs 
 ORDER BY started_at DESC 
 LIMIT 10;
-```
+\`\`\`
 
 Check Pokemon cache status:
-```sql
+\`\`\`sql
 SELECT 
   COUNT(*) as total_cached,
   MIN(pokemon_id) as min_id,
   MAX(pokemon_id) as max_id,
   COUNT(*) FILTER (WHERE expires_at > NOW()) as active_cache
 FROM pokemon_cache;
-```
+\`\`\`
 
 ---
 

@@ -7,7 +7,7 @@
 - **Library**: `pokenode-ts` (MainClient)
 - **Rate Limits**: More lenient, allows faster syncing
 - **Data Structure**: Single REST call returns Pokemon with nested relationships:
-  ```json
+  \`\`\`json
   {
     "id": 1,
     "name": "bulbasaur",
@@ -16,7 +16,7 @@
     "stats": [...],      // Included in response
     "sprites": {...}
   }
-  ```
+  \`\`\`
 - **Sync Pattern**: 
   - 1 REST call per Pokemon = 1025 calls total
   - All relationship data included in single response
@@ -30,7 +30,7 @@
   - Sporadic maintenance
   - Less stable than REST
 - **Data Structure**: Single query can fetch Pokemon + relationships:
-  ```graphql
+  \`\`\`graphql
   query {
     pokemon_v2_pokemon(where: {id: {_eq: 1}}) {
       name
@@ -42,7 +42,7 @@
       }
     }
   }
-  ```
+  \`\`\`
 
 ## Comparison
 

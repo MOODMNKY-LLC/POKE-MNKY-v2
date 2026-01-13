@@ -34,7 +34,7 @@ The Pokemon showcase cards display **more than just images**:
 
 **File**: `lib/pokemon-api-enhanced.ts`
 
-```typescript
+\`\`\`typescript
 // Only cache if service role key available (server-side)
 const shouldCache = !!process.env.SUPABASE_SERVICE_ROLE_KEY || 
                     process.env.ENABLE_POKEMON_CACHE === "true"
@@ -45,7 +45,7 @@ if (shouldCache) {
 } else {
   // Client-side: Skip caching, just return data
 }
-```
+\`\`\`
 
 ## Result
 

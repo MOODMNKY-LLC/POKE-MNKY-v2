@@ -22,7 +22,7 @@ The Edge Function was connecting to `http://kong:8000` (internal Docker network 
 ### 1. Enhanced Logging
 Added comprehensive logging to validate Edge Function database connection:
 
-```typescript
+\`\`\`typescript
 // Validate Supabase client initialization
 console.log("[Edge Function] Supabase client initialized:", {
   url: supabaseUrl,
@@ -33,12 +33,12 @@ console.log("[Edge Function] Supabase client initialized:", {
   serviceKeyLength: supabaseServiceKey.length,
   serviceKeyLooksValid: supabaseServiceKey.length > 50,
 })
-```
+\`\`\`
 
 ### 2. Database Validation
 Added validation to detect database mismatches:
 
-```typescript
+\`\`\`typescript
 // Validate we're connected to the correct database
 if (isLocal && testData && testData.length > 0) {
   const pokepediaJobs = testData.filter((j: any) => j.sync_type === "pokepedia")
@@ -56,7 +56,7 @@ if (isLocal && testData && testData.length > 0) {
       : null,
   })
 }
-```
+\`\`\`
 
 ## Expected Local Values
 
@@ -67,17 +67,17 @@ From `supabase status`:
 ## Next Steps
 
 1. **Create Local Environment File**: Use explicit local values
-   ```bash
+   \`\`\`bash
    # Create supabase/.env.local with local Supabase values
    # This ensures Edge Function uses correct local database
-   ```
+   \`\`\`
 
 2. **Restart Edge Function Server**: Use the env file to ensure correct connection
-   ```bash
+   \`\`\`bash
    # Stop current Edge Function server (Ctrl+C)
    # Then restart with explicit env file:
    supabase functions serve sync-pokepedia --no-verify-jwt --env-file supabase/.env.local
-   ```
+   \`\`\`
    
    **Important**: The `--env-file` flag ensures the Edge Function uses `http://127.0.0.1:54321` instead of `http://kong:8000`, which guarantees it connects to the correct local database instance.
 
@@ -106,7 +106,7 @@ From `supabase status`:
 ## Verification
 
 After restarting the Edge Function, logs should show:
-```
+\`\`\`
 [Edge Function] Supabase client initialized: {
   url: "http://kong:8000" or "http://127.0.0.1:54321",
   urlIsLocal: true,
@@ -126,6 +126,6 @@ After restarting the Edge Function, logs should show:
   runningJobIds: [],
   warning: null
 }
-```
+\`\`\`
 
 If you see different job IDs or counts, there's still a database mismatch that needs investigation.

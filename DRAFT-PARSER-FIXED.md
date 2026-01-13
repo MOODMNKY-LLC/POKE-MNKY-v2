@@ -55,9 +55,9 @@ Updated `mapTeamColumns()` to use `pokemonColumnIndex = col + 1` instead of `col
 
 ## Test Results
 
-```
+\`\`\`
 ✅ Successfully parsed 168 draft picks
 ⚠️ Teams not found in database (expected - needs team matching strategy)
-```
+\`\`\`
 
 The parser is now functionally correct and ready for team matching integration!

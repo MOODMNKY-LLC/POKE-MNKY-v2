@@ -33,15 +33,15 @@
 
 After sharing the spreadsheet, test access:
 
-```bash
+\`\`\`bash
 npx tsx scripts/test-scopes-direct.ts 1sVQD6_CsoYtGmguRhc07IDlnz2V4Q2uWTt8Owpl5JE0
-```
+\`\`\`
 
 **Expected Output**:
-```
+\`\`\`
 ✅ Success! Spreadsheet: "[Spreadsheet Name]"
 ✅ Sheets found: [number]
-```
+\`\`\`
 
 ---
 
@@ -51,12 +51,12 @@ npx tsx scripts/test-scopes-direct.ts 1sVQD6_CsoYtGmguRhc07IDlnz2V4Q2uWTt8Owpl5J
 2. ⚠️ **Share spreadsheet** - REQUIRED (see above)
 3. 🧪 **Test access** - After sharing
 4. 🔄 **Update database** (optional):
-   ```sql
+   \`\`\`sql
    UPDATE google_sheets_config
    SET spreadsheet_id = '1sVQD6_CsoYtGmguRhc07IDlnz2V4Q2uWTt8Owpl5JE0',
        updated_at = NOW()
    WHERE id = (SELECT id FROM google_sheets_config ORDER BY created_at DESC LIMIT 1);
-   ```
+   \`\`\`
 
 ---
 

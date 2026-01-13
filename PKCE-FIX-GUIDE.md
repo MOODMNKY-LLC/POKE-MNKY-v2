@@ -47,7 +47,7 @@ The PKCE (Proof Key for Code Exchange) code verifier must be stored in **cookies
 ## How PKCE Flow Works Now
 
 ### 1. User Initiates OAuth (Client-side)
-```
+\`\`\`
 User clicks "Continue with Discord"
   ↓
 app/auth/login/page.tsx (Client Component)
@@ -57,10 +57,10 @@ createBrowserClient().signInWithOAuth()
 @supabase/ssr stores PKCE code verifier in cookies
   ↓
 Redirects to Discord
-```
+\`\`\`
 
 ### 2. Discord Authorization (External)
-```
+\`\`\`
 Discord authorization page
   ↓
 User authorizes app
@@ -70,10 +70,10 @@ Discord redirects to: http://127.0.0.1:54321/auth/v1/callback?code=XXX
 Supabase processes callback
   ↓
 Supabase redirects to: http://localhost:3000/auth/callback?code=XXX
-```
+\`\`\`
 
 ### 3. Code Exchange (Server-side) ✅ FIXED
-```
+\`\`\`
 GET /auth/callback?code=XXX
   ↓
 app/auth/callback/route.ts (Route Handler - Server-side)
@@ -85,10 +85,10 @@ exchangeCodeForSession(code) - Success! ✅
 Session created, cookies set
   ↓
 Redirect to home page
-```
+\`\`\`
 
 ### 4. Session Maintenance (Middleware)
-```
+\`\`\`
 Every request
   ↓
 middleware.ts runs
@@ -96,7 +96,7 @@ middleware.ts runs
 updateSession() refreshes auth cookies
   ↓
 Session persists across page navigations ✅
-```
+\`\`\`
 
 ---
 
@@ -120,11 +120,11 @@ Session persists across page navigations ✅
 
 ### Step 1: Restart Development Server
 
-```bash
+\`\`\`bash
 # Stop current server (Ctrl+C)
 # Restart
 pnpm dev
-```
+\`\`\`
 
 ### Step 2: Test Discord OAuth Flow
 

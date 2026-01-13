@@ -3,11 +3,11 @@
 ## What's Happening
 
 The logs show:
-```
+\`\`\`
 authHeaderPresent: true
 hasAuth: false
 authPrefix: "undefined..."
-```
+\`\`\`
 
 This means:
 - ✅ The `authorization` header **key** exists in the request
@@ -32,10 +32,10 @@ With `--no-verify-jwt`:
 
 The Edge Function creates its own Supabase client with the service role key:
 
-```typescript
+\`\`\`typescript
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
-```
+\`\`\`
 
 So even if the Authorization header is stripped, the function works perfectly fine.
 

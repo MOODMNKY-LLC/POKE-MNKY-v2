@@ -37,7 +37,7 @@ Refactored the Pokepedia sync component to provide comprehensive status informat
 - `checkPokeAPI()`: Compares local vs remote counts
 
 **Status Interface:**
-```typescript
+\`\`\`typescript
 interface ComprehensiveStatus {
   masterData: MasterDataCounts
   pokemon: PokemonDataCounts
@@ -50,7 +50,7 @@ interface ComprehensiveStatus {
   loading: boolean
   error: string | null
 }
-```
+\`\`\`
 
 ---
 
@@ -129,7 +129,7 @@ Displays counts for:
 
 ## 📊 Component Structure
 
-```
+\`\`\`
 PokepediaSyncProvider
 ├── Sync Banner (existing)
 │   └── Info Button (NEW) → Opens Comprehensive Status Modal
@@ -141,7 +141,7 @@ PokepediaSyncProvider
         ├── Pokemon Data Counts
         ├── Relationship Counts
         └── PokeAPI Comparison (expandable)
-```
+\`\`\`
 
 ---
 
@@ -235,7 +235,7 @@ PokepediaSyncProvider
 
 ### Hook Usage
 
-```typescript
+\`\`\`typescript
 import { usePokepediaComprehensiveStatus } from "@/hooks/use-pokepedia-comprehensive-status"
 
 function MyComponent() {
@@ -252,7 +252,7 @@ function MyComponent() {
   // Check PokeAPI
   await checkPokeAPI()
 }
-```
+\`\`\`
 
 ---
 

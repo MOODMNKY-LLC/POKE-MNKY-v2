@@ -228,7 +228,7 @@
 ## 📝 Technical Notes
 
 ### Pokemon Data Flow
-```
+\`\`\`
 User Request → pokemon-utils.ts → Check pokemon_cache
                                     ↓
                             Cache Hit? → Return parsed data
@@ -236,23 +236,23 @@ User Request → pokemon-utils.ts → Check pokemon_cache
                             Cache Miss → getPokemonDataExtended()
                                     ↓
                             Fetch from PokéAPI → Cache → Return
-```
+\`\`\`
 
 ### Platform Kit Architecture
-```
+\`\`\`
 Admin Dashboard → SupabaseManager Dialog → Platform Kit Tabs
                                               ↓
                                     Supabase Proxy API
                                               ↓
                                     Supabase Management API
-```
+\`\`\`
 
 ### Discord Admin Flow
-```
+\`\`\`
 Admin → Discord Config Page → View/Test Settings
       → Role Sync Page → Map Roles → Sync
       → Webhooks Page → CRUD Webhooks → Test
-```
+\`\`\`
 
 ---
 

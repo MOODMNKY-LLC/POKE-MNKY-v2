@@ -27,7 +27,7 @@
 - Scripts directory for utilities
 
 ### Architecture
-```
+\`\`\`
 POKE-MNKY-v2/
 ├── app/              # Next.js application (deploy to Vercel)
 ├── lib/              # Shared libraries
@@ -35,7 +35,7 @@ POKE-MNKY-v2/
 │   └── start-discord-bot.ts  # Discord bot entry point
 ├── supabase/        # Database migrations
 └── Dockerfile.discord-bot  # Discord bot Docker config
-```
+\`\`\`
 
 ### Deployment Strategy
 1. **Next.js App** → Deploy to Vercel/Netlify
@@ -68,7 +68,7 @@ POKE-MNKY-v2/
    - Build from `Dockerfile.discord-bot`
 
 2. **Set Environment Variables:**
-   ```
+   \`\`\`
    DISCORD_BOT_TOKEN=your-token
    DISCORD_CLIENT_ID=your-client-id
    DISCORD_CLIENT_SECRET=your-secret
@@ -76,7 +76,7 @@ POKE-MNKY-v2/
    NEXT_PUBLIC_SUPABASE_URL=https://chmrszrwlfeqovwxyrmt.supabase.co
    SUPABASE_SERVICE_ROLE_KEY=your-key
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-   ```
+   \`\`\`
 
 3. **Deploy!**
 
@@ -120,7 +120,7 @@ See `COOLIFY-DEPLOYMENT.md` for detailed instructions.
 ## 🔍 Monitoring Queries
 
 ### Check Sync Progress
-```sql
+\`\`\`sql
 SELECT 
   job_id,
   status,
@@ -131,17 +131,17 @@ SELECT
 FROM sync_jobs 
 ORDER BY started_at DESC 
 LIMIT 1;
-```
+\`\`\`
 
 ### Check Cache Status
-```sql
+\`\`\`sql
 SELECT 
   COUNT(*) as total_cached,
   MIN(pokemon_id) as min_id,
   MAX(pokemon_id) as max_id,
   COUNT(*) FILTER (WHERE expires_at > NOW()) as active_cache
 FROM pokemon_cache;
-```
+\`\`\`
 
 ---
 

@@ -25,7 +25,7 @@ Updated the Pokemon image system to use **official artwork** (higher quality ill
   - Final fallback to GitHub: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/{id}.png`
 
 **Code:**
-```typescript
+\`\`\`typescript
 export function getFallbackSpriteUrl(
   pokemonId: number, 
   shiny = false, 
@@ -39,7 +39,7 @@ export function getFallbackSpriteUrl(
   }
   // ... rest of sprite handling
 }
-```
+\`\`\`
 
 ---
 
@@ -52,13 +52,13 @@ export function getFallbackSpriteUrl(
 - Removed `pixelated` CSS class when displaying artwork (artwork is not pixel art)
 
 **Code:**
-```typescript
+\`\`\`typescript
 const fallbackMode = mode === "artwork" ? "artwork" : mode === "back" ? "back" : "front"
 spriteUrl = getFallbackSpriteUrl(pokemonId, mode === "shiny", fallbackMode)
 
 // In Image component:
 className={mode === "artwork" ? "" : "pixelated"}
-```
+\`\`\`
 
 ---
 
@@ -71,7 +71,7 @@ className={mode === "artwork" ? "" : "pixelated"}
 - Now displays high-quality official artwork instead of pixel sprites
 
 **Code:**
-```typescript
+\`\`\`typescript
 <PokemonSprite 
   name={pokemon.name} 
   pokemonId={pokemon.id} 
@@ -79,7 +79,7 @@ className={mode === "artwork" ? "" : "pixelated"}
   mode="artwork" 
   className="drop-shadow-2xl animate-scale-in" 
 />
-```
+\`\`\`
 
 ---
 

@@ -35,11 +35,11 @@ If you need to set **custom** environment variables (not `SUPABASE_` prefixed), 
 2. Use `supabase secrets set --env-file path/to/env-file` to set them
 
 Example:
-```bash
+\`\`\`bash
 # Custom variables only (no SUPABASE_ prefix)
 MY_API_KEY=abc123
 EXTERNAL_SERVICE_URL=https://api.example.com
-```
+\`\`\`
 
 ## Reference
 

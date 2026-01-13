@@ -79,14 +79,14 @@ For our bulk sync operations in Supabase Edge Functions, **direct PokeAPI calls 
 
 ### Option 1: Types Only (Recommended)
 
-```typescript
+\`\`\`typescript
 // Import types from PokeNode-TS (types only, no runtime)
 import type { Pokemon, PokemonSpecies, Type, Ability } from 'pokenode-ts'
 
 // Use direct fetch with type safety
 const response = await fetch(`${POKEAPI_BASE_URL}/pokemon/1`)
 const pokemon: Pokemon = await response.json()
-```
+\`\`\`
 
 **Pros:**
 - Type safety without runtime overhead
@@ -101,7 +101,7 @@ const pokemon: Pokemon = await response.json()
 
 Create our own TypeScript types based on PokeAPI schema:
 
-```typescript
+\`\`\`typescript
 // types.ts - Custom types matching PokeAPI
 export interface Pokemon {
   id: number
@@ -112,7 +112,7 @@ export interface Pokemon {
 // Use in Edge Function
 const response = await fetch(`${POKEAPI_BASE_URL}/pokemon/1`)
 const pokemon: Pokemon = await response.json()
-```
+\`\`\`
 
 **Pros:**
 - Full control over types
@@ -126,7 +126,7 @@ const pokemon: Pokemon = await response.json()
 
 ### Option 3: Use PokeNode-TS for Client-Side Only
 
-```typescript
+\`\`\`typescript
 // Edge Function: Direct fetch (bulk sync)
 const response = await fetch(`${POKEAPI_BASE_URL}/pokemon/?limit=1000`)
 
@@ -134,7 +134,7 @@ const response = await fetch(`${POKEAPI_BASE_URL}/pokemon/?limit=1000`)
 import { PokemonClient } from 'pokenode-ts'
 const client = new PokemonClient()
 const pokemon = await client.getPokemonById(1)
-```
+\`\`\`
 
 **Pros:**
 - Right tool for each job

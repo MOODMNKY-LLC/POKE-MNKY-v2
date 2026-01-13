@@ -6,7 +6,7 @@
 **MCP Endpoint**: `http://127.0.0.1:54321/mcp`
 
 Add to `.cursor/mcp.json`:
-```json
+\`\`\`json
 {
   "mcpServers": {
     "supabase-dev": {
@@ -14,7 +14,7 @@ Add to `.cursor/mcp.json`:
     }
   }
 }
-```
+\`\`\`
 
 ### 2. Migrations Created
 - ✅ `20260112000003_create_comprehensive_pokedex.sql` - Core schema (15 tables)
@@ -27,12 +27,12 @@ Add to `.cursor/mcp.json`:
 ## 🚀 Usage
 
 ### Apply Migrations
-```bash
+\`\`\`bash
 supabase db push
-```
+\`\`\`
 
 ### Sync Comprehensive Pokepedia
-```bash
+\`\`\`bash
 # Sync everything (~4 hours)
 npx tsx scripts/comprehensive-pokepedia-sync.ts all
 
@@ -41,7 +41,7 @@ npx tsx scripts/comprehensive-pokepedia-sync.ts master
 
 # Sync Pokemon only (~3 hours)
 npx tsx scripts/comprehensive-pokepedia-sync.ts pokemon 1 1025
-```
+\`\`\`
 
 ## 📊 What Gets Synced
 

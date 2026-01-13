@@ -23,9 +23,9 @@ A comprehensive script that verifies:
 - Helper functions exist (`get_pokepedia_queue_stats`, etc.)
 
 **Usage**:
-```bash
+\`\`\`bash
 tsx --env-file=.env.local scripts/activate-queue-system.ts
-```
+\`\`\`
 
 ### 2. Activation Guide ✅
 **File**: `scripts/activate-queue-system.md`
@@ -51,9 +51,9 @@ End-to-end test script that:
 - Checks sync progress
 
 **Usage**:
-```bash
+\`\`\`bash
 tsx --env-file=.env.local scripts/test-queue-system.ts
-```
+\`\`\`
 
 ### 4. Existing Infrastructure Verified ✅
 
@@ -79,21 +79,21 @@ tsx --env-file=.env.local scripts/test-queue-system.ts
 ### Quick Start
 
 1. **Run activation check**:
-   ```bash
+   \`\`\`bash
    tsx --env-file=.env.local scripts/activate-queue-system.ts
-   ```
+   \`\`\`
 
 2. **Deploy Edge Functions**:
-   ```bash
+   \`\`\`bash
    supabase functions deploy pokepedia-seed
    supabase functions deploy pokepedia-worker
    supabase functions deploy pokepedia-sprite-worker
-   ```
+   \`\`\`
 
 3. **Test the system**:
-   ```bash
+   \`\`\`bash
    tsx --env-file=.env.local scripts/test-queue-system.ts
-   ```
+   \`\`\`
 
 4. **Configure cron jobs** (see activation guide)
 
@@ -103,7 +103,7 @@ tsx --env-file=.env.local scripts/test-queue-system.ts
 
 ## System Architecture
 
-```
+\`\`\`
 ┌─────────────────┐
 │  Manual Trigger │─── OR ───┐
 │  (pokepedia-seed)│         │
@@ -133,7 +133,7 @@ tsx --env-file=.env.local scripts/test-queue-system.ts
                   │
                   └──► Supabase Storage
                   └──► pokepedia_assets
-```
+\`\`\`
 
 ---
 

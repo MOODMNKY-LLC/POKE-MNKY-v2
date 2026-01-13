@@ -8,7 +8,7 @@
 
 ## 🏗️ Architecture
 
-```
+\`\`\`
 ┌─────────────────────────────────────────────────────────┐
 │                    APP START                             │
 └────────────────────┬────────────────────────────────────┘
@@ -45,7 +45,7 @@
         │ - Pokemon 51-1025                       │   → Realtime updates
         │ - Evolution chains                      │
         └─────────────────────────────────────────┘
-```
+\`\`\`
 
 ## 📊 Components
 
@@ -81,29 +81,29 @@
 ## 🚀 Installation
 
 ### Step 1: Install Dexie
-```bash
+\`\`\`bash
 pnpm add dexie
-```
+\`\`\`
 
 ### Step 2: Apply Migrations
-```bash
+\`\`\`bash
 supabase db push
-```
+\`\`\`
 
 ### Step 3: Deploy Edge Function
-```bash
+\`\`\`bash
 supabase functions deploy sync-pokepedia
-```
+\`\`\`
 
 ### Step 4: Setup Cron (Optional)
 In Supabase Dashboard → Database → SQL Editor:
-```sql
+\`\`\`sql
 SELECT cron.schedule(
   'sync-pokepedia-chunks',
   '*/5 * * * *',
   $$ SELECT net.http_post(...) $$
 );
-```
+\`\`\`
 
 ## ✅ Features
 
@@ -129,26 +129,26 @@ Once critical data synced:
 
 ### Automatic (On App Start)
 Already integrated in `app/layout.tsx`:
-```tsx
+\`\`\`tsx
 <PokepediaSyncProvider autoStart={true}>
   {children}
 </PokepediaSyncProvider>
-```
+\`\`\`
 
 ### Manual Sync
-```tsx
+\`\`\`tsx
 import { usePokepediaSyncContext } from "@/components/pokepedia-sync-provider"
 
 const { startSync, status, progress, localCount } = usePokepediaSyncContext()
-```
+\`\`\`
 
 ### Offline-First Data Access
-```tsx
+\`\`\`tsx
 import { getPokemonOfflineFirst } from "@/lib/pokepedia-client"
 
 const pokemon = await getPokemonOfflineFirst(25) // Pikachu
 // Checks: IndexedDB → Supabase → PokeAPI
-```
+\`\`\`
 
 ## 📊 Sync Timeline
 
@@ -164,13 +164,13 @@ const pokemon = await getPokemonOfflineFirst(25) // Pikachu
 ## 🔄 Data Flow
 
 ### Sync Flow
-```
+\`\`\`
 Client Hook → Supabase → IndexedDB
 Edge Function → PokeAPI → Supabase → (Client polls) → IndexedDB
-```
+\`\`\`
 
 ### Access Flow
-```
+\`\`\`
 getPokemonOfflineFirst(id)
     ↓
 IndexedDB (instant, offline) ✅
@@ -178,7 +178,7 @@ IndexedDB (instant, offline) ✅
 Supabase (fast, online) ✅
     ↓ Miss
 PokeAPI (slow, online) ✅
-```
+\`\`\`
 
 ---
 

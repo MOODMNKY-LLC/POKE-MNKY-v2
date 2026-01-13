@@ -12,15 +12,15 @@
 ## 🚀 Start Services
 
 ### Terminal 1: Next.js App
-```bash
+\`\`\`bash
 pnpm dev
-```
+\`\`\`
 **Expected:** App starts on `http://localhost:3000`
 
 ### Terminal 2: Discord Bot
-```bash
+\`\`\`bash
 pnpm run discord-bot:dev
-```
+\`\`\`
 **Expected:** Bot logs in and shows "Discord bot logged in as..."
 
 ---
@@ -130,7 +130,7 @@ pnpm run discord-bot:dev
 
 ## 🎯 Quick Start
 
-```bash
+\`\`\`bash
 # Terminal 1: Start Next.js
 pnpm dev
 
@@ -141,6 +141,6 @@ pnpm run discord-bot:dev
 /standings
 /matchups week:1
 /pokemon name:Pikachu
-```
+\`\`\`
 
 **Ready to test!** 🚀

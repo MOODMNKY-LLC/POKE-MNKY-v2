@@ -4,7 +4,7 @@ Downloads sprites from PokéAPI and uploads them to Supabase Storage bucket `pok
 
 ## Usage
 
-```bash
+\`\`\`bash
 # Manual trigger
 curl -X POST https://<project-ref>.supabase.co/functions/v1/pokepedia-sprite-worker \
   -H "Authorization: Bearer <anon-key>" \
@@ -14,7 +14,7 @@ curl -X POST https://<project-ref>.supabase.co/functions/v1/pokepedia-sprite-wor
     "visibilityTimeout": 600,
     "concurrency": 3
   }'
-```
+\`\`\`
 
 ## Parameters
 
@@ -40,7 +40,7 @@ Example: `pokemon/25/sprites/pokemon/other/official-artwork/25.png`
 
 ## Response
 
-```json
+\`\`\`json
 {
   "ok": true,
   "processed": [
@@ -53,4 +53,4 @@ Example: `pokemon/25/sprites/pokemon/other/official-artwork/25.png`
   ],
   "failed": []
 }
-```
+\`\`\`

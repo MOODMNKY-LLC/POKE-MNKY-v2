@@ -39,20 +39,20 @@ Successfully updated the `sync-pokepedia` edge function to align with the curren
 - Better tracking for all phases (not just pokemon)
 
 **Before**:
-```typescript
+\`\`\`typescript
 // Only used chunks for progress
 progress = (newCurrent / job.total_chunks) * 100
-```
+\`\`\`
 
 **After**:
-```typescript
+\`\`\`typescript
 // Prioritizes items synced (more accurate)
 if (job.end_id > 0 && newSynced > 0) {
   progress = (newSynced / job.end_id) * 100  // Most accurate
 } else if (job.total_chunks > 0) {
   progress = (newCurrent / job.total_chunks) * 100  // Fallback
 }
-```
+\`\`\`
 
 ### 3. Sync Status Component Updates ✅
 
@@ -83,7 +83,7 @@ if (job.end_id > 0 && newSynced > 0) {
 
 1. **Fetches Pokemon data** from PokeAPI (with ETag caching)
 2. **Stores canonical data** in `pokeapi_resources`:
-   ```typescript
+   \`\`\`typescript
    {
      resource_type: "pokemon",
      resource_key: "25",
@@ -94,10 +94,10 @@ if (job.end_id > 0 && newSynced > 0) {
      fetched_at: "...",
      updated_at: "..."
    }
-   ```
+   \`\`\`
 
 3. **Builds projection** in `pokepedia_pokemon`:
-   ```typescript
+   \`\`\`typescript
    {
      id: 25,
      name: "pikachu",
@@ -109,7 +109,7 @@ if (job.end_id > 0 && newSynced > 0) {
      ability_primary: "static",
      ...
    }
-   ```
+   \`\`\`
 
 4. **Maintains relationships** in `pokemon_types`, `pokemon_abilities`, `pokemon_stats`
 
@@ -181,7 +181,7 @@ if (job.end_id > 0 && newSynced > 0) {
 - Configuration (env variables)
 
 **Expected Response**:
-```json
+\`\`\`json
 {
   "connected": true,
   "database": {
@@ -195,7 +195,7 @@ if (job.end_id > 0 && newSynced > 0) {
     "isLocal": true
   }
 }
-```
+\`\`\`
 
 ### Verify Sync Status
 

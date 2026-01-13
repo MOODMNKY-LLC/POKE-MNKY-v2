@@ -42,10 +42,10 @@
 ## 🔍 Next Steps to Debug Sync Errors
 
 1. **Check Edge Function Logs**
-   ```bash
+   \`\`\`bash
    # Check terminal output for Edge Function errors
    # Look for specific Pokemon insert failures
-   ```
+   \`\`\`
 
 2. **Verify Master Data Exists**
    - Check if `types`, `abilities`, `stats` tables have data
@@ -53,11 +53,11 @@
    - May need to sync master data first
 
 3. **Test Direct Insert**
-   ```sql
+   \`\`\`sql
    -- Test inserting a Pokemon directly
    INSERT INTO pokemon_comprehensive (pokemon_id, name, base_experience, height, weight)
    VALUES (1, 'bulbasaur', 64, 7, 69);
-   ```
+   \`\`\`
 
 4. **Check Foreign Key Constraints**
    - Verify `pokemon_types`, `pokemon_abilities`, `pokemon_stats` can insert

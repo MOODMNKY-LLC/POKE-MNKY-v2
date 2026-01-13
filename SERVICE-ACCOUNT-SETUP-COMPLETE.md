@@ -48,13 +48,13 @@ If the service account doesn't exist:
 
 Open the downloaded JSON file. It should look like:
 
-```json
+\`\`\`json
 {
   "type": "service_account",
   "project_id": "mood-mnky",
   "private_key_id": "...",
   "private_key": "***REMOVED***\n...\n-----END PRIVATE KEY-----\n"
-```
+\`\`\`
 
 **Important**: 
 - Keep the private key in quotes
@@ -87,9 +87,9 @@ Open the downloaded JSON file. It should look like:
 3. **In the "Add people and groups" field**:
    - **DO NOT** try to search (service account won't appear)
    - **INSTEAD**, **paste the full email address directly**:
-     ```
+     \`\`\`
      poke-mnky-service@mood-mnky.iam.gserviceaccount.com
-     ```
+     \`\`\`
 
 4. **Set permission**:
    - **Viewer** (recommended) - Sufficient for read-only operations
@@ -107,9 +107,9 @@ Open the downloaded JSON file. It should look like:
 
 Run the verification script:
 
-```bash
+\`\`\`bash
 npx tsx scripts/verify-service-account.ts
-```
+\`\`\`
 
 This will check:
 - ✅ Environment variables are set
@@ -124,15 +124,15 @@ This will check:
 
 After sharing the spreadsheet, test access:
 
-```bash
+\`\`\`bash
 npx tsx scripts/test-scopes-direct.ts 1sVQD6_CsoYtGmguRhc07IDlnz2V4Q2uWTt8Owpl5JE0
-```
+\`\`\`
 
 **Expected Output**:
-```
+\`\`\`
 ✅ Success! Spreadsheet: "[Spreadsheet Name]"
 ✅ Sheets found: [number]
-```
+\`\`\`
 
 ---
 
@@ -203,9 +203,9 @@ npx tsx scripts/test-scopes-direct.ts 1sVQD6_CsoYtGmguRhc07IDlnz2V4Q2uWTt8Owpl5J
 6. ✅ APIs must be enabled in Google Cloud Console
 
 **Your Service Account Email** (if it exists):
-```
+\`\`\`
 poke-mnky-service@mood-mnky.iam.gserviceaccount.com
-```
+\`\`\`
 
 **Next Steps**:
 1. Verify service account exists (or create it)

@@ -38,22 +38,22 @@ All `USE_MOCK_DATA` flags have been removed from:
 ### Critical Items (Must Complete Before First Use)
 
 #### 1. Run Database Migrations
-```sql
+\`\`\`sql
 -- In Supabase SQL Editor:
 -- 1. Copy contents of scripts/002_enhanced_schema.sql
 -- 2. Execute
 -- 3. Copy contents of scripts/003_add_extended_pokemon_fields.sql
 -- 4. Execute
-```
+\`\`\`
 
 **Verification**:
-```sql
+\`\`\`sql
 SELECT table_name 
 FROM information_schema.tables 
 WHERE table_schema = 'public'
 ORDER BY table_name;
 -- Should return 20+ tables
-```
+\`\`\`
 
 #### 2. Verify Environment Variables in Vercel
 All required variables are already set ✅:
@@ -70,36 +70,36 @@ All required variables are already set ✅:
 - All PostgreSQL connection variables
 
 #### 3. Share Google Sheet with Service Account
-```bash
+\`\`\`bash
 # Share your Google Sheet with:
 # Email: Value from GOOGLE_SERVICE_ACCOUNT_EMAIL env var
 # Permission: Viewer (read-only)
-```
+\`\`\`
 
 ---
 
 ## 🔄 Post-Deployment Actions
 
 ### Step 1: Initial Data Sync
-```bash
+\`\`\`bash
 # After deployment, trigger initial sync:
 curl -X POST https://your-app.vercel.app/api/sync/google-sheets
-```
+\`\`\`
 
 Expected response:
-```json
+\`\`\`json
 {
   "success": true,
   "recordsProcessed": 200,
   "errors": []
 }
-```
+\`\`\`
 
 ### Step 2: Pre-Cache Pokemon Data
-```bash
+\`\`\`bash
 # Run locally or in Vercel project
 node scripts/pre-cache-competitive-pokemon.ts
-```
+\`\`\`
 
 This populates the Pokemon cache with:
 - Top 50 competitive Pokemon
@@ -129,10 +129,10 @@ The Discord bot **cannot run on Vercel** (it needs persistent connections).
 ### Recommended: Deploy to Railway
 
 1. **Create Railway Project**:
-   ```bash
+   \`\`\`bash
    railway login
    railway init
-   ```
+   \`\`\`
 
 2. **Add Environment Variables**:
    - Copy all Discord env vars from Vercel
@@ -140,14 +140,14 @@ The Discord bot **cannot run on Vercel** (it needs persistent connections).
    - Add `OPENAI_API_KEY`
 
 3. **Deploy**:
-   ```bash
+   \`\`\`bash
    railway up
-   ```
+   \`\`\`
 
 4. **Start Command**:
-   ```
+   \`\`\`
    node scripts/start-discord-bot.js
-   ```
+   \`\`\`
 
 ### Alternative: Render, Fly.io, or Heroku
 Similar process - just needs Node runtime and persistent connection support.

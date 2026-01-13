@@ -57,7 +57,7 @@ After comprehensive analysis of the parser system, I've identified the following
 **Goal**: Identify all remaining issues
 
 **Test Commands**:
-```bash
+\`\`\`bash
 # Test Draft parser (should work with getRows() optimization)
 npx tsx scripts/test-parsers-safe.ts [spreadsheet_id] "Draft Board" "draft"
 
@@ -66,7 +66,7 @@ npx tsx scripts/test-parsers-safe.ts [spreadsheet_id] "Master Data Sheet" "maste
 
 # Test Team Page parser
 npx tsx scripts/test-parsers-safe.ts [spreadsheet_id] "[Team Name]" "team_page"
-```
+\`\`\`
 
 **Expected Outcomes**:
 - Identify which parsers work
@@ -86,7 +86,7 @@ npx tsx scripts/test-parsers-safe.ts [spreadsheet_id] "[Team Name]" "team_page"
 - Upsert to generic table or specified table
 
 **Implementation**:
-```typescript
+\`\`\`typescript
 async parse(): Promise<ParserResult> {
   // 1. Try to detect headers (first non-empty row)
   // 2. Extract data rows using getRows()
@@ -94,7 +94,7 @@ async parse(): Promise<ParserResult> {
   // 4. Upsert to database
   // 5. Return results
 }
-```
+\`\`\`
 
 **Priority**: Medium (can be done after testing existing parsers)
 
@@ -104,7 +104,7 @@ async parse(): Promise<ParserResult> {
 **Goal**: Handle transient failures gracefully
 
 **Implementation**:
-```typescript
+\`\`\`typescript
 async function callOpenAIWithRetry(
   promise: Promise<any>, 
   maxRetries = 2,
@@ -120,7 +120,7 @@ async function callOpenAIWithRetry(
     }
   }
 }
-```
+\`\`\`
 
 **Apply To**: All AI-powered parsers
 

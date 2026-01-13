@@ -61,9 +61,9 @@ If you want to follow security best practices:
 
 5. **Verify**:
    - Run test script to confirm it still works:
-   ```bash
+   \`\`\`bash
    npx tsx scripts/test-scopes-direct.ts
-   ```
+   \`\`\`
 
 ---
 
@@ -84,14 +84,14 @@ If you want to follow security best practices:
 
 To verify access is working:
 
-```bash
+\`\`\`bash
 # Test direct access (no auth required)
 npx tsx scripts/test-scopes-direct.ts
 
 # Test via API (requires dev server + auth)
 pnpm dev  # Terminal 1
 npx tsx scripts/test-sheet-analysis.ts  # Terminal 2
-```
+\`\`\`
 
 ---
 

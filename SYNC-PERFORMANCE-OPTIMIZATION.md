@@ -9,12 +9,12 @@
 
 ## Current Configuration
 
-```typescript
+\`\`\`typescript
 CONCURRENT_REQUESTS = 5        // Parallel requests per batch
 BATCH_DELAY_MS = 250           // Delay between batches
 chunk_size = 10                // Critical priority
 chunk_size = 50                // Standard priority
-```
+\`\`\`
 
 ## Performance Bottlenecks Identified
 
@@ -48,16 +48,16 @@ chunk_size = 50                // Standard priority
 ### ✅ Safe Optimizations (Recommended)
 
 1. **Increase Concurrency**
-   ```typescript
+   \`\`\`typescript
    CONCURRENT_REQUESTS = 8  // Up from 5 (still safe)
-   ```
+   \`\`\`
    - **Impact**: ~60% faster batch processing
    - **Risk**: Low (PokéAPI can handle this)
 
 2. **Reduce Batch Delays**
-   ```typescript
+   \`\`\`typescript
    BATCH_DELAY_MS = 100  // Down from 250ms (still respectful)
-   ```
+   \`\`\`
    - **Impact**: ~60% reduction in delay overhead
    - **Risk**: Low (still respectful to PokéAPI)
 
@@ -74,32 +74,32 @@ chunk_size = 50                // Standard priority
    - **Risk**: Low (upsert is reliable)
 
 5. **Increase Standard Priority Chunk Size**
-   ```typescript
+   \`\`\`typescript
    chunk_size = 100  // Up from 50 (for standard priority)
-   ```
+   \`\`\`
    - **Impact**: Fewer chunks = less overhead
    - **Risk**: Low (only affects standard priority)
 
 ### ⚠️ Aggressive Optimizations (Use with Caution)
 
 6. **Increase Critical Priority Chunk Size**
-   ```typescript
+   \`\`\`typescript
    chunk_size = 20  // Up from 10 (for critical priority)
-   ```
+   \`\`\`
    - **Impact**: Fewer chunks (44 instead of 88)
    - **Risk**: Medium (larger batches, more memory)
 
 7. **Further Increase Concurrency**
-   ```typescript
+   \`\`\`typescript
    CONCURRENT_REQUESTS = 10  // Up from 8
-   ```
+   \`\`\`
    - **Impact**: Additional speedup
    - **Risk**: Medium (approaching fair use limits)
 
 8. **Reduce Batch Delay Further**
-   ```typescript
+   \`\`\`typescript
    BATCH_DELAY_MS = 50  // Down from 100ms
-   ```
+   \`\`\`
    - **Impact**: Additional speedup
    - **Risk**: Medium (more aggressive)
 

@@ -45,7 +45,7 @@ You're a Supabase Postgres expert in writing database functions. Generate **high
 
 ### Simple Function with `SECURITY INVOKER`
 
-```sql
+\`\`\`sql
 create or replace function my_schema.hello_world()
 returns text
 language plpgsql
@@ -56,11 +56,11 @@ begin
   return 'hello world';
 end;
 $$;
-```
+\`\`\`
 
 ### Function with Parameters and Fully Qualified Object Names
 
-```sql
+\`\`\`sql
 create or replace function public.calculate_total_price(order_id bigint)
 returns numeric
 language plpgsql
@@ -78,11 +78,11 @@ begin
   return total;
 end;
 $$;
-```
+\`\`\`
 
 ### Function as a Trigger
 
-```sql
+\`\`\`sql
 create or replace function my_schema.update_updated_at()
 returns trigger
 language plpgsql
@@ -100,11 +100,11 @@ create trigger update_updated_at_trigger
 before update on my_schema.my_table
 for each row
 execute function my_schema.update_updated_at();
-```
+\`\`\`
 
 ### Function with Error Handling
 
-```sql
+\`\`\`sql
 create or replace function my_schema.safe_divide(numerator numeric, denominator numeric)
 returns numeric
 language plpgsql
@@ -119,11 +119,11 @@ begin
   return numerator / denominator;
 end;
 $$;
-```
+\`\`\`
 
 ### Immutable Function for Better Optimization
 
-```sql
+\`\`\`sql
 create or replace function my_schema.full_name(first_name text, last_name text)
 returns text
 language sql
@@ -133,4 +133,4 @@ immutable
 as $$
   select first_name || ' ' || last_name;
 $$;
-```
+\`\`\`

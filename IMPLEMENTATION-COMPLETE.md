@@ -38,12 +38,12 @@ Successfully debugged authentication scope issues, implemented all missing parse
 - Database upsert to `team_rosters`
 
 **Key Logic**:
-```typescript
+\`\`\`typescript
 // Snake draft: Odd rounds (1→N), Even rounds (N→1)
 const isOddRound = round % 2 === 1
 pickOrder = isOddRound ? (i + 1) : (totalPicks - i)
 overallPick = (round - 1) * teams + pickOrder
-```
+\`\`\`
 
 ---
 
@@ -114,9 +114,9 @@ overallPick = (round - 1) * teams + pickOrder
 **Purpose**: Run comprehensive analysis and view results
 
 **Usage**:
-```bash
+\`\`\`bash
 npx tsx scripts/test-sheet-analysis.ts [spreadsheet_id]
-```
+\`\`\`
 
 **Output**:
 - Summary statistics
@@ -130,9 +130,9 @@ npx tsx scripts/test-sheet-analysis.ts [spreadsheet_id]
 **Purpose**: Test all parsers with actual sheet data
 
 **Usage**:
-```bash
+\`\`\`bash
 npx tsx scripts/test-parsers.ts [spreadsheet_id] [sheet_name]
-```
+\`\`\`
 
 **Features**:
 - Runs analysis first
@@ -180,15 +180,15 @@ npx tsx scripts/test-parsers.ts [spreadsheet_id] [sheet_name]
 ### Immediate Actions
 
 1. **Run Comprehensive Analysis**:
-   ```bash
+   \`\`\`bash
    npx tsx scripts/test-sheet-analysis.ts
-   ```
+   \`\`\`
    This will analyze all sheets and show detected structures.
 
 2. **Test Parsers**:
-   ```bash
+   \`\`\`bash
    npx tsx scripts/test-parsers.ts
-   ```
+   \`\`\`
    This will test each parser with actual sheet data.
 
 3. **Review Results**:

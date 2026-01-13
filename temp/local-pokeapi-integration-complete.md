@@ -32,9 +32,9 @@ Centralized configuration for PokeAPI base URL:
 ### 3. Environment Configuration ✅
 
 **Added to `.env.local`**:
-```env
+\`\`\`env
 POKEAPI_BASE_URL=http://localhost/api/v2
-```
+\`\`\`
 
 ### 4. Test Scripts ✅
 
@@ -54,27 +54,27 @@ POKEAPI_BASE_URL=http://localhost/api/v2
 ### Using Local Instance
 
 1. Ensure PokeAPI containers are running:
-   ```bash
+   \`\`\`bash
    cd tools/pokeapi-local
    docker compose up -d
-   ```
+   \`\`\`
 
 2. Set environment variable:
-   ```env
+   \`\`\`env
    POKEAPI_BASE_URL=http://localhost/api/v2
-   ```
+   \`\`\`
 
 3. Run scripts:
-   ```bash
+   \`\`\`bash
    pnpm tsx --env-file=.env.local scripts/sync-pokemon-from-api.ts
-   ```
+   \`\`\`
 
 ### Using Production Instance
 
 1. Remove or change environment variable:
-   ```env
+   \`\`\`env
    POKEAPI_BASE_URL=https://pokeapi.co/api/v2
-   ```
+   \`\`\`
 
 2. Or remove the variable to use the default.
 
@@ -85,14 +85,14 @@ POKEAPI_BASE_URL=http://localhost/api/v2
 For Edge Functions to use the local instance:
 
 1. Set the secret:
-   ```bash
+   \`\`\`bash
    supabase secrets set POKEAPI_BASE_URL=http://localhost/api/v2
-   ```
+   \`\`\`
 
 2. Deploy Edge Functions:
-   ```bash
+   \`\`\`bash
    supabase functions deploy sync-pokepedia
-   ```
+   \`\`\`
 
 **Note**: Edge Functions running in production will need to use the production URL. Local Edge Functions can use the local instance.
 
@@ -102,20 +102,20 @@ For Edge Functions to use the local instance:
 
 ### Test Configuration
 
-```bash
+\`\`\`bash
 pnpm tsx --env-file=.env.local scripts/test-local-pokeapi.ts
-```
+\`\`\`
 
 **Expected Output**:
-```
+\`\`\`
 ✅ Local PokeAPI is configured and accessible!
-```
+\`\`\`
 
 ### Test API Directly
 
-```bash
+\`\`\`bash
 curl http://localhost/api/v2/pokemon/1/
-```
+\`\`\`
 
 ---
 

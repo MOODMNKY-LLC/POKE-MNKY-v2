@@ -26,7 +26,7 @@
 
 **First Impression** - Users arrive at a polished, sports-league aesthetic interface:
 
-```
+\`\`\`
 ┌────────────────────────────────────────────────────────────────┐
 │  [P] Average at Best Draft League        [Team Builder] [Login]│
 ├────────────────────────────────────────────────────────────────┤
@@ -50,7 +50,7 @@
 │  │ Week 13  Flint Fireblasts 7  -  3  Kalamazoo Kings      │ │
 │  └──────────────────────────────────────────────────────────┘ │
 └────────────────────────────────────────────────────────────────┘
-```
+\`\`\`
 
 **Visual Design**:
 - **Color Scheme**: Electric blue primary (#3b82f6), gold accent (#f59e0b), dark backgrounds
@@ -63,7 +63,7 @@
 ### Page-by-Page User Experience
 
 #### 1. **Standings Page** (`/standings`)
-```
+\`\`\`
 Tab Navigation: [All Teams] [Lance Conf] [Leon Conf] [Kanto] [Johto] [Hoenn] [Sinnoh]
 
 ┌─────────────────────────────────────────────────────────────────┐
@@ -73,7 +73,7 @@ Tab Navigation: [All Teams] [Lance Conf] [Leon Conf] [Kanto] [Johto] [Hoenn] [Si
 │  2   │ Grand Rapids Garchomp   │ Sarah  │ 9 │ 5 │ +12  │ 0.521 │
 │  3   │ Cleveland Charizards    │ Alex   │ 9 │ 5 │ +10  │ 0.489 │
 └─────────────────────────────────────────────────────────────────┘
-```
+\`\`\`
 **Key Features**:
 - **Filtering**: Conference and division tabs for focused views
 - **Sorting**: Clickable headers (rank, wins, differential, SoS)
@@ -84,7 +84,7 @@ Tab Navigation: [All Teams] [Lance Conf] [Leon Conf] [Kanto] [Johto] [Hoenn] [Si
 ---
 
 #### 2. **Teams Directory** (`/teams`)
-```
+\`\`\`
 Kanto Division (Lance Conference)
 ┌───────────────┐ ┌───────────────┐ ┌───────────────┐
 │ Detroit       │ │ Grand Rapids  │ │ Cleveland     │
@@ -92,7 +92,7 @@ Kanto Division (Lance Conference)
 │ 10-4 (+18)    │ │ 9-5 (+12)     │ │ 9-5 (+10)     │
 │ Coach: Mike   │ │ Coach: Sarah  │ │ Coach: Alex   │
 └───────────────┘ └───────────────┘ └───────────────┘
-```
+\`\`\`
 **Visual Elements**:
 - **Card Grid**: 3 columns desktop, 1 mobile
 - **Badges**: Division and conference indicators
@@ -102,7 +102,7 @@ Kanto Division (Lance Conference)
 ---
 
 #### 3. **Team Detail Page** (`/teams/[id]`)
-```
+\`\`\`
 ┌────────────────────────────────────────────────────────────────┐
 │ [Kanto Division] [Lance Conference]                            │
 │ DETROIT DRAKES                                                 │
@@ -123,7 +123,7 @@ Kanto Division (Lance Conference)
 │      Electric/Water     │                                      │
 │      Pick #35           │                                      │
 └─────────────────────────┴──────────────────────────────────────┘
-```
+\`\`\`
 
 **Layout**: Two-column, left = roster, right = match history  
 **Interactions**: Click Pokemon → Pokedex detail (future), Match history scrollable
@@ -131,7 +131,7 @@ Kanto Division (Lance Conference)
 ---
 
 #### 4. **Match Center** (`/matches`)
-```
+\`\`\`
 Week Selection: [Week 13] [Week 14 (Current)] [Week 15]  [Submit Result]
 
 ┌────────────────────────────────────────────────────────────────┐
@@ -152,7 +152,7 @@ Week Selection: [Week 13] [Week 14 (Current)] [Week 15]  [Submit Result]
 │                                                                 │
 │         Scheduled: Jan 12, 8:00 PM                             │
 └────────────────────────────────────────────────────────────────┘
-```
+\`\`\`
 
 **Status Badges**: 
 - Green (Completed), Blue (In Progress), Yellow (Scheduled)
@@ -161,7 +161,7 @@ Week Selection: [Week 13] [Week 14 (Current)] [Week 15]  [Submit Result]
 ---
 
 #### 5. **Submit Result Page** (`/matches/submit`)
-```
+\`\`\`
 ┌────────────────────────────────────────────────────────────────┐
 │ SUBMIT MATCH RESULT                                            │
 │                                                                 │
@@ -189,7 +189,7 @@ Week Selection: [Week 13] [Week 14 (Current)] [Week 15]  [Submit Result]
 │ │ [Submit Result]                                            │ │
 │ └────────────────────────────────────────────────────────────┘ │
 └────────────────────────────────────────────────────────────────┘
-```
+\`\`\`
 
 **Two Submission Methods**:
 1. **AI Parser**: Paste Discord text → Auto-fills form
@@ -200,7 +200,7 @@ Week Selection: [Week 13] [Week 14 (Current)] [Week 15]  [Submit Result]
 ---
 
 #### 6. **Schedule Page** (`/schedule`)
-```
+\`\`\`
 Tabs: [Week 1] [Week 2] ... [Week 14] (Active)
 
 Week 14 Matches (10 matchups)
@@ -221,7 +221,7 @@ Week 14 Matches (10 matchups)
 │ [Final]      │ │ [Final]      │ │ [Final]      │
 │ Diff: 2      │ │ Diff: 0 (Tie)│ │ Diff: 4      │
 └──────────────┘ └──────────────┘ └──────────────┘
-```
+\`\`\`
 
 **Grid Layout**: 3 columns desktop, responsive to 1 mobile  
 **Visual Hierarchy**: Team names bold, scores large, status badges prominent
@@ -229,7 +229,7 @@ Week 14 Matches (10 matchups)
 ---
 
 #### 7. **Playoff Bracket** (`/playoffs`)
-```
+\`\`\`
 Championship Bracket
 
 Round 1    Quarters    Semis      Finals      CHAMPION
@@ -249,7 +249,7 @@ Round 1    Quarters    Semis      Finals      CHAMPION
 [Team G]─┐           │
          ├─[Winner]─┘
 [Team H]─┘
-```
+\`\`\`
 
 **Visual Features**:
 - **Connector Lines**: SVG or CSS borders linking matches
@@ -260,7 +260,7 @@ Round 1    Quarters    Semis      Finals      CHAMPION
 ---
 
 #### 8. **Pokedex** (`/pokedex`)
-```
+\`\`\`
 ┌──────────────┬─────────────────────────────────────────────────┐
 │ [Search]     │ PIKACHU                                         │
 │ [_______]    │                                                 │
@@ -280,14 +280,14 @@ Round 1    Quarters    Semis      Finals      CHAMPION
 │              │ │ Base Stat Total: 320                        │ │
 │              │ └─────────────────────────────────────────────┘ │
 └──────────────┴─────────────────────────────────────────────────┘
-```
+\`\`\`
 
 **Three-Panel Layout**: 
 - Left: Search + scrollable Pokemon list
 - Right: Selected Pokemon details with tabbed interface
 
 **AI Assistant Tab** (Requires Auth):
-```
+\`\`\`
 ┌─────────────────────────────────────────────────────────────────┐
 │ Ask AI about Pikachu:                                           │
 │ [What's a good moveset for Pikachu in Gen 9 OU?]               │
@@ -300,12 +300,12 @@ Round 1    Quarters    Semis      Finals      CHAMPION
 │  - Iron Tail (coverage)                                        │
 │  - Quick Attack (priority)..."                                 │
 └─────────────────────────────────────────────────────────────────┘
-```
+\`\`\`
 
 ---
 
 #### 9. **Team Builder** (`/teams/builder`)
-```
+\`\`\`
 ┌─────────────────────────────────┬────────────────────────────┐
 │ YOUR TEAM                       │ AVAILABLE POKEMON          │
 │                                 │                            │
@@ -331,7 +331,7 @@ Round 1    Quarters    Semis      Finals      CHAMPION
 │                                 │                            │
 │ [Save Team] [Get AI Advice]     │                            │
 └─────────────────────────────────┴────────────────────────────┘
-```
+\`\`\`
 
 **Features**:
 - **Budget Tracker**: Visual bar + numeric display
@@ -342,7 +342,7 @@ Round 1    Quarters    Semis      Finals      CHAMPION
 ---
 
 #### 10. **MVP Leaderboard** (`/mvp`)
-```
+\`\`\`
 ┌────────────────────────────────────────────────────────────────┐
 │ 🏆 MOST VALUABLE POKEMON                                       │
 │                                                                 │
@@ -362,7 +362,7 @@ Round 1    Quarters    Semis      Finals      CHAMPION
 │   2  │ Gengar     │ Detroit Drakes    │ 40  │   14    │ 2.9  │
 │   3  │ Salamence  │ Cleveland Char    │ 38  │   13    │ 2.9  │
 └────────────────────────────────────────────────────────────────┘
-```
+\`\`\`
 
 **Visual Highlights**:
 - **Podium**: Gold (#1), silver background colors
@@ -373,7 +373,7 @@ Round 1    Quarters    Semis      Finals      CHAMPION
 ---
 
 #### 11. **Insights Dashboard** (`/insights`)
-```
+\`\`\`
 Tabs: [Weekly Recap] [Power Rankings] [Top Performers] [Predictions]
 
 ┌────────────────────────────────────────────────────────────────┐
@@ -405,7 +405,7 @@ Tabs: [Weekly Recap] [Power Rankings] [Top Performers] [Predictions]
 │                                                                 │
 │ [Post to Discord] [Copy to Clipboard]                         │
 └────────────────────────────────────────────────────────────────┘
-```
+\`\`\`
 
 **AI Features**:
 - **Narrative Generation**: GPT-5.2 creates commissioner-style summaries
@@ -415,7 +415,7 @@ Tabs: [Weekly Recap] [Power Rankings] [Top Performers] [Predictions]
 ---
 
 #### 12. **Admin Dashboard** (`/admin`)
-```
+\`\`\`
 ┌────────────────────────────────────────────────────────────────┐
 │ ADMIN DASHBOARD           admin@league.com  [Platform Manager] │
 │                                              [Sign Out]         │
@@ -439,7 +439,7 @@ Tabs: [Weekly Recap] [Power Rankings] [Top Performers] [Predictions]
 │ │ [Configure]     │ │ [View Logs]     │ │ [View Stats]    │ │
 │ └─────────────────┘ └─────────────────┘ └─────────────────┘ │
 └────────────────────────────────────────────────────────────────┘
-```
+\`\`\`
 
 **Platform Kit Button** → Opens embedded Supabase management console:
 - Database tab with AI SQL generator
@@ -455,7 +455,7 @@ Tabs: [Weekly Recap] [Power Rankings] [Top Performers] [Predictions]
 
 ### Architecture Overview
 
-```
+\`\`\`
 ┌─────────────────────────────────────────────────────────────────┐
 │                        FRONTEND (Next.js 16)                    │
 │                                                                 │
@@ -477,12 +477,12 @@ Tabs: [Weekly Recap] [Power Rankings] [Top Performers] [Predictions]
 │  • Realtime Channels     │      │  • Google Sheets API          │
 │  • Storage (files/imgs)  │      │                               │
 └──────────────────────────┘      └───────────────────────────────┘
-```
+\`\`\`
 
 ### Technology Stack Breakdown
 
 #### Core Framework
-```json
+\`\`\`json
 {
   "framework": "Next.js 16 (App Router)",
   "runtime": "React 19.2 (with canary features)",
@@ -490,7 +490,7 @@ Tabs: [Weekly Recap] [Power Rankings] [Top Performers] [Predictions]
   "styling": "Tailwind CSS v4 + Shadcn UI",
   "deployment": "Vercel (Edge + Serverless)"
 }
-```
+\`\`\`
 
 #### Key Features Used
 - **React Server Components** (RSC): All pages default to server
@@ -501,7 +501,7 @@ Tabs: [Weekly Recap] [Power Rankings] [Top Performers] [Predictions]
 - **Streaming**: AI responses with SSE
 
 #### Database Layer (Supabase)
-```typescript
+\`\`\`typescript
 // Server-side client (RSC, API routes)
 import { createServerClient } from '@/lib/supabase/server'
 
@@ -518,7 +518,7 @@ export function Component() {
   const supabase = createBrowserClient()
   // Use in useEffect or event handlers
 }
-```
+\`\`\`
 
 **Schema Highlights**:
 - **15+ tables**: teams, matches, pokemon, profiles, battle_sessions, etc.
@@ -527,7 +527,7 @@ export function Component() {
 - **Indexes**: Optimized for common queries (team_id, week, status)
 
 #### Authentication Flow
-```
+\`\`\`
 1. User clicks "Login" → /auth/login
 2. Supabase Auth UI renders with Discord OAuth
 3. User authorizes → Discord returns code
@@ -535,10 +535,10 @@ export function Component() {
 5. Redirect to app → middleware validates session
 6. Session stored in HTTP-only cookie (7-day expiry)
 7. Automatic refresh on each request via middleware
-```
+\`\`\`
 
 **Middleware** (`/proxy.ts`):
-```typescript
+\`\`\`typescript
 export async function proxy(request: NextRequest) {
   return await updateSession(request)
 }
@@ -549,12 +549,12 @@ export async function proxy(request: NextRequest) {
 // - Protects /admin/* routes
 // - Refreshes session if needed
 // - Returns response with updated cookies
-```
+\`\`\`
 
 #### AI Integration (OpenAI)
 
 **Model Selection Strategy**:
-```typescript
+\`\`\`typescript
 // GPT-4.1 for constrained decisions
 const pokedexResponse = await openai.chat.completions.create({
   model: "gpt-4.1",
@@ -569,7 +569,7 @@ const recapResponse = await openai.chat.completions.create({
   reasoning_effort: "high",
   messages: [{ role: "system", content: "You are a league commissioner..." }]
 })
-```
+\`\`\`
 
 **API Routes**:
 - `/api/ai/pokedex` → Grounded Q&A with function calling
@@ -581,7 +581,7 @@ const recapResponse = await openai.chat.completions.create({
 #### Battle Engine Architecture
 
 **Request-Choice-Update Loop** (Showdown-inspired):
-```typescript
+\`\`\`typescript
 // 1. Get current battle state
 GET /api/battle/[id]
 → { turn: 7, active: "pikachu", legal_actions: [...] }
@@ -596,10 +596,10 @@ POST /api/battle/[id]/step
 → Returns new state + outcome
 
 // 4. Repeat until battle ends
-```
+\`\`\`
 
 **Battle State Storage**:
-```sql
+\`\`\`sql
 CREATE TABLE battle_sessions (
   id UUID PRIMARY KEY,
   format TEXT,
@@ -616,12 +616,12 @@ CREATE TABLE battle_events (
   payload JSONB,
   created_at TIMESTAMPTZ
 );
-```
+\`\`\`
 
 #### Discord Bot Integration
 
 **Command Structure**:
-```typescript
+\`\`\`typescript
 // In lib/discord-bot.ts
 const commands = [
   new SlashCommandBuilder()
@@ -650,10 +650,10 @@ client.on('interactionCreate', async interaction => {
     await interaction.reply({ embeds: [...] })
   }
 })
-```
+\`\`\`
 
 **Role Sync Logic**:
-```typescript
+\`\`\`typescript
 async function syncUserRoles(discordId: string) {
   // 1. Fetch Discord member
   const member = await guild.members.fetch(discordId)
@@ -669,14 +669,14 @@ async function syncUserRoles(discordId: string) {
     .update({ role: appRole })
     .eq('discord_id', discordId)
 }
-```
+\`\`\`
 
 #### Google Sheets Integration
 
 **Package**: `node-google-spreadsheet` (simpler than `googleapis`)
 
 **Sync Process**:
-```typescript
+\`\`\`typescript
 // lib/google-sheets-sync.ts
 export async function syncLeagueData() {
   const doc = new GoogleSpreadsheet(SHEET_ID)
@@ -700,10 +700,10 @@ export async function syncLeagueData() {
     records_processed: totalRecords
   })
 }
-```
+\`\`\`
 
 **Column Mapping** (flexible to handle variations):
-```typescript
+\`\`\`typescript
 function mapTeamRow(row: any) {
   return {
     name: row.get('Team') || row.get('Team Name'),
@@ -713,7 +713,7 @@ function mapTeamRow(row: any) {
     differential: parseInt(row.get('Differential') || row.get('Diff') || '0')
   }
 }
-```
+\`\`\`
 
 **Why Not Working in V0**:
 - Google APIs require service account authentication

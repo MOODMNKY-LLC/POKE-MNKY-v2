@@ -8,11 +8,11 @@ The progress bar wasn't updating because `total_chunks` was always `0` for maste
 
 1. **Master Phase Missing Logic**: The `syncMasterDataPhase` function fetched resource lists but never calculated or set `total_chunks`
 2. **Progress Calculation**: The progress formula requires `total_chunks > 0`:
-   ```typescript
+   \`\`\`typescript
    progress = job.total_chunks > 0 
      ? Math.min((newCurrent / job.total_chunks) * 100, 100)
      : 0  // Always 0 if total_chunks is 0
-   ```
+   \`\`\`
 3. **Comparison**: Other phases (species, pokemon) correctly set `total_chunks` when `current_chunk === 0`, but master phase was missing this logic
 
 ## Solution Implemented
@@ -25,7 +25,7 @@ When `current_chunk === 0` and `total_chunks === 0`, the master phase now:
 3. Calculates `total_chunks = Math.ceil(maxCount / chunk_size)`
 4. Updates the job with `total_chunks` and `end_id`
 
-```typescript
+\`\`\`typescript
 if (job.current_chunk === 0 && job.total_chunks === 0) {
   let maxCount = 0
   // Fetch all endpoint counts...
@@ -35,13 +35,13 @@ if (job.current_chunk === 0 && job.total_chunks === 0) {
     .update({ total_chunks: totalChunks, end_id: maxCount })
     .eq("job_id", job.job_id)
 }
-```
+\`\`\`
 
 ### 2. Enhanced Progress Calculation
 
 Added fallback progress calculation if `total_chunks` is still 0:
 
-```typescript
+\`\`\`typescript
 let progress = 0
 if (job.total_chunks > 0) {
   progress = Math.min((newCurrent / job.total_chunks) * 100, 100)
@@ -49,7 +49,7 @@ if (job.total_chunks > 0) {
   // Fallback: estimate from synced items
   progress = Math.min((newSynced / job.end_id) * 100, 100)
 }
-```
+\`\`\`
 
 ### 3. Updated Existing Job
 

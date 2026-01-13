@@ -78,17 +78,17 @@ PostgREST schema cache not recognizing `draft_pool` table
 
 ### Solution
 **Refresh Supabase schema cache**:
-```bash
+\`\`\`bash
 supabase stop
 supabase start
-```
+\`\`\`
 
 **Wait**: 30-60 seconds for services to restart
 
 **Verify**:
-```sql
+\`\`\`sql
 SELECT COUNT(*) FROM draft_pool;
-```
+\`\`\`
 
 ---
 
@@ -97,27 +97,27 @@ SELECT COUNT(*) FROM draft_pool;
 ### Step 1: Refresh Schema Cache 🔴 CRITICAL
 
 **Action**:
-```bash
+\`\`\`bash
 supabase stop
 supabase start
-```
+\`\`\`
 
 **Why**: PostgREST needs to reload schema to see `draft_pool` table
 
 **Verify Success**:
-```sql
+\`\`\`sql
 SELECT COUNT(*) FROM draft_pool;
 -- Should return 0 (empty, ready for data)
-```
+\`\`\`
 
 ---
 
 ### Step 2: Run Draft Pool Parser 🔴 CRITICAL
 
 **After schema refresh**:
-```bash
+\`\`\`bash
 npx tsx scripts/test-draft-pool-parser.ts
-```
+\`\`\`
 
 **Expected Results**:
 - ✅ Extracts 98+ Pokemon
@@ -131,7 +131,7 @@ npx tsx scripts/test-draft-pool-parser.ts
 ### Step 3: Verify Data Quality 🟡 HIGH
 
 **Check stored data**:
-```sql
+\`\`\`sql
 -- Total Pokemon
 SELECT COUNT(*) FROM draft_pool WHERE is_available = true;
 
@@ -148,7 +148,7 @@ FROM draft_pool
 WHERE generation IS NOT NULL
 GROUP BY generation
 ORDER BY generation;
-```
+\`\`\`
 
 **Expected**:
 - ~98-200 Pokemon entries
@@ -160,7 +160,7 @@ ORDER BY generation;
 ### Step 4: Test Draft System 🟡 HIGH
 
 **Create test session**:
-```typescript
+\`\`\`typescript
 import { DraftSystem } from "@/lib/draft-system"
 import { createServiceRoleClient } from "@/lib/supabase/service"
 
@@ -200,14 +200,14 @@ if (teams && teams.length > 0) {
   
   console.log("✅ Draft session created:", session.id)
 }
-```
+\`\`\`
 
 ---
 
 ### Step 5: Test Pick Validation 🟡 HIGH
 
 **Make a test pick**:
-```typescript
+\`\`\`typescript
 // Get available Pokemon
 const available = await draftSystem.getAvailablePokemon({ minPoints: 15 })
 console.log(`Available Pokemon: ${available.length}`)
@@ -220,7 +220,7 @@ if (result.success) {
 } else {
   console.error("❌ Pick failed:", result.error)
 }
-```
+\`\`\`
 
 **Verify**:
 - ✅ Pick recorded in `team_rosters`
@@ -233,11 +233,11 @@ if (result.success) {
 ### Step 6: Register Discord Commands 🟢 MEDIUM
 
 **Update Discord bot**:
-```typescript
+\`\`\`typescript
 import { registerDiscordCommands } from "@/lib/discord-bot"
 
 await registerDiscordCommands()
-```
+\`\`\`
 
 **Commands to register**:
 - `/draft <pokemon>` - Draft a Pokemon
@@ -303,20 +303,20 @@ await registerDiscordCommands()
 ## 🎯 Immediate Actions
 
 1. **🔴 CRITICAL**: Refresh Supabase schema cache
-   ```bash
+   \`\`\`bash
    supabase stop && supabase start
-   ```
+   \`\`\`
 
 2. **🔴 CRITICAL**: Re-run draft pool parser
-   ```bash
+   \`\`\`bash
    npx tsx scripts/test-draft-pool-parser.ts
-   ```
+   \`\`\`
 
 3. **🟡 HIGH**: Verify data stored correctly
-   ```sql
+   \`\`\`sql
    SELECT COUNT(*) FROM draft_pool;
    SELECT point_value, COUNT(*) FROM draft_pool GROUP BY point_value;
-   ```
+   \`\`\`
 
 4. **🟡 HIGH**: Test draft system core functionality
 

@@ -17,12 +17,12 @@ Successfully implemented Supabase GraphQL for querying cached Pokemon data, whil
 - **REST for syncing** from PokeAPI (unchanged)
 
 ### 3. Hybrid Architecture
-```
+\`\`\`
 ┌─────────────┐         ┌──────────────┐         ┌─────────────┐
 │   PokeAPI   │ ──REST──▶│   Supabase   │ ◀─GraphQL─│   Client    │
 │   (Sync)    │         │  (Storage)   │         │  (Query)    │
 └─────────────┘         └──────────────┘         └─────────────┘
-```
+\`\`\`
 
 ## Benefits
 

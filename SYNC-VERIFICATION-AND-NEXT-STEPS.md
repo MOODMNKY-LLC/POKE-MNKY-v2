@@ -39,16 +39,16 @@
 **Solution**: Refresh Supabase schema cache
 
 **Option 1: Restart Supabase** (Recommended)
-```bash
+\`\`\`bash
 supabase stop
 supabase start
-```
+\`\`\`
 
 **Option 2: Manual Schema Refresh**
-```bash
+\`\`\`bash
 # Connect to database and notify PostgREST
 psql -h localhost -U postgres -d postgres -c "NOTIFY pgrst, 'reload schema'"
-```
+\`\`\`
 
 **Option 3: Wait for Auto-Refresh**
 - Schema cache refreshes automatically
@@ -74,17 +74,17 @@ psql -h localhost -U postgres -d postgres -c "NOTIFY pgrst, 'reload schema'"
 ### Step 1: Refresh Schema Cache 🔴 CRITICAL
 
 **Action**:
-```bash
+\`\`\`bash
 supabase stop
 supabase start
-```
+\`\`\`
 
 **Wait**: 30-60 seconds for services to start
 
 **Verify**:
-```sql
+\`\`\`sql
 SELECT COUNT(*) FROM draft_pool;
-```
+\`\`\`
 
 **Expected**: Should return count (currently 0, will be 98+ after parser runs)
 
@@ -93,9 +93,9 @@ SELECT COUNT(*) FROM draft_pool;
 ### Step 2: Re-run Draft Pool Parser 🔴 CRITICAL
 
 **After schema refresh**:
-```bash
+\`\`\`bash
 npx tsx scripts/test-draft-pool-parser.ts
-```
+\`\`\`
 
 **Expected Results**:
 - ✅ Extracts 98+ Pokemon
@@ -109,7 +109,7 @@ npx tsx scripts/test-draft-pool-parser.ts
 ### Step 3: Verify Data Quality 🟡 HIGH
 
 **Check extracted data**:
-```sql
+\`\`\`sql
 -- Total Pokemon in draft pool
 SELECT COUNT(*) FROM draft_pool WHERE is_available = true;
 
@@ -132,7 +132,7 @@ SELECT pokemon_name, point_value, is_available, generation
 FROM draft_pool
 ORDER BY point_value DESC, pokemon_name
 LIMIT 30;
-```
+\`\`\`
 
 **Expected**:
 - ~98-200 Pokemon entries
@@ -144,7 +144,7 @@ LIMIT 30;
 ### Step 4: Test Draft System 🟡 HIGH
 
 **Create test session**:
-```typescript
+\`\`\`typescript
 import { DraftSystem } from "@/lib/draft-system"
 import { createServiceRoleClient } from "@/lib/supabase/service"
 
@@ -184,14 +184,14 @@ if (teams && teams.length > 0) {
   
   console.log("✅ Draft session created:", session.id)
 }
-```
+\`\`\`
 
 ---
 
 ### Step 5: Test Pick Validation 🟡 HIGH
 
 **Make a test pick**:
-```typescript
+\`\`\`typescript
 // Get available Pokemon
 const available = await draftSystem.getAvailablePokemon({ minPoints: 15 })
 console.log(`Available Pokemon: ${available.length}`)
@@ -204,7 +204,7 @@ if (result.success) {
 } else {
   console.error("❌ Pick failed:", result.error)
 }
-```
+\`\`\`
 
 **Verify**:
 - ✅ Pick recorded in `team_rosters`
@@ -217,17 +217,17 @@ if (result.success) {
 ### Step 6: Register Discord Commands 🟢 MEDIUM
 
 **Update Discord bot**:
-```typescript
+\`\`\`typescript
 import { registerDiscordCommands } from "@/lib/discord-bot"
 
 await registerDiscordCommands()
-```
+\`\`\`
 
 **Or create script**:
-```bash
+\`\`\`bash
 # Create scripts/register-discord-commands.ts
 npx tsx scripts/register-discord-commands.ts
-```
+\`\`\`
 
 ---
 
@@ -275,20 +275,20 @@ npx tsx scripts/register-discord-commands.ts
 ## 🎯 Immediate Actions
 
 1. **🔴 CRITICAL**: Refresh Supabase schema cache
-   ```bash
+   \`\`\`bash
    supabase stop && supabase start
-   ```
+   \`\`\`
 
 2. **🔴 CRITICAL**: Re-run draft pool parser
-   ```bash
+   \`\`\`bash
    npx tsx scripts/test-draft-pool-parser.ts
-   ```
+   \`\`\`
 
 3. **🟡 HIGH**: Verify data stored correctly
-   ```sql
+   \`\`\`sql
    SELECT COUNT(*) FROM draft_pool;
    SELECT point_value, COUNT(*) FROM draft_pool GROUP BY point_value;
-   ```
+   \`\`\`
 
 4. **🟡 HIGH**: Test draft system core functionality
 

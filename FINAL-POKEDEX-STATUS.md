@@ -55,14 +55,14 @@
 ## 🎯 How to Use
 
 ### Current System (pokemon_cache)
-```typescript
+\`\`\`typescript
 import { getPokemonDataExtended } from "@/lib/pokemon-api-enhanced"
 
 const pokemon = await getPokemonDataExtended(25, true) // Pikachu with move details
-```
+\`\`\`
 
 ### Comprehensive System (New Schema)
-```typescript
+\`\`\`typescript
 import { syncComprehensivePokedex } from "@/lib/pokedex-sync"
 
 // Sync master data
@@ -70,7 +70,7 @@ await syncComprehensivePokedex({ phases: ["master"] })
 
 // Sync Pokemon
 await syncComprehensivePokedex({ phases: ["pokemon"], pokemonRange: { start: 1, end: 1025 } })
-```
+\`\`\`
 
 ---
 
@@ -78,32 +78,32 @@ await syncComprehensivePokedex({ phases: ["pokemon"], pokemonRange: { start: 1, 
 
 ### Immediate (Required)
 1. **Refresh Schema Cache**:
-   ```bash
+   \`\`\`bash
    supabase stop
    supabase start
-   ```
+   \`\`\`
 
 2. **Verify Access**:
-   ```sql
+   \`\`\`sql
    SELECT COUNT(*) FROM pokemon_cache;
    SELECT COUNT(*) FROM draft_pool;
-   ```
+   \`\`\`
 
 ### Optional (Comprehensive Pokedex)
 1. **Sync Master Data**:
-   ```bash
+   \`\`\`bash
    npx tsx scripts/comprehensive-pokedex-sync.ts master
-   ```
+   \`\`\`
 
 2. **Sync Pokemon Data**:
-   ```bash
+   \`\`\`bash
    npx tsx scripts/comprehensive-pokedex-sync.ts pokemon 1 1025
-   ```
+   \`\`\`
 
 3. **Sync Evolution Chains**:
-   ```bash
+   \`\`\`bash
    npx tsx scripts/comprehensive-pokedex-sync.ts evolution
-   ```
+   \`\`\`
 
 ---
 

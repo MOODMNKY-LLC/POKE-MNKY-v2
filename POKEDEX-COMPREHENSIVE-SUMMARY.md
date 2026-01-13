@@ -19,7 +19,7 @@ Built a complete, comprehensive Pokedex caching system that stores **ALL** Pokem
 **Function**: `getPokemonDataExtended(nameOrId, includeMoveDetails)`
 
 **Flow**:
-```
+\`\`\`
 App Request
     ↓
 Check pokemon_cache (expires_at > now?)
@@ -35,7 +35,7 @@ Fetch move details (/move/{id}) - top 20 moves [optional]
 Store in pokemon_cache (30-day expiration)
     ↓
 Return data ✅
-```
+\`\`\`
 
 **Storage**: `public.pokemon_cache` table in Supabase
 
@@ -109,9 +109,9 @@ Return data ✅
 ## 🔄 Sync Process
 
 ### Phase 1: Master Data (~30 minutes)
-```bash
+\`\`\`bash
 npx tsx scripts/comprehensive-pokedex-sync.ts master
-```
+\`\`\`
 
 **Syncs**:
 - Types (~20 items)
@@ -122,9 +122,9 @@ npx tsx scripts/comprehensive-pokedex-sync.ts master
 - Generations (~9 items)
 
 ### Phase 2: Pokemon Data (~3 hours)
-```bash
+\`\`\`bash
 npx tsx scripts/comprehensive-pokedex-sync.ts pokemon 1 1025
-```
+\`\`\`
 
 **Syncs**:
 - Pokemon Species (1-1025)
@@ -132,9 +132,9 @@ npx tsx scripts/comprehensive-pokedex-sync.ts pokemon 1 1025
 - All relationships (abilities, moves, types, items, stats)
 
 ### Phase 3: Evolution Chains (~10 minutes)
-```bash
+\`\`\`bash
 npx tsx scripts/comprehensive-pokedex-sync.ts evolution
-```
+\`\`\`
 
 **Total Time**: ~3.5-4 hours for complete sync
 
@@ -210,50 +210,50 @@ npx tsx scripts/comprehensive-pokedex-sync.ts evolution
 ## 🔍 Query Examples
 
 ### Find Pokemon by Ability
-```sql
+\`\`\`sql
 SELECT p.name, p.pokemon_id
 FROM pokemon_comprehensive p
 JOIN pokemon_abilities pa ON p.pokemon_id = pa.pokemon_id
 JOIN abilities a ON pa.ability_id = a.ability_id
 WHERE a.name = 'intimidate';
-```
+\`\`\`
 
 ### Find Pokemon by Type
-```sql
+\`\`\`sql
 SELECT p.name, p.pokemon_id
 FROM pokemon_comprehensive p
 JOIN pokemon_types pt ON p.pokemon_id = pt.pokemon_id
 JOIN types t ON pt.type_id = t.type_id
 WHERE t.name = 'fire';
-```
+\`\`\`
 
 ### Find Pokemon by Move
-```sql
+\`\`\`sql
 SELECT DISTINCT p.name, p.pokemon_id
 FROM pokemon_comprehensive p
 JOIN pokemon_moves pm ON p.pokemon_id = pm.pokemon_id
 JOIN moves m ON pm.move_id = m.move_id
 WHERE m.name = 'thunderbolt';
-```
+\`\`\`
 
 ### Find Pokemon by Held Item
-```sql
+\`\`\`sql
 SELECT p.name, p.pokemon_id
 FROM pokemon_comprehensive p
 JOIN pokemon_items pi ON p.pokemon_id = pi.pokemon_id
 JOIN items i ON pi.item_id = i.item_id
 WHERE i.name = 'leftovers';
-```
+\`\`\`
 
 ### Semantic Search
-```sql
+\`\`\`sql
 SELECT name, pokemon_id
 FROM pokemon_comprehensive
 WHERE to_tsvector('english', name) @@ to_tsquery('pika*');
-```
+\`\`\`
 
 ### Complete Pokemon Data with Relationships
-```sql
+\`\`\`sql
 SELECT 
   p.*,
   ps.*,
@@ -273,39 +273,39 @@ LEFT JOIN pokemon_items pi ON p.pokemon_id = pi.pokemon_id
 LEFT JOIN items i ON pi.item_id = i.item_id
 WHERE p.pokemon_id = 25
 GROUP BY p.id, ps.id;
-```
+\`\`\`
 
 ---
 
 ## 🚀 Next Steps
 
 ### Step 1: Refresh Schema Cache 🔴 CRITICAL
-```bash
+\`\`\`bash
 supabase stop
 supabase start
-```
+\`\`\`
 
 **Why**: PostgREST needs to see `pokemon_cache` and `draft_pool` tables
 
 **Verify**:
-```sql
+\`\`\`sql
 SELECT COUNT(*) FROM pokemon_cache;
 SELECT COUNT(*) FROM draft_pool;
-```
+\`\`\`
 
 ---
 
 ### Step 2: Verify Current Cache
-```sql
+\`\`\`sql
 -- Check pokemon_cache
 SELECT COUNT(*) FROM pokemon_cache;
 SELECT generation, COUNT(*) FROM pokemon_cache GROUP BY generation;
-```
+\`\`\`
 
 ---
 
 ### Step 3: Sync Comprehensive Pokedex (Optional)
-```bash
+\`\`\`bash
 # Master data (~30 min)
 npx tsx scripts/comprehensive-pokedex-sync.ts master
 
@@ -314,15 +314,15 @@ npx tsx scripts/comprehensive-pokedex-sync.ts pokemon 1 1025
 
 # Evolution chains (~10 min)
 npx tsx scripts/comprehensive-pokedex-sync.ts evolution
-```
+\`\`\`
 
 ---
 
 ### Step 4: Set Up Cron Job (Optional)
-```typescript
+\`\`\`typescript
 // app/api/cron/sync-pokedex/route.ts
 // See COMPREHENSIVE-POKEDEX-IMPLEMENTATION.md for full code
-```
+\`\`\`
 
 ---
 

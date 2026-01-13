@@ -60,15 +60,15 @@ All containers are running:
 ## Verification Tests
 
 ### Test 1: API Root Endpoint
-```bash
+\`\`\`bash
 curl http://localhost/api/v2/
-```
+\`\`\`
 **Result**: ✅ Returns all available endpoints
 
 ### Test 2: Pokemon Endpoint
-```bash
+\`\`\`bash
 curl http://localhost/api/v2/pokemon/1/
-```
+\`\`\`
 **Result**: ✅ Returns Bulbasaur data:
 - id: 1
 - name: bulbasaur
@@ -76,9 +76,9 @@ curl http://localhost/api/v2/pokemon/1/
 - weight: 69
 
 ### Test 3: Pokemon List
-```bash
+\`\`\`bash
 curl "http://localhost/api/v2/pokemon/?limit=5"
-```
+\`\`\`
 **Result**: ✅ Returns list of Pokemon
 
 ---
@@ -93,26 +93,26 @@ curl "http://localhost/api/v2/pokemon/?limit=5"
 ## Usage
 
 ### Start Containers
-```bash
+\`\`\`bash
 cd tools/pokeapi-local
 docker compose up -d
-```
+\`\`\`
 
 ### Stop Containers
-```bash
+\`\`\`bash
 cd tools/pokeapi-local
 docker compose down
-```
+\`\`\`
 
 ### View Logs
-```bash
+\`\`\`bash
 docker compose logs app
-```
+\`\`\`
 
 ### Rebuild Database
-```bash
+\`\`\`bash
 docker compose exec -T app sh -c 'echo "from data.v2.build import build_all; build_all()" | python manage.py shell --settings=config.docker-compose'
-```
+\`\`\`
 
 ---
 

@@ -14,7 +14,7 @@ From your screenshot:
 
 Add or update these lines in your `.env.local` file:
 
-```bash
+\`\`\`bash
 # Google Service Account Credentials
 GOOGLE_SERVICE_ACCOUNT_EMAIL=poke-mnky-service@mood-mnky.iam.gserviceaccount.com
 GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY="***REMOVED***` and `-----END PRIVATE KEY-----`)
@@ -31,9 +31,9 @@ GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY="***REMOVED***` and `-----END PRIVATE KEY----
 
 If needed (typically not required for JWT auth):
 
-```bash
+\`\`\`bash
 GOOGLE_OAUTH_CLIENT_ID=110692522893766968940
-```
+\`\`\`
 
 ---
 
@@ -41,9 +41,9 @@ GOOGLE_OAUTH_CLIENT_ID=110692522893766968940
 
 After updating `.env.local`, verify:
 
-```bash
+\`\`\`bash
 npx tsx scripts/verify-service-account.ts
-```
+\`\`\`
 
 This will check:
 - ✅ Environment variables are set correctly

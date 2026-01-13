@@ -7,39 +7,39 @@ This guide explains how to run the Discord bot locally for development and testi
 ### Option 1: Direct Node.js (Recommended for Development)
 
 1. **Install dependencies** (if not already done):
-   ```bash
+   \`\`\`bash
    pnpm install
-   ```
+   \`\`\`
 
 2. **Set up environment variables:**
-   ```bash
+   \`\`\`bash
    # Copy example file
    cp .env.example .env.local
    
    # Edit .env.local with your credentials
-   ```
+   \`\`\`
 
 3. **Run the bot:**
-   ```bash
+   \`\`\`bash
    # Standard run
    pnpm run discord-bot
    
    # With hot-reload (restarts on file changes)
    pnpm run discord-bot:dev
-   ```
+   \`\`\`
 
 ### Option 2: Docker Compose (Isolated Environment)
 
 1. **Set up environment variables:**
-   ```bash
+   \`\`\`bash
    # Copy example file
    cp .env.example .env.local
    
    # Edit .env.local with your credentials
-   ```
+   \`\`\`
 
 2. **Run with Docker Compose:**
-   ```bash
+   \`\`\`bash
    # Start bot with hot-reload
    docker-compose -f docker-compose.dev.yml up
    
@@ -51,7 +51,7 @@ This guide explains how to run the Discord bot locally for development and testi
    
    # Stop
    docker-compose -f docker-compose.dev.yml down
-   ```
+   \`\`\`
 
 ---
 
@@ -59,7 +59,7 @@ This guide explains how to run the Discord bot locally for development and testi
 
 Create a `.env.local` file (or `.env`) in the project root:
 
-```bash
+\`\`\`bash
 # Discord Bot Configuration
 DISCORD_BOT_TOKEN=your-discord-bot-token
 DISCORD_CLIENT_ID=your-discord-client-id
@@ -73,7 +73,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 
 # Node Environment
 NODE_ENV=development
-```
+\`\`\`
 
 ### Getting Discord Credentials
 
@@ -101,16 +101,16 @@ NODE_ENV=development
 ### Running Both Next.js App and Discord Bot
 
 **Terminal 1 - Next.js App:**
-```bash
+\`\`\`bash
 pnpm dev
 # Runs on http://localhost:3000
-```
+\`\`\`
 
 **Terminal 2 - Discord Bot:**
-```bash
+\`\`\`bash
 pnpm run discord-bot:dev
 # Bot runs and watches for file changes
-```
+\`\`\`
 
 ### Hot Reload
 
@@ -188,33 +188,33 @@ Create a test Discord server to avoid spamming your production server:
 
 Add debug logging to see what's happening:
 
-```typescript
+\`\`\`typescript
 // In lib/discord-bot.ts
 console.log('[DEBUG] Command received:', interaction.commandName);
 console.log('[DEBUG] User:', interaction.user.username);
-```
+\`\`\`
 
 ### 3. Test Database Queries Separately
 
 Test Supabase queries in isolation:
-```bash
+\`\`\`bash
 # Use Supabase SQL Editor or create a test script
 pnpm exec tsx scripts/test-supabase.ts
-```
+\`\`\`
 
 ### 4. Monitor Bot Logs
 
 Keep bot logs visible:
-```bash
+\`\`\`bash
 # Terminal output shows all bot activity
 # Watch for errors, command usage, etc.
-```
+\`\`\`
 
 ---
 
 ## File Structure
 
-```
+\`\`\`
 POKE-MNKY-v2/
 ├── lib/
 │   ├── discord-bot.ts          # Main bot logic
@@ -225,7 +225,7 @@ POKE-MNKY-v2/
 ├── .env.local                  # Your local env vars (gitignored)
 ├── .env.example                # Example env vars
 └── docker-compose.dev.yml      # Docker dev setup
-```
+\`\`\`
 
 ---
 

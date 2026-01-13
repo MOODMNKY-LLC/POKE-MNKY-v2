@@ -20,9 +20,9 @@ We created `supabase/.env.local`, but according to the docs:
 
 Created `supabase/functions/.env` with local values. This file is **automatically loaded** when you run:
 
-```bash
+\`\`\`bash
 supabase functions serve sync-pokepedia --no-verify-jwt
-```
+\`\`\`
 
 **No `--env-file` flag needed!**
 
@@ -30,9 +30,9 @@ supabase functions serve sync-pokepedia --no-verify-jwt
 
 If you want to use a custom file name (like `.env.local`), place it in `supabase/functions/` and use:
 
-```bash
+\`\`\`bash
 supabase functions serve sync-pokepedia --no-verify-jwt --env-file .env.local
-```
+\`\`\`
 
 **Note**: The `--env-file` path is **relative to `supabase/functions/` directory**, not the project root.
 
@@ -44,9 +44,9 @@ supabase functions serve sync-pokepedia --no-verify-jwt --env-file .env.local
 ## Next Steps
 
 1. **Restart Edge Function** (no `--env-file` flag needed if using `supabase/functions/.env`):
-   ```bash
+   \`\`\`bash
    supabase functions serve sync-pokepedia --no-verify-jwt
-   ```
+   \`\`\`
 
 2. **Verify in logs** that it's using `http://127.0.0.1:54321` instead of `http://kong:8000`
 

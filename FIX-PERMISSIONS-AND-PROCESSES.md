@@ -29,9 +29,9 @@
 ### Step 1: Get Service Account Email
 
 Your service account email is:
-```
+\`\`\`
 poke-mnky-service@mood-mnky.iam.gserviceaccount.com
-```
+\`\`\`
 
 ### Step 2: Share the Spreadsheet
 
@@ -42,9 +42,9 @@ poke-mnky-service@mood-mnky.iam.gserviceaccount.com
 
 3. **Add Service Account**:
    - In the "Add people and groups" field, paste:
-     ```
+     \`\`\`
      poke-mnky-service@mood-mnky.iam.gserviceaccount.com
-     ```
+     \`\`\`
 
 4. **Set Permission**:
    - Choose **"Viewer"** (recommended) or **"Editor"** (also works)
@@ -58,14 +58,14 @@ poke-mnky-service@mood-mnky.iam.gserviceaccount.com
 
 After sharing, wait a few seconds, then test:
 
-```bash
+\`\`\`bash
 npx tsx scripts/test-scopes-direct.ts 1wwH5XUHxQnivm90wGtNLQI_g7P3nPi5ZRcbZ3JU3-YQ
-```
+\`\`\`
 
 You should see:
-```
+\`\`\`
 ✅ Success! Spreadsheet: "Average at Best Draft League"
-```
+\`\`\`
 
 ---
 
@@ -82,7 +82,7 @@ You should see:
 
 #### Option 1: Kill High-CPU Processes (Recommended)
 
-```powershell
+\`\`\`powershell
 # See high-CPU processes
 Get-Process node | Where-Object {$_.CPU -gt 1000} | Format-Table Id, CPU, WorkingSet
 
@@ -91,17 +91,17 @@ Stop-Process -Id <PID> -Force
 
 # Kill all high-CPU processes
 Get-Process node | Where-Object {$_.CPU -gt 1000} | Stop-Process -Force
-```
+\`\`\`
 
 #### Option 2: Kill All Node Processes (⚠️ Will kill dev server)
 
-```powershell
+\`\`\`powershell
 # Kill ALL Node.js processes
 Get-Process node | Stop-Process -Force
 
 # Then restart dev server
 pnpm dev
-```
+\`\`\`
 
 #### Option 3: Use Task Manager
 
@@ -113,13 +113,13 @@ pnpm dev
 
 ### Identify What's Running
 
-```powershell
+\`\`\`powershell
 # See all Node.js processes
 Get-Process node | Select-Object Id, ProcessName, CPU, @{Name='Memory(MB)';Expression={[math]::Round($_.WorkingSet/1MB,2)}} | Format-Table
 
 # Check command lines (to see which scripts are running)
 Get-WmiObject Win32_Process | Where-Object {$_.Name -eq "node.exe"} | Select-Object ProcessId, CommandLine | Format-List
-```
+\`\`\`
 
 ---
 
@@ -133,20 +133,20 @@ Get-WmiObject Win32_Process | Where-Object {$_.Name -eq "node.exe"} | Select-Obj
 
 ### 2. Check Running Processes
 
-```powershell
+\`\`\`powershell
 # Count Node.js processes
 (Get-Process node).Count
 
 # Should be: 1-3 (dev server + maybe 1-2 other scripts)
 # If more than 5, you have stuck processes
-```
+\`\`\`
 
 ### 3. Check High-CPU Processes
 
-```powershell
+\`\`\`powershell
 # Processes using >1000 CPU time
 Get-Process node | Where-Object {$_.CPU -gt 1000} | Format-Table Id, CPU, StartTime
-```
+\`\`\`
 
 **Common culprits**:
 - Process ID 13756 (very high CPU: 10914)
@@ -155,7 +155,7 @@ Get-Process node | Where-Object {$_.CPU -gt 1000} | Format-Table Id, CPU, StartT
 
 ### 4. Kill Stuck Processes
 
-```powershell
+\`\`\`powershell
 # Kill the high-CPU process
 Stop-Process -Id 13756 -Force
 
@@ -164,7 +164,7 @@ Stop-Process -Id 91796 -Force
 
 # Kill suspicious process
 Stop-Process -Id 90816 -Force
-```
+\`\`\`
 
 ---
 
@@ -189,23 +189,23 @@ After fixing permissions and processes:
    - Click Share
 
 2. **Kill stuck processes**:
-   ```powershell
+   \`\`\`powershell
    Get-Process node | Where-Object {$_.CPU -gt 1000} | Stop-Process -Force
-   ```
+   \`\`\`
 
 3. **Test access**:
-   ```bash
+   \`\`\`bash
    npx tsx scripts/test-scopes-direct.ts 1wwH5XUHxQnivm90wGtNLQI_g7P3nPi5ZRcbZ3JU3-YQ
-   ```
+   \`\`\`
 
 4. **Run analysis** (after dev server is running):
-   ```bash
+   \`\`\`bash
    # Terminal 1: Start dev server
    pnpm dev
    
    # Terminal 2: Run analysis
    npx tsx scripts/test-sheet-analysis.ts
-   ```
+   \`\`\`
 
 ---
 

@@ -34,7 +34,7 @@ All components have been created and deployed:
 
 Check that everything is in place:
 
-```sql
+\`\`\`sql
 -- Verify tables exist
 SELECT table_name FROM information_schema.tables 
 WHERE table_schema = 'public' 
@@ -46,7 +46,7 @@ SELECT queue_name FROM pgmq.list_queues();
 -- Verify wrapper functions exist
 SELECT routine_name FROM information_schema.routines
 WHERE routine_schema = 'pgmq_public';
-```
+\`\`\`
 
 ### 2. Test Seed Function (Small Scale)
 
@@ -59,17 +59,17 @@ Start with a small test - seed only the "type" resource (20 items):
 4. Monitor queue depth (should show ~20 messages)
 
 **Via API:**
-```bash
+\`\`\`bash
 curl -X POST http://127.0.0.1:3000/api/pokepedia/seed \
   -H "Content-Type: application/json" \
   -d '{"resourceTypes": ["type"], "limit": 20}'
-```
+\`\`\`
 
 **Verify Queue:**
-```sql
+\`\`\`sql
 SELECT COUNT(*) FROM pgmq.q_pokepedia_ingest;
 -- Should show ~20 messages
-```
+\`\`\`
 
 ### 3. Test Worker Function
 
@@ -81,14 +81,14 @@ Process the queued messages:
 3. Check "Progress by Resource Type" section
 
 **Via API:**
-```bash
+\`\`\`bash
 curl -X POST http://127.0.0.1:3000/api/pokepedia/worker \
   -H "Content-Type: application/json" \
   -d '{"batchSize": 5, "concurrency": 2}'
-```
+\`\`\`
 
 **Verify Data:**
-```sql
+\`\`\`sql
 -- Check resources were synced
 SELECT resource_type, COUNT(*) 
 FROM pokeapi_resources 
@@ -96,7 +96,7 @@ GROUP BY resource_type;
 
 -- Check projection table
 SELECT COUNT(*) FROM pokepedia_pokemon;
-```
+\`\`\`
 
 ### 4. Test Full Seed
 
@@ -106,11 +106,11 @@ Once small test works, seed all resources:
 - Click "Seed Queue" (seeds all resource types)
 
 **Via API:**
-```bash
+\`\`\`bash
 curl -X POST http://127.0.0.1:3000/api/pokepedia/seed \
   -H "Content-Type: application/json" \
   -d '{"limit": 200}'
-```
+\`\`\`
 
 This will enqueue ~15,000+ resource URLs.
 
@@ -122,13 +122,13 @@ This will enqueue ~15,000+ resource URLs.
 - Overall progress percentage
 
 **Via SQL:**
-```sql
+\`\`\`sql
 -- Queue stats
 SELECT * FROM get_pokepedia_queue_stats();
 
 -- Sync progress
 SELECT * FROM get_pokepedia_sync_progress();
-```
+\`\`\`
 
 ### 6. Test Sprite Worker
 
@@ -138,19 +138,19 @@ After Pokemon resources are synced, sprites will be enqueued:
 - Click "Process Sprites" button
 
 **Via API:**
-```bash
+\`\`\`bash
 curl -X POST http://127.0.0.1:3000/api/pokepedia/sprite-worker \
   -H "Content-Type: application/json" \
   -d '{"batchSize": 10, "concurrency": 3}'
-```
+\`\`\`
 
 **Verify Sprites:**
-```sql
+\`\`\`sql
 -- Check assets table
 SELECT COUNT(*) FROM pokepedia_assets;
 
 -- Check Storage bucket (via Dashboard or Storage API)
-```
+\`\`\`
 
 ## 🔍 Troubleshooting
 
@@ -168,10 +168,10 @@ SELECT COUNT(*) FROM pokepedia_assets;
 ### Queue Functions Not Found
 
 If `pgmq_public` functions don't exist:
-```sql
+\`\`\`sql
 -- Re-run the wrapper function migration
 -- See: supabase/migrations/20260113010000_create_pokepedia_queue_system.sql
-```
+\`\`\`
 
 ### Storage Bucket Not Found
 

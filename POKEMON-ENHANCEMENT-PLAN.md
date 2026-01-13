@@ -62,10 +62,10 @@ This document outlines the comprehensive plan to enhance the Average at Best Dra
 ### Step 1: Run Schema Migrations
 
 **Execute in Supabase SQL Editor:**
-```sql
+\`\`\`sql
 -- From scripts/002_enhanced_schema.sql
 -- Creates all tables, indexes, RLS policies
-```
+\`\`\`
 
 **Verification Checklist:**
 - [ ] All tables created successfully
@@ -76,7 +76,7 @@ This document outlines the comprehensive plan to enhance the Average at Best Dra
 
 ### Step 2: Create Sync Log Table
 
-```sql
+\`\`\`sql
 CREATE TABLE IF NOT EXISTS public.sync_log (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   sync_type TEXT NOT NULL, -- 'full', 'teams', 'draft', 'matches', 'stats'
@@ -88,7 +88,7 @@ CREATE TABLE IF NOT EXISTS public.sync_log (
 
 ALTER TABLE public.sync_log ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Public read sync_log" ON public.sync_log FOR SELECT USING (true);
-```
+\`\`\`
 
 ---
 
@@ -101,7 +101,7 @@ Minimize PokeAPI calls and costs by caching all visual and gameplay data.
 
 **Additional fields to add:**
 
-```sql
+\`\`\`sql
 ALTER TABLE public.pokemon_cache 
   ADD COLUMN IF NOT EXISTS sprites JSONB, -- All sprite URLs
   ADD COLUMN IF NOT EXISTS ability_details JSONB[], -- Ability descriptions
@@ -111,11 +111,11 @@ ALTER TABLE public.pokemon_cache
   ADD COLUMN IF NOT EXISTS hidden_ability TEXT,
   ADD COLUMN IF NOT EXISTS gender_rate INTEGER, -- -1 = genderless, 0-8 = ratio
   ADD COLUMN IF NOT EXISTS generation INTEGER;
-```
+\`\`\`
 
 ### Sprite Structure
 
-```typescript
+\`\`\`typescript
 interface PokemonSprites {
   front_default: string | null
   front_shiny: string | null
@@ -128,22 +128,22 @@ interface PokemonSprites {
   dream_world: string | null
   home: string | null
 }
-```
+\`\`\`
 
 ### Ability Details Structure
 
-```typescript
+\`\`\`typescript
 interface AbilityDetail {
   name: string
   is_hidden: boolean
   effect: string // Short effect description
   effect_verbose: string // Long effect description
 }
-```
+\`\`\`
 
 ### Move Details Structure (Top 20 moves only to save space)
 
-```typescript
+\`\`\`typescript
 interface MoveDetail {
   name: string
   type: string
@@ -155,7 +155,7 @@ interface MoveDetail {
   learn_method: 'level-up' | 'tm' | 'egg' | 'tutor'
   level_learned_at: number | null
 }
-```
+\`\`\`
 
 ### Cache Strategy
 
@@ -179,7 +179,7 @@ interface MoveDetail {
 
 **Implementation:**
 
-```typescript
+\`\`\`typescript
 // lib/pokemon-api.ts enhancements
 
 export async function getPokemonDataExtended(
@@ -213,7 +213,7 @@ export async function getPokemonDataExtended(
   // Cache and return
   return cacheExtendedData(pokemon, species, abilityDetails)
 }
-```
+\`\`\`
 
 ### Cost Optimization
 
@@ -228,7 +228,7 @@ export async function getPokemonDataExtended(
 
 **Batch Pre-Caching Strategy:**
 
-```typescript
+\`\`\`typescript
 // scripts/pre-cache-pokemon.ts
 
 const COMPETITIVE_POKEMON = [
@@ -243,7 +243,7 @@ async function preCacheCompetitivePokemon() {
     await new Promise(resolve => setTimeout(resolve, 200)) // Rate limit
   }
 }
-```
+\`\`\`
 
 ---
 
@@ -262,11 +262,11 @@ async function preCacheCompetitivePokemon() {
 **Step 1: Update Environment Variables**
 
 Add to Vercel project settings:
-```bash
+\`\`\`bash
 GOOGLE_SHEETS_ID=1wwH5XUHxQnivm90wGtNLQI_g7P3nPi5ZRcbZ3JU3-YQ
 GOOGLE_SERVICE_ACCOUNT_EMAIL=your-service-account@project.iam.gserviceaccount.com
 GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
-```
+\`\`\`
 
 **Step 2: Share Sheet with Service Account**
 
@@ -280,13 +280,13 @@ GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END P
 
 Update all pages:
 
-```typescript
+\`\`\`typescript
 // Before
 const USE_MOCK_DATA = true
 
 // After
 const USE_MOCK_DATA = false // Now uses real Supabase data
-```
+\`\`\`
 
 **Files to update:**
 - `app/page.tsx`
@@ -311,7 +311,7 @@ const USE_MOCK_DATA = false // Now uses real Supabase data
 
 Before upsert to Supabase, validate:
 
-```typescript
+\`\`\`typescript
 function validateTeamData(team: any): boolean {
   // Required fields
   if (!team.name || team.name.trim() === '') return false
@@ -323,7 +323,7 @@ function validateTeamData(team: any): boolean {
   
   return true
 }
-```
+\`\`\`
 
 ### Conflict Resolution
 
@@ -331,7 +331,7 @@ function validateTeamData(team: any): boolean {
 
 **Strategy: Last Write Wins with Audit Trail**
 
-```sql
+\`\`\`sql
 -- Add to all synced tables
 ALTER TABLE teams 
   ADD COLUMN last_synced_at TIMESTAMPTZ,
@@ -348,11 +348,11 @@ UPDATE teams SET
   last_modified_source = 'app',
   last_synced_at = NULL
 WHERE id = 'uuid';
-```
+\`\`\`
 
 **Conflict Detection:**
 
-```typescript
+\`\`\`typescript
 async function detectConflicts(sheetData: any[], dbData: any[]) {
   const conflicts = []
   
@@ -375,7 +375,7 @@ async function detectConflicts(sheetData: any[], dbData: any[]) {
   
   return conflicts
 }
-```
+\`\`\`
 
 ---
 
@@ -430,11 +430,11 @@ async function detectConflicts(sheetData: any[], dbData: any[]) {
    - Right-click for "Replace Pokemon"
 
 2. **Type Coverage Matrix**
-   ```
+   \`\`\`
    Fighting | 3 counters | ✅ Covered
    Water    | 1 counter  | ⚠️ Weak
    Electric | 0 counters | ❌ Vulnerable
-   ```
+   \`\`\`
 
 3. **Role Balance Meter**
    - Physical Attacker: ███░░ 3/6
@@ -675,7 +675,7 @@ async function detectConflicts(sheetData: any[], dbData: any[]) {
 
 ### A. Enhanced Pokemon Cache Schema
 
-```sql
+\`\`\`sql
 -- Add to 002_enhanced_schema.sql
 
 CREATE TABLE IF NOT EXISTS public.pokemon_cache (
@@ -703,11 +703,11 @@ CREATE TABLE IF NOT EXISTS public.pokemon_cache (
   fetched_at TIMESTAMPTZ DEFAULT NOW(),
   expires_at TIMESTAMPTZ DEFAULT NOW() + INTERVAL '30 days'
 );
-```
+\`\`\`
 
 ### B. Sprite Fetching Function
 
-```typescript
+\`\`\`typescript
 // lib/pokemon-api.ts
 
 async function getAllSprites(pokemon: Pokemon): Promise<PokemonSprites> {
@@ -723,11 +723,11 @@ async function getAllSprites(pokemon: Pokemon): Promise<PokemonSprites> {
     home: pokemon.sprites.other?.home?.front_default || null,
   }
 }
-```
+\`\`\`
 
 ### C. Dry-Run Sync Mode
 
-```typescript
+\`\`\`typescript
 // lib/google-sheets-sync.ts
 
 export async function syncLeagueData(dryRun = false): Promise<SyncResult> {
@@ -750,7 +750,7 @@ export async function syncLeagueData(dryRun = false): Promise<SyncResult> {
   
   // ... actual sync logic
 }
-```
+\`\`\`
 
 ---
 
@@ -758,6 +758,6 @@ export async function syncLeagueData(dryRun = false): Promise<SyncResult> {
 **Last Updated:** 2026-01-12  
 **Author:** v0 AI Assistant  
 **Status:** Ready for Implementation
-```
+\`\`\`
 
 Now let me create a script to run the database migrations:

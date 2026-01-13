@@ -149,7 +149,7 @@ Redesigned Pokemon showcase to display starter Pokemon from each generation side
 
 ## 📊 Component Structure
 
-```
+\`\`\`
 PokemonShowcase
 └── PokemonStarterShowcase
     ├── Generation Header
@@ -163,7 +163,7 @@ PokemonShowcase
             ├── Stats Summary
             ├── Abilities
             └── Evolution Chain
-```
+\`\`\`
 
 ---
 
@@ -197,15 +197,15 @@ All starter Pokemon IDs stored in `STARTER_POKEMON_BY_GENERATION`:
 
 ### Starter Showcase
 
-```tsx
+\`\`\`tsx
 import { PokemonShowcase } from "@/components/pokemon-showcase"
 
 <PokemonShowcase />
-```
+\`\`\`
 
 ### Compact Card
 
-```tsx
+\`\`\`tsx
 import { PokemonCompactCard } from "@/components/pokemon-compact-card"
 
 <PokemonCompactCard 
@@ -213,7 +213,7 @@ import { PokemonCompactCard } from "@/components/pokemon-compact-card"
   showEvolution={true}
   evolutionChain={evolutionChain}
 />
-```
+\`\`\`
 
 ---
 

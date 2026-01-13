@@ -10,7 +10,7 @@ Comprehensive offline-first Pokepedia sync system that enables:
 
 ## 🏗️ Architecture
 
-```
+\`\`\`
 App Start
     ↓
 PokepediaSyncProvider (auto-start)
@@ -31,7 +31,7 @@ PokepediaSyncProvider (auto-start)
 │ - Evolution chains                  │   Updates Supabase + IndexedDB
 │ - Additional data                   │   Realtime progress updates
 └─────────────────────────────────────┘
-```
+\`\`\`
 
 ## 📊 Data Flow
 
@@ -44,7 +44,7 @@ PokepediaSyncProvider (auto-start)
 6. **Background Sync**: Trigger Edge Function for remaining data
 
 ### Data Access (Offline-First)
-```
+\`\`\`
 getPokemonOfflineFirst(id)
     ↓
 Check IndexedDB (local)
@@ -55,7 +55,7 @@ Check Supabase
     ↓ Miss
 Check PokeAPI (if online)
     ↓ Hit? → Return ✅ (cache in Supabase + IndexedDB)
-```
+\`\`\`
 
 ## 🔧 Components
 
@@ -87,15 +87,15 @@ Check PokeAPI (if online)
 ## 🚀 Usage
 
 ### Automatic Sync (On App Start)
-```tsx
+\`\`\`tsx
 // Already integrated in app/layout.tsx
 <PokepediaSyncProvider autoStart={true}>
   {children}
 </PokepediaSyncProvider>
-```
+\`\`\`
 
 ### Manual Sync Trigger
-```tsx
+\`\`\`tsx
 import { usePokepediaSyncContext } from "@/components/pokepedia-sync-provider"
 
 function MyComponent() {
@@ -107,15 +107,15 @@ function MyComponent() {
     </button>
   )
 }
-```
+\`\`\`
 
 ### Offline-First Data Access
-```tsx
+\`\`\`tsx
 import { getPokemonOfflineFirst } from "@/lib/pokepedia-client"
 
 const pokemon = await getPokemonOfflineFirst(25) // Pikachu
 // Checks: IndexedDB → Supabase → PokeAPI
-```
+\`\`\`
 
 ## ✅ Benefits
 

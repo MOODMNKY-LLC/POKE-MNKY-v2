@@ -33,11 +33,11 @@
 ### Option 1: Via Admin Dashboard (Recommended)
 
 1. **Start your Next.js dev server:**
-   ```bash
+   \`\`\`bash
    npm run dev
    # or
    pnpm dev
-   ```
+   \`\`\`
 
 2. **Visit Admin Dashboard:**
    - Navigate to `http://127.0.0.1:3000/admin`
@@ -61,31 +61,31 @@
 ### Option 2: Via API Routes
 
 **Test Seed:**
-```bash
+\`\`\`bash
 curl -X POST http://127.0.0.1:3000/api/pokepedia/seed \
   -H "Content-Type: application/json" \
   -d '{"resourceTypes": ["type"], "limit": 20}'
-```
+\`\`\`
 
 **Test Worker:**
-```bash
+\`\`\`bash
 curl -X POST http://127.0.0.1:3000/api/pokepedia/worker \
   -H "Content-Type: application/json" \
   -d '{"batchSize": 5, "concurrency": 2}'
-```
+\`\`\`
 
 **Test Sprite Worker:**
-```bash
+\`\`\`bash
 curl -X POST http://127.0.0.1:3000/api/pokepedia/sprite-worker \
   -H "Content-Type: application/json" \
   -d '{"batchSize": 5, "concurrency": 2}'
-```
+\`\`\`
 
 ### Option 3: Direct Edge Function Calls (Remote)
 
 If testing against remote deployment:
 
-```bash
+\`\`\`bash
 # Seed
 curl -X POST https://chmrszrwlfeqovwxyrmt.supabase.co/functions/v1/pokepedia-seed \
   -H "Authorization: Bearer YOUR_SERVICE_ROLE_KEY" \
@@ -97,39 +97,39 @@ curl -X POST https://chmrszrwlfeqovwxyrmt.supabase.co/functions/v1/pokepedia-wor
   -H "Authorization: Bearer YOUR_SERVICE_ROLE_KEY" \
   -H "Content-Type: application/json" \
   -d '{"batchSize": 5, "concurrency": 2}'
-```
+\`\`\`
 
 ## 🔍 Verification Queries
 
 ### Check Queue Depths
-```sql
+\`\`\`sql
 SELECT * FROM get_pokepedia_queue_stats();
-```
+\`\`\`
 
 ### Check Sync Progress
-```sql
+\`\`\`sql
 SELECT * FROM get_pokepedia_sync_progress();
-```
+\`\`\`
 
 ### Check Synced Resources
-```sql
+\`\`\`sql
 SELECT resource_type, COUNT(*) 
 FROM pokeapi_resources 
 GROUP BY resource_type 
 ORDER BY resource_type;
-```
+\`\`\`
 
 ### Check Pokemon Projection
-```sql
+\`\`\`sql
 SELECT COUNT(*) FROM pokepedia_pokemon;
 SELECT * FROM pokepedia_pokemon LIMIT 10;
-```
+\`\`\`
 
 ### Check Sprite Assets
-```sql
+\`\`\`sql
 SELECT COUNT(*) FROM pokepedia_assets;
 SELECT * FROM pokepedia_assets LIMIT 10;
-```
+\`\`\`
 
 ## 🚀 Production Deployment Checklist
 

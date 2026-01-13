@@ -4,13 +4,13 @@ Discovers all PokéAPI REST v2 resource URLs and enqueues them into the `pokeped
 
 ## Usage
 
-```bash
+\`\`\`bash
 # Manual trigger
 curl -X POST https://<project-ref>.supabase.co/functions/v1/pokepedia-seed \
   -H "Authorization: Bearer <anon-key>" \
   -H "Content-Type: application/json" \
   -d '{"limit": 200}'
-```
+\`\`\`
 
 ## Parameters
 
@@ -30,7 +30,7 @@ Resources are processed in dependency order:
 
 ## Response
 
-```json
+\`\`\`json
 {
   "ok": true,
   "totalEnqueued": 15000,
@@ -40,4 +40,4 @@ Resources are processed in dependency order:
     ...
   }
 }
-```
+\`\`\`

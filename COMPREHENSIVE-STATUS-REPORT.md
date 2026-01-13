@@ -116,10 +116,10 @@
 - **Issue**: Search range may need adjustment or team names in different location
 
 #### Test Results
-```
+\`\`\`
 ✅ Successfully parsed 168 draft picks
 ⚠️ Teams not found in database (expected - needs team matching strategy)
-```
+\`\`\`
 
 #### Status
 ⚠️ **PARTIAL** - Data extraction works, team mapping needs fix
@@ -159,12 +159,12 @@
 - **Budget Updates**: Updates work but team creation needs completion
 
 #### Database State
-```sql
+\`\`\`sql
 -- draft_budgets table structure
 - total_points: 120 (per team per season)
 - spent_points: Sum of draft_points from picks
 - remaining_points: Calculated (total - spent)
-```
+\`\`\`
 
 #### Status
 ⚠️ **PARTIAL** - Foundation works, needs team connection completion
@@ -174,43 +174,43 @@
 ### 5. Database State
 
 #### Rules Storage
-```sql
+\`\`\`sql
 SELECT COUNT(*) FROM league_config WHERE config_type = 'rules';
 -- Status: May be 0 if schema cache not refreshed
 -- Table exists, migration applied
 -- Need to verify storage after schema cache refresh
-```
+\`\`\`
 
 #### Draft Picks
-```sql
+\`\`\`sql
 SELECT COUNT(*) FROM team_rosters WHERE draft_points IS NOT NULL;
 -- Result: 0 picks stored
 -- Issue: Parser extracts 168 picks but they're not being stored in database
 -- Root Cause: Team mapping issue prevents team creation, which blocks pick storage
-```
+\`\`\`
 
 #### Teams
-```sql
+\`\`\`sql
 SELECT COUNT(*) FROM teams;
 -- Result: 0 teams
 -- Issue: Teams not being created due to team mapping failure
 -- Expected: Should have teams created from draft picks
-```
+\`\`\`
 
 #### Draft Budgets
-```sql
+\`\`\`sql
 SELECT COUNT(*) FROM draft_budgets;
 -- Result: 0 budgets
 -- Issue: No teams exist, so no budgets created
 -- Expected: One per team per season (when teams are created)
-```
+\`\`\`
 
 #### Rules Storage ✅
-```sql
+\`\`\`sql
 SELECT COUNT(*) FROM league_config WHERE config_type = 'rules';
 -- Result: 1 rule section stored
 -- Status: ✅ Working - Rules are being stored successfully
-```
+\`\`\`
 
 ---
 
@@ -458,22 +458,22 @@ SELECT COUNT(*) FROM league_config WHERE config_type = 'rules';
 
 ### Immediate Tests
 1. **Draft Parser Team Mapping**
-   ```bash
+   \`\`\`bash
    npx tsx scripts/find-draft-results.ts
    # Then update draft-parser.ts with correct range
    npx tsx scripts/test-parsers-safe.ts [spreadsheet_id] "Draft Board" "draft"
-   ```
+   \`\`\`
 
 2. **Rules Storage**
-   ```bash
+   \`\`\`bash
    npx tsx scripts/test-parsers-safe.ts [spreadsheet_id] "Rules" "rules"
    # Then verify: SELECT * FROM league_config WHERE config_type = 'rules'
-   ```
+   \`\`\`
 
 3. **Team Page Parser**
-   ```bash
+   \`\`\`bash
    npx tsx scripts/test-parsers-safe.ts [spreadsheet_id] "Team 1" "team_page"
-   ```
+   \`\`\`
 
 ### Integration Tests
 1. **Full Draft Flow**

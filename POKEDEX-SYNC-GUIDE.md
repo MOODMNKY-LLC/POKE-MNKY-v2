@@ -77,9 +77,9 @@ This guide explains how the comprehensive Pokemon caching system works and how t
 ## 🔄 Sync Strategy
 
 ### Phase 1: Master Data (One-time, ~30 minutes)
-```bash
+\`\`\`bash
 npx tsx scripts/comprehensive-pokedex-sync.ts master
-```
+\`\`\`
 
 **Syncs**:
 - Types (~20 items)
@@ -92,9 +92,9 @@ npx tsx scripts/comprehensive-pokedex-sync.ts master
 **Estimated Time**: ~30 minutes
 
 ### Phase 2: Pokemon Data (Bulk, ~3 hours)
-```bash
+\`\`\`bash
 npx tsx scripts/comprehensive-pokedex-sync.ts pokemon 1 1025
-```
+\`\`\`
 
 **Syncs**:
 - Pokemon Species (1-1025)
@@ -104,9 +104,9 @@ npx tsx scripts/comprehensive-pokedex-sync.ts pokemon 1 1025
 **Estimated Time**: ~3 hours (100ms rate limit × 1025 Pokemon)
 
 ### Phase 3: Evolution Chains (One-time, ~10 minutes)
-```bash
+\`\`\`bash
 npx tsx scripts/comprehensive-pokedex-sync.ts evolution
-```
+\`\`\`
 
 **Syncs**:
 - Evolution chains (from species data)
@@ -114,9 +114,9 @@ npx tsx scripts/comprehensive-pokedex-sync.ts evolution
 **Estimated Time**: ~10 minutes
 
 ### Full Sync (Everything)
-```bash
+\`\`\`bash
 npx tsx scripts/comprehensive-pokedex-sync.ts all
-```
+\`\`\`
 
 **Estimated Total Time**: ~3.5-4 hours
 
@@ -194,41 +194,41 @@ npx tsx scripts/comprehensive-pokedex-sync.ts all
 ### Query Examples
 
 **Find all Pokemon with a specific ability**:
-```sql
+\`\`\`sql
 SELECT p.name, p.pokemon_id
 FROM pokemon p
 JOIN pokemon_abilities pa ON p.pokemon_id = pa.pokemon_id
 JOIN abilities a ON pa.ability_id = a.ability_id
 WHERE a.name = 'intimidate';
-```
+\`\`\`
 
 **Find all Fire-type Pokemon**:
-```sql
+\`\`\`sql
 SELECT p.name, p.pokemon_id
 FROM pokemon p
 JOIN pokemon_types pt ON p.pokemon_id = pt.pokemon_id
 JOIN types t ON pt.type_id = t.type_id
 WHERE t.name = 'fire';
-```
+\`\`\`
 
 **Find all Pokemon that learn a specific move**:
-```sql
+\`\`\`sql
 SELECT DISTINCT p.name, p.pokemon_id
 FROM pokemon p
 JOIN pokemon_moves pm ON p.pokemon_id = pm.pokemon_id
 JOIN moves m ON pm.move_id = m.move_id
 WHERE m.name = 'thunderbolt';
-```
+\`\`\`
 
 **Semantic search**:
-```sql
+\`\`\`sql
 SELECT name, pokemon_id
 FROM pokemon
 WHERE to_tsvector('english', name) @@ to_tsquery('pika*');
-```
+\`\`\`
 
 **Get complete Pokemon data**:
-```sql
+\`\`\`sql
 SELECT 
   p.*,
   ps.*,
@@ -245,42 +245,42 @@ LEFT JOIN pokemon_moves pm ON p.pokemon_id = pm.pokemon_id
 LEFT JOIN moves m ON pm.move_id = m.move_id
 WHERE p.pokemon_id = 25
 GROUP BY p.id, ps.id;
-```
+\`\`\`
 
 ---
 
 ## 🔧 Setup & Execution
 
 ### Step 1: Apply Migration
-```bash
+\`\`\`bash
 # Migration already applied via MCP
 # Or manually:
 supabase migration up
-```
+\`\`\`
 
 ### Step 2: Sync Master Data
-```bash
+\`\`\`bash
 npx tsx scripts/comprehensive-pokedex-sync.ts master
-```
+\`\`\`
 
 **Expected**: ~30 minutes, syncs all master data
 
 ### Step 3: Sync Pokemon Data
-```bash
+\`\`\`bash
 npx tsx scripts/comprehensive-pokedex-sync.ts pokemon 1 1025
-```
+\`\`\`
 
 **Expected**: ~3 hours, syncs all Pokemon + relationships
 
 ### Step 4: Sync Evolution Chains
-```bash
+\`\`\`bash
 npx tsx scripts/comprehensive-pokedex-sync.ts evolution
-```
+\`\`\`
 
 **Expected**: ~10 minutes
 
 ### Step 5: Verify Data
-```sql
+\`\`\`sql
 -- Check counts
 SELECT 
   (SELECT COUNT(*) FROM types) as types,
@@ -292,7 +292,7 @@ SELECT
   (SELECT COUNT(*) FROM pokemon_species) as species,
   (SELECT COUNT(*) FROM pokemon) as pokemon,
   (SELECT COUNT(*) FROM evolution_chains) as evolution_chains;
-```
+\`\`\`
 
 ---
 
@@ -302,7 +302,7 @@ SELECT
 
 **File**: `app/api/cron/sync-pokedex/route.ts`
 
-```typescript
+\`\`\`typescript
 import { NextResponse } from "next/server"
 import { syncComprehensivePokedex } from "@/lib/pokedex-sync"
 
@@ -330,17 +330,17 @@ export async function GET(request: Request) {
     )
   }
 }
-```
+\`\`\`
 
 **Vercel Cron** (`vercel.json`):
-```json
+\`\`\`json
 {
   "crons": [{
     "path": "/api/cron/sync-pokedex",
     "schedule": "0 3 * * *" // Daily at 3 AM
   }]
 }
-```
+\`\`\`
 
 ---
 

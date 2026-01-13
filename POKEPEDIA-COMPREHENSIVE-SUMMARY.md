@@ -19,34 +19,34 @@
 ## 🚀 Quick Start
 
 ### Step 1: Apply Migrations
-```bash
+\`\`\`bash
 supabase db push
-```
+\`\`\`
 
 ### Step 2: Sync Master Data (~30 min)
-```bash
+\`\`\`bash
 npx tsx scripts/comprehensive-pokepedia-sync.ts master
-```
+\`\`\`
 
 ### Step 3: Sync Pokemon Data (~3 hours)
-```bash
+\`\`\`bash
 npx tsx scripts/comprehensive-pokepedia-sync.ts pokemon 1 1025
-```
+\`\`\`
 
 ### Step 4: Sync Additional Data (~10 min)
-```bash
+\`\`\`bash
 npx tsx scripts/comprehensive-pokepedia-sync.ts additional
-```
+\`\`\`
 
 ### Step 5: Sync Evolution Chains (~10 min)
-```bash
+\`\`\`bash
 npx tsx scripts/comprehensive-pokepedia-sync.ts evolution
-```
+\`\`\`
 
 **Or sync everything at once**:
-```bash
+\`\`\`bash
 npx tsx scripts/comprehensive-pokepedia-sync.ts all
-```
+\`\`\`
 
 ## 📊 Data Coverage
 

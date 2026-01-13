@@ -5,9 +5,9 @@
 ### 1. ✅ Sync Scripts Ran → **PRODUCTION** ✅
 
 When we ran:
-```bash
+\`\`\`bash
 pnpm exec tsx --env-file=.env.local scripts/full-sync-pokemon.ts
-```
+\`\`\`
 
 **What happened:**
 - Scripts read `.env.local` which has: `NEXT_PUBLIC_SUPABASE_URL=https://chmrszrwlfeqovwxyrmt.supabase.co`
@@ -17,9 +17,9 @@ pnpm exec tsx --env-file=.env.local scripts/full-sync-pokemon.ts
 ### 2. ✅ `supabase db pull` → **LOCAL Schema** ✅
 
 When we ran:
-```bash
+\`\`\`bash
 supabase db pull
-```
+\`\`\`
 
 **What happened:**
 - Pulled **SCHEMA** (table structure) from production to local Supabase

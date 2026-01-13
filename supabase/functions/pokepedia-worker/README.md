@@ -4,7 +4,7 @@ Processes queue messages from `pokepedia_ingest`, fetches resources from PokéAP
 
 ## Usage
 
-```bash
+\`\`\`bash
 # Manual trigger
 curl -X POST https://<project-ref>.supabase.co/functions/v1/pokepedia-worker \
   -H "Authorization: Bearer <anon-key>" \
@@ -15,7 +15,7 @@ curl -X POST https://<project-ref>.supabase.co/functions/v1/pokepedia-worker \
     "concurrency": 4,
     "enqueueSprites": true
   }'
-```
+\`\`\`
 
 ## Parameters
 
@@ -35,7 +35,7 @@ curl -X POST https://<project-ref>.supabase.co/functions/v1/pokepedia-worker \
 
 ## Response
 
-```json
+\`\`\`json
 {
   "ok": true,
   "processed": [
@@ -48,4 +48,4 @@ curl -X POST https://<project-ref>.supabase.co/functions/v1/pokepedia-worker \
   ],
   "failed": []
 }
-```
+\`\`\`

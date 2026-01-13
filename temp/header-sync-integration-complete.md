@@ -74,7 +74,7 @@
 **Test Endpoint**: Visit `http://localhost:3000/api/sync/pokepedia/test`
 
 **Expected Response**:
-```json
+\`\`\`json
 {
   "connected": true,
   "database": {
@@ -88,10 +88,10 @@
     "isLocal": true
   }
 }
-```
+\`\`\`
 
 **If Edge Function Not Running**:
-```json
+\`\`\`json
 {
   "connected": false,
   "database": { "connected": true },
@@ -101,7 +101,7 @@
     "note": "Make sure Edge Function is running: supabase functions serve sync-pokepedia --no-verify-jwt"
   }
 }
-```
+\`\`\`
 
 ## Files Modified
 

@@ -41,9 +41,9 @@ Integrated Pokemon UI sprites from PokeAPI/MinIO to replace lucide-react icons w
 - Customizable size
 
 **Usage:**
-```tsx
+\`\`\`tsx
 <PokemonStatIcon stat="hp" size={16} />
-```
+\`\`\`
 
 ---
 
@@ -70,9 +70,9 @@ Integrated Pokemon UI sprites from PokeAPI/MinIO to replace lucide-react icons w
 - Uses MinIO if configured, falls back to GitHub
 
 **Usage:**
-```tsx
+\`\`\`tsx
 <PokemonItemIcon itemName="master-ball" size={24} />
-```
+\`\`\`
 
 ---
 
@@ -121,14 +121,14 @@ Integrated Pokemon UI sprites from PokeAPI/MinIO to replace lucide-react icons w
 ### Sprite URL Structure
 
 **MinIO (if configured):**
-```
+\`\`\`
 {SPRITES_BASE_URL}/sprites/{category}/{name}.png
-```
+\`\`\`
 
 **GitHub PokeAPI:**
-```
+\`\`\`
 https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/{category}/{name}.png
-```
+\`\`\`
 
 ### Categories
 - `items/` - Pokemon items (confirmed available)
@@ -148,29 +148,29 @@ https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/{category}/{nam
 
 ### Stat Icons
 
-```tsx
+\`\`\`tsx
 import { PokemonStatIcon } from "@/components/pokemon-stat-icon"
 
 // In stat display
 <PokemonStatIcon stat="hp" size={16} />
 <Activity className="h-4 w-4 text-red-500" /> // Fallback
-```
+\`\`\`
 
 ### Item Icons
 
-```tsx
+\`\`\`tsx
 import { PokemonItemIcon } from "@/components/pokemon-item-icon"
 
 <PokemonItemIcon itemName="master-ball" size={24} />
-```
+\`\`\`
 
 ### Type Icons
 
-```tsx
+\`\`\`tsx
 import { PokemonTypeIcon } from "@/components/pokemon-type-icon"
 
 <PokemonTypeIcon type="fire" size={20} />
-```
+\`\`\`
 
 ---
 

@@ -48,9 +48,9 @@ All checks passed:
 2. Click **Share** (top right)
 
 3. **Paste this email directly** (don't search):
-   ```
+   \`\`\`
    poke-mnky-service@mood-mnky.iam.gserviceaccount.com
-   ```
+   \`\`\`
 
 4. Set permission to **Viewer** (recommended) or **Editor**
 
@@ -64,25 +64,25 @@ All checks passed:
 
 After sharing, test access:
 
-```bash
+\`\`\`bash
 npx tsx scripts/test-scopes-direct.ts 1sVQD6_CsoYtGmguRhc07IDlnz2V4Q2uWTt8Owpl5JE0
-```
+\`\`\`
 
 **Expected Output**:
-```
+\`\`\`
 ✅ Success! Spreadsheet: "[Spreadsheet Name]"
 ✅ Sheets found: [number]
-```
+\`\`\`
 
 ### 3. Run Analysis (After Dev Server Starts)
 
-```bash
+\`\`\`bash
 # Terminal 1: Start dev server
 pnpm dev
 
 # Terminal 2: Run comprehensive analysis
 npx tsx scripts/test-sheet-analysis.ts
-```
+\`\`\`
 
 ---
 

@@ -39,7 +39,7 @@ This document provides a comprehensive analysis of all tools and resources added
 - Provides deterministic, version-controlled dataset
 
 **Data Structure:**
-```
+\`\`\`
 resources/api-data/
 ├── data/
 │   └── api/
@@ -53,7 +53,7 @@ resources/api-data/
 └── data/
     └── schema/
         └── ... (JSON Schema definitions)
-```
+\`\`\`
 
 #### Integration Points
 
@@ -172,7 +172,7 @@ resources/api-data/
 - Reduces load on PokeAPI infrastructure
 
 **Directory Structure:**
-```
+\`\`\`
 resources/sprites/
 └── sprites/
     ├── pokemon/
@@ -187,7 +187,7 @@ resources/sprites/
     │       └── ... (through generation-ix)
     └── items/
         └── ... (item sprites)
-```
+\`\`\`
 
 **Sprite Categories:**
 - **Default sprites**: PNGs with back, female, shiny variants
@@ -261,7 +261,7 @@ resources/sprites/
 - Mapped by Pokémon ID
 
 **Directory Structure:**
-```
+\`\`\`
 resources/cries/
 └── cries/
     └── pokemon/
@@ -273,7 +273,7 @@ resources/cries/
             ├── 1.ogg
             ├── 2.ogg
             └── ... (through 649.ogg)
-```
+\`\`\`
 
 **Cry Variants:**
 - **Latest**: Modern cries (all generations)
@@ -388,7 +388,7 @@ resources/cries/
 
 The Poképedia sync system uses a three-plane architecture that separates concerns and optimizes for different use cases:
 
-```
+\`\`\`
 ┌─────────────────────────────────────────────────────────────┐
 │                    DATA INGESTION PIPELINE                   │
 └─────────────────────────────────────────────────────────────┘
@@ -435,7 +435,7 @@ The Poképedia sync system uses a three-plane architecture that separates concer
 │         pokepedia_assets                                      │
 │         (Metadata tracking)                                  │
 └─────────────────────────────────────────────────────────────┘
-```
+\`\`\`
 
 ### 2.2 Data Flow Patterns
 
@@ -514,7 +514,7 @@ The Poképedia sync system uses a three-plane architecture that separates concer
 
 ### 2.3 Orchestration Dependencies
 
-```
+\`\`\`
 ┌─────────────────────────────────────────────────────────────┐
 │                    ORCHESTRATION FLOW                       │
 └─────────────────────────────────────────────────────────────┘
@@ -543,7 +543,7 @@ Step 4: Mirror Media Assets (Parallel, Depends on Step 3)
 
 Step 5: Verify & Monitor
    └─► scripts/verify-projections.ts
-```
+\`\`\`
 
 **Key Dependencies:**
 - Projections depend on canonical data
@@ -663,7 +663,7 @@ Step 5: Verify & Monitor
 #### Projection Table Queries
 
 **Optimized Queries:**
-```sql
+\`\`\`sql
 -- Fast: Uses indexes
 SELECT * FROM pokepedia_pokemon 
 WHERE type_primary = 'fire' 
@@ -678,17 +678,17 @@ WHERE types @> '["fire", "flying"]'::jsonb;
 SELECT * FROM pokepedia_pokemon 
 WHERE generation = 1 
 ORDER BY "order" ASC;
-```
+\`\`\`
 
 **Canonical Table Queries:**
-```sql
+\`\`\`sql
 -- Slower: JSONB path queries
 SELECT data->'types' FROM pokeapi_resources 
 WHERE resource_type = 'pokemon' AND resource_key = '25';
 
 -- Use projection tables for UI queries
 -- Use canonical table for complete data access
-```
+\`\`\`
 
 **Recommendations:**
 - Use projection tables for UI queries (fast)
@@ -799,13 +799,13 @@ WHERE resource_type = 'pokemon' AND resource_key = '25';
 5. Use `pokedex-cries` bucket
 
 **Script Structure:**
-```typescript
+\`\`\`typescript
 // Similar to mirror-sprites-to-storage.ts but:
 // - Source: resources/cries/cries/pokemon/
 // - Bucket: pokedex-cries
 // - Asset kind: 'cry'
 // - Content type: 'audio/ogg'
-```
+\`\`\`
 
 **Estimated Time:** 2-3 hours (development + testing)
 
@@ -919,7 +919,7 @@ WHERE resource_type = 'pokemon' AND resource_key = '25';
 4. Implement error handling and retries
 
 **Script Structure:**
-```typescript
+\`\`\`typescript
 async function orchestrateSync() {
   // Step 1: Import data (api-data or ditto)
   await importData()
@@ -936,7 +936,7 @@ async function orchestrateSync() {
   // Step 4: Verify
   await verifySync()
 }
-```
+\`\`\`
 
 **Estimated Time:** 4-6 hours
 

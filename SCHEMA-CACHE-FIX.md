@@ -32,9 +32,9 @@
 ## Edge Function Local Development
 
 For local Edge Function development:
-```bash
+\`\`\`bash
 # In separate terminal
 supabase functions serve sync-pokepedia --no-verify-jwt
-```
+\`\`\`
 
 Or use remote Edge Function URL if local serving is problematic.

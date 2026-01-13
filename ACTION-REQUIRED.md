@@ -10,9 +10,9 @@
 ### ✅ Solution
 
 **Your Service Account Email**:
-```
+\`\`\`
 poke-mnky-service@mood-mnky.iam.gserviceaccount.com
-```
+\`\`\`
 
 **Steps**:
 
@@ -30,9 +30,9 @@ poke-mnky-service@mood-mnky.iam.gserviceaccount.com
 4. Wait 10-30 seconds
 
 5. Test:
-   ```bash
+   \`\`\`bash
    npx tsx scripts/test-scopes-direct.ts
-   ```
+   \`\`\`
 
 ### ✅ Answer: Is Editor Access Good Enough?
 
@@ -51,13 +51,13 @@ Multiple Node.js processes running with high CPU usage, causing system slowdown.
 ### ✅ Solution
 
 **Option 1: Use the PowerShell Script** (Recommended):
-```powershell
+\`\`\`powershell
 cd C:\DEV-MNKY\MOOD_MNKY\POKE-MNKY-v2
 powershell -ExecutionPolicy Bypass -File scripts\kill-high-cpu-processes.ps1
-```
+\`\`\`
 
 **Option 2: Manual Kill**:
-```powershell
+\`\`\`powershell
 # Kill processes with CPU > 1000
 Get-Process node | Where-Object {$_.CPU -gt 1000} | Stop-Process -Force
 
@@ -65,7 +65,7 @@ Get-Process node | Where-Object {$_.CPU -gt 1000} | Stop-Process -Force
 Stop-Process -Id 13756 -Force  # Very high CPU
 Stop-Process -Id 91796 -Force  # High memory (1.9GB)
 Stop-Process -Id 90816 -Force  # Suspicious
-```
+\`\`\`
 
 **Option 3: Task Manager**:
 1. Press `Ctrl + Shift + Esc`
@@ -79,30 +79,30 @@ Stop-Process -Id 90816 -Force  # Suspicious
 ## ✅ After Fixing Both Issues
 
 ### 1. Verify Spreadsheet Access:
-```bash
+\`\`\`bash
 npx tsx scripts/test-scopes-direct.ts
-```
+\`\`\`
 
 Should show:
-```
+\`\`\`
 ✅ Success! Spreadsheet: "Average at Best Draft League"
-```
+\`\`\`
 
 ### 2. Check Processes:
-```powershell
+\`\`\`powershell
 Get-Process node | Measure-Object -Property CPU -Sum
-```
+\`\`\`
 
 Should show low CPU usage.
 
 ### 3. Run Analysis (requires dev server):
-```bash
+\`\`\`bash
 # Terminal 1: Start dev server
 pnpm dev
 
 # Terminal 2: Run analysis
 npx tsx scripts/test-sheet-analysis.ts
-```
+\`\`\`
 
 ---
 

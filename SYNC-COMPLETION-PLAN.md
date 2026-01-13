@@ -25,9 +25,9 @@
 **Status:** Script schema fixed, ready to run
 
 **Action:**
-```bash
+\`\`\`bash
 pnpm tsx scripts/mirror-sprites-to-storage.ts --dry-run=false
-```
+\`\`\`
 
 **Expected:**
 - Upload ~59,000+ sprite files
@@ -50,9 +50,9 @@ pnpm tsx scripts/mirror-sprites-to-storage.ts --dry-run=false
 
 ### 3. Verify Complete Sync
 **Action:**
-```bash
+\`\`\`bash
 pnpm tsx scripts/verify-sync-status.ts
-```
+\`\`\`
 
 **Success Criteria:**
 - ✅ All 48 endpoints imported (or 47 if language unavailable)
@@ -90,7 +90,7 @@ pnpm tsx scripts/verify-sync-status.ts
 
 ## Commands Reference
 
-```bash
+\`\`\`bash
 # Verify sync status
 pnpm tsx scripts/verify-sync-status.ts
 
@@ -102,4 +102,4 @@ pnpm tsx scripts/build-pokepedia-projections.ts
 
 # Check specific endpoint
 pnpm tsx scripts/import-ditto-data.ts --endpoint=<name>
-```
+\`\`\`

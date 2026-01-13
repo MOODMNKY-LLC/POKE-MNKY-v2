@@ -8,9 +8,9 @@ When you see `hasAuth: false` in Edge Function logs, it doesn't mean authenticat
 
 When running Edge Functions locally with `--no-verify-jwt`:
 
-```bash
+\`\`\`bash
 supabase functions serve sync-pokepedia --no-verify-jwt
-```
+\`\`\`
 
 The Edge Function gateway **strips the Authorization header** before passing the request to your function. This is intentional - the `--no-verify-jwt` flag tells the gateway to skip JWT verification.
 
@@ -21,10 +21,10 @@ The Edge Function gateway **strips the Authorization header** before passing the
 The Edge Function doesn't actually need the Authorization header because:
 
 1. **Function uses its own service role key** (line 63):
-   ```typescript
+   \`\`\`typescript
    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
    const supabase = createClient(supabaseUrl, supabaseServiceKey)
-   ```
+   \`\`\`
 
 2. **The function is self-authenticated** - it creates its own Supabase client with the service role key from environment variables.
 
@@ -43,10 +43,10 @@ In production (remote deployment):
 
 When calling Edge Functions via the Supabase JS client:
 
-```typescript
+\`\`\`typescript
 const supabase = createServiceRoleClient() // Uses service role key
 await supabase.functions.invoke("sync-pokepedia", { body })
-```
+\`\`\`
 
 The client:
 1. ✅ Sends the Authorization header with the service role key
@@ -60,13 +60,13 @@ The client:
 
 When using direct `fetch()` calls (like in `/api/sync/pokepedia/route.ts`):
 
-```typescript
+\`\`\`typescript
 const response = await fetch(functionUrl, {
   headers: {
     Authorization: `Bearer ${serviceRoleKey}`,
   },
 })
-```
+\`\`\`
 
 - ✅ Header is sent
 - ✅ Locally: Gateway strips it (`hasAuth: false`)

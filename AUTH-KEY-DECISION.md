@@ -36,16 +36,16 @@ Should we revert to using the anon key for local development since the gateway s
 ## What Changed
 
 ### Before (Old Code)
-```typescript
+\`\`\`typescript
 // Used anon key for local, service role for remote
 const authKey = isLocal ? (anonKey || serviceRoleKey) : serviceRoleKey
-```
+\`\`\`
 
 ### After (Current Code)
-```typescript
+\`\`\`typescript
 // Always use service role key
 const authKey = serviceRoleKey
-```
+\`\`\`
 
 ## Benefits of Current Approach
 

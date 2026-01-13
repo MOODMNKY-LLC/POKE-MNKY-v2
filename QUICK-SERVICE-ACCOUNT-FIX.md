@@ -30,9 +30,9 @@
 ### 1. Get Service Account Email
 
 Your service account email should be:
-```
+\`\`\`
 poke-mnky-service@mood-mnky.iam.gserviceaccount.com
-```
+\`\`\`
 
 **To verify/create**:
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
@@ -54,10 +54,10 @@ From the JSON file, copy:
 
 ### 4. Add to `.env.local`
 
-```bash
+\`\`\`bash
 GOOGLE_SERVICE_ACCOUNT_EMAIL=poke-mnky-service@mood-mnky.iam.gserviceaccount.com
 GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
-```
+\`\`\`
 
 **Important**: Keep the private key in quotes and preserve `\n` characters.
 
@@ -75,9 +75,9 @@ GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END P
 1. Open spreadsheet: https://docs.google.com/spreadsheets/d/1sVQD6_CsoYtGmguRhc07IDlnz2V4Q2uWTt8Owpl5JE0/edit
 2. Click **Share**
 3. **PASTE** this email directly (don't search):
-   ```
+   \`\`\`
    poke-mnky-service@mood-mnky.iam.gserviceaccount.com
-   ```
+   \`\`\`
 4. Set to **Viewer** (or Editor)
 5. Uncheck "Notify people"
 6. Click **Share**
@@ -85,13 +85,13 @@ GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END P
 
 ### 7. Verify
 
-```bash
+\`\`\`bash
 # Check credentials
 npx tsx scripts/verify-service-account.ts
 
 # Test access
 npx tsx scripts/test-scopes-direct.ts 1sVQD6_CsoYtGmguRhc07IDlnz2V4Q2uWTt8Owpl5JE0
-```
+\`\`\`
 
 ---
 

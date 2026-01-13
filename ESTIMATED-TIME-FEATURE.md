@@ -61,14 +61,14 @@ Added dynamic estimated time remaining calculation to the progress bar that upda
 
 ## Example Display
 
-```
+\`\`\`
 ┌─────────────────────────────────────┐
 │ [████████░░░░░░░░░░░░] 3.4%        │
 │ Syncing master phase: 3/88 chunks   │
 │ Estimated time remaining: 2h 15m   │
 │ 110 Pokemon cached locally          │
 └─────────────────────────────────────┘
-```
+\`\`\`
 
 ## Edge Cases Handled
 

@@ -29,19 +29,19 @@
 **Solution**: Refresh Supabase schema cache
 
 ### Option 1: Restart Supabase (Recommended)
-```bash
+\`\`\`bash
 supabase stop
 supabase start
-```
+\`\`\`
 
 ### Option 2: Manual Schema Refresh
-```bash
+\`\`\`bash
 # Connect to database
 supabase db reset
 
 # Or refresh schema cache via SQL
 psql -h localhost -U postgres -d postgres -c "NOTIFY pgrst, 'reload schema'"
-```
+\`\`\`
 
 ### Option 3: Wait for Auto-Refresh
 Schema cache refreshes automatically, but may take a few minutes.
@@ -54,14 +54,14 @@ Schema cache refreshes automatically, but may take a few minutes.
 Run `supabase stop && supabase start` to refresh cache.
 
 ### 2. Re-run Parser
-```bash
+\`\`\`bash
 npx tsx scripts/test-draft-pool-parser.ts
-```
+\`\`\`
 
 **Expected Result**: Should successfully store 98+ Pokemon in `draft_pool` table.
 
 ### 3. Verify Data
-```sql
+\`\`\`sql
 -- Check Pokemon count
 SELECT COUNT(*) FROM draft_pool WHERE is_available = true;
 
@@ -77,7 +77,7 @@ SELECT pokemon_name, point_value, is_available
 FROM draft_pool 
 ORDER BY point_value DESC, pokemon_name 
 LIMIT 20;
-```
+\`\`\`
 
 ### 4. Test Draft System
 Once data is stored:

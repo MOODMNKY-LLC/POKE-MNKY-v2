@@ -39,7 +39,7 @@
    - Keeps key secret (never exposed to client)
 
 3. **Progressive Fallback**:
-   ```
+   \`\`\`
    Client Hook
      ↓
    Try: Server-side GraphQL API (service role) ← BEST
@@ -47,7 +47,7 @@
    Try: Client-side GraphQL (anon key) ← GOOD
      ↓ (if fails)
    Fallback: REST API (anon key) ← SAFE
-   ```
+   \`\`\`
 
 ## Benefits
 

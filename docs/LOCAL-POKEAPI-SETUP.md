@@ -24,16 +24,16 @@ This guide explains how to use a local PokeAPI instance for development and test
 
 Add to `.env.local`:
 
-```env
+\`\`\`env
 # Local PokeAPI instance
 POKEAPI_BASE_URL=http://localhost/api/v2
-```
+\`\`\`
 
 For Edge Functions, set the secret:
 
-```bash
+\`\`\`bash
 supabase secrets set POKEAPI_BASE_URL=http://localhost/api/v2
-```
+\`\`\`
 
 ---
 
@@ -43,25 +43,25 @@ supabase secrets set POKEAPI_BASE_URL=http://localhost/api/v2
 
 All scripts that use PokeAPI will automatically use the local instance when `POKEAPI_BASE_URL` is set:
 
-```bash
+\`\`\`bash
 # Test configuration
 pnpm tsx --env-file=.env.local scripts/test-local-pokeapi.ts
 
 # Run sync scripts
 pn,pm tsx --env-file=.env.local scripts/sync-pokemon-from-api.ts
-```
+\`\`\`
 
 ### Edge Functions
 
 Edge Functions will use the local instance if `POKEAPI_BASE_URL` is set as a secret:
 
-```bash
+\`\`\`bash
 # Set secret for Edge Functions
 supabase secrets set POKEAPI_BASE_URL=http://localhost/api/v2
 
 # Deploy Edge Functions
 supabase functions deploy sync-pokepedia
-```
+\`\`\`
 
 ---
 
@@ -69,19 +69,19 @@ supabase functions deploy sync-pokepedia
 
 ### Test Local API
 
-```bash
+\`\`\`bash
 # Test API endpoint
 curl http://localhost/api/v2/pokemon/1/
 
 # Test list endpoint
 curl "http://localhost/api/v2/pokemon/?limit=5"
-```
+\`\`\`
 
 ### Test Configuration
 
-```bash
+\`\`\`bash
 pnpm tsx --env-file=.env.local scripts/test-local-pokeapi.ts
-```
+\`\`\`
 
 ---
 
@@ -99,15 +99,15 @@ pnpm tsx --env-file=.env.local scripts/test-local-pokeapi.ts
 
 ### Use Local Instance
 
-```env
+\`\`\`env
 POKEAPI_BASE_URL=http://localhost/api/v2
-```
+\`\`\`
 
 ### Use Production Instance
 
-```env
+\`\`\`env
 POKEAPI_BASE_URL=https://pokeapi.co/api/v2
-```
+\`\`\`
 
 Or remove the variable to use the default.
 
@@ -118,32 +118,32 @@ Or remove the variable to use the default.
 ### API Not Accessible
 
 1. Check containers are running:
-   ```bash
+   \`\`\`bash
    cd tools/pokeapi-local
    docker compose ps
-   ```
+   \`\`\`
 
 2. Check port 80 is accessible:
-   ```bash
+   \`\`\`bash
    curl http://localhost/api/v2/
-   ```
+   \`\`\`
 
 3. Verify environment variable:
-   ```bash
+   \`\`\`bash
    echo $POKEAPI_BEST_URL
-   ```
+   \`\`\`
 
 ### Edge Functions Not Using Local Instance
 
 1. Verify secret is set:
-   ```bash
+   \`\`\`bash
    supabase secrets list
-   ```
+   \`\`\`
 
 2. Redeploy Edge Functions:
-   ```bash
+   \`\`\`bash
    supabase functions deploy sync-pokepedia
-   ```
+   \`\`\`
 
 ---
 

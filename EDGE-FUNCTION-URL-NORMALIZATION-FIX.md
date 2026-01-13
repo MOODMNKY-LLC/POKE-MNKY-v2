@@ -20,7 +20,7 @@ After analyzing the issue with sequential thinking and the writing-supabase-edge
 
 Modified the Edge Function to **explicitly normalize the URL** when running locally:
 
-```typescript
+\`\`\`typescript
 // CRITICAL FIX: Normalize URL for local development
 // Supabase CLI pre-populates SUPABASE_URL with http://kong:8000 (internal Docker network)
 // While this works, we want to explicitly use http://127.0.0.1:54321 to ensure
@@ -35,13 +35,13 @@ if (isLocal && isKong) {
     reason: "Ensuring connection to correct local database instance"
   })
 }
-```
+\`\`\`
 
 ### Enhanced Database Validation
 
 Added comprehensive validation that compares expected vs actual database state:
 
-```typescript
+\`\`\`typescript
 // Expected local database state
 const expectedPokepediaCount = 1
 const expectedTotalCount = 4 // 1 pokepedia + 3 pokemon_cache
@@ -53,7 +53,7 @@ const dataMatches = actualPokepediaCount === expectedPokepediaCount &&
 warning: !dataMatches 
   ? `⚠️ DATABASE MISMATCH: Expected ${expectedTotalCount} jobs (${expectedPokepediaCount} pokepedia), but found ${actualTotalCount} jobs (${actualPokepediaCount} pokepedia). Edge Function may be connected to wrong database instance!`
   : null
-```
+\`\`\`
 
 ## Why This Works
 
@@ -67,7 +67,7 @@ warning: !dataMatches
 
 After restarting the Edge Function, logs should show:
 
-```
+\`\`\`
 [Edge Function] URL normalized for local development: {
   original: "http://kong:8000",
   normalized: "http://127.0.0.1:54321",
@@ -84,7 +84,7 @@ After restarting the Edge Function, logs should show:
   dataMatches: true,
   warning: null
 }
-```
+\`\`\`
 
 ## Files Changed
 

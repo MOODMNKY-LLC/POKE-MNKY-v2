@@ -71,7 +71,7 @@ Syncs Pokemon data from PokeAPI to Supabase database for offline-first access.
 
 ## Sync Flow
 
-```
+\`\`\`
 App Loads
     ↓
 PokepediaSyncProvider mounts
@@ -90,7 +90,7 @@ If empty or stale:
     Updates sync_jobs table
     ↓
     Client polls sync_jobs for progress
-```
+\`\`\`
 
 ---
 
@@ -194,11 +194,11 @@ Banner hides when:
 ## Context Usage
 
 Other components can access sync state:
-```tsx
+\`\`\`tsx
 import { usePokepediaSyncContext } from "@/components/pokepedia-sync-provider"
 
 const { status, progress, startSync } = usePokepediaSyncContext()
-```
+\`\`\`
 
 ---
 

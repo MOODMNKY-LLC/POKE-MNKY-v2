@@ -15,7 +15,7 @@ Expanded `pokepedia_pokemon` projection table to include commonly queried fields
 
 #### Base Stats
 - `base_stats` (JSONB) - Object with all base stats:
-  ```json
+  \`\`\`json
   {
     "hp": 45,
     "attack": 49,
@@ -24,17 +24,17 @@ Expanded `pokepedia_pokemon` projection table to include commonly queried fields
     "special-defense": 65,
     "speed": 45
   }
-  ```
+  \`\`\`
 - `total_base_stat` (INTEGER) - Sum of all base stats (for sorting by total power)
 
 #### Abilities
 - `abilities` (JSONB) - Array of ability objects:
-  ```json
+  \`\`\`json
   [
     {"name": "overgrow", "is_hidden": false, "slot": 1},
     {"name": "chlorophyll", "is_hidden": true, "slot": 3}
   ]
-  ```
+  \`\`\`
 - `ability_primary` (TEXT) - Primary ability name
 - `ability_hidden` (TEXT) - Hidden ability name (nullable)
 
@@ -68,7 +68,7 @@ Expanded `pokepedia_pokemon` projection table to include commonly queried fields
 ## Query Examples
 
 ### Filter by Type
-```sql
+\`\`\`sql
 -- Single type
 SELECT * FROM pokepedia_pokemon WHERE type_primary = 'fire';
 
@@ -79,10 +79,10 @@ WHERE type_primary = 'fire' AND type_secondary = 'flying';
 -- Any type (using JSONB)
 SELECT * FROM pokepedia_pokemon 
 WHERE types @> '["fire"]'::jsonb;
-```
+\`\`\`
 
 ### Filter by Ability
-```sql
+\`\`\`sql
 -- Primary ability
 SELECT * FROM pokepedia_pokemon WHERE ability_primary = 'intimidate';
 
@@ -92,10 +92,10 @@ SELECT * FROM pokepedia_pokemon WHERE ability_hidden = 'moxie';
 -- Any ability (using JSONB)
 SELECT * FROM pokepedia_pokemon 
 WHERE abilities @> '[{"name": "intimidate"}]'::jsonb;
-```
+\`\`\`
 
 ### Sort by Stats
-```sql
+\`\`\`sql
 -- Sort by total base stat
 SELECT * FROM pokepedia_pokemon 
 ORDER BY total_base_stat DESC;
@@ -105,42 +105,42 @@ SELECT * FROM pokepedia_pokemon
 WHERE type_primary = 'dragon'
 ORDER BY total_base_stat DESC
 LIMIT 10;
-```
+\`\`\`
 
 ### Filter by Generation
-```sql
+\`\`\`sql
 SELECT * FROM pokepedia_pokemon 
 WHERE generation = 1
 ORDER BY "order";
-```
+\`\`\`
 
 ### Complex Queries
-```sql
+\`\`\`sql
 -- Find all Fire-type Pokemon with high attack
 SELECT * FROM pokepedia_pokemon 
 WHERE type_primary = 'fire'
   AND (base_stats->>'attack')::int > 100
 ORDER BY total_base_stat DESC;
-```
+\`\`\`
 
 ## Migration
 
 Run the migration:
-```bash
+\`\`\`bash
 supabase db push
-```
+\`\`\`
 
 Or apply manually:
-```bash
+\`\`\`bash
 psql -f supabase/migrations/20260113030000_expand_pokepedia_pokemon_projection.sql
-```
+\`\`\`
 
 ## Rebuild Projections
 
 After migration, rebuild projections to populate new fields:
-```bash
+\`\`\`bash
 pnpm tsx scripts/build-pokepedia-projections.ts
-```
+\`\`\`
 
 ## Benefits
 

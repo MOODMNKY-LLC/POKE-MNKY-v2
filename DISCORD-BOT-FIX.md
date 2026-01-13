@@ -23,19 +23,19 @@
 ### 1. Restart Discord Bot
 The bot needs to be restarted to pick up any changes. If it's running, stop and restart:
 
-```bash
+\`\`\`bash
 # Stop current bot (Ctrl+C in terminal)
 # Then restart:
 pnpm run discord-bot:dev
-```
+\`\`\`
 
 ### 2. Start Next.js App
 The API routes require the Next.js app to be running:
 
-```bash
+\`\`\`bash
 # In a separate terminal:
 pnpm dev
-```
+\`\`\`
 
 The app should start on `http://localhost:3000`
 
@@ -43,11 +43,11 @@ The app should start on `http://localhost:3000`
 
 Once both are running:
 
-```
+\`\`\`
 /standings
 /matchups week:1
 /pokemon name:Pikachu
-```
+\`\`\`
 
 ## ⚠️ Important Notes
 

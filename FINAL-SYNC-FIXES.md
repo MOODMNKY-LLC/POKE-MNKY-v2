@@ -5,9 +5,9 @@
 ### 1. PostgREST Schema Cache (PGRST205) ✅ FIXED
 **Error**: `Could not find the table 'public.pokemon_comprehensive' in the schema cache`
 **Fix**: Restarted Supabase to refresh PostgREST schema cache
-```bash
+\`\`\`bash
 supabase stop && supabase start
-```
+\`\`\`
 
 ### 2. 401 Unauthorized from Edge Function ✅ FIXED
 **Error**: API route returning 401 when calling Edge Function
@@ -19,9 +19,9 @@ supabase stop && supabase start
 ### 3. Edge Function Not Running Locally ✅ FIXED
 **Issue**: Edge Function needs to be served locally for development
 **Fix**: Started Edge Function server in background
-```bash
+\`\`\`bash
 supabase functions serve sync-pokepedia --no-verify-jwt
-```
+\`\`\`
 
 ### 4. 404 Errors for Tables ✅ SHOULD BE FIXED
 **Error**: 404 for `types`, `abilities`, `moves`, `pokemon_comprehensive`

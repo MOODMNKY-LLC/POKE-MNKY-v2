@@ -111,7 +111,7 @@ The master data sheet presents several parsing challenges that make it one of th
 
 **Implementation Code Structure**:
 
-```typescript
+\`\`\`typescript
 class MasterDataParser extends BaseParser {
   async parse(): Promise<ParseResult> {
     // 1. Detect all tables in sheet
@@ -140,7 +140,7 @@ class MasterDataParser extends BaseParser {
     return await parseWithAI(this.sheet, prompt, MultiTableSchema)
   }
 }
-```
+\`\`\`
 
 **Database Mapping**:
 
@@ -272,7 +272,7 @@ Rules sheets present unique parsing challenges:
 
 **Implementation Code Structure**:
 
-```typescript
+\`\`\`typescript
 class RulesParser extends BaseParser {
   async parse(): Promise<ParseResult> {
     // 1. Analyze formatting to detect structure
@@ -302,7 +302,7 @@ class RulesParser extends BaseParser {
     return await parseWithAI(this.sheet, prompt, RulesDocumentSchema)
   }
 }
-```
+\`\`\`
 
 **Database Mapping Options**:
 
@@ -448,7 +448,7 @@ Draft boards are more structured than rules sheets but have specific challenges:
 
 **Implementation Code Structure**:
 
-```typescript
+\`\`\`typescript
 class DraftParser extends BaseParser {
   async parse(): Promise<ParseResult> {
     // 1. Detect grid structure
@@ -495,7 +495,7 @@ class DraftParser extends BaseParser {
     })
   }
 }
-```
+\`\`\`
 
 **Database Mapping**:
 
@@ -621,7 +621,7 @@ Team sheets present challenges due to variability:
 
 **Implementation Code Structure**:
 
-```typescript
+\`\`\`typescript
 class TeamPageParser extends BaseParser {
   async parse(): Promise<ParseResult> {
     // 1. Extract team name
@@ -653,7 +653,7 @@ class TeamPageParser extends BaseParser {
     return await parseWithAI(this.sheet, prompt, TeamSheetSchema)
   }
 }
-```
+\`\`\`
 
 **Database Mapping**:
 

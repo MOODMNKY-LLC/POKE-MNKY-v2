@@ -13,9 +13,9 @@ Discord OAuth requires the redirect URI to **exactly match** what's registered i
 ### Step 1: Identify the Correct Redirect URI
 
 For local Supabase development, the redirect URI is:
-```
+\`\`\`
 http://127.0.0.1:54321/auth/v1/callback
-```
+\`\`\`
 
 **Important:** Use `127.0.0.1` (not `localhost`) to match Supabase's default API URL format.
 
@@ -26,9 +26,9 @@ http://127.0.0.1:54321/auth/v1/callback
 3. Navigate to **OAuth2 → General**
 4. Under **Redirects**, click **Add Redirect**
 5. Add this **exact** URL:
-   ```
+   \`\`\`
    http://127.0.0.1:54321/auth/v1/callback
-   ```
+   \`\`\`
 6. Click **Save Changes**
 
 ### Step 3: Verify Config.toml
@@ -39,10 +39,10 @@ The `supabase/config.toml` has been updated to use Supabase's default redirect U
 
 After updating Discord Developer Portal:
 
-```bash
+\`\`\`bash
 supabase stop
 supabase start
-```
+\`\`\`
 
 ### Step 5: Test the Flow
 
@@ -82,10 +82,10 @@ supabase start
 If you're using the same Discord app for both local dev and production:
 
 **Add both redirect URIs in Discord Developer Portal:**
-```
+\`\`\`
 http://127.0.0.1:54321/auth/v1/callback          (local dev)
 https://[your-project-ref].supabase.co/auth/v1/callback  (production)
-```
+\`\`\`
 
 ---
 
@@ -105,14 +105,14 @@ https://[your-project-ref].supabase.co/auth/v1/callback  (production)
 After fixing, test the complete flow:
 
 1. **Start Supabase:**
-   ```bash
+   \`\`\`bash
    supabase start
-   ```
+   \`\`\`
 
 2. **Start Next.js app:**
-   ```bash
+   \`\`\`bash
    pnpm dev
-   ```
+   \`\`\`
 
 3. **Test Discord OAuth:**
    - Visit `http://localhost:3000/auth/login`

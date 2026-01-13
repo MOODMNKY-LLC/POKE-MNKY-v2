@@ -65,7 +65,7 @@ Completed comprehensive enhancements to Draft parser and point system using deep
 ## Implementation Highlights
 
 ### Season Management
-```typescript
+\`\`\`typescript
 // Auto-create season if none exists
 let { data: currentSeason } = await this.supabase
   .from("seasons")
@@ -85,10 +85,10 @@ if (!currentSeason) {
     .single()
   currentSeason = newSeason
 }
-```
+\`\`\`
 
 ### Pokemon Name Matching
-```typescript
+\`\`\`typescript
 // Try multiple patterns
 const patterns = [
   pokemonName,                           // Exact
@@ -111,10 +111,10 @@ for (const pattern of patterns) {
 const baseName = pokemonName
   .replace(/\s*(hisuian|galarian|alolan|...)\s*/gi, "")
   .trim()
-```
+\`\`\`
 
 ### Point Validation
-```typescript
+\`\`\`typescript
 // Get budget
 const { data: budget } = await this.supabase
   .from("draft_budgets")
@@ -137,18 +137,18 @@ await this.supabase
   .from("draft_budgets")
   .update({ spent_points: budget.spent_points + pick.pointValue })
   .eq("id", budget.id)
-```
+\`\`\`
 
 ## Test Results
 
-```
+\`\`\`
 ✅ Draft Parser: Successfully parsed 168 draft picks
 ✅ Season Management: Auto-creates season if needed
 ✅ Pokemon Matching: Improved with multiple patterns
 ✅ Point Validation: Warns on budget exceed
 ✅ Point Tracking: Integrated correctly
 ⚠️ Some Pokemon not in cache (expected - needs cache population)
-```
+\`\`\`
 
 ## Next Steps (Optional Enhancements)
 

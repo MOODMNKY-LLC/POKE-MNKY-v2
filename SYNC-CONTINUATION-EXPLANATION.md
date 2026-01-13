@@ -5,14 +5,14 @@
 **The sync is NOT set to continue until complete by default.**
 
 From the logs:
-```json
+\`\`\`json
 {
   "action": "start",
   "phase": "master",
   "priority": "critical",
   "continueUntilComplete": false  // ← Currently false
 }
-```
+\`\`\`
 
 ## How Sync Works
 
@@ -32,7 +32,7 @@ From the logs:
 
 ## Code Logic
 
-```typescript
+\`\`\`typescript
 if (continueUntilComplete && !result.completed) {
   // Process chunks in a loop until:
   // 1. Job completes (all chunks processed)
@@ -47,13 +47,13 @@ if (continueUntilComplete && !result.completed) {
     console.log("Timeout reached, job will continue via cron")
   }
 }
-```
+\`\`\`
 
 ## To Enable Continue Until Complete
 
 When triggering the sync, set `continueUntilComplete: true`:
 
-```bash
+\`\`\`bash
 curl -X POST http://127.0.0.1:54321/functions/v1/sync-pokepedia \
   -H "Content-Type: application/json" \
   -d '{
@@ -62,7 +62,7 @@ curl -X POST http://127.0.0.1:54321/functions/v1/sync-pokepedia \
     "priority": "critical",
     "continueUntilComplete": true
   }'
-```
+\`\`\`
 
 ## Current Running Job
 

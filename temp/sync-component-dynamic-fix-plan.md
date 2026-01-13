@@ -30,7 +30,7 @@
 4. Don't set status to "syncing" if job is stale
 
 **Code Changes**:
-```typescript
+\`\`\`typescript
 // Line 97-104: Update query to include last_heartbeat
 const { data: activeJob } = await supabase
   .from("sync_jobs")
@@ -66,7 +66,7 @@ if (activeJob) {
   // Job is active, proceed normally
   // ... existing code
 }
-```
+\`\`\`
 
 ---
 
@@ -75,7 +75,7 @@ if (activeJob) {
 **File**: `hooks/use-pokepedia-sync.ts`
 
 **New Function**:
-```typescript
+\`\`\`typescript
 // Add after checkLocalStatus
 const cleanupStaleJobs = useCallback(async () => {
   try {
@@ -118,10 +118,10 @@ const cleanupStaleJobs = useCallback(async () => {
     console.error("[Sync] Error cleaning up stale jobs:", error)
   }
 }, [])
-```
+\`\`\`
 
 **Call cleanup on mount**:
-```typescript
+\`\`\`typescript
 // In useEffect for auto-start (line 689)
 useEffect(() => {
   if (!autoStart) return
@@ -135,7 +135,7 @@ useEffect(() => {
     })
   })
 }, [autoStart, cleanupStaleJobs, checkLocalStatus, startSync])
-```
+\`\`\`
 
 ---
 
@@ -150,7 +150,7 @@ useEffect(() => {
 4. Ensure all values come from fresh database queries
 
 **Code Changes**:
-```typescript
+\`\`\`typescript
 // Line 503-641: Update polling useEffect
 useEffect(() => {
   // Always poll on mount to get current state
@@ -210,7 +210,7 @@ useEffect(() => {
   
   return () => clearInterval(interval)
 }, [state.status, cleanupStaleJobs, checkLocalStatus, calculateTimeRemaining])
-```
+\`\`\`
 
 ---
 
@@ -224,7 +224,7 @@ useEffect(() => {
 3. Only show progress from active (non-stale) jobs
 
 **Code Changes**:
-```typescript
+\`\`\`typescript
 // Line 536-546: Update progress setting logic
 setState((prev) => ({
   ...prev,
@@ -237,7 +237,7 @@ setState((prev) => ({
     ? `Sync appears stopped (no update in ${Math.round(minutesSinceHeartbeat)}min). Last: ${phase} phase: ${currentChunk}/${totalChunks} chunks`
     : `Syncing ${phase} phase: ${currentChunk}/${totalChunks} chunks (${realProgress.toFixed(1)}%)`,
 }))
-```
+\`\`\`
 
 ---
 
@@ -251,7 +251,7 @@ setState((prev) => ({
 3. Add visual indicator when data is stale
 
 **Code Changes**:
-```typescript
+\`\`\`typescript
 // Add refresh handler
 const handleRefresh = async () => {
   await syncState.checkLocalStatus()
@@ -269,7 +269,7 @@ const handleRefresh = async () => {
     Refresh Status
   </Button>
 )}
-```
+\`\`\`
 
 ---
 

@@ -72,25 +72,25 @@ Comprehensive documentation including:
 ### Initial Setup
 
 1. **Ensure bucket exists** (script will create automatically, or create manually):
-   ```sql
+   \`\`\`sql
    -- Via Supabase Dashboard: Storage → Buckets → New bucket
    -- Name: pokedex-sprites
    -- Public: true
-   ```
+   \`\`\`
 
 2. **Run the mirroring script**:
-   ```bash
+   \`\`\`bash
    tsx --env-file=.env.local scripts/mirror-pokepedia-sprites.ts
-   ```
+   \`\`\`
 
 3. **For faster re-runs** (skip existing):
-   ```bash
+   \`\`\`bash
    tsx --env-file=.env.local scripts/mirror-pokepedia-sprites.ts --skip-existing
-   ```
+   \`\`\`
 
 ### Custom Options
 
-```bash
+\`\`\`bash
 # Mirror specific Pokemon range
 tsx --env-file=.env.local scripts/mirror-pokepedia-sprites.ts --pokemon-range=1-50
 
@@ -99,7 +99,7 @@ tsx --env-file=.env.local scripts/mirror-pokepedia-sprites.ts --concurrency=20
 
 # Custom batch size
 tsx --env-file=.env.local scripts/mirror-pokepedia-sprites.ts --batch-size=100
-```
+\`\`\`
 
 ---
 

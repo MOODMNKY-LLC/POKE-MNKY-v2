@@ -11,12 +11,12 @@
 
 All authentication now uses **both** required scopes:
 
-```typescript
+\`\`\`typescript
 scopes: [
   "https://www.googleapis.com/auth/spreadsheets.readonly",  // Read spreadsheet data
   "https://www.googleapis.com/auth/drive.readonly",          // Access images & metadata
 ]
-```
+\`\`\`
 
 ---
 
@@ -41,9 +41,9 @@ scopes: [
 ## 🧪 Test Results
 
 ### Direct Scope Test: ✅ PASSED
-```bash
+\`\`\`bash
 npx tsx scripts/test-scopes-direct.ts
-```
+\`\`\`
 
 **Results**:
 - ✅ Sheets API: Working
@@ -115,19 +115,19 @@ All files now consistently use both scopes:
 ### To Test Full Functionality:
 
 1. **Start Dev Server**:
-   ```bash
+   \`\`\`bash
    pnpm dev
-   ```
+   \`\`\`
 
 2. **Run Comprehensive Analysis** (in another terminal):
-   ```bash
+   \`\`\`bash
    npx tsx scripts/test-sheet-analysis.ts
-   ```
+   \`\`\`
 
 3. **Test Parsers** (in another terminal):
-   ```bash
+   \`\`\`bash
    npx tsx scripts/test-parsers.ts
-   ```
+   \`\`\`
 
 ---
 

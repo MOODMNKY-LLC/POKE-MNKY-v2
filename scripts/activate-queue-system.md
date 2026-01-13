@@ -26,9 +26,9 @@
 
 Run the activation check script:
 
-```bash
+\`\`\`bash
 tsx --env-file=.env.local scripts/activate-queue-system.ts
-```
+\`\`\`
 
 This will check:
 - ✅ Queues exist
@@ -40,7 +40,7 @@ This will check:
 
 Deploy the three Edge Functions:
 
-```bash
+\`\`\`bash
 # Deploy seed function (discovers URLs)
 supabase functions deploy pokepedia-seed
 
@@ -49,7 +49,7 @@ supabase functions deploy pokepedia-worker
 
 # Deploy sprite worker function (downloads sprites)
 supabase functions deploy pokepedia-sprite-worker
-```
+\`\`\`
 
 **Note**: For production, ensure Edge Function secrets are set:
 - `SUPABASE_URL` (auto-set by Supabase)
@@ -63,11 +63,11 @@ The cron jobs need `app.settings` to be configured. You have two options:
 
 In Supabase Dashboard → Database → SQL Editor:
 
-```sql
+\`\`\`sql
 -- Set app settings for cron jobs
 ALTER DATABASE postgres SET app.settings.supabase_url = 'https://your-project.supabase.co';
 ALTER DATABASE postgres SET app.settings.service_role_key = 'your-service-role-key';
-```
+\`\`\`
 
 **Note**: Service role key should be stored securely. Consider using Supabase Secrets instead.
 
@@ -81,7 +81,7 @@ For local development, the migration already has defaults. For production, updat
 
 Manually trigger seed for a small resource type:
 
-```bash
+\`\`\`bash
 curl -X POST https://your-project.supabase.co/functions/v1/pokepedia-seed \
   -H "Authorization: Bearer YOUR_SERVICE_ROLE_KEY" \
   -H "Content-Type: application/json" \
@@ -89,15 +89,15 @@ curl -X POST https://your-project.supabase.co/functions/v1/pokepedia-seed \
     "resourceTypes": ["type"],
     "limit": 50
   }'
-```
+\`\`\`
 
 **Expected**: Returns `{ ok: true, totalEnqueued: 20, perType: { type: 20 } }`
 
 #### 4.2 Check Queue Depth
 
-```sql
+\`\`\`sql
 SELECT * FROM get_pokepedia_queue_stats();
-```
+\`\`\`
 
 **Expected**: `pokepedia_ingest` queue should have messages.
 
@@ -105,7 +105,7 @@ SELECT * FROM get_pokepedia_queue_stats();
 
 Manually trigger worker:
 
-```bash
+\`\`\`bash
 curl -X POST https://your-project.supabase.co/functions/v1/pokepedia-worker \
   -H "Authorization: Bearer YOUR_SERVICE_ROLE_KEY" \
   -H "Content-Type: application/json" \
@@ -113,13 +113,13 @@ curl -X POST https://your-project.supabase.co/functions/v1/pokepedia-worker \
     "batchSize": 5,
     "concurrency": 2
   }'
-```
+\`\`\`
 
 **Expected**: Processes messages and stores in `pokeapi_resources` table.
 
 #### 4.4 Verify Data
 
-```sql
+\`\`\`sql
 -- Check resources stored
 SELECT resource_type, COUNT(*) 
 FROM pokeapi_resources 
@@ -130,19 +130,19 @@ SELECT COUNT(*) FROM pokepedia_pokemon;
 
 -- Check queue depth
 SELECT * FROM get_pokepedia_queue_stats();
-```
+\`\`\`
 
 ### Step 5: Enable Cron Jobs
 
 Once testing is successful, enable cron jobs:
 
-```sql
+\`\`\`sql
 -- Check if cron jobs exist
 SELECT * FROM get_pokepedia_cron_status();
 
 -- If they don't exist, run the migration
 -- supabase db push (will apply 20260113010001_setup_pokepedia_cron.sql)
-```
+\`\`\`
 
 **Cron Schedule**:
 - `pokepedia-worker`: Every minute (drains `pokepedia_ingest` queue)
@@ -160,7 +160,7 @@ Navigate to `/admin` and check the Pokepedia Sync Status component:
 
 ## Workflow Overview
 
-```
+\`\`\`
 1. Seed Function (pokepedia-seed)
    ↓
    Discovers all PokeAPI resource URLs
@@ -188,7 +188,7 @@ Navigate to `/admin` and check the Pokepedia Sync Status component:
    Uploads to Supabase Storage
    ↓
    Records in pokepedia_assets
-```
+\`\`\`
 
 ---
 
@@ -196,11 +196,11 @@ Navigate to `/admin` and check the Pokepedia Sync Status component:
 
 ### Queues Don't Exist
 
-```sql
+\`\`\`sql
 -- Create queues manually
 SELECT pgmq.create('pokepedia_ingest');
 SELECT pgmq.create('pokepedia_sprites');
-```
+\`\`\`
 
 ### Edge Functions Return 404
 
@@ -240,13 +240,13 @@ Default settings:
 - `visibilityTimeout`: 300 seconds
 
 For faster processing:
-```json
+\`\`\`json
 {
   "batchSize": 20,
   "concurrency": 8,
   "visibilityTimeout": 600
 }
-```
+\`\`\`
 
 ### Sprite Worker Configuration
 
@@ -256,13 +256,13 @@ Default settings:
 - `visibilityTimeout`: 600 seconds
 
 For faster sprite syncing:
-```json
+\`\`\`json
 {
   "batchSize": 15,
   "concurrency": 5,
   "visibilityTimeout": 900
 }
-```
+\`\`\`
 
 ---
 
@@ -270,18 +270,18 @@ For faster sprite syncing:
 
 ### Queue Metrics
 
-```sql
+\`\`\`sql
 -- Get queue depth and age
 SELECT * FROM get_pokepedia_queue_stats();
 
 -- Get detailed queue metrics
 SELECT * FROM pgmq.metrics('pokepedia_ingest');
 SELECT * FROM pgmq.metrics('pokepedia_sprites');
-```
+\`\`\`
 
 ### Sync Progress
 
-```sql
+\`\`\`sql
 -- Get progress by resource type
 SELECT * FROM get_pokepedia_sync_progress();
 
@@ -290,11 +290,11 @@ SELECT resource_type, COUNT(*)
 FROM pokeapi_resources 
 GROUP BY resource_type 
 ORDER BY COUNT(*) DESC;
-```
+\`\`\`
 
 ### Cron Status
 
-```sql
+\`\`\`sql
 -- Check cron job status
 SELECT * FROM get_pokepedia_cron_status();
 
@@ -303,7 +303,7 @@ SELECT * FROM cron.job_run_details
 WHERE jobname IN ('pokepedia-worker', 'pokepedia-sprite-worker')
 ORDER BY start_time DESC 
 LIMIT 20;
-```
+\`\`\`
 
 ---
 
@@ -322,17 +322,17 @@ LIMIT 20;
 If issues occur, you can:
 
 1. **Disable cron jobs**:
-   ```sql
+   \`\`\`sql
    SELECT unschedule_pokepedia_cron();
-   ```
+   \`\`\`
 
 2. **Clear queues** (if needed):
-   ```sql
+   \`\`\`sql
    -- Note: This will delete all pending messages
    -- Only do this if you want to start fresh
    SELECT pgmq.archive('pokepedia_ingest', 0);
    SELECT pgmq.archive('pokepedia_sprites', 0);
-   ```
+   \`\`\`
 
 3. **Fall back to sync-pokepedia Edge Function**:
    - The current `sync-pokepedia` function remains available

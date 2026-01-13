@@ -21,13 +21,13 @@
 **Current Issue**: OpenAI call taking >60 seconds
 
 **Actions**:
-```typescript
+\`\`\`typescript
 // Reduce JSON payload from 100 to 50 rows
 ${JSON.stringify(cellData.slice(0, 50), null, 2)}
 
 // Consider splitting into sections
 // Use faster model for simpler tasks
-```
+\`\`\`
 
 **Files to Update**:
 - `lib/google-sheets-parsers/rules-parser.ts`
@@ -40,9 +40,9 @@ ${JSON.stringify(cellData.slice(0, 50), null, 2)}
 **Goal**: Verify getRows() optimization fixes scope issues
 
 **Test Command**:
-```bash
+\`\`\`bash
 npx tsx scripts/test-parsers-safe.ts [spreadsheet_id] "Draft Board" "draft"
-```
+\`\`\`
 
 **Expected Outcome**: Parser completes without scope errors
 
@@ -57,9 +57,9 @@ npx tsx scripts/test-parsers-safe.ts [spreadsheet_id] "Draft Board" "draft"
 **Goal**: Verify complex parsing works
 
 **Test Command**:
-```bash
+\`\`\`bash
 npx tsx scripts/test-parsers-safe.ts [spreadsheet_id] "Master Data Sheet" "master_data"
-```
+\`\`\`
 
 **Expected Outcome**: Parser detects tables and processes data
 
@@ -74,10 +74,10 @@ npx tsx scripts/test-parsers-safe.ts [spreadsheet_id] "Master Data Sheet" "maste
 **Goal**: Verify section detection works
 
 **Test Command**:
-```bash
+\`\`\`bash
 # Find a team page sheet first
 npx tsx scripts/test-parsers-safe.ts [spreadsheet_id] "[Team Name]" "team_page"
-```
+\`\`\`
 
 **Expected Outcome**: Parser detects sections and processes data
 
@@ -113,16 +113,16 @@ npx tsx scripts/test-parsers-safe.ts [spreadsheet_id] "[Team Name]" "team_page"
 ## 🔧 Quick Fixes to Apply
 
 ### Rules Parser Optimization
-```typescript
+\`\`\`typescript
 // In rules-parser.ts, line ~188
 Sheet data (showing first 50 rows for analysis):
 ${JSON.stringify(cellData.slice(0, 50), null, 2)}
-```
+\`\`\`
 
 ### Test Script Timeout
-```typescript
+\`\`\`typescript
 // Already updated to 90s ✅
-```
+\`\`\`
 
 ---
 
