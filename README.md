@@ -25,15 +25,16 @@
 10. [PokeAPI Sprites Resources](#pokeapi-sprites-resources)
 11. [PokeAPI Cries Resources](#pokeapi-cries-resources)
 12. [PokeAPI API Data Repository](#pokeapi-api-data-repository)
-13. [Ditto Tool Setup](#ditto-tool-setup)
-14. [Poképedia Data Ingestion Workflow](#poképedia-data-ingestion-workflow)
-15. [Deployment](#deployment)
-16. [API Documentation](#api-documentation)
-17. [Discord Bot](#discord-bot)
-18. [Development Roadmap](#development-roadmap)
-19. [Performance Metrics](#performance-metrics)
-20. [Contributing](#contributing)
-21. [Troubleshooting](#troubleshooting)
+13. [MinIO Object Storage](#minio-object-storage)
+14. [Ditto Tool Setup](#ditto-tool-setup)
+15. [Poképedia Data Ingestion Workflow](#poképedia-data-ingestion-workflow)
+16. [Deployment](#deployment)
+17. [API Documentation](#api-documentation)
+18. [Discord Bot](#discord-bot)
+19. [Development Roadmap](#development-roadmap)
+20. [Performance Metrics](#performance-metrics)
+21. [Contributing](#contributing)
+22. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -271,7 +272,8 @@ User Request → getPokemonDataExtended() → Check Supabase Cache
 ### Infrastructure
 - **Hosting**: Vercel (Next.js app) + Railway/Render (Discord bot)
 - **Database**: Supabase cloud PostgreSQL
-- **CDN**: Vercel Edge Network
+- **Object Storage**: MinIO (self-hosted on TrueNAS Scale) - S3-compatible storage
+- **CDN**: Vercel Edge Network + Cloudflare (for MinIO assets)
 - **Monitoring**: Vercel Analytics (custom events TBD)
 - **Logging**: Console logs + Supabase logs (Sentry planned)
 
@@ -738,6 +740,230 @@ git pull origin master
 3. **Reduced Load**: Less dependency on PokeAPI's sprite hosting
 4. **Version Control**: Track sprite changes in your repository
 5. **Customization**: Easy to add custom sprites or modifications
+
+---
+
+## MinIO Object Storage
+
+### Overview
+
+The platform uses **MinIO** (self-hosted S3-compatible object storage) instead of Supabase Storage for sprite and data assets. This provides unlimited capacity, better performance, and full control over your data.
+
+### Why MinIO Instead of Supabase Storage?
+
+**Supabase Storage Limitations:**
+- ❌ **Free Tier Limit**: 1 GB storage (we exceeded this with 50,000+ sprites)
+- ❌ **Bandwidth Limits**: Rate limits on uploads/downloads
+- ❌ **Cost Scaling**: Expensive at scale
+- ❌ **Less Control**: Managed service with limited customization
+
+**MinIO Advantages:**
+- ✅ **Unlimited Storage**: Self-hosted means no storage limits
+- ✅ **No Rate Limits**: Direct local network access (10x faster)
+- ✅ **Cost Effective**: Free (runs on your own hardware)
+- ✅ **Full Control**: Complete control over data, policies, and access
+- ✅ **S3-Compatible**: Works with AWS SDK and standard S3 tools
+- ✅ **Multi-Project**: Single instance can serve multiple projects via buckets
+
+### How It Works
+
+#### Storage Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    APPLICATION                          │
+│  ┌──────────────────────────────────────────────────┐  │
+│  │  Next.js App (lib/pokemon-utils.ts)              │  │
+│  │  ├─ Checks SPRITES_BASE_URL env var              │  │
+│  │  ├─ If set → Uses MinIO URLs                     │  │
+│  │  └─ If not → Falls back to Supabase (backward)  │  │
+│  └──────────────────────────────────────────────────┘  │
+└────────────────────┬────────────────────────────────────┘
+                     │
+                     │ HTTPS
+                     ▼
+┌─────────────────────────────────────────────────────────┐
+│              MINIO STORAGE (TrueNAS Scale)              │
+│  ┌──────────────────┐  ┌──────────────────┐           │
+│  │ pokedex-sprites  │  │    poke-mnky     │           │
+│  │   (Sprites)      │  │  (PokeAPI Data)  │           │
+│  │  59,031 files    │  │  14,332 files    │           │
+│  └──────────────────┘  └──────────────────┘           │
+└─────────────────────────────────────────────────────────┘
+```
+
+#### URL Generation
+
+**MinIO URLs** (when `SPRITES_BASE_URL` is set):
+```
+http://10.0.0.5:30090/pokedex-sprites/sprites/pokemon/25.png
+https://s3-api-data.moodmnky.com/pokedex-sprites/sprites/pokemon/25.png
+```
+
+**Supabase URLs** (fallback when `SPRITES_BASE_URL` not set):
+```
+https://chmrszrwlfeqovwxyrmt.supabase.co/storage/v1/object/public/pokedex-sprites/sprites/pokemon/25.png
+```
+
+### Buckets
+
+| Bucket | Purpose | Files | Size |
+|--------|---------|-------|------|
+| `pokedex-sprites` | Pokémon sprite images | 59,031 | ~1.5 GB |
+| `poke-mnky` | PokeAPI JSON data backup | 14,332 | ~25 MB |
+
+### Benefits to Users
+
+1. **Faster Sprite Loading**
+   - Local network access (10x faster than cloud)
+   - No bandwidth throttling
+   - Direct CDN integration via Cloudflare
+
+2. **Reliable Access**
+   - No storage quota limits
+   - No unexpected costs
+   - Full control over uptime
+
+3. **Better Performance**
+   - Concurrent uploads (20-30 files at once)
+   - Optimized for local network speeds
+   - No rate limiting
+
+4. **Data Ownership**
+   - Complete control over your data
+   - Easy backups and restores
+   - Multi-project support via buckets
+
+### Management Tools
+
+#### MinIO Client (`mc`)
+
+Command-line tool for managing MinIO:
+
+```powershell
+# List buckets
+mc ls local
+
+# Upload files
+mc cp file.png local/pokedex-sprites/sprites/pokemon/
+
+# Download files
+mc cp local/pokedex-sprites/sprites/pokemon/25.png ./
+
+# Set bucket policy (public read)
+mc anonymous set download local/pokedex-sprites
+
+# Check CORS configuration
+mc admin config get local api | Select-String "cors"
+```
+
+**Location**: `C:\Users\Simeon\.mc\mc.exe`  
+**Alias**: `local` (configured for internal access)
+
+#### Upload Scripts
+
+**Sprite Upload:**
+```powershell
+# Upload all sprites to MinIO
+pnpm tsx scripts/upload-sprites-to-minio.ts
+
+# Test with small batch
+pnpm tsx scripts/upload-sprites-to-minio.ts --limit=100 --dry-run
+```
+
+**PokeAPI Data Upload:**
+```powershell
+# Upload PokeAPI JSON data
+pnpm tsx scripts/upload-pokeapi-data-to-minio.ts
+
+# Test with small batch
+pnpm tsx scripts/upload-pokeapi-data-to-minio.ts --limit=100 --dry-run
+```
+
+### Configuration
+
+#### Environment Variables
+
+**`.env.local` (Local Development):**
+```env
+MINIO_ENDPOINT_INTERNAL=http://10.0.0.5:30090
+MINIO_ACCESS_KEY=your_access_key
+MINIO_SECRET_KEY=your_secret_key
+MINIO_BUCKET_NAME=pokedex-sprites
+SPRITES_BASE_URL=http://10.0.0.5:30090/pokedex-sprites
+NEXT_PUBLIC_SPRITES_BASE_URL=http://10.0.0.5:30090/pokedex-sprites
+MINIO_REGION=us-east-1
+```
+
+**`.env` (Production):**
+```env
+MINIO_ENDPOINT_EXTERNAL=https://s3-api-data.moodmnky.com
+MINIO_CONSOLE_EXTERNAL=https://s3-console-data.moodmnky.com
+MINIO_ACCESS_KEY=your_access_key
+MINIO_SECRET_KEY=your_secret_key
+MINIO_BUCKET_NAME=pokedex-sprites
+SPRITES_BASE_URL=https://s3-api-data.moodmnky.com/pokedex-sprites
+NEXT_PUBLIC_SPRITES_BASE_URL=https://s3-api-data.moodmnky.com/pokedex-sprites
+MINIO_REGION=us-east-1
+```
+
+### Migration & Rollback
+
+**Instant Rollback**: Simply remove `SPRITES_BASE_URL` from `.env` files and redeploy. The app automatically falls back to Supabase Storage URLs.
+
+**Migration Status**: 
+- ✅ Code updated (backward compatible)
+- ✅ Sprites uploading to MinIO (in progress)
+- ✅ PokeAPI data uploaded to MinIO (complete)
+
+### Tools Used in This Project
+
+#### 1. **MinIO Client (`mc`)**
+- **Purpose**: Command-line interface for MinIO operations
+- **Use Cases**: Bucket management, file operations, policy configuration
+- **Location**: `C:\Users\Simeon\.mc\mc.exe`
+- **Scripts**: `scripts/minio-cli-helpers.ps1`, `scripts/setup-minio-client.ps1`
+
+#### 2. **AWS SDK S3 Client**
+- **Purpose**: Programmatic MinIO access (S3-compatible API)
+- **Use Cases**: Upload scripts, automated operations
+- **Package**: `@aws-sdk/client-s3`
+- **Scripts**: `scripts/upload-sprites-to-minio.ts`, `scripts/upload-pokeapi-data-to-minio.ts`
+
+#### 3. **Ditto Tool**
+- **Purpose**: Clone and analyze PokeAPI data
+- **Use Cases**: Foundation data load, backup/restore
+- **Location**: `tools/ditto`
+- **Documentation**: See [Ditto Tool Setup](#ditto-tool-setup)
+
+#### 4. **PowerShell Helper Scripts**
+- **Purpose**: Streamline MinIO operations
+- **Scripts**:
+  - `scripts/minio-cli-helpers.ps1` - Common operations
+  - `scripts/minio-config-manager.ps1` - Server configuration
+  - `scripts/test-minio-connection.ts` - Connectivity testing
+
+### Verification
+
+**Check Upload Status:**
+```powershell
+# Count sprites in MinIO
+mc ls -r local/pokedex-sprites/sprites | Measure-Object -Line
+
+# Count PokeAPI data
+mc ls -r local/poke-mnky/v2 | Measure-Object -Line
+
+# Test sprite URL
+Start-Process "http://10.0.0.5:30090/pokedex-sprites/sprites/pokemon/25.png"
+```
+
+**Database Verification:**
+```sql
+-- Check MinIO URLs in database
+SELECT COUNT(*) FROM pokepedia_assets 
+WHERE bucket = 'pokedex-sprites' 
+AND source_url LIKE 'http://10.0.0.5:30090%';
+```
 
 ---
 

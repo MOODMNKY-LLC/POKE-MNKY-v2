@@ -253,6 +253,35 @@ export async function searchPokemon(
 }
 
 /**
+ * Get MinIO Storage public URL for a sprite path
+ * Uses SPRITES_BASE_URL env var (includes bucket name)
+ */
+export function getMinIOSpriteUrl(storagePath: string): string | null {
+  // Check for MinIO base URL (works on both client and server)
+  const baseUrl = 
+    process.env.NEXT_PUBLIC_SPRITES_BASE_URL || 
+    process.env.SPRITES_BASE_URL || 
+    null
+
+  if (!baseUrl) {
+    return null
+  }
+
+  // Normalize path (remove leading slash if present, ensure no double slashes)
+  const normalizedPath = storagePath.replace(/^\//, "").replace(/\/+/g, "/")
+  
+  // Construct MinIO URL: {baseUrl}/{path}
+  // baseUrl already includes bucket: http://10.0.0.5:30090/pokedex-sprites
+  // path: sprites/pokemon/25.png
+  // Result: http://10.0.0.5:30090/pokedex-sprites/sprites/pokemon/25.png
+  const url = baseUrl.endsWith("/") 
+    ? `${baseUrl}${normalizedPath}`
+    : `${baseUrl}/${normalizedPath}`
+  
+  return url
+}
+
+/**
  * Get Supabase Storage public URL for a sprite path
  */
 export function getSupabaseSpriteUrl(storagePath: string, supabaseUrl?: string): string {
@@ -306,19 +335,24 @@ export function getSpriteUrl(
 
 /**
  * Fallback sprite URL from PokeAPI (when cache doesn't have sprite)
- * Now checks Supabase Storage first, then falls back to GitHub
+ * Priority: MinIO (if SPRITES_BASE_URL set) > Supabase Storage > GitHub
  */
 export function getFallbackSpriteUrl(pokemonId: number, shiny = false, supabaseUrl?: string): string {
-  // Try Supabase Storage first
+  // Construct storage path
   const storagePath = shiny
-    ? `pokemon/${pokemonId}/front_shiny.png`
-    : `pokemon/${pokemonId}/front_default.png`
+    ? `sprites/pokemon/${pokemonId}/front_shiny.png`
+    : `sprites/pokemon/${pokemonId}/front_default.png`
   
-  // Return Supabase Storage URL (will work if sprite exists, otherwise fallback to GitHub)
-  // Note: In production, you might want to check pokepedia_assets table first
+  // Try MinIO first (if SPRITES_BASE_URL is set)
+  const minioUrl = getMinIOSpriteUrl(storagePath)
+  if (minioUrl) {
+    return minioUrl
+  }
+  
+  // Fallback to Supabase Storage
   const supabaseUrl_result = getSupabaseSpriteUrl(storagePath, supabaseUrl)
   
-  // Fallback to GitHub if Supabase URL construction fails
+  // Final fallback to GitHub if both fail
   return supabaseUrl_result || `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${
     shiny ? "shiny/" : ""
   }${pokemonId}.png`

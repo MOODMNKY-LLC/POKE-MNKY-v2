@@ -44,8 +44,9 @@ async function uploadSprite(
   supabase: any,
   filePath: string,
   storagePath: string,
-  dryRun: boolean
-): Promise<{ success: boolean; checksum?: string }> {
+  dryRun: boolean,
+  errorLog: string[] = []
+): Promise<{ success: boolean; checksum?: string; error?: string }> {
   if (dryRun) {
     console.log(`   [DRY RUN] Would upload: ${storagePath}`)
     return { success: true }
@@ -239,6 +240,10 @@ async function main() {
     errors: 0,
   }
 
+  // Error log for failed uploads
+  const errorLog: string[] = []
+  const errorLogPath = path.join(__dirname, "..", "sprite-upload-errors.log")
+
   // Upload in batches
   for (let i = 0; i < files.length; i += BATCH_SIZE) {
     const batch = files.slice(i, i + BATCH_SIZE)
@@ -248,7 +253,7 @@ async function main() {
       const relativePath = path.relative(SPRITES_DIR, filePath)
       const storagePath = `sprites/${relativePath.replace(/\\/g, "/")}`
 
-      const result = await uploadSprite(supabase, filePath, storagePath, dryRun)
+      const result = await uploadSprite(supabase, filePath, storagePath, dryRun, errorLog)
 
       if (result.success) {
         if (result.skipped) {
@@ -258,6 +263,9 @@ async function main() {
         }
       } else {
         stats.errors++
+        if (result.error) {
+          errorLog.push(`${storagePath}|${result.error}`)
+        }
       }
     }
 
@@ -273,6 +281,15 @@ async function main() {
   console.log(`Uploaded: ${stats.uploaded}`)
   console.log(`Skipped (already exists): ${stats.skipped}`)
   console.log(`Errors: ${stats.errors}`)
+  
+  // Write error log if there are errors
+  if (errorLog.length > 0 && !dryRun) {
+    fs.writeFileSync(errorLogPath, errorLog.join("\n"))
+    console.log("")
+    console.log(`⚠️  Error log written to: ${errorLogPath}`)
+    console.log(`   ${errorLog.length} failed files logged`)
+  }
+  
   console.log("")
   console.log("✅ Sprite mirroring complete!")
   console.log("")
@@ -280,6 +297,9 @@ async function main() {
   console.log("1. Sprites are now available at:")
   console.log(`   ${supabaseUrl}/storage/v1/object/public/${BUCKET_NAME}/sprites/...`)
   console.log("2. Update pokepedia_pokemon sprite paths to use storage URLs")
+  if (stats.errors > 0) {
+    console.log("3. Review error log and retry failed uploads")
+  }
   console.log("")
 }
 
