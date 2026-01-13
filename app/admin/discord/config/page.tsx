@@ -7,34 +7,47 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { createBrowserClient } from "@/lib/supabase/client"
 import { Loader2, CheckCircle2, XCircle, ExternalLink, Bot, Key, Settings } from "lucide-react"
 import { toast } from "sonner"
 import Link from "next/link"
 
+interface DiscordConfig {
+  botTokenMasked: string
+  clientId: string
+  clientSecretMasked: string
+  guildId: string
+  publicKey: string
+  supabaseUrl: string
+}
+
 export default function DiscordConfigPage() {
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [testing, setTesting] = useState(false)
   const [botStatus, setBotStatus] = useState<"online" | "offline" | "unknown">("unknown")
-  const supabase = createBrowserClient()
+  const [discordConfig, setDiscordConfig] = useState<DiscordConfig | null>(null)
 
-  // Read-only display of Discord config (from env vars)
-  const discordConfig = {
-    botToken: process.env.NEXT_PUBLIC_DISCORD_BOT_TOKEN
-      ? "••••••••••••••••" + process.env.NEXT_PUBLIC_DISCORD_BOT_TOKEN.slice(-4)
-      : "Not set",
-    clientId: process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID || "Not set",
-    clientSecret: process.env.NEXT_PUBLIC_DISCORD_CLIENT_SECRET
-      ? "••••••••••••••••"
-      : "Not set",
-    guildId: process.env.NEXT_PUBLIC_DISCORD_GUILD_ID || "Not set",
-    publicKey: process.env.NEXT_PUBLIC_DISCORD_PUBLIC_KEY || "Not set",
-  }
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        const response = await fetch("/api/discord/config")
+        if (response.ok) {
+          const data = await response.json()
+          setDiscordConfig(data)
+        } else {
+          toast.error("Failed to load Discord configuration")
+        }
+      } catch (error) {
+        toast.error("Failed to load Discord configuration")
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchConfig()
+  }, [])
 
   const checkBotStatus = async () => {
     setTesting(true)
     try {
-      // Try to ping bot via API
       const response = await fetch("/api/discord/bot-status")
       if (response.ok) {
         const data = await response.json()
@@ -55,6 +68,16 @@ export default function DiscordConfigPage() {
   useEffect(() => {
     checkBotStatus()
   }, [])
+
+  if (loading || !discordConfig) {
+    return (
+      <div className="container mx-auto py-8 px-4">
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="container mx-auto py-8 px-4 space-y-6">
@@ -89,9 +112,9 @@ export default function DiscordConfigPage() {
               <div className="space-y-2">
                 <Label>Bot Token</Label>
                 <div className="flex items-center gap-2">
-                  <Input value={discordConfig.botToken} readOnly className="font-mono" />
-                  <Badge variant={discordConfig.botToken !== "Not set" ? "default" : "destructive"}>
-                    {discordConfig.botToken !== "Not set" ? "Set" : "Missing"}
+                  <Input value={discordConfig.botTokenMasked} readOnly className="font-mono" />
+                  <Badge variant={discordConfig.botTokenMasked !== "Not set" ? "default" : "destructive"}>
+                    {discordConfig.botTokenMasked !== "Not set" ? "Set" : "Missing"}
                   </Badge>
                 </div>
                 <p className="text-xs text-muted-foreground">
@@ -121,11 +144,7 @@ export default function DiscordConfigPage() {
 
               <div className="pt-4 border-t">
                 <Button variant="outline" asChild>
-                  <a
-                    href="https://discord.com/developers/applications"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
+                  <a href="https://discord.com/developers/applications" target="_blank" rel="noopener noreferrer">
                     <ExternalLink className="h-4 w-4 mr-2" />
                     Open Discord Developer Portal
                   </a>
@@ -190,9 +209,9 @@ export default function DiscordConfigPage() {
               <div className="space-y-2">
                 <Label>Client Secret</Label>
                 <div className="flex items-center gap-2">
-                  <Input value={discordConfig.clientSecret} readOnly className="font-mono" />
-                  <Badge variant={discordConfig.clientSecret !== "••••••••••••••••" ? "default" : "destructive"}>
-                    {discordConfig.clientSecret !== "••••••••••••••••" ? "Set" : "Missing"}
+                  <Input value={discordConfig.clientSecretMasked} readOnly className="font-mono" />
+                  <Badge variant={discordConfig.clientSecretMasked !== "Not set" ? "default" : "destructive"}>
+                    {discordConfig.clientSecretMasked !== "Not set" ? "Set" : "Missing"}
                   </Badge>
                 </div>
               </div>
@@ -201,8 +220,7 @@ export default function DiscordConfigPage() {
                 <Label className="text-sm font-semibold">Required Redirect URLs</Label>
                 <div className="space-y-1 text-sm">
                   <p className="font-mono break-all">
-                    {process.env.NEXT_PUBLIC_SUPABASE_URL?.replace("https://", "")?.split(".")[0] &&
-                      `https://${process.env.NEXT_PUBLIC_SUPABASE_URL?.replace("https://", "")?.split(".")[0]}.supabase.co/auth/v1/callback`}
+                    {discordConfig.supabaseUrl && `${discordConfig.supabaseUrl}/auth/v1/callback`}
                   </p>
                   <p className="font-mono break-all">
                     {typeof window !== "undefined" ? `${window.location.origin}/auth/callback` : "/auth/callback"}
@@ -214,19 +232,19 @@ export default function DiscordConfigPage() {
               </div>
 
               <div className="pt-4 border-t space-y-2">
-                <Button variant="outline" asChild className="w-full">
-                  <a
-                    href="https://discord.com/developers/applications"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
+                <Button variant="outline" asChild className="w-full bg-transparent">
+                  <a href="https://discord.com/developers/applications" target="_blank" rel="noopener noreferrer">
                     <ExternalLink className="h-4 w-4 mr-2" />
                     Configure in Discord Developer Portal
                   </a>
                 </Button>
-                <Button variant="outline" asChild className="w-full">
+                <Button variant="outline" asChild className="w-full bg-transparent">
                   <a
-                    href={`https://supabase.com/dashboard/project/${process.env.NEXT_PUBLIC_SUPABASE_URL?.replace("https://", "")?.split(".")[0]}/auth/providers`}
+                    href={
+                      discordConfig.supabaseUrl
+                        ? `https://supabase.com/dashboard/project/${discordConfig.supabaseUrl.replace("https://", "").split(".")[0]}/auth/providers`
+                        : "https://supabase.com/dashboard"
+                    }
                     target="_blank"
                     rel="noopener noreferrer"
                   >
