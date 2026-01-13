@@ -38,7 +38,7 @@ BEGIN
   PERFORM cron.schedule(
     'pokepedia-worker',
     '* * * * *', -- Every minute
-    $$
+    $cron_job$
     SELECT net.http_post(
       url := current_setting('app.settings.supabase_url', true) || '/functions/v1/pokepedia-worker',
       headers := jsonb_build_object(
@@ -52,7 +52,7 @@ BEGIN
         'enqueueSprites', true
       )
     ) AS request_id;
-    $$
+    $cron_job$
   );
   
   -- Schedule pokepedia-sprite-worker to run every 2 minutes
@@ -60,7 +60,7 @@ BEGIN
   PERFORM cron.schedule(
     'pokepedia-sprite-worker',
     '*/2 * * * *', -- Every 2 minutes
-    $$
+    $cron_job$
     SELECT net.http_post(
       url := current_setting('app.settings.supabase_url', true) || '/functions/v1/pokepedia-sprite-worker',
       headers := jsonb_build_object(
@@ -73,7 +73,7 @@ BEGIN
         'concurrency', 3
       )
     ) AS request_id;
-    $$
+    $cron_job$
   );
   
 EXCEPTION

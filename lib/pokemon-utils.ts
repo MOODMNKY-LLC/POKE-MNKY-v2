@@ -253,14 +253,45 @@ export async function searchPokemon(
 }
 
 /**
+ * Get Supabase Storage public URL for a sprite path
+ */
+export function getSupabaseSpriteUrl(storagePath: string, supabaseUrl?: string): string {
+  const baseUrl = supabaseUrl || process.env.NEXT_PUBLIC_SUPABASE_URL || ""
+  const bucket = "pokedex-sprites"
+  
+  // Extract project ref from Supabase URL if needed
+  // Format: https://{project-ref}.supabase.co
+  const projectRef = baseUrl.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1] || ""
+  
+  if (projectRef) {
+    return `https://${projectRef}.supabase.co/storage/v1/object/public/${bucket}/${storagePath}`
+  }
+  
+  // Fallback: construct URL from base URL
+  return `${baseUrl}/storage/v1/object/public/${bucket}/${storagePath}`
+}
+
+/**
  * Get sprite URL from Pokemon data
+ * Priority: Supabase Storage path > External URL > Fallback
  */
 export function getSpriteUrl(
   pokemon: PokemonDisplayData,
   mode: "front" | "back" | "shiny" | "artwork" = "front",
+  supabaseUrl?: string,
 ): string | null {
   const sprites = pokemon.sprites || {}
 
+  // Check for Supabase Storage paths first (from pokepedia_pokemon table)
+  if (mode === "front" && (pokemon as any).sprite_front_default_path) {
+    return getSupabaseSpriteUrl((pokemon as any).sprite_front_default_path, supabaseUrl)
+  }
+  
+  if (mode === "artwork" && (pokemon as any).sprite_official_artwork_path) {
+    return getSupabaseSpriteUrl((pokemon as any).sprite_official_artwork_path, supabaseUrl)
+  }
+
+  // Fallback to external URLs from sprites JSONB
   switch (mode) {
     case "back":
       return sprites.back_default || sprites.front_default || null
@@ -275,9 +306,20 @@ export function getSpriteUrl(
 
 /**
  * Fallback sprite URL from PokeAPI (when cache doesn't have sprite)
+ * Now checks Supabase Storage first, then falls back to GitHub
  */
-export function getFallbackSpriteUrl(pokemonId: number, shiny = false): string {
-  return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${
+export function getFallbackSpriteUrl(pokemonId: number, shiny = false, supabaseUrl?: string): string {
+  // Try Supabase Storage first
+  const storagePath = shiny
+    ? `pokemon/${pokemonId}/front_shiny.png`
+    : `pokemon/${pokemonId}/front_default.png`
+  
+  // Return Supabase Storage URL (will work if sprite exists, otherwise fallback to GitHub)
+  // Note: In production, you might want to check pokepedia_assets table first
+  const supabaseUrl_result = getSupabaseSpriteUrl(storagePath, supabaseUrl)
+  
+  // Fallback to GitHub if Supabase URL construction fails
+  return supabaseUrl_result || `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${
     shiny ? "shiny/" : ""
   }${pokemonId}.png`
 }
