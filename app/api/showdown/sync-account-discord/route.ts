@@ -128,8 +128,9 @@ export async function POST(request: NextRequest) {
     console.log('[Showdown Sync] Database connection test passed, found', testData?.length || 0, 'profiles')
     
     // Test if we can select discord_id column specifically
+    // Verifying discord_id column exists in public.profiles table
     const { data: columnTest, error: columnError } = await supabase
-      .from('profiles')
+      .from('profiles')  // public.profiles table
       .select('discord_id')
       .limit(1)
     
@@ -158,9 +159,13 @@ export async function POST(request: NextRequest) {
     })
     
     // Find user by Discord ID in profiles table
+    // IMPORTANT: Querying public.profiles (NOT auth.users)
+    // - public.profiles has discord_id column
+    // - auth.users does NOT have discord_id column
+    // - .from('profiles') queries public.profiles by default
     // Use maybeSingle() instead of single() to avoid errors when no rows found
     const { data: profile, error: profileError } = await supabase
-      .from('profiles')
+      .from('profiles')  // Queries public.profiles table (has discord_id column)
       .select('id, discord_id, discord_username, showdown_username, email')
       .eq('discord_id', discordId)
       .maybeSingle()
@@ -233,56 +238,11 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Enhanced error logging
-    if (profileError) {
-      const errorDetails = {
-        error: profileError,
-        code: profileError.code,
-        message: profileError.message,
-        details: profileError.details,
-        hint: profileError.hint,
-        discord_id: discordId
-      }
-      
-      console.error('[Showdown Sync] Profile query error:', errorDetails)
-      
-      // If there's an actual database error (not just "not found"), return 500 with details
-      // PGRST116 = "not found" (expected when user doesn't exist)
-      // PGRST301 = JWT expired/invalid
-      // 42703 = column does not exist
-      // 42P01 = table does not exist
-      // 42501 = insufficient privilege
-      if (profileError.code !== 'PGRST116') {
-        // Return detailed error information for debugging
-        // Always include full error details to help identify the issue
-        return NextResponse.json(
-          { 
-            success: false,
-            error: `Database error while looking up user: ${profileError.message}`,
-            error_code: profileError.code,
-            error_message: profileError.message,
-            error_details: profileError.details,
-            error_hint: profileError.hint,
-            discord_id: discordId,
-            query_info: {
-              table: 'profiles',
-              filter_column: 'discord_id',
-              filter_value: discordId,
-              filter_value_type: typeof discordId
-            },
-            // Include full error object for debugging
-            full_error: errorDetails
-          },
-          { status: 500 }
-        )
-      }
-    }
-
     // Check if profile was found
     if (!profile) {
       // Try alternative query to see if user exists with different format
       const { data: altProfile } = await supabase
-        .from('profiles')
+        .from('profiles')  // public.profiles table
         .select('id, discord_id, discord_username')
         .eq('discord_id', discordId)
         .maybeSingle()
@@ -407,8 +367,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Update Supabase profile with sync status
+    // Updating public.profiles table (has showdown_username, showdown_account_synced columns)
     const { error: updateError } = await supabase
-      .from('profiles')
+      .from('profiles')  // public.profiles table
       .update({
         showdown_username: showdownUsername,
         showdown_account_synced: true,
