@@ -106,6 +106,27 @@ export async function POST(request: NextRequest) {
     // Create Supabase client with service role key (bypasses RLS for server-to-server calls)
     const supabase = createServiceRoleClient()
     
+    // Test database connection by checking if we can query profiles table at all
+    const { data: testData, error: testError } = await supabase
+      .from('profiles')
+      .select('id')
+      .limit(1)
+    
+    if (testError) {
+      console.error('[Showdown Sync] Database connection test failed:', testError)
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Database connection error: ${testError.message}`,
+          error_code: testError.code,
+          error_details: testError.details
+        },
+        { status: 500 }
+      )
+    }
+    
+    console.log('[Showdown Sync] Database connection test passed, found', testData?.length || 0, 'profiles')
+    
     // Debug logging
     console.log('[Showdown Sync] Looking up user with discord_id:', {
       discord_id: discordId,
@@ -138,25 +159,35 @@ export async function POST(request: NextRequest) {
 
     // Enhanced error logging
     if (profileError) {
-      console.error('[Showdown Sync] Profile query error:', {
+      const errorDetails = {
         error: profileError,
         code: profileError.code,
         message: profileError.message,
         details: profileError.details,
         hint: profileError.hint,
         discord_id: discordId
-      })
+      }
       
-      // If there's an actual database error (not just "not found"), return 500
-      if (profileError.code !== 'PGRST116') { // PGRST116 is "not found" which is expected
+      console.error('[Showdown Sync] Profile query error:', errorDetails)
+      
+      // If there's an actual database error (not just "not found"), return 500 with details
+      // PGRST116 = "not found" (expected when user doesn't exist)
+      // PGRST301 = JWT expired/invalid
+      // 42703 = column does not exist
+      // 42P01 = table does not exist
+      // 42501 = insufficient privilege
+      if (profileError.code !== 'PGRST116') {
+        // Return detailed error information for debugging
         return NextResponse.json(
           { 
-            error: 'Database error while looking up user',
-            debug: process.env.NODE_ENV === 'development' ? {
-              discord_id: discordId,
-              error_code: profileError.code,
-              error_message: profileError.message
-            } : undefined
+            success: false,
+            error: `Database error while looking up user: ${profileError.message}`,
+            error_code: profileError.code,
+            error_details: profileError.details,
+            error_hint: profileError.hint,
+            discord_id: discordId,
+            // Include full error in development
+            full_error: process.env.NODE_ENV === 'development' ? errorDetails : undefined
           },
           { status: 500 }
         )
