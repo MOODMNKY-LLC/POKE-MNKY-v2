@@ -99,13 +99,13 @@ export default async function SchedulePage() {
   return (
     <>
         <div className="border-b border-border bg-muted/30 py-8">
-          <div className="container">
+          <div className="container mx-auto px-4 md:px-6">
             <h1 className="text-4xl font-bold tracking-tight">Match Schedule</h1>
             <p className="mt-2 text-muted-foreground">View all regular season matchups and results</p>
           </div>
         </div>
 
-        <div className="container py-8">
+        <div className="container mx-auto px-4 md:px-6 py-8">
           {weeks.length > 0 ? (
             <Tabs defaultValue={`week-${currentWeek}`} className="space-y-6">
               <TabsList className="flex flex-wrap justify-start gap-2">

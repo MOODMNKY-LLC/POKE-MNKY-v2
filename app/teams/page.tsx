@@ -15,13 +15,13 @@ export default async function TeamsPage() {
   return (
     <>
         <div className="border-b border-border bg-muted/30 py-8">
-          <div className="container">
+          <div className="container mx-auto px-4 md:px-6">
             <h1 className="text-4xl font-bold tracking-tight">All Teams</h1>
             <p className="mt-2 text-muted-foreground">Browse all teams competing in the league</p>
           </div>
         </div>
 
-        <div className="container py-8 space-y-12">
+        <div className="container mx-auto px-4 md:px-6 py-8 space-y-12">
           {divisions.map((division) => {
             const divisionTeams = teams?.filter((t) => t.division === division) || []
             if (divisionTeams.length === 0) return null
