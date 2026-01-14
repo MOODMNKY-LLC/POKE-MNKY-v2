@@ -43,8 +43,8 @@ export async function getPokemonOfflineFirst(
     const supabase = getSupabaseClient()
     const query =
       typeof nameOrId === "number"
-        ? supabase.from("pokemon_comprehensive").select("*").eq("pokemon_id", nameOrId).single()
-        : supabase.from("pokemon_comprehensive").select("*").eq("name", nameOrId).single()
+        ? supabase.from("pokemon_comprehensive").select("*").eq("pokemon_id", nameOrId).maybeSingle()
+        : supabase.from("pokemon_comprehensive").select("*").eq("name", nameOrId).maybeSingle()
 
     const { data, error } = await query
 
