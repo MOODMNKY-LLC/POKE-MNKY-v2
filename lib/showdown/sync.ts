@@ -32,7 +32,7 @@ export function generateShowdownPassword(userId: string): string {
  * Required for loginserver registration
  * Connects to Showdown server WebSocket and waits for |challstr| message
  */
-async function getChallengeString(): Promise<string> {
+export async function getChallengeString(): Promise<string> {
   const showdownServerUrl = process.env.SHOWDOWN_SERVER_URL || 'https://aab-showdown.moodmnky.com'
   
   // Convert HTTPS URL to WebSocket URL

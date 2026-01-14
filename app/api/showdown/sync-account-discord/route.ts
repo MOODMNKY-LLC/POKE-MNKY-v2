@@ -7,76 +7,8 @@
  */
 
 import { createServiceRoleClient } from '@/lib/supabase/service'
-import { generateShowdownPassword } from '@/lib/showdown/sync'
+import { generateShowdownPassword, getChallengeString } from '@/lib/showdown/sync'
 import { NextRequest, NextResponse } from 'next/server'
-
-// Internal function to get challenge string (duplicated from sync.ts)
-async function getChallengeString(): Promise<string> {
-  const showdownServerUrl = process.env.SHOWDOWN_SERVER_URL || 'https://aab-showdown.moodmnky.com'
-  const wsUrl = showdownServerUrl
-    .replace(/^https:/, 'wss:')
-    .replace(/^http:/, 'ws:')
-    .replace(/\/$/, '') + '/showdown/websocket'
-
-  const WebSocket = (globalThis as any).WebSocket
-  if (!WebSocket) {
-    throw new Error('WebSocket not available. Node.js 18+ required.')
-  }
-
-  return new Promise((resolve, reject) => {
-    let resolved = false
-    const ws = new WebSocket(wsUrl)
-    const timeout = setTimeout(() => {
-      if (!resolved) {
-        resolved = true
-        ws.close()
-        reject(new Error('Timeout waiting for challenge string'))
-      }
-    }, 10000)
-
-    ws.onopen = () => {}
-
-    ws.onmessage = (event: MessageEvent | { data: Buffer | string }) => {
-      if (resolved) return
-      const message = typeof event.data === 'string' 
-        ? event.data 
-        : Buffer.isBuffer(event.data)
-        ? event.data.toString('utf-8')
-        : String(event.data)
-      
-      if (message.includes('|challstr|')) {
-        const parts = message.split('|')
-        const challstrIndex = parts.findIndex(p => p === 'challstr')
-        if (challstrIndex !== -1 && parts[challstrIndex + 1]) {
-          const challstr = parts.slice(challstrIndex + 1).join('|')
-          if (challstr && !resolved) {
-            resolved = true
-            clearTimeout(timeout)
-            ws.close()
-            resolve(challstr)
-          }
-        }
-      }
-    }
-
-    ws.onerror = (error: Event | Error) => {
-      if (!resolved) {
-        resolved = true
-        clearTimeout(timeout)
-        const errorMsg = error instanceof Error ? error.message : (error as Event).type
-        reject(new Error(`WebSocket error: ${errorMsg}`))
-      }
-    }
-
-    ws.onclose = () => {
-      if (!resolved) {
-        resolved = true
-        clearTimeout(timeout)
-        reject(new Error('WebSocket closed before receiving challenge string'))
-      }
-    }
-  })
-}
 
 export async function POST(request: NextRequest) {
   try {
