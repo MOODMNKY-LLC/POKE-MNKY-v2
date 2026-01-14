@@ -99,9 +99,9 @@ export default async function HomePage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col relative w-full max-w-full overflow-x-hidden">
+    <div className="flex min-h-screen flex-col relative">
       <SiteHeader />
-      <main className="flex-1 w-full max-w-full overflow-x-hidden">
+      <main className="flex-1 w-full">
         {/* Hero Section with Pokemon Showcase */}
         <section className="relative w-full border-b border-border/40 bg-gradient-to-b from-background to-muted/20 py-12 md:py-20 lg:py-24">
           <div className="container px-4 md:px-6">
@@ -163,8 +163,8 @@ export default async function HomePage() {
         </section>
 
         {/* Features Grid */}
-        <section className="w-full max-w-full overflow-x-hidden py-12 md:py-20 lg:py-24">
-          <div className="container px-4 md:px-6 mx-auto max-w-7xl">
+        <section className="w-full py-12 md:py-20 lg:py-24">
+          <div className="container mx-auto px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-4 text-center mb-12">
               <div className="space-y-3">
                 <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
@@ -328,8 +328,8 @@ export default async function HomePage() {
         </section>
 
         {/* Tech Stack Showcase */}
-        <section className="w-full max-w-full overflow-x-hidden border-t border-border/40 py-12 md:py-20 lg:py-24">
-          <div className="container px-4 md:px-6 mx-auto max-w-7xl">
+        <section className="w-full border-t border-border/40 py-12 md:py-20 lg:py-24">
+          <div className="container mx-auto px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-4 text-center mb-12">
               <div className="space-y-3">
                 <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
@@ -424,8 +424,8 @@ export default async function HomePage() {
         </section>
 
         {/* Footer */}
-        <footer className="w-full max-w-full overflow-x-hidden border-t border-border/40 bg-muted/20 py-8 md:py-12">
-          <div className="container px-4 md:px-6 mx-auto max-w-7xl">
+        <footer className="w-full border-t border-border/40 bg-muted/20 py-8 md:py-12">
+          <div className="container mx-auto px-4 md:px-6">
             <div className="grid gap-8 sm:grid-cols-2 md:grid-cols-4">
               <div className="space-y-3">
                 <h3 className="font-semibold">League</h3>
