@@ -1,11 +1,15 @@
 import { createServerClient } from "@/lib/supabase/server"
 import { NextResponse, type NextRequest } from "next/server"
-import { syncShowdownAccount } from "@/lib/showdown/sync"
 
 /**
  * OAuth callback route handler (Server-side)
  * This handles the Discord OAuth callback and exchanges the code for a session.
  * Must be a Route Handler (route.ts) not a Page (page.tsx) for PKCE to work correctly.
+ * 
+ * NOTE: Showdown account sync is NOT triggered here to avoid blocking auth flow.
+ * Users can sync their Showdown account via:
+ * - Discord bot command: /showdown-link
+ * - API endpoint: POST /api/showdown/sync-account (after login)
  */
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
@@ -29,14 +33,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(errorUrl)
     }
 
-    // Success - trigger Showdown account sync (fire and forget, don't block redirect)
-    if (data?.user?.id) {
-      // Sync Showdown account in background (non-blocking)
-      syncShowdownAccount(data.user.id).catch((error) => {
-        console.error("Failed to sync Showdown account:", error)
-        // Don't throw - this is a background operation
-      })
-    }
+    // Success - redirect immediately
+    // Showdown account sync should be triggered separately via:
+    // - Discord bot: /showdown-link command
+    // - Manual API call: POST /api/showdown/sync-account
+    // This keeps auth flow clean and non-blocking
 
     // Redirect to home or next page
     return NextResponse.redirect(new URL(next, requestUrl.origin))
