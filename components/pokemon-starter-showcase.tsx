@@ -41,12 +41,12 @@ export function PokemonStarterShowcase() {
       </div>
 
       {/* Scrolling Marquee - Pauses on Hover */}
-      <div className="relative overflow-hidden rounded-lg border border-border/40 bg-muted/20 p-4">
+      <div className="relative overflow-x-hidden overflow-y-visible rounded-lg border border-border/40 bg-muted/20 p-4 w-full max-w-full">
         {/* Gradient fade edges for smooth visual effect */}
         <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-20 bg-gradient-to-r from-background via-background/80 to-transparent" />
         <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-20 bg-gradient-to-l from-background via-background/80 to-transparent" />
         
-        <Marquee pauseOnHover className="[--duration:120s] [--gap:1rem]">
+        <Marquee pauseOnHover className="[--duration:120s] [--gap:1rem] w-full max-w-full overflow-x-hidden">
           {allStarters.map((starter) => (
             <div
               key={`${starter.generation}-${starter.id}`}
