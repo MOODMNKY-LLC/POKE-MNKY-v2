@@ -24,11 +24,13 @@ import {
 } from "lucide-react"
 import { usePokepediaComprehensiveStatus } from "@/hooks/use-pokepedia-comprehensive-status"
 import { usePokepediaSyncContext } from "@/components/pokepedia-sync-provider"
+import { useAdmin } from "@/hooks/use-admin"
 import { cn } from "@/lib/utils"
 
 export function PokepediaComprehensiveStatus() {
   const { status, refresh, checkPokeAPI } = usePokepediaComprehensiveStatus()
   const syncState = usePokepediaSyncContext()
+  const { isAdmin: isUserAdmin } = useAdmin()
   const [showPokeAPIComparison, setShowPokeAPIComparison] = useState(false)
   const [isChecking, setIsChecking] = useState(false)
 
@@ -95,6 +97,11 @@ export function PokepediaComprehensiveStatus() {
               <Zap className={cn("h-4 w-4 mr-2", isChecking && "animate-spin")} />
               Check PokeAPI
             </Button>
+            {!isUserAdmin && (
+              <Badge variant="outline" className="text-xs">
+                Read-Only
+              </Badge>
+            )}
           </div>
         </div>
       </CardHeader>
