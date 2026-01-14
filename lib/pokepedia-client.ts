@@ -40,9 +40,9 @@ export async function getPokemonOfflineFirst(
 
   // Step 2: Check Supabase
   try {
-    const supabase = getSupabaseClient()
     const query =
       typeof nameOrId === "number"
+        ? supabase.from("pokemon_comprehensive").select("*").eq("pokemon_id", nameOrId).single()
         ? supabase.from("pokemon_comprehensive").select("*").eq("pokemon_id", nameOrId).maybeSingle()
         : supabase.from("pokemon_comprehensive").select("*").eq("name", nameOrId).maybeSingle()
 
@@ -89,7 +89,6 @@ export async function searchPokemonOfflineFirst(query: string): Promise<any[]> {
   // Fallback to Supabase
   try {
     const supabase = getSupabaseClient()
-    const { data } = await supabase
       .from("pokemon_comprehensive")
       .select("*")
       .ilike("name", `%${query}%`)

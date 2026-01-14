@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server"
-import { SiteHeader } from "@/components/site-header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { BracketMatch } from "@/components/bracket-match"
@@ -34,9 +33,7 @@ export default async function PlayoffsPage() {
   const champion = finalsMatch ? finalsMatch.winner : null
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <SiteHeader />
-      <main className="flex-1">
+    <>
         <div className="border-b border-border bg-gradient-to-r from-primary/10 to-accent/10 py-12">
           <div className="container text-center">
             <Badge className="mb-4 bg-primary text-primary-foreground">Playoffs</Badge>
@@ -205,7 +202,6 @@ export default async function PlayoffsPage() {
             </div>
           </div>
         )}
-      </main>
-    </div>
+    </>
   )
 }

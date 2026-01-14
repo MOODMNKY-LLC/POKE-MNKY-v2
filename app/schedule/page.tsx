@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server"
-import { SiteHeader } from "@/components/site-header"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -98,9 +97,7 @@ export default async function SchedulePage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <SiteHeader />
-      <main className="flex-1">
+    <>
         <div className="border-b border-border bg-muted/30 py-8">
           <div className="container">
             <h1 className="text-4xl font-bold tracking-tight">Match Schedule</h1>
@@ -141,7 +138,6 @@ export default async function SchedulePage() {
             </Card>
           )}
         </div>
-      </main>
-    </div>
+    </>
   )
 }
