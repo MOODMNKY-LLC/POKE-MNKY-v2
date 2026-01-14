@@ -154,6 +154,7 @@ export function parsePokemonFromCache(pokemon: any): PokemonDisplayData {
  */
 export async function getPokemon(nameOrId: string | number): Promise<PokemonDisplayData | null> {
   try {
+    const supabase = getSupabaseClient()
     // Try cache first
     const query = typeof nameOrId === "number"
       ? supabase.from("pokemon_cache").select("*").eq("pokemon_id", nameOrId).single()
