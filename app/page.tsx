@@ -100,54 +100,54 @@ export default async function HomePage() {
   return (
     <>
         {/* Hero Section with Pokemon Showcase */}
-        <section className="relative w-full border-b border-border/40 bg-gradient-to-b from-background to-muted/20 py-12 md:py-20 lg:py-24">
-          <div className="container mx-auto px-4 md:px-6">
+        <section className="relative w-full border-b border-border/40 bg-gradient-to-b from-background to-muted/20 py-12 md:py-20 lg:py-24 overflow-x-hidden">
+          <div className="container mx-auto px-4 md:px-6 max-w-full">
             <div className="grid gap-8 lg:grid-cols-2 lg:gap-12 items-center">
-              <div className="flex flex-col justify-center space-y-6 animate-slide-up">
-                <div className="space-y-3">
-                  <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none text-balance">
+              <div className="flex flex-col justify-center space-y-6 animate-slide-up min-w-0">
+                <div className="space-y-3 min-w-0">
+                  <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none text-balance break-words">
                     Average at Best
                     <span className="block bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
                       Battle League
                     </span>
                   </h1>
-                  <p className="max-w-[600px] text-muted-foreground text-lg md:text-xl text-pretty">
+                  <p className="w-full max-w-full text-muted-foreground text-base sm:text-lg md:text-xl text-pretty break-words">
                     The ultimate Pokémon competitive platform powered by AI insights, Discord integration, and real-time
                     analytics.
                   </p>
                 </div>
 
-                <div className="flex flex-col gap-3 min-[400px]:flex-row">
+                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap w-full">
                   <Button
                     asChild
                     size="lg"
-                    className="bg-gradient-to-r from-primary to-accent hover:opacity-90 tap-target"
+                    className="bg-gradient-to-r from-primary to-accent hover:opacity-90 tap-target w-full sm:w-auto sm:flex-shrink-0"
                   >
-                    <Link href="/teams/builder">
-                      <Brain className="mr-2 h-5 w-5" />
-                      Build Your Team
+                    <Link href="/teams/builder" className="flex items-center justify-center">
+                      <Brain className="mr-2 h-5 w-5 flex-shrink-0" />
+                      <span className="whitespace-nowrap">Build Your Team</span>
                     </Link>
                   </Button>
-                  <Button asChild variant="outline" size="lg" className="tap-target bg-transparent">
-                    <Link href="/pokedex">
-                      <Sparkles className="mr-2 h-5 w-5" />
-                      Explore Pokédex
+                  <Button asChild variant="outline" size="lg" className="tap-target bg-transparent w-full sm:w-auto sm:flex-shrink-0">
+                    <Link href="/pokedex" className="flex items-center justify-center">
+                      <Sparkles className="mr-2 h-5 w-5 flex-shrink-0" />
+                      <span className="whitespace-nowrap">Explore Pokédex</span>
                     </Link>
                   </Button>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-4 pt-4">
-                  <Badge variant="secondary" className="gap-1.5 px-3 py-1.5">
-                    <Database className="h-3.5 w-3.5" />
-                    Supabase Powered
+                <div className="flex flex-wrap items-center gap-2 sm:gap-4 pt-4 w-full">
+                  <Badge variant="secondary" className="gap-1.5 px-2 sm:px-3 py-1.5 text-xs sm:text-sm flex-shrink-0">
+                    <Database className="h-3.5 w-3.5 flex-shrink-0" />
+                    <span className="whitespace-nowrap">Supabase Powered</span>
                   </Badge>
-                  <Badge variant="secondary" className="gap-1.5 px-3 py-1.5">
-                    <MessageSquare className="h-3.5 w-3.5" />
-                    Discord Integrated
+                  <Badge variant="secondary" className="gap-1.5 px-2 sm:px-3 py-1.5 text-xs sm:text-sm flex-shrink-0">
+                    <MessageSquare className="h-3.5 w-3.5 flex-shrink-0" />
+                    <span className="whitespace-nowrap">Discord Integrated</span>
                   </Badge>
-                  <Badge variant="secondary" className="gap-1.5 px-3 py-1.5">
-                    <Brain className="h-3.5 w-3.5" />
-                    AI Enhanced
+                  <Badge variant="secondary" className="gap-1.5 px-2 sm:px-3 py-1.5 text-xs sm:text-sm flex-shrink-0">
+                    <Brain className="h-3.5 w-3.5 flex-shrink-0" />
+                    <span className="whitespace-nowrap">AI Enhanced</span>
                   </Badge>
                 </div>
               </div>
