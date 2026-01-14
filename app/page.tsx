@@ -104,7 +104,7 @@ export default async function HomePage() {
       <main className="flex-1 w-full">
         {/* Hero Section with Pokemon Showcase */}
         <section className="relative w-full border-b border-border/40 bg-gradient-to-b from-background to-muted/20 py-12 md:py-20 lg:py-24">
-          <div className="container px-4 md:px-6">
+          <div className="container mx-auto px-4 md:px-6">
             <div className="grid gap-8 lg:grid-cols-2 lg:gap-12 items-center">
               <div className="flex flex-col justify-center space-y-6 animate-slide-up">
                 <div className="space-y-3">
