@@ -4,14 +4,9 @@
 import { createBrowserClient } from "@/lib/supabase/client"
 import { getPokemonDataExtended, type CachedPokemonExtended } from "./pokemon-api-enhanced"
 
-// Create client lazily to avoid multiple instances
-let supabaseInstance: ReturnType<typeof createBrowserClient> | null = null
-
+// Use shared browser client singleton to avoid multiple GoTrueClient instances
 function getSupabaseClient() {
-  if (!supabaseInstance) {
-    supabaseInstance = createBrowserClient()
-  }
-  return supabaseInstance
+  return createBrowserClient() // Now uses singleton pattern internally
 }
 
 export interface PokemonDisplayData {
@@ -162,6 +157,18 @@ export async function getPokemon(nameOrId: string | number): Promise<PokemonDisp
 
     const { data: cached, error } = await query
 
+    // Handle 406 errors (PostgREST schema cache issue) - fallback to API
+    if (error) {
+      const errorMessage = error.message || JSON.stringify(error)
+      if (errorMessage.includes("406") || errorMessage.includes("Not Acceptable") || errorMessage.includes("schema cache")) {
+        console.warn("[Pokemon Utils] PostgREST schema cache issue, falling back to API:", nameOrId)
+        // Fall through to API fetch
+      } else {
+        console.error("[Pokemon Utils] Cache query error:", error)
+        // For other errors, still try API fallback
+      }
+    }
+
     if (cached && !error && cached.expires_at && new Date(cached.expires_at) > new Date()) {
       return parsePokemonFromCache(cached)
     }
@@ -197,6 +204,12 @@ export async function getAllPokemonFromCache(limit?: number): Promise<PokemonDis
     const { data, error } = await query
 
     if (error) {
+      const errorMessage = error.message || JSON.stringify(error)
+      // Handle 406 errors (PostgREST schema cache issue) gracefully
+      if (errorMessage.includes("406") || errorMessage.includes("Not Acceptable") || errorMessage.includes("schema cache")) {
+        console.warn("[Pokemon Utils] PostgREST schema cache issue, returning empty array")
+        return []
+      }
       console.error("[Pokemon Utils] Error loading Pokemon:", error)
       return []
     }
@@ -251,6 +264,12 @@ export async function searchPokemon(
     const { data, error } = await supabaseQuery.order("pokemon_id", { ascending: true })
 
     if (error) {
+      const errorMessage = error.message || JSON.stringify(error)
+      // Handle 406 errors (PostgREST schema cache issue) gracefully
+      if (errorMessage.includes("406") || errorMessage.includes("Not Acceptable") || errorMessage.includes("schema cache")) {
+        console.warn("[Pokemon Utils] PostgREST schema cache issue during search, returning empty array")
+        return []
+      }
       console.error("[Pokemon Utils] Error searching Pokemon:", error)
       return []
     }
