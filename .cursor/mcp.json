@@ -14,14 +14,11 @@
       ]
     },
     "chrome-devtools": {
-      "command": "powershell",
+      "command": "npx",
       "args": [
-        "-ExecutionPolicy",
-        "Bypass",
-        "-File",
-        "scripts/chrome-devtools-mcp-wrapper.ps1"
-      ],
-      "cwd": "${workspaceFolder}"
+        "-y",
+        "chrome-devtools-mcp@latest"
+      ]
     }
   }
 }
