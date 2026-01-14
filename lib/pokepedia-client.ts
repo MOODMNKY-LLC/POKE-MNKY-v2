@@ -8,13 +8,9 @@ import { getPokemonLocally, getPokemonByNameLocally, searchPokemonLocally } from
 import { createBrowserClient } from "@/lib/supabase/client"
 import { MainClient } from "pokenode-ts"
 
-// Use shared browser client to avoid multiple GoTrueClient instances
-let supabaseInstance: ReturnType<typeof createBrowserClient> | null = null
+// Use shared browser client singleton to avoid multiple GoTrueClient instances
 function getSupabaseClient() {
-  if (!supabaseInstance) {
-    supabaseInstance = createBrowserClient()
-  }
-  return supabaseInstance
+  return createBrowserClient() // Now uses singleton pattern internally
 }
 
 const pokeApi = new MainClient()
