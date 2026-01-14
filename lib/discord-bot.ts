@@ -49,6 +49,10 @@ const commands = [
   new SlashCommandBuilder()
     .setName("draft-my-team")
     .setDescription("View your team's draft picks and budget"),
+
+  new SlashCommandBuilder()
+    .setName("showdown-link")
+    .setDescription("Link your Discord account to Showdown (syncs your account)"),
 ].map((command) => command.toJSON())
 
 // Register commands
@@ -111,6 +115,9 @@ export function createDiscordBot() {
           break
         case "draft-my-team":
           await handleDraftMyTeamCommand(interaction)
+          break
+        case "showdown-link":
+          await handleShowdownLinkCommand(interaction)
           break
         default:
           await interaction.reply("Unknown command")
@@ -394,6 +401,36 @@ async function handleDraftMyTeamCommand(interaction: any) {
     )
   } catch (error) {
     await interaction.editReply("❌ Failed to fetch team status")
+  }
+}
+
+async function handleShowdownLinkCommand(interaction: any) {
+  const discordId = interaction.user.id
+  await interaction.deferReply()
+
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/showdown/sync-account-discord`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ discord_id: discordId }),
+    })
+
+    const data = await response.json()
+
+    if (data.success) {
+      await interaction.editReply(
+        `✅ **Showdown Account Linked!**\n\nYour Discord account has been synced with Showdown.\n**Username**: ${data.showdown_username}\n\nYou can now log into Showdown at ${process.env.NEXT_PUBLIC_SHOWDOWN_CLIENT_URL || 'https://aab-play.moodmnky.com'} using your synced account.`,
+      )
+    } else {
+      await interaction.editReply(
+        `❌ **Failed to Link Account**\n${data.error || "Unknown error"}\n\nPlease make sure you've linked your Discord account in the app first.`,
+      )
+    }
+  } catch (error: any) {
+    console.error("Showdown link command error:", error)
+    await interaction.editReply(
+      `❌ **Error**: Failed to sync Showdown account. Please try again or contact support.\n\nError: ${error.message || "Unknown error"}`,
+    )
   }
 }
 
