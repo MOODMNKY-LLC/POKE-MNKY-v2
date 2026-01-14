@@ -1,0 +1,5 @@
+# Exclude large files and temp directories from Vercel deployment
+temp/
+*.md
+!README.md
+!docs/**/*.md
