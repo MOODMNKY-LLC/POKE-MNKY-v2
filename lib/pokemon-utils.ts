@@ -3,6 +3,7 @@
 
 import { createBrowserClient } from "@/lib/supabase/client"
 import { getPokemonDataExtended, type CachedPokemonExtended } from "./pokemon-api-enhanced"
+import { adaptPokepediaToDisplayData, parseJsonbField } from "./pokepedia-adapter"
 
 // Use shared browser client singleton to avoid multiple GoTrueClient instances
 function getSupabaseClient() {
@@ -150,36 +151,37 @@ export function parsePokemonFromCache(pokemon: any): PokemonDisplayData {
 export async function getPokemon(nameOrId: string | number): Promise<PokemonDisplayData | null> {
   try {
     const supabase = getSupabaseClient()
-    // Try cache first - use maybeSingle() to avoid PGRST116 errors when no rows found
+    
+    // Try pokepedia_pokemon first (has data in production)
     const query = typeof nameOrId === "number"
+      ? supabase.from("pokepedia_pokemon").select("*").eq("id", nameOrId).maybeSingle()
+      : supabase.from("pokepedia_pokemon").select("*").eq("name", nameOrId.toLowerCase()).maybeSingle()
+
+    const { data: pokepediaData, error: pokepediaError } = await query
+
+    if (pokepediaData && !pokepediaError) {
+      // Parse JSONB fields that might come as strings
+      const adapted = adaptPokepediaToDisplayData({
+        ...pokepediaData,
+        types: parseJsonbField<string[]>(pokepediaData.types) || pokepediaData.types,
+        base_stats: parseJsonbField<typeof pokepediaData.base_stats>(pokepediaData.base_stats) || pokepediaData.base_stats,
+        abilities: parseJsonbField<typeof pokepediaData.abilities>(pokepediaData.abilities) || pokepediaData.abilities,
+      })
+      return adapted
+    }
+
+    // Fallback: Try pokemon_cache (for backward compatibility during migration)
+    const cacheQuery = typeof nameOrId === "number"
       ? supabase.from("pokemon_cache").select("*").eq("pokemon_id", nameOrId).maybeSingle()
       : supabase.from("pokemon_cache").select("*").eq("name", nameOrId.toLowerCase()).maybeSingle()
 
-    const { data: cached, error } = await query
+    const { data: cached, error: cacheError } = await cacheQuery
 
-    // Handle 406 errors (PostgREST schema cache issue) - fallback to API
-    if (error) {
-      const errorMessage = error.message || JSON.stringify(error)
-      const errorCode = (error as any).code || ""
-      
-      // PGRST116 = no rows found (handled by maybeSingle, but check anyway)
-      // 406 = schema cache issue
-      if (errorCode === "PGRST116" || errorMessage.includes("406") || errorMessage.includes("Not Acceptable") || errorMessage.includes("schema cache")) {
-        // Fall through to API fetch - this is expected when cache is empty
-        if (errorCode !== "PGRST116") {
-          console.warn("[Pokemon Utils] PostgREST schema cache issue, falling back to API:", nameOrId)
-        }
-      } else {
-        console.error("[Pokemon Utils] Cache query error:", error)
-        // For other errors, still try API fallback
-      }
-    }
-
-    if (cached && !error && cached.expires_at && new Date(cached.expires_at) > new Date()) {
+    if (cached && !cacheError && cached.expires_at && new Date(cached.expires_at) > new Date()) {
       return parsePokemonFromCache(cached)
     }
 
-    // Cache miss or expired - fetch from API
+    // Final fallback: Fetch from API
     const extended = await getPokemonDataExtended(nameOrId, false)
     if (extended) {
       return parsePokemonFromCache(extended)
@@ -194,33 +196,63 @@ export async function getPokemon(nameOrId: string | number): Promise<PokemonDisp
 
 /**
  * Get all Pokemon from cache (for lists)
+ * Now uses pokepedia_pokemon table which has data in production
  */
 export async function getAllPokemonFromCache(limit?: number): Promise<PokemonDisplayData[]> {
   try {
     const supabase = getSupabaseClient()
+    
+    // Try pokepedia_pokemon first (has data in production)
     let query = supabase
-      .from("pokemon_cache")
+      .from("pokepedia_pokemon")
       .select("*")
-      .order("pokemon_id", { ascending: true })
+      .order("id", { ascending: true })
 
     if (limit) {
       query = query.limit(limit)
     }
 
-    const { data, error } = await query
+    const { data: pokepediaData, error: pokepediaError } = await query
 
-    if (error) {
-      const errorMessage = error.message || JSON.stringify(error)
-      // Handle 406 errors (PostgREST schema cache issue) gracefully
+    if (pokepediaData && !pokepediaError) {
+      return pokepediaData.map(row => {
+        // Parse JSONB fields that might come as strings
+        return adaptPokepediaToDisplayData({
+          ...row,
+          types: parseJsonbField<string[]>(row.types) || row.types,
+          base_stats: parseJsonbField<typeof row.base_stats>(row.base_stats) || row.base_stats,
+          abilities: parseJsonbField<typeof row.abilities>(row.abilities) || row.abilities,
+        })
+      })
+    }
+
+    // Fallback: Try pokemon_cache (for backward compatibility during migration)
+    let cacheQuery = supabase
+      .from("pokemon_cache")
+      .select("*")
+      .order("pokemon_id", { ascending: true })
+
+    if (limit) {
+      cacheQuery = cacheQuery.limit(limit)
+    }
+
+    const { data: cachedData, error: cacheError } = await cacheQuery
+
+    if (cachedData && !cacheError) {
+      return cachedData.map(parsePokemonFromCache)
+    }
+
+    // Handle errors gracefully
+    if (pokepediaError || cacheError) {
+      const errorMessage = (pokepediaError || cacheError)?.message || JSON.stringify(pokepediaError || cacheError)
       if (errorMessage.includes("406") || errorMessage.includes("Not Acceptable") || errorMessage.includes("schema cache")) {
         console.warn("[Pokemon Utils] PostgREST schema cache issue, returning empty array")
         return []
       }
-      console.error("[Pokemon Utils] Error loading Pokemon:", error)
-      return []
+      console.error("[Pokemon Utils] Error loading Pokemon:", pokepediaError || cacheError)
     }
 
-    return (data || []).map(parsePokemonFromCache)
+    return []
   } catch (error) {
     console.error("[Pokemon Utils] Error:", error)
     return []
@@ -229,6 +261,7 @@ export async function getAllPokemonFromCache(limit?: number): Promise<PokemonDis
 
 /**
  * Search Pokemon by name or type
+ * Now uses pokepedia_pokemon table which has data in production
  */
 export async function searchPokemon(
   query: string,
@@ -241,51 +274,86 @@ export async function searchPokemon(
 ): Promise<PokemonDisplayData[]> {
   try {
     const supabase = getSupabaseClient()
-    let supabaseQuery = supabase.from("pokemon_cache").select("*")
+    
+    // Try pokepedia_pokemon first (has data in production)
+    let supabaseQuery = supabase.from("pokepedia_pokemon").select("*")
 
     // Name search
     if (query) {
       supabaseQuery = supabaseQuery.ilike("name", `%${query}%`)
     }
 
-    // Type filter (requires JSONB contains check)
+    // Type filter - use type_primary or type_secondary for fast filtering
+    // For multiple types, we'll filter in memory after fetching
     if (filters?.types && filters.types.length > 0) {
-      // Note: This is a simplified filter - Supabase JSONB contains would be better
-      // For now, we'll filter in memory after fetching
+      // Use type_primary for single type filter (fast indexed query)
+      if (filters.types.length === 1) {
+        supabaseQuery = supabaseQuery.or(`type_primary.eq.${filters.types[0]},type_secondary.eq.${filters.types[0]}`)
+      }
+      // For multiple types, we'll filter in memory after fetching
     }
 
-    // Tier filter
-    if (filters?.tier) {
-      supabaseQuery = supabaseQuery.eq("tier", filters.tier)
-    }
+    // Note: tier and draft_cost are not in pokepedia_pokemon
+    // These filters will be ignored (or could filter in memory if we add those fields)
 
-    // Cost filters
-    if (filters?.minCost !== undefined) {
-      supabaseQuery = supabaseQuery.gte("draft_cost", filters.minCost)
-    }
-    if (filters?.maxCost !== undefined) {
-      supabaseQuery = supabaseQuery.lte("draft_cost", filters.maxCost)
-    }
+    const { data: pokepediaData, error: pokepediaError } = await supabaseQuery.order("id", { ascending: true })
 
-    const { data, error } = await supabaseQuery.order("pokemon_id", { ascending: true })
+    let results: PokemonDisplayData[] = []
 
-    if (error) {
-      const errorMessage = error.message || JSON.stringify(error)
-      // Handle 406 errors (PostgREST schema cache issue) gracefully
-      if (errorMessage.includes("406") || errorMessage.includes("Not Acceptable") || errorMessage.includes("schema cache")) {
-        console.warn("[Pokemon Utils] PostgREST schema cache issue during search, returning empty array")
+    if (pokepediaData && !pokepediaError) {
+      // Parse and adapt pokepedia_pokemon data
+      results = pokepediaData.map(row => {
+        return adaptPokepediaToDisplayData({
+          ...row,
+          types: parseJsonbField<string[]>(row.types) || row.types,
+          base_stats: parseJsonbField<typeof row.base_stats>(row.base_stats) || row.base_stats,
+          abilities: parseJsonbField<typeof row.abilities>(row.abilities) || row.abilities,
+        })
+      })
+    } else {
+      // Fallback: Try pokemon_cache (for backward compatibility during migration)
+      let cacheQuery = supabase.from("pokemon_cache").select("*")
+
+      if (query) {
+        cacheQuery = cacheQuery.ilike("name", `%${query}%`)
+      }
+
+      if (filters?.tier) {
+        cacheQuery = cacheQuery.eq("tier", filters.tier)
+      }
+
+      if (filters?.minCost !== undefined) {
+        cacheQuery = cacheQuery.gte("draft_cost", filters.minCost)
+      }
+      if (filters?.maxCost !== undefined) {
+        cacheQuery = cacheQuery.lte("draft_cost", filters.maxCost)
+      }
+
+      const { data: cachedData, error: cacheError } = await cacheQuery.order("pokemon_id", { ascending: true })
+
+      if (cachedData && !cacheError) {
+        results = cachedData.map(parsePokemonFromCache)
+      } else if (pokepediaError || cacheError) {
+        const errorMessage = (pokepediaError || cacheError)?.message || JSON.stringify(pokepediaError || cacheError)
+        if (errorMessage.includes("406") || errorMessage.includes("Not Acceptable") || errorMessage.includes("schema cache")) {
+          console.warn("[Pokemon Utils] PostgREST schema cache issue during search, returning empty array")
+          return []
+        }
+        console.error("[Pokemon Utils] Error searching Pokemon:", pokepediaError || cacheError)
         return []
       }
-      console.error("[Pokemon Utils] Error searching Pokemon:", error)
-      return []
     }
 
-    let results = (data || []).map(parsePokemonFromCache)
-
-    // Filter by types in memory (since JSONB contains is complex)
-    if (filters?.types && filters.types.length > 0) {
-      results = results.filter((p) => p.types.some((t) => filters.types!.includes(t)))
+    // Apply type filter in memory if needed (for multiple types or when using pokemon_cache fallback)
+    if (filters?.types && filters.types.length > 0 && results.length > 0) {
+      results = results.filter((pokemon) => {
+        const pokemonTypes = pokemon.types.map((t) => t.toLowerCase())
+        return filters.types!.some((filterType) => pokemonTypes.includes(filterType.toLowerCase()))
+      })
     }
+
+    // Note: tier and cost filters are not applied for pokepedia_pokemon (fields don't exist)
+    // These would need to be added to pokepedia_pokemon or filtered in memory after fetching from a separate table
 
     return results
   } catch (error) {
