@@ -5,12 +5,18 @@
  */
 
 import { getPokemonLocally, getPokemonByNameLocally, searchPokemonLocally } from "./pokepedia-offline-db"
-import { createClient } from "@supabase/supabase-js"
+import { createBrowserClient } from "@/lib/supabase/client"
 import { MainClient } from "pokenode-ts"
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Use shared browser client to avoid multiple GoTrueClient instances
+let supabaseInstance: ReturnType<typeof createBrowserClient> | null = null
+function getSupabaseClient() {
+  if (!supabaseInstance) {
+    supabaseInstance = createBrowserClient()
+  }
+  return supabaseInstance
+}
+
 const pokeApi = new MainClient()
 
 /**
@@ -38,6 +44,7 @@ export async function getPokemonOfflineFirst(
 
   // Step 2: Check Supabase
   try {
+    const supabase = getSupabaseClient()
     const query =
       typeof nameOrId === "number"
         ? supabase.from("pokemon_comprehensive").select("*").eq("pokemon_id", nameOrId).single()

@@ -7,7 +7,7 @@
 "use client"
 
 import { useEffect, useState, useCallback, useRef } from "react"
-import { createClient } from "@supabase/supabase-js"
+import { createBrowserClient } from "@/lib/supabase/client"
 import {
   initializeOfflineDB,
   storePokemonBatchLocally,
@@ -20,9 +20,14 @@ import {
 // GraphQL is reserved for querying cached data in-app components after sync is complete
 // Sync operations use REST API exclusively
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Use shared browser client to avoid multiple GoTrueClient instances
+let supabaseInstance: ReturnType<typeof createBrowserClient> | null = null
+function getSupabaseClient() {
+  if (!supabaseInstance) {
+    supabaseInstance = createBrowserClient()
+  }
+  return supabaseInstance
+}
 
 interface SyncState {
   phase: string | null
@@ -94,6 +99,7 @@ export function usePokepediaSync(autoStart = true) {
   // Clean up stale jobs in database
   const cleanupStaleJobs = useCallback(async () => {
     try {
+      const supabase = getSupabaseClient()
       // Find stale running jobs (>10 minutes without heartbeat)
       const { data: staleJobs } = await supabase
         .from("sync_jobs")
@@ -118,6 +124,7 @@ export function usePokepediaSync(autoStart = true) {
       }
       
       if (staleJobIds.length > 0) {
+        const supabase = getSupabaseClient()
         // Mark stale jobs as failed
         await supabase
           .from("sync_jobs")
@@ -158,6 +165,7 @@ export function usePokepediaSync(autoStart = true) {
 
       // Check for active sync jobs in database
       try {
+        const supabase = getSupabaseClient()
         const { data: activeJob, error: jobError } = await supabase
           .from("sync_jobs")
           .select("job_id, phase, status, progress_percent, current_chunk, total_chunks, pokemon_synced, last_heartbeat, started_at")
@@ -416,6 +424,7 @@ export function usePokepediaSync(autoStart = true) {
     }))
 
     try {
+      const supabase = getSupabaseClient()
       // Use REST API for syncing operations (primary method)
       const [types, abilities, moves] = await Promise.all([
         supabase.from("types").select("type_id, name, damage_relations").order("type_id", { ascending: true }),
@@ -495,6 +504,7 @@ export function usePokepediaSync(autoStart = true) {
     }))
 
     try {
+      const supabase = getSupabaseClient()
       // Use REST API for syncing operations (primary method)
       let queryResult = await supabase
         .from("pokemon_comprehensive")
@@ -679,6 +689,7 @@ export function usePokepediaSync(autoStart = true) {
         // Clean up stale jobs first
         await cleanupStaleJobs()
         
+        const supabase = getSupabaseClient()
         // Check for running jobs
         const { data: runningJobs, error: runningError } = await supabase
           .from("sync_jobs")
@@ -833,6 +844,7 @@ export function usePokepediaSync(autoStart = true) {
     const interval = setInterval(pollProgress, 2000)
 
     // Also subscribe to Realtime updates as backup
+    const supabase = getSupabaseClient()
     const channel = supabase
       .channel("sync:status")
       .on(
