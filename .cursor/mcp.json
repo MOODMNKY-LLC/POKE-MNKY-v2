@@ -1,24 +1,3 @@
 {
-  "mcpServers": {
-    "mcp-server-firecrawl": {
-      "command": "cmd",
-      "args": [
-        "/c",
-        "npx",
-        "-y",
-        "@smithery/cli@latest",
-        "run",
-        "@mendableai/mcp-server-firecrawl",
-        "--config",
-        "{\"fireCrawlApiKey\":\"fc-38c356eab8bb481e9c54a0ea7b87217d\"}"
-      ]
-    },
-    "chrome-devtools": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "chrome-devtools-mcp@latest"
-      ]
-    }
-  }
+  "mcpServers": {}
 }

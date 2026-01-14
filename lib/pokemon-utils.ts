@@ -4,7 +4,15 @@
 import { createBrowserClient } from "@/lib/supabase/client"
 import { getPokemonDataExtended, type CachedPokemonExtended } from "./pokemon-api-enhanced"
 
-const supabase = createBrowserClient()
+// Create client lazily to avoid multiple instances
+let supabaseInstance: ReturnType<typeof createBrowserClient> | null = null
+
+function getSupabaseClient() {
+  if (!supabaseInstance) {
+    supabaseInstance = createBrowserClient()
+  }
+  return supabaseInstance
+}
 
 export interface PokemonDisplayData {
   pokemon_id: number
@@ -175,6 +183,7 @@ export async function getPokemon(nameOrId: string | number): Promise<PokemonDisp
  */
 export async function getAllPokemonFromCache(limit?: number): Promise<PokemonDisplayData[]> {
   try {
+    const supabase = getSupabaseClient()
     let query = supabase
       .from("pokemon_cache")
       .select("*")
@@ -211,6 +220,7 @@ export async function searchPokemon(
   },
 ): Promise<PokemonDisplayData[]> {
   try {
+    const supabase = getSupabaseClient()
     let supabaseQuery = supabase.from("pokemon_cache").select("*")
 
     // Name search

@@ -17,8 +17,15 @@ interface PokemonStatIconProps {
 }
 
 export function PokemonStatIcon({ stat, size = 20, className }: PokemonStatIconProps) {
-  const [hasError, setHasError] = useState(false)
   const spriteUrl = getStatSpriteUrl(stat)
+  
+  // Stat sprites don't exist, return null so parent can show fallback icon
+  // This prevents 404 errors in the console
+  if (!spriteUrl) {
+    return null
+  }
+  
+  const [hasError, setHasError] = useState(false)
   
   if (hasError) {
     return null // Hide if sprite doesn't exist, parent can show fallback icon
