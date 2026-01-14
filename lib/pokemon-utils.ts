@@ -159,15 +159,38 @@ export async function getPokemon(nameOrId: string | number): Promise<PokemonDisp
 
     const { data: pokepediaData, error: pokepediaError } = await query
 
+    if (pokepediaError) {
+      console.warn("[Pokemon Utils] pokepedia_pokemon query error:", pokepediaError, "for:", nameOrId)
+    }
+
     if (pokepediaData && !pokepediaError) {
-      // Parse JSONB fields that might come as strings
-      const adapted = adaptPokepediaToDisplayData({
-        ...pokepediaData,
-        types: parseJsonbField<string[]>(pokepediaData.types) || pokepediaData.types,
-        base_stats: parseJsonbField<typeof pokepediaData.base_stats>(pokepediaData.base_stats) || pokepediaData.base_stats,
-        abilities: parseJsonbField<typeof pokepediaData.abilities>(pokepediaData.abilities) || pokepediaData.abilities,
-      })
-      return adapted
+      try {
+        // Parse JSONB fields that might come as strings
+        // Handle null/undefined cases
+        const parsedTypes = pokepediaData.types 
+          ? (parseJsonbField<string[]>(pokepediaData.types) || (Array.isArray(pokepediaData.types) ? pokepediaData.types : null))
+          : null
+        const parsedBaseStats = pokepediaData.base_stats
+          ? (parseJsonbField<typeof pokepediaData.base_stats>(pokepediaData.base_stats) || (typeof pokepediaData.base_stats === 'object' ? pokepediaData.base_stats : null))
+          : null
+        const parsedAbilities = pokepediaData.abilities
+          ? (parseJsonbField<typeof pokepediaData.abilities>(pokepediaData.abilities) || (Array.isArray(pokepediaData.abilities) ? pokepediaData.abilities : null))
+          : null
+
+        const adapted = adaptPokepediaToDisplayData({
+          ...pokepediaData,
+          types: parsedTypes,
+          base_stats: parsedBaseStats,
+          abilities: parsedAbilities,
+        })
+        console.log("[Pokemon Utils] Successfully adapted pokepedia_pokemon data for:", nameOrId)
+        return adapted
+      } catch (adaptError) {
+        console.error("[Pokemon Utils] Error adapting pokepedia_pokemon data:", adaptError, "for:", nameOrId, "data:", pokepediaData)
+        // Fall through to fallback
+      }
+    } else if (pokepediaError) {
+      console.warn("[Pokemon Utils] pokepedia_pokemon query error:", pokepediaError, "for:", nameOrId)
     }
 
     // Fallback: Try pokemon_cache (for backward compatibility during migration)
