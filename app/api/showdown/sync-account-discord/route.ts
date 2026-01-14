@@ -12,9 +12,9 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
   try {
-    // Get Discord ID from request body
+    // Get Discord ID and optional password from request body
     const body = await request.json()
-    const { discord_id } = body
+    const { discord_id, password: userPassword } = body
 
     if (!discord_id) {
       return NextResponse.json(
@@ -25,6 +25,19 @@ export async function POST(request: NextRequest) {
 
     // Ensure discord_id is a string (Discord IDs are strings in database)
     const discordId = String(discord_id).trim()
+
+    // Validate password if provided (min 5 chars, remove whitespace)
+    let validatedPassword: string | null = null
+    if (userPassword !== undefined && userPassword !== null) {
+      const trimmedPassword = String(userPassword).trim()
+      if (trimmedPassword.length < 5) {
+        return NextResponse.json(
+          { error: 'Password must be at least 5 characters long' },
+          { status: 400 }
+        )
+      }
+      validatedPassword = trimmedPassword
+    }
 
     // Verify service role key is configured
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -232,8 +245,8 @@ export async function POST(request: NextRequest) {
       showdownUsername = cleanShowdownUsername(profile.id)
     }
     
-    // Generate deterministic password
-    const password = generateShowdownPassword(profile.id)
+    // Use user-provided password if valid, otherwise auto-generate deterministic password
+    const password = validatedPassword || generateShowdownPassword(profile.id)
 
     // Get challenge string from Showdown server WebSocket
     let challstr: string
