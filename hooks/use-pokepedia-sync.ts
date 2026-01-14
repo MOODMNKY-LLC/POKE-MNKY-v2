@@ -144,6 +144,7 @@ export function usePokepediaSync(autoStart = true) {
   // Check database connectivity via health check
   const checkDatabaseHealth = useCallback(async (): Promise<boolean> => {
     try {
+      const supabase = getSupabaseClient()
       // Simple connectivity check - try to query a small table
       const { error } = await supabase
         .from("types")
