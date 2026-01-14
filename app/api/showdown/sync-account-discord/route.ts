@@ -237,6 +237,7 @@ export async function POST(request: NextRequest) {
     
     // Always auto-generate deterministic password
     const password = generateShowdownPassword(profile.id)
+    console.log('[Showdown Sync] Generated password for user:', { userId: profile.id, passwordLength: password.length })
 
     // Get challenge string from Showdown server WebSocket
     let challstr: string
@@ -322,20 +323,34 @@ export async function POST(request: NextRequest) {
 
     if (updateError) {
       console.error('Failed to update profile:', updateError)
-      return NextResponse.json({
+      const successResponse = {
         success: true,
         showdown_username: showdownUsername,
         password: password, // Return password so Discord bot can display it
         error: 'Synced to loginserver but failed to update profile'
+      }
+      console.log('[Showdown Sync] Returning response (profile update failed):', { 
+        success: successResponse.success, 
+        showdown_username: successResponse.showdown_username, 
+        password_present: !!successResponse.password,
+        password_length: successResponse.password?.length 
       })
+      return NextResponse.json(successResponse)
     }
 
-    return NextResponse.json({
+    const successResponse = {
       success: true,
       showdown_username: showdownUsername,
       password: password, // Return password so Discord bot can display it
       message: `Showdown account synced! Username: ${showdownUsername}`,
+    }
+    console.log('[Showdown Sync] Returning success response:', { 
+      success: successResponse.success, 
+      showdown_username: successResponse.showdown_username, 
+      password_present: !!successResponse.password,
+      password_length: successResponse.password?.length 
     })
+    return NextResponse.json(successResponse)
   } catch (error: any) {
     console.error('Error in sync-account-discord endpoint:', error)
     const errorMessage = error?.message || error?.toString() || 'Unknown error'
