@@ -354,7 +354,7 @@ export function getSupabaseSpriteUrl(storagePath: string, supabaseUrl?: string):
 
 /**
  * Get sprite URL from Pokemon data
- * Priority: MinIO (if configured) > Supabase Storage path > External URL > Fallback
+ * Priority: MinIO (if configured) > External URL > GitHub Sprites Repo
  */
 export function getSpriteUrl(
   pokemon: PokemonDisplayData,
@@ -364,7 +364,7 @@ export function getSpriteUrl(
   const sprites = pokemon.sprites || {}
 
   // Check for database-stored sprite paths first (from pokepedia_pokemon table)
-  // These paths are storage-agnostic, so check MinIO first, then Supabase
+  // These paths are storage-agnostic, so check MinIO first, then fallback to GitHub
   if (mode === "front" && (pokemon as any).sprite_front_default_path) {
     const storagePath = (pokemon as any).sprite_front_default_path
     // Try MinIO first (if configured)
@@ -372,8 +372,10 @@ export function getSpriteUrl(
     if (minioUrl) {
       return minioUrl
     }
-    // Fallback to Supabase Storage
-    return getSupabaseSpriteUrl(storagePath, supabaseUrl)
+    // Fallback to GitHub sprites repo (PokeAPI/sprites)
+    // Convert storage path to GitHub raw URL format
+    // e.g., "sprites/pokemon/25.png" -> "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png"
+    return `https://raw.githubusercontent.com/PokeAPI/sprites/master/${storagePath}`
   }
   
   if (mode === "artwork" && (pokemon as any).sprite_official_artwork_path) {
@@ -383,8 +385,8 @@ export function getSpriteUrl(
     if (minioUrl) {
       return minioUrl
     }
-    // Fallback to Supabase Storage
-    return getSupabaseSpriteUrl(storagePath, supabaseUrl)
+    // Fallback to GitHub sprites repo
+    return `https://raw.githubusercontent.com/PokeAPI/sprites/master/${storagePath}`
   }
 
   // Fallback to external URLs from sprites JSONB
@@ -402,7 +404,10 @@ export function getSpriteUrl(
 
 /**
  * Fallback sprite URL from PokeAPI (when cache doesn't have sprite)
- * Priority: MinIO (if SPRITES_BASE_URL set) > Supabase Storage > GitHub
+ * Priority: MinIO (if SPRITES_BASE_URL set) > GitHub Sprites Repo (PokeAPI/sprites)
+ * 
+ * Repository: https://github.com/PokeAPI/sprites
+ * Raw URL pattern: https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/...
  * 
  * MinIO path structure:
  * - Regular: sprites/pokemon/{id}.png
@@ -425,13 +430,8 @@ export function getFallbackSpriteUrl(
       return minioUrl
     }
     
-    // Fallback to Supabase Storage
-    const supabaseUrl_result = getSupabaseSpriteUrl(artworkPath, supabaseUrl)
-    if (supabaseUrl_result) {
-      return supabaseUrl_result
-    }
-    
-    // Final fallback to GitHub official artwork URL
+    // Fallback directly to GitHub sprites repo (PokeAPI/sprites)
+    // This repository was created specifically to offload API usage
     return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${
       shiny ? "shiny/" : ""
     }${pokemonId}.png`
@@ -453,11 +453,9 @@ export function getFallbackSpriteUrl(
     return minioUrl
   }
   
-  // Fallback to Supabase Storage
-  const supabaseUrl_result = getSupabaseSpriteUrl(storagePath, supabaseUrl)
-  
-  // Final fallback to GitHub if both fail
-  return supabaseUrl_result || `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${
+  // Fallback directly to GitHub sprites repo (PokeAPI/sprites)
+  // This repository was created specifically to offload API usage
+  return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${
     mode === "back" ? "back/" : shiny ? "shiny/" : ""
   }${pokemonId}.png`
 }
