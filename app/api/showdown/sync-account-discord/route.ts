@@ -228,8 +228,23 @@ export async function POST(request: NextRequest) {
     })
   } catch (error: any) {
     console.error('Error in sync-account-discord endpoint:', error)
+    const errorMessage = error?.message || error?.toString() || 'Unknown error'
+    const errorStack = error?.stack || ''
+    
+    // Log full error details for debugging
+    console.error('Full error details:', {
+      message: errorMessage,
+      stack: errorStack,
+      name: error?.name,
+      type: typeof error
+    })
+    
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { 
+        success: false,
+        error: `Internal server error: ${errorMessage}`,
+        details: process.env.NODE_ENV === 'development' ? errorStack : undefined
+      },
       { status: 500 }
     )
   }

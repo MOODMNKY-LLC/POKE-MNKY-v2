@@ -52,6 +52,9 @@ export interface UserProfile {
   created_at: string
   updated_at: string
   last_seen_at: string | null
+  showdown_username: string | null
+  showdown_account_synced: boolean | null
+  showdown_account_synced_at: string | null
 }
 
 /**

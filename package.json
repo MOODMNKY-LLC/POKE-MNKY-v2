@@ -5,8 +5,6 @@
   "scripts": {
     "build": "next build",
     "dev": "next dev",
-    "discord-bot": "tsx --env-file=.env.local scripts/start-discord-bot.ts",
-    "discord-bot:dev": "tsx --watch --env-file=.env.local scripts/start-discord-bot.ts",
     "lint": "eslint .",
     "start": "next start"
   },
