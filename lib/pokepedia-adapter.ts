@@ -80,7 +80,7 @@ export function adaptPokepediaToDisplayData(
   // Map types array
   // pokepedia_pokemon: JSONB array or type_primary/type_secondary
   let types: string[] = []
-  if (Array.isArray(row.types)) {
+  if (Array.isArray(row.types) && row.types.length > 0) {
     types = row.types
   } else if (row.type_primary) {
     types = [row.type_primary]
@@ -88,18 +88,29 @@ export function adaptPokepediaToDisplayData(
       types.push(row.type_secondary)
     }
   }
+  
+  // Ensure we have at least one type (fallback to "normal" if none found)
+  if (types.length === 0) {
+    console.warn("[Pokepedia Adapter] No types found for Pokemon:", row.id, row.name)
+    types = ["normal"] // Fallback type
+  }
 
   // Map abilities array (extract names from objects)
   // pokepedia_pokemon: [{name, is_hidden, slot}]
   // PokemonDisplayData: string[]
   let abilities: string[] = []
-  if (Array.isArray(row.abilities)) {
-    abilities = row.abilities.map(a => a.name)
+  if (Array.isArray(row.abilities) && row.abilities.length > 0) {
+    abilities = row.abilities.map(a => a?.name).filter((name): name is string => !!name)
   } else if (row.ability_primary) {
     abilities = [row.ability_primary]
     if (row.ability_hidden) {
       abilities.push(row.ability_hidden)
     }
+  }
+  
+  // Ensure we have at least one ability (fallback to empty array is OK)
+  if (abilities.length === 0) {
+    console.warn("[Pokepedia Adapter] No abilities found for Pokemon:", row.id, row.name)
   }
 
   // Determine hidden ability
