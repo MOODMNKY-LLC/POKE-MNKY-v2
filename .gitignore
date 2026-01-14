@@ -33,3 +33,8 @@ temp/*.json
 # Database dumps (too large for git)
 *.sql
 !supabase/migrations/*.sql
+
+# Development tools and resources (not needed in production)
+# These are git submodules or local development tools
+tools/
+resources/
