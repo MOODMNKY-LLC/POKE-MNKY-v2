@@ -47,10 +47,44 @@ export function PWAInstallPrompt() {
       e.preventDefault()
       setDeferredPrompt(e as BeforeInstallPromptEvent)
       
-      // Show prompt after a delay (better UX)
-      setTimeout(() => {
-        setShowPrompt(true)
-      }, 3000) // Show after 3 seconds
+      // Check if user dismissed recently before showing
+      const dismissed = localStorage.getItem('pwa-install-dismissed')
+      if (dismissed) {
+        const dismissedTime = parseInt(dismissed, 10)
+        const thirtyDays = 30 * 24 * 60 * 60 * 1000 // Increased to 30 days
+        if (Date.now() - dismissedTime < thirtyDays) {
+          // Don't show if dismissed within last 30 days
+          return
+        }
+      }
+      
+      // Only show after user has interacted with the page (better UX)
+      // Wait for user interaction before showing prompt
+      const handleUserInteraction = () => {
+        // Show prompt after a longer delay (better UX)
+        setTimeout(() => {
+          // Double-check dismissal status before showing
+          const dismissedCheck = localStorage.getItem('pwa-install-dismissed')
+          if (dismissedCheck) {
+            const dismissedTime = parseInt(dismissedCheck, 10)
+            const thirtyDays = 30 * 24 * 60 * 60 * 1000
+            if (Date.now() - dismissedTime < thirtyDays) {
+              return
+            }
+          }
+          setShowPrompt(true)
+        }, 10000) // Increased to 10 seconds - only after user interaction
+        
+        // Remove listener after first interaction
+        document.removeEventListener('click', handleUserInteraction)
+        document.removeEventListener('keydown', handleUserInteraction)
+        document.removeEventListener('touchstart', handleUserInteraction)
+      }
+      
+      // Wait for user interaction before showing
+      document.addEventListener('click', handleUserInteraction, { once: true })
+      document.addEventListener('keydown', handleUserInteraction, { once: true })
+      document.addEventListener('touchstart', handleUserInteraction, { once: true })
     }
 
     // Listen for app installed event
@@ -103,20 +137,24 @@ export function PWAInstallPrompt() {
 
   const handleDismiss = () => {
     setShowPrompt(false)
-    // Don't show again for 7 days
+    // Don't show again for 30 days (increased from 7)
     localStorage.setItem('pwa-install-dismissed', Date.now().toString())
   }
 
   // Don't show if already installed or dismissed recently
   useEffect(() => {
-    if (isInstalled) return
+    if (isInstalled) {
+      setShowPrompt(false)
+      return
+    }
 
     const dismissed = localStorage.getItem('pwa-install-dismissed')
     if (dismissed) {
       const dismissedTime = parseInt(dismissed, 10)
-      const sevenDays = 7 * 24 * 60 * 60 * 1000
-      if (Date.now() - dismissedTime < sevenDays) {
+      const thirtyDays = 30 * 24 * 60 * 60 * 1000 // Increased to 30 days
+      if (Date.now() - dismissedTime < thirtyDays) {
         setShowPrompt(false)
+        return
       }
     }
   }, [isInstalled])
