@@ -91,22 +91,111 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Ensure discord_id is a string (Discord IDs are strings in database)
+    const discordId = String(discord_id).trim()
+
+    // Verify service role key is configured
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.error('[Showdown Sync] SUPABASE_SERVICE_ROLE_KEY is not set')
+      return NextResponse.json(
+        { error: 'Server configuration error. Please contact support.' },
+        { status: 500 }
+      )
+    }
+
     // Create Supabase client with service role key (bypasses RLS for server-to-server calls)
     const supabase = createServiceRoleClient()
     
+    // Debug logging
+    console.log('[Showdown Sync] Looking up user with discord_id:', {
+      discord_id: discordId,
+      type: typeof discordId,
+      original: discord_id,
+      originalType: typeof discord_id
+    })
+    
     // Find user by Discord ID in profiles table
+    // Use maybeSingle() instead of single() to avoid errors when no rows found
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('id, discord_username, showdown_username, email')
-      .eq('discord_id', discord_id)
-      .single()
+      .select('id, discord_id, discord_username, showdown_username, email')
+      .eq('discord_id', discordId)
+      .maybeSingle()
 
-    if (profileError || !profile) {
+    // If not found, try a broader search to see if user exists with different discord_id format
+    if (!profile && !profileError) {
+      console.log('[Showdown Sync] User not found, checking if any profiles exist with similar discord_id')
+      const { data: allProfiles, error: checkError } = await supabase
+        .from('profiles')
+        .select('id, discord_id, discord_username')
+        .limit(5)
+      
+      console.log('[Showdown Sync] Sample profiles check:', {
+        found: allProfiles?.length || 0,
+        sample_discord_ids: allProfiles?.map(p => ({ id: p.id, discord_id: p.discord_id, type: typeof p.discord_id }))
+      })
+    }
+
+    // Enhanced error logging
+    if (profileError) {
+      console.error('[Showdown Sync] Profile query error:', {
+        error: profileError,
+        code: profileError.code,
+        message: profileError.message,
+        details: profileError.details,
+        hint: profileError.hint,
+        discord_id: discordId
+      })
+      
+      // If there's an actual database error (not just "not found"), return 500
+      if (profileError.code !== 'PGRST116') { // PGRST116 is "not found" which is expected
+        return NextResponse.json(
+          { 
+            error: 'Database error while looking up user',
+            debug: process.env.NODE_ENV === 'development' ? {
+              discord_id: discordId,
+              error_code: profileError.code,
+              error_message: profileError.message
+            } : undefined
+          },
+          { status: 500 }
+        )
+      }
+    }
+
+    // Check if profile was found
+    if (!profile) {
+      // Try alternative query to see if user exists with different format
+      const { data: altProfile } = await supabase
+        .from('profiles')
+        .select('id, discord_id, discord_username')
+        .eq('discord_id', discordId)
+        .maybeSingle()
+
+      console.log('[Showdown Sync] User not found. Alternative query result:', {
+        found: !!altProfile,
+        profile: altProfile,
+        searched_discord_id: discordId
+      })
+
       return NextResponse.json(
-        { error: 'User not found. Please link your Discord account in the app first.' },
+        { 
+          error: 'User not found. Please link your Discord account in the app first.',
+          debug: process.env.NODE_ENV === 'development' ? {
+            discord_id: discordId,
+            query_error: profileError,
+            alternative_query_found: !!altProfile
+          } : undefined
+        },
         { status: 404 }
       )
     }
+
+    console.log('[Showdown Sync] User found:', {
+      id: profile.id,
+      discord_id: profile.discord_id,
+      discord_username: profile.discord_username
+    })
 
     // Get user email from auth.users using admin API
     const { data: authUser } = await supabase.auth.admin.getUserById(profile.id)
