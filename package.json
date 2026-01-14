@@ -63,6 +63,7 @@
     "google-spreadsheet": "^5.0.2",
     "googleapis": "^170.0.0",
     "input-otp": "1.4.1",
+    "koffing": "^1.0.0",
     "lucide-react": "^0.454.0",
     "motion": "^12.26.2",
     "next": "16.0.10",

@@ -1,5 +1,6 @@
 import { createServerClient } from "@/lib/supabase/server"
 import { NextResponse, type NextRequest } from "next/server"
+import { syncShowdownAccount } from "@/lib/showdown/sync"
 
 /**
  * OAuth callback route handler (Server-side)
@@ -17,7 +18,7 @@ export async function GET(request: NextRequest) {
 
     // Exchange the authorization code for a session
     // This reads the PKCE code verifier from cookies (set during OAuth initiation)
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    const { error, data } = await supabase.auth.exchangeCodeForSession(code)
 
     if (error) {
       console.error("Auth callback error:", error)
@@ -28,7 +29,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(errorUrl)
     }
 
-    // Success - redirect to home or next page
+    // Success - trigger Showdown account sync (fire and forget, don't block redirect)
+    if (data?.user?.id) {
+      // Sync Showdown account in background (non-blocking)
+      syncShowdownAccount(data.user.id).catch((error) => {
+        console.error("Failed to sync Showdown account:", error)
+        // Don't throw - this is a background operation
+      })
+    }
+
+    // Redirect to home or next page
     return NextResponse.redirect(new URL(next, requestUrl.origin))
   }
 

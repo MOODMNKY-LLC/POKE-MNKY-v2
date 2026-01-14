@@ -1,0 +1,129 @@
+# Bridge Authentication Summary
+
+**Date**: January 2026  
+**Status**: ✅ Planning Complete - Ready to Implement
+
+---
+
+## ✅ Confirmed: Showdown API Key
+
+**Status**: ✅ **NOT Missing** - Present in `.env`
+
+- **Production (`.env`)**: `SHOWDOWN_API_KEY=***REMOVED***`
+- **Local (`.env.local`)**: Empty (fine for local dev)
+
+---
+
+## Bridge Authentication Plan
+
+**Approach**: Option B - Bridge Authentication (as documented)
+
+**Architecture**:
+```
+User logs in (Supabase/Discord OAuth)
+    ↓
+Next.js App Auth Callback
+    ↓
+POST /api/showdown/sync-account
+    ↓
+Showdown Loginserver API (/api/register)
+    ↓
+Showdown Account Created/Updated
+```
+
+---
+
+## Implementation Checklist
+
+### ✅ Completed
+
+1. ✅ **Planning Document Created** - `BRIDGE-AUTHENTICATION-PLAN.md`
+2. ✅ **Environment Variables Added**:
+   - `SHOWDOWN_PASSWORD_SECRET` (production)
+   - `SHOWDOWN_PASSWORD_SECRET` (local)
+   - `LOGINSERVER_URL` (already in .env)
+
+### ⬜ To Implement (Next.js App)
+
+1. **Create API Endpoint**:
+   - `/app/api/showdown/sync-account/route.ts`
+   - Bridges Supabase user → Showdown account
+
+2. **Add Database Migration**:
+   - Add `showdown_username` to profiles table
+   - Add `showdown_account_synced` flag
+   - Add `showdown_account_synced_at` timestamp
+
+3. **Create Utility Functions**:
+   - `/lib/showdown/sync.ts`
+   - `syncShowdownAccount(userId)`
+   - `getShowdownUsername(userId)`
+
+4. **Add Auth Callback Hook**:
+   - Trigger account sync after Supabase login
+   - Fire and forget (don't block login)
+
+5. **Add UI Components** (Optional):
+   - Show sync status in user profile
+   - Manual sync button
+   - Showdown username display
+
+---
+
+## Key Features
+
+1. **Deterministic Passwords**:
+   - Generated from user ID + secret key
+   - User doesn't know password (uses app auth)
+   - Password can't be changed (maintains sync)
+
+2. **Username Mapping**:
+   - Prefer `showdown_username` from profile
+   - Fallback to `discord_username`
+   - Fallback to email prefix
+   - Final fallback to user ID (max 18 chars)
+
+3. **Automatic Sync**:
+   - Triggers on login
+   - Updates Showdown account if exists
+   - Creates account if new
+
+---
+
+## Environment Variables
+
+**Production (`.env`)**:
+```bash
+LOGINSERVER_URL=https://aab-login.moodmnky.com
+SHOWDOWN_PASSWORD_SECRET=change-me-in-production-generate-secure-random-string
+```
+
+**Local (`.env.local`)**:
+```bash
+LOGINSERVER_URL=http://10.3.0.119:8001  # AAB loginserver local IP
+SHOWDOWN_PASSWORD_SECRET=local-dev-secret-change-in-production
+```
+
+---
+
+## Next Steps
+
+1. ✅ Plan documented
+2. ✅ Environment variables added
+3. ⬜ Implement API endpoint (Next.js app)
+4. ⬜ Add database migration
+5. ⬜ Create utility functions
+6. ⬜ Add auth callback hook
+7. ⬜ Test end-to-end flow
+
+---
+
+## Documentation
+
+- **Full Plan**: `BRIDGE-AUTHENTICATION-PLAN.md`
+- **Loginserver Help**: `showdown-login-server-help.md`
+- **Architecture**: `ARCHITECTURE-SPLIT.md`
+
+---
+
+**Ready to implement Bridge Authentication!** 🎉
