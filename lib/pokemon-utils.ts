@@ -309,16 +309,23 @@ export function getMinIOSpriteUrl(storagePath: string): string | null {
     return null
   }
 
-  // Normalize path (remove leading slash if present, ensure no double slashes)
-  const normalizedPath = storagePath.replace(/^\//, "").replace(/\/+/g, "/")
+  // Trim whitespace and newlines from base URL (fixes env var issues)
+  const trimmedBaseUrl = baseUrl.trim().replace(/[\n\r]+/g, "")
+  
+  // Normalize path (remove leading slash if present, ensure no double slashes, remove newlines)
+  const normalizedPath = storagePath
+    .replace(/^\//, "")
+    .replace(/\/+/g, "/")
+    .replace(/[\n\r]+/g, "")
+    .trim()
   
   // Construct MinIO URL: {baseUrl}/{path}
   // baseUrl already includes bucket: http://10.0.0.5:30090/pokedex-sprites
   // path: sprites/pokemon/25.png
   // Result: http://10.0.0.5:30090/pokedex-sprites/sprites/pokemon/25.png
-  const url = baseUrl.endsWith("/") 
-    ? `${baseUrl}${normalizedPath}`
-    : `${baseUrl}/${normalizedPath}`
+  const url = trimmedBaseUrl.endsWith("/") 
+    ? `${trimmedBaseUrl}${normalizedPath}`
+    : `${trimmedBaseUrl}/${normalizedPath}`
   
   return url
 }
@@ -327,19 +334,22 @@ export function getMinIOSpriteUrl(storagePath: string): string | null {
  * Get Supabase Storage public URL for a sprite path
  */
 export function getSupabaseSpriteUrl(storagePath: string, supabaseUrl?: string): string {
-  const baseUrl = supabaseUrl || process.env.NEXT_PUBLIC_SUPABASE_URL || ""
+  const baseUrl = (supabaseUrl || process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim().replace(/[\n\r]+/g, "")
   const bucket = "pokedex-sprites"
+  
+  // Normalize storage path (remove newlines and trim)
+  const normalizedPath = storagePath.replace(/[\n\r]+/g, "").trim()
   
   // Extract project ref from Supabase URL if needed
   // Format: https://{project-ref}.supabase.co
   const projectRef = baseUrl.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1] || ""
   
   if (projectRef) {
-    return `https://${projectRef}.supabase.co/storage/v1/object/public/${bucket}/${storagePath}`
+    return `https://${projectRef}.supabase.co/storage/v1/object/public/${bucket}/${normalizedPath}`
   }
   
   // Fallback: construct URL from base URL
-  return `${baseUrl}/storage/v1/object/public/${bucket}/${storagePath}`
+  return `${baseUrl}/storage/v1/object/public/${bucket}/${normalizedPath}`
 }
 
 /**
