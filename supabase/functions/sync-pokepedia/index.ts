@@ -1676,7 +1676,6 @@ async function syncPokemonPhase(supabase: any, job: SyncJob) {
             totalErrors++
           }
         }
-      }
     }
 
     totalErrors += results.filter((r) => r.status === "rejected").length
