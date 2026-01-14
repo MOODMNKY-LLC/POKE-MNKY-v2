@@ -38,5 +38,14 @@ temp/*.json
 # These are git submodules or local development tools
 tools/
 resources/
+
+# Large temp files and embedded repos (excluded from deployment)
+temp/Pokemon-Showdown-Teams/
+temp/pokepaste-repo/
+temp/**/*.png
+temp/**/*.jpg
+temp/**/*.jpeg
+temp/**/*.gif
+temp/**/*.svg
 temp/Pokemon-Showdown-Teams/
 temp/pokepaste-repo/
