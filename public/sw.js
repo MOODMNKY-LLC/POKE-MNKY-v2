@@ -8,7 +8,8 @@ const urlsToCache = [
   '/android-chrome-192x192.png',
   '/android-chrome-512x512.png',
   '/apple-touch-icon.png',
-  '/league-logo.png',
+  '/league-logo.svg',
+  '/league-logo.png', // Keep for backwards compatibility
 ]
 
 // Install event - cache resources
