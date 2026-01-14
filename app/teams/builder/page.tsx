@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Trash2, Save, Sparkles, Loader2 } from "lucide-react"
+import { Trash2, Save, Sparkles, Loader2, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -10,6 +10,8 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { PokemonSprite } from "@/components/pokemon-sprite"
 import { getAllPokemonFromCache, searchPokemon, type PokemonDisplayData } from "@/lib/pokemon-utils"
+import { generateShowdownTeamExport, downloadTeamFile } from "@/lib/team-builder-utils"
+import { toast } from "sonner"
 
 export default function TeamBuilderPage() {
   const [teamName, setTeamName] = useState("")
@@ -18,6 +20,9 @@ export default function TeamBuilderPage() {
   const [budget, setBudget] = useState(120)
   const [searchQuery, setSearchQuery] = useState("")
   const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [generation, setGeneration] = useState(9)
+  const [format, setFormat] = useState("ou")
 
   useEffect(() => {
     async function loadPokemon() {
@@ -87,6 +92,76 @@ export default function TeamBuilderPage() {
       (searchQuery.trim() ? true : p.name.toLowerCase().includes(searchQuery.toLowerCase())),
   )
 
+  const handleSaveTeam = async () => {
+    if (selectedPokemon.length === 0) {
+      toast.error('Please add at least one Pokemon to your team');
+      return;
+    }
+
+    if (!teamName.trim()) {
+      toast.error('Please enter a team name');
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      // Generate Showdown team export
+      const teamText = generateShowdownTeamExport(
+        selectedPokemon,
+        teamName.trim(),
+        generation,
+        format
+      );
+
+      // Save to database
+      const response = await fetch('/api/showdown/teams', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          team_text: teamText,
+          team_name: teamName.trim(),
+          tags: [format],
+          source: 'builder'
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success('Team saved successfully!');
+      } else {
+        toast.error(data.error || 'Failed to save team');
+      }
+    } catch (error) {
+      console.error('Failed to save team:', error);
+      toast.error('Failed to save team. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDownloadTeam = () => {
+    if (selectedPokemon.length === 0) {
+      toast.error('Please add at least one Pokemon to your team');
+      return;
+    }
+
+    const finalTeamName = teamName.trim() || 'My Team';
+    const teamText = generateShowdownTeamExport(
+      selectedPokemon,
+      finalTeamName,
+      generation,
+      format
+    );
+
+    // Create filename with format: [gen9ou] Team Name.txt
+    const filename = `[gen${generation}${format}] ${finalTeamName}.txt`;
+    downloadTeamFile(teamText, filename);
+    toast.success('Team downloaded!');
+  };
+
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="mb-8">
@@ -104,7 +179,7 @@ export default function TeamBuilderPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <div>
                 <Label>Team Name</Label>
                 <Input
@@ -112,6 +187,36 @@ export default function TeamBuilderPage() {
                   value={teamName}
                   onChange={(e) => setTeamName(e.target.value)}
                 />
+              </div>
+              <div>
+                <Label>Generation</Label>
+                <Select value={generation.toString()} onValueChange={(v) => setGeneration(Number.parseInt(v))}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="9">Gen 9</SelectItem>
+                    <SelectItem value="8">Gen 8</SelectItem>
+                    <SelectItem value="7">Gen 7</SelectItem>
+                    <SelectItem value="6">Gen 6</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Format</Label>
+                <Select value={format} onValueChange={setFormat}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ou">OU</SelectItem>
+                    <SelectItem value="uu">UU</SelectItem>
+                    <SelectItem value="vgc">VGC</SelectItem>
+                    <SelectItem value="lc">LC</SelectItem>
+                    <SelectItem value="monotype">Monotype</SelectItem>
+                    <SelectItem value="1v1">1v1</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <Label>Total Budget</Label>
@@ -200,9 +305,30 @@ export default function TeamBuilderPage() {
             )}
 
             <div className="flex gap-2">
-              <Button className="flex-1" disabled={selectedPokemon.length === 0}>
-                <Save className="h-4 w-4 mr-2" />
-                Save Team
+              <Button 
+                className="flex-1" 
+                disabled={selectedPokemon.length === 0 || saving}
+                onClick={handleSaveTeam}
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4 mr-2" />
+                    Save Team
+                  </>
+                )}
+              </Button>
+              <Button 
+                variant="outline" 
+                disabled={selectedPokemon.length === 0}
+                onClick={handleDownloadTeam}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download
               </Button>
               <Button variant="outline" disabled={selectedPokemon.length === 0}>
                 <Sparkles className="h-4 w-4 mr-2" />
