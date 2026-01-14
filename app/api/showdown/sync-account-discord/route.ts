@@ -7,7 +7,7 @@
  */
 
 import { createServiceRoleClient } from '@/lib/supabase/service'
-import { generateShowdownPassword, getChallengeString } from '@/lib/showdown/sync'
+import { generateShowdownPassword, getChallengeString, cleanShowdownUsername } from '@/lib/showdown/sync'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
     // Use maybeSingle() instead of single() to avoid errors when no rows found
     const { data: profile, error: profileError } = await supabase
       .from('profiles')  // Queries public.profiles table (has discord_id column)
-      .select('id, discord_id, discord_username, showdown_username')  // email is NOT in profiles table
+      .select('id, discord_id, discord_username, showdown_username, display_name')  // email is NOT in profiles table
       .eq('discord_id', discordId)
       .maybeSingle()
 
@@ -211,20 +211,25 @@ export async function POST(request: NextRequest) {
     const { data: authUser } = await supabase.auth.admin.getUserById(profile.id)
     const userEmail = authUser?.user?.email || ''  // email comes from auth.users, not profiles
 
-    // Determine Showdown username (priority: showdown_username > discord_username > email prefix > user ID)
+    // Determine Showdown username (priority: showdown_username > display_name > discord_username > email prefix > user ID)
     let showdownUsername: string
     if (profile.showdown_username) {
-      showdownUsername = profile.showdown_username
+      // If manually set, still clean it to match Showdown's toID
+      showdownUsername = cleanShowdownUsername(profile.showdown_username)
+    } else if (profile.display_name) {
+      // Use display_name from Discord (full_name) - clean to match Showdown's toID
+      showdownUsername = cleanShowdownUsername(profile.display_name)
     } else if (profile.discord_username) {
-      // Clean Discord username (remove #1234 discriminator if present)
-      showdownUsername = profile.discord_username.split('#')[0].slice(0, 18)
+      // Clean Discord username (remove #1234 discriminator if present, then clean to match Showdown's toID)
+      const usernameWithoutDiscriminator = profile.discord_username.split('#')[0]
+      showdownUsername = cleanShowdownUsername(usernameWithoutDiscriminator)
     } else if (userEmail) {
       const emailPrefix = userEmail.split('@')[0]
-      // Clean email prefix (alphanumeric + underscore only, max 18 chars)
-      showdownUsername = emailPrefix.replace(/[^a-zA-Z0-9_]/g, '').slice(0, 18)
+      // Clean email prefix to match Showdown's toID
+      showdownUsername = cleanShowdownUsername(emailPrefix)
     } else {
-      // Final fallback: user ID (max 18 chars for Showdown)
-      showdownUsername = profile.id.slice(0, 18)
+      // Final fallback: user ID (clean to match Showdown's toID)
+      showdownUsername = cleanShowdownUsername(profile.id)
     }
     
     // Generate deterministic password

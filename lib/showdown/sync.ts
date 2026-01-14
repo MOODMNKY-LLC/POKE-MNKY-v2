@@ -7,6 +7,18 @@ import { createClient } from '@/lib/supabase/server'
 import crypto from 'crypto'
 
 /**
+ * Clean username to match Showdown's toID function exactly
+ * Showdown's toID: `${text}`.toLowerCase().replace(/[^a-z0-9]+/g, '')
+ * This removes ALL non-alphanumeric characters (including underscores)
+ * and converts to lowercase, then limits to 18 chars (Showdown max username length)
+ */
+export function cleanShowdownUsername(name: string): string {
+  if (!name) return ''
+  // Match Showdown's toID exactly: lowercase + remove ALL non-alphanumeric (including underscores)
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '').slice(0, 18)
+}
+
+/**
  * Generate deterministic password from user ID
  * Password is generated from user ID + secret key, so it's consistent
  * but user doesn't know it (they use app auth)
@@ -113,14 +125,14 @@ export async function getChallengeString(): Promise<string> {
 
 /**
  * Determine Showdown username from user profile
- * Priority: showdown_username > discord_username > email prefix > user ID
+ * Priority: showdown_username > display_name > discord_username > email prefix > user ID
  */
 export async function getShowdownUsername(userId: string): Promise<string> {
   const supabase = await createClient()
   
   const { data: profile, error } = await supabase
     .from('profiles')
-    .select('showdown_username, discord_username')
+    .select('showdown_username, discord_username, display_name')
     .eq('id', userId)
     .single()
 
@@ -129,22 +141,29 @@ export async function getShowdownUsername(userId: string): Promise<string> {
     return userId.slice(0, 18)
   }
 
-  // Priority order: showdown_username > discord_username > email prefix > user ID
+  // Priority order: showdown_username > display_name > discord_username > email prefix > user ID
   if (profile.showdown_username) {
-    return profile.showdown_username
+    // If manually set, still clean it to match Showdown's toID
+    return cleanShowdownUsername(profile.showdown_username)
+  }
+
+  if (profile.display_name) {
+    // Use display_name from Discord (full_name) - clean to match Showdown's toID
+    return cleanShowdownUsername(profile.display_name)
   }
 
   if (profile.discord_username) {
-    // Clean Discord username (remove #1234 discriminator if present)
-    return profile.discord_username.split('#')[0].slice(0, 18)
+    // Clean Discord username (remove #1234 discriminator if present, then clean to match Showdown's toID)
+    const usernameWithoutDiscriminator = profile.discord_username.split('#')[0]
+    return cleanShowdownUsername(usernameWithoutDiscriminator)
   }
 
   // Try to get email from auth.users
   const { data: { user } } = await supabase.auth.getUser()
   if (user?.email) {
     const emailPrefix = user.email.split('@')[0]
-    // Clean email prefix (alphanumeric + underscore only, max 18 chars)
-    return emailPrefix.replace(/[^a-zA-Z0-9_]/g, '').slice(0, 18)
+    // Clean email prefix to match Showdown's toID
+    return cleanShowdownUsername(emailPrefix)
   }
 
   // Final fallback: user ID (max 18 chars for Showdown)
@@ -171,7 +190,7 @@ export async function syncShowdownAccount(userId: string): Promise<{
 
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('showdown_username, discord_username, email')
+      .select('showdown_username, discord_username, display_name')
       .eq('id', userId)
       .single()
 
