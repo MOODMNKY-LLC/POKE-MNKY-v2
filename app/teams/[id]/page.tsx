@@ -82,7 +82,7 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ id:
           </div>
         </div>
 
-        <div className="container py-8">
+        <div className="container mx-auto px-4 md:px-6 py-8">
           <div className="grid gap-6 lg:grid-cols-2">
             {/* Team Roster */}
             <Card>

@@ -175,7 +175,7 @@ export default async function PlayoffsPage() {
         {/* Playoff Stats */}
         {playoffMatches && playoffMatches.length > 0 && (
           <div className="border-t border-border bg-muted/20 py-12">
-            <div className="container">
+            <div className="container mx-auto px-4 md:px-6">
               <h2 className="mb-6 text-2xl font-bold">Playoff Statistics</h2>
               <div className="grid gap-4 md:grid-cols-3">
                 <Card>

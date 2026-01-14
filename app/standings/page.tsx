@@ -86,13 +86,13 @@ export default async function StandingsPage() {
   return (
     <>
       <div className="border-b border-border bg-muted/30 py-8">
-          <div className="container">
-            <h1 className="text-4xl font-bold tracking-tight">League Standings</h1>
-            <p className="mt-2 text-muted-foreground">Current season rankings and statistics</p>
-          </div>
+        <div className="container mx-auto px-4 md:px-6">
+          <h1 className="text-4xl font-bold tracking-tight">League Standings</h1>
+          <p className="mt-2 text-muted-foreground">Current season rankings and statistics</p>
         </div>
+      </div>
 
-        <div className="container py-8">
+      <div className="container mx-auto px-4 md:px-6 py-8">
           <Tabs defaultValue="all" className="space-y-6">
             <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:grid-cols-7">
               <TabsTrigger value="all">All Teams</TabsTrigger>

@@ -105,7 +105,7 @@ export default async function MVPPage() {
 
         {/* Top 3 Podium */}
         {topPokemon.length >= 3 && (
-          <div className="container py-8">
+          <div className="container mx-auto px-4 md:px-6 py-8">
             <div className="mb-8 text-center">
               <h2 className="text-3xl font-bold">Top Performers</h2>
               <p className="text-muted-foreground">League leaders</p>
@@ -155,7 +155,7 @@ export default async function MVPPage() {
         )}
 
         {/* Full Leaderboard */}
-        <div className="container py-12">
+        <div className="container mx-auto px-4 md:px-6 py-12">
           <Card>
             <CardHeader>
               <CardTitle>Full Leaderboard</CardTitle>
