@@ -7,6 +7,7 @@ import { PokepediaSyncProvider } from "@/components/pokepedia-sync-provider"
 // Disable auto-start - sync should only be triggered manually by admins
 import { ServiceWorkerRegistration } from "@/components/service-worker-registration"
 import { PWAInstallPrompt } from "@/components/pwa-install-prompt"
+import { SiteHeader } from "@/components/site-header"
 import "./globals.css"
 
 const fredoka = Fredoka({
@@ -110,7 +111,10 @@ export default function RootLayout({
         
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <PokepediaSyncProvider autoStart={false}>
-            <div className="relative min-h-screen">{children}</div>
+            <div className="flex min-h-screen flex-col relative">
+              <SiteHeader />
+              <main className="flex-1 w-full">{children}</main>
+            </div>
           </PokepediaSyncProvider>
         </ThemeProvider>
         <Analytics />

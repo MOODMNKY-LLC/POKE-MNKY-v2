@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server"
-import { SiteHeader } from "@/components/site-header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -85,10 +84,8 @@ export default async function StandingsPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <SiteHeader />
-      <main className="flex-1">
-        <div className="border-b border-border bg-muted/30 py-8">
+    <>
+      <div className="border-b border-border bg-muted/30 py-8">
           <div className="container">
             <h1 className="text-4xl font-bold tracking-tight">League Standings</h1>
             <p className="mt-2 text-muted-foreground">Current season rankings and statistics</p>
@@ -195,7 +192,6 @@ export default async function StandingsPage() {
             </TabsContent>
           </Tabs>
         </div>
-      </main>
-    </div>
+    </>
   )
 }

@@ -1,6 +1,5 @@
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
-import { SiteHeader } from "@/components/site-header"
 import { FeatureCard } from "@/components/feature-card"
 import { PokemonSprite } from "@/components/pokemon-sprite"
 import { PokemonShowcase } from "@/components/pokemon-showcase"
@@ -99,9 +98,7 @@ export default async function HomePage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col relative">
-      <SiteHeader />
-      <main className="flex-1 w-full">
+    <>
         {/* Hero Section with Pokemon Showcase */}
         <section className="relative w-full border-b border-border/40 bg-gradient-to-b from-background to-muted/20 py-12 md:py-20 lg:py-24">
           <div className="container mx-auto px-4 md:px-6">
@@ -516,7 +513,6 @@ export default async function HomePage() {
             </div>
           </div>
         </footer>
-      </main>
-    </div>
+    </>
   )
 }

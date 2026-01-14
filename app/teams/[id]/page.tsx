@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server"
-import { SiteHeader } from "@/components/site-header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { notFound } from "next/navigation"
@@ -45,9 +44,7 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ id:
   const teamId = Number.parseInt(id)
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <SiteHeader />
-      <main className="flex-1">
+    <>
         {/* Team Header */}
         <div className="border-b border-border bg-gradient-to-r from-muted/50 to-muted/30 py-12">
           <div className="container">
@@ -165,7 +162,6 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ id:
             </Card>
           </div>
         </div>
-      </main>
-    </div>
+    </>
   )
 }

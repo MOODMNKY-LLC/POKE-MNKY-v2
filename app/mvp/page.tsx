@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server"
-import { SiteHeader } from "@/components/site-header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Trophy, Zap, Target } from "lucide-react"
@@ -52,9 +51,7 @@ export default async function MVPPage() {
   const averageKills = topPokemon.length > 0 ? totalKills / topPokemon.length : 0
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <SiteHeader />
-      <main className="flex-1">
+    <>
         {/* Hero Section */}
         <div className="border-b border-border bg-gradient-to-r from-accent/20 via-primary/20 to-accent/20 py-12">
           <div className="container text-center">
@@ -225,7 +222,6 @@ export default async function MVPPage() {
             </CardContent>
           </Card>
         </div>
-      </main>
-    </div>
+    </>
   )
 }
