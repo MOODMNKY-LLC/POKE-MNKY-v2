@@ -354,7 +354,7 @@ export function getSupabaseSpriteUrl(storagePath: string, supabaseUrl?: string):
 
 /**
  * Get sprite URL from Pokemon data
- * Priority: Supabase Storage path > External URL > Fallback
+ * Priority: MinIO (if configured) > Supabase Storage path > External URL > Fallback
  */
 export function getSpriteUrl(
   pokemon: PokemonDisplayData,
@@ -363,13 +363,28 @@ export function getSpriteUrl(
 ): string | null {
   const sprites = pokemon.sprites || {}
 
-  // Check for Supabase Storage paths first (from pokepedia_pokemon table)
+  // Check for database-stored sprite paths first (from pokepedia_pokemon table)
+  // These paths are storage-agnostic, so check MinIO first, then Supabase
   if (mode === "front" && (pokemon as any).sprite_front_default_path) {
-    return getSupabaseSpriteUrl((pokemon as any).sprite_front_default_path, supabaseUrl)
+    const storagePath = (pokemon as any).sprite_front_default_path
+    // Try MinIO first (if configured)
+    const minioUrl = getMinIOSpriteUrl(storagePath)
+    if (minioUrl) {
+      return minioUrl
+    }
+    // Fallback to Supabase Storage
+    return getSupabaseSpriteUrl(storagePath, supabaseUrl)
   }
   
   if (mode === "artwork" && (pokemon as any).sprite_official_artwork_path) {
-    return getSupabaseSpriteUrl((pokemon as any).sprite_official_artwork_path, supabaseUrl)
+    const storagePath = (pokemon as any).sprite_official_artwork_path
+    // Try MinIO first (if configured)
+    const minioUrl = getMinIOSpriteUrl(storagePath)
+    if (minioUrl) {
+      return minioUrl
+    }
+    // Fallback to Supabase Storage
+    return getSupabaseSpriteUrl(storagePath, supabaseUrl)
   }
 
   // Fallback to external URLs from sprites JSONB
