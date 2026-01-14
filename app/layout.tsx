@@ -110,7 +110,7 @@ export default function RootLayout({
         
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <PokepediaSyncProvider autoStart={false}>
-            <div className="relative min-h-screen w-full max-w-full overflow-x-hidden">{children}</div>
+            <div className="relative min-h-screen">{children}</div>
           </PokepediaSyncProvider>
         </ThemeProvider>
         <Analytics />
