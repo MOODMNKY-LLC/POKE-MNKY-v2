@@ -150,19 +150,25 @@ export function parsePokemonFromCache(pokemon: any): PokemonDisplayData {
 export async function getPokemon(nameOrId: string | number): Promise<PokemonDisplayData | null> {
   try {
     const supabase = getSupabaseClient()
-    // Try cache first
+    // Try cache first - use maybeSingle() to avoid PGRST116 errors when no rows found
     const query = typeof nameOrId === "number"
-      ? supabase.from("pokemon_cache").select("*").eq("pokemon_id", nameOrId).single()
-      : supabase.from("pokemon_cache").select("*").eq("name", nameOrId.toLowerCase()).single()
+      ? supabase.from("pokemon_cache").select("*").eq("pokemon_id", nameOrId).maybeSingle()
+      : supabase.from("pokemon_cache").select("*").eq("name", nameOrId.toLowerCase()).maybeSingle()
 
     const { data: cached, error } = await query
 
     // Handle 406 errors (PostgREST schema cache issue) - fallback to API
     if (error) {
       const errorMessage = error.message || JSON.stringify(error)
-      if (errorMessage.includes("406") || errorMessage.includes("Not Acceptable") || errorMessage.includes("schema cache")) {
-        console.warn("[Pokemon Utils] PostgREST schema cache issue, falling back to API:", nameOrId)
-        // Fall through to API fetch
+      const errorCode = (error as any).code || ""
+      
+      // PGRST116 = no rows found (handled by maybeSingle, but check anyway)
+      // 406 = schema cache issue
+      if (errorCode === "PGRST116" || errorMessage.includes("406") || errorMessage.includes("Not Acceptable") || errorMessage.includes("schema cache")) {
+        // Fall through to API fetch - this is expected when cache is empty
+        if (errorCode !== "PGRST116") {
+          console.warn("[Pokemon Utils] PostgREST schema cache issue, falling back to API:", nameOrId)
+        }
       } else {
         console.error("[Pokemon Utils] Cache query error:", error)
         // For other errors, still try API fallback

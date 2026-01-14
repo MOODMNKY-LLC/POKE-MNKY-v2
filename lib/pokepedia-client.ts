@@ -88,6 +88,7 @@ export async function searchPokemonOfflineFirst(query: string): Promise<any[]> {
 
   // Fallback to Supabase
   try {
+    const supabase = getSupabaseClient()
     const { data } = await supabase
       .from("pokemon_comprehensive")
       .select("*")
