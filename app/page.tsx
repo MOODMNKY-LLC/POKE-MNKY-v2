@@ -117,21 +117,21 @@ export default async function HomePage() {
                   </p>
                 </div>
 
-                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap w-full">
+                <div className="flex flex-col gap-3 min-[400px]:flex-row">
                   <Button
                     asChild
                     size="lg"
-                    className="bg-gradient-to-r from-primary to-accent hover:opacity-90 tap-target w-full sm:w-auto sm:flex-shrink-0"
+                    className="bg-gradient-to-r from-primary to-accent hover:opacity-90 tap-target"
                   >
-                    <Link href="/teams/builder" className="flex items-center justify-center">
-                      <Brain className="mr-2 h-5 w-5 flex-shrink-0" />
-                      <span className="whitespace-nowrap">Build Your Team</span>
+                    <Link href="/teams/builder">
+                      <Brain className="mr-2 h-5 w-5" />
+                      Build Your Team
                     </Link>
                   </Button>
-                  <Button asChild variant="outline" size="lg" className="tap-target bg-transparent w-full sm:w-auto sm:flex-shrink-0">
-                    <Link href="/pokedex" className="flex items-center justify-center">
-                      <Sparkles className="mr-2 h-5 w-5 flex-shrink-0" />
-                      <span className="whitespace-nowrap">Explore Pokédex</span>
+                  <Button asChild variant="outline" size="lg" className="tap-target bg-transparent">
+                    <Link href="/pokedex">
+                      <Sparkles className="mr-2 h-5 w-5" />
+                      Explore Pokédex
                     </Link>
                   </Button>
                 </div>
