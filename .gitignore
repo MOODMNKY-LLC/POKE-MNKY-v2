@@ -38,3 +38,5 @@ temp/*.json
 # These are git submodules or local development tools
 tools/
 resources/
+temp/Pokemon-Showdown-Teams/
+temp/pokepaste-repo/
