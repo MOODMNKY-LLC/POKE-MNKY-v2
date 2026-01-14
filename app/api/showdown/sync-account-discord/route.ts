@@ -162,11 +162,12 @@ export async function POST(request: NextRequest) {
     // IMPORTANT: Querying public.profiles (NOT auth.users)
     // - public.profiles has discord_id column
     // - auth.users does NOT have discord_id column
+    // - email is in auth.users, NOT in public.profiles
     // - .from('profiles') queries public.profiles by default
     // Use maybeSingle() instead of single() to avoid errors when no rows found
     const { data: profile, error: profileError } = await supabase
       .from('profiles')  // Queries public.profiles table (has discord_id column)
-      .select('id, discord_id, discord_username, showdown_username, email')
+      .select('id, discord_id, discord_username, showdown_username')  // email is NOT in profiles table
       .eq('discord_id', discordId)
       .maybeSingle()
 
@@ -182,7 +183,7 @@ export async function POST(request: NextRequest) {
         // Log the exact query being executed
         query: {
           table: 'profiles',
-          columns: ['id', 'discord_id', 'discord_username', 'showdown_username', 'email'],
+          columns: ['id', 'discord_id', 'discord_username', 'showdown_username'],  // email not in profiles
           filter: { discord_id: discordId }
         }
       }
@@ -273,8 +274,10 @@ export async function POST(request: NextRequest) {
     })
 
     // Get user email from auth.users using admin API
+    // Note: email is NOT in public.profiles table - it's only in auth.users
+    // This is the correct way to get email from auth.users table
     const { data: authUser } = await supabase.auth.admin.getUserById(profile.id)
-    const userEmail = authUser?.user?.email || profile.email || ''
+    const userEmail = authUser?.user?.email || ''  // email comes from auth.users, not profiles
 
     // Determine Showdown username (priority: showdown_username > discord_username > email prefix > user ID)
     let showdownUsername: string
