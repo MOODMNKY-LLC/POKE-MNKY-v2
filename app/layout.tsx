@@ -98,9 +98,9 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className="scroll-smooth" suppressHydrationWarning>
+    <html lang="en" className="scroll-smooth overflow-x-hidden" suppressHydrationWarning>
       <body
-        className={`${fredoka.variable} ${permanentMarker.variable} ${geistMono.variable} font-sans antialiased`}
+        className={`${fredoka.variable} ${permanentMarker.variable} ${geistMono.variable} font-sans antialiased overflow-x-hidden`}
       >
         {/* Branded background with dark/light mode support */}
         <div className="fixed inset-0 -z-10 overflow-hidden">
@@ -110,7 +110,7 @@ export default function RootLayout({
         
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <PokepediaSyncProvider autoStart={false}>
-            <div className="relative min-h-screen">{children}</div>
+            <div className="relative min-h-screen w-full max-w-full overflow-x-hidden">{children}</div>
           </PokepediaSyncProvider>
         </ThemeProvider>
         <Analytics />
