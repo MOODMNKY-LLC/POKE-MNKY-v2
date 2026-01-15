@@ -12,6 +12,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { UserAvatar } from "@/components/ui/user-avatar"
+import { PokeballIcon } from "@/components/ui/pokeball-icon"
 import { MessageSquare, Sparkles, Menu, Database, Brain, Trophy, Calendar, Users, BookOpen, LogOut, Info, Loader2, CheckCircle2, Swords, ChevronDown } from "lucide-react"
 import { ThemeSwitcher } from "@/components/theme-switcher"
 import { createClient } from "@/lib/supabase/client"
@@ -19,21 +21,30 @@ import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
 import { Badge } from "@/components/ui/badge"
+import { getCurrentUserProfile, type UserProfile } from "@/lib/rbac"
 
 export function SiteHeader() {
   const [user, setUser] = useState<SupabaseUser | null>(null)
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [syncState, setSyncState] = useState<any>(null)
   const router = useRouter()
   const supabase = createClient()
 
   useEffect(() => {
-    // Get initial session
+    // Get initial session and profile
     const getUser = async () => {
       const {
         data: { user },
       } = await supabase.auth.getUser()
       setUser(user)
+      
+      // Fetch user profile for role information
+      if (user) {
+        const profile = await getCurrentUserProfile(supabase)
+        setUserProfile(profile)
+      }
+      
       setIsLoading(false)
     }
 
@@ -42,8 +53,14 @@ export function SiteHeader() {
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setUser(session?.user ?? null)
+      if (session?.user) {
+        const profile = await getCurrentUserProfile(supabase)
+        setUserProfile(profile)
+      } else {
+        setUserProfile(null)
+      }
     })
 
     return () => subscription.unsubscribe()
@@ -94,10 +111,10 @@ export function SiteHeader() {
                 loading="eager"
               />
             </div>
-            <span className="hidden font-bold text-foreground lg:inline-block group-hover:text-primary transition-colors">
+            <span className="hidden font-bold text-foreground lg:inline-block group-hover:text-primary transition-colors font-marker">
               Average at Best Battle League
             </span>
-            <span className="hidden font-bold text-foreground sm:inline-block lg:hidden">AAB League</span>
+            <span className="hidden font-bold text-foreground sm:inline-block lg:hidden font-marker">AAB League</span>
           </Link>
         </div>
 
@@ -273,10 +290,15 @@ export function SiteHeader() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="p-1" suppressHydrationWarning>
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={discordAvatar || "/placeholder.svg"} alt={discordUsername} />
-                      <AvatarFallback className="bg-[#5865F2] text-white text-xs">{userInitials}</AvatarFallback>
-                    </Avatar>
+                    <UserAvatar
+                      src={discordAvatar || undefined}
+                      alt={discordUsername}
+                      fallback={userInitials}
+                      role={userProfile?.role}
+                      size="sm"
+                      showBadge={true}
+                      showPokeball={false}
+                    />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
@@ -350,7 +372,7 @@ export function SiteHeader() {
                 
                 {/* Showdown Section */}
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase px-2">Showdown</p>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase px-2 font-marker" suppressHydrationWarning>Showdown</p>
                   <Link
                     href="/showdown"
                     className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2"

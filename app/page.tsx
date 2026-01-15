@@ -6,6 +6,7 @@ import { PokemonShowcase } from "@/components/pokemon-showcase"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { PokeballIcon } from "@/components/ui/pokeball-icon"
 import {
   Database,
   Zap,
@@ -19,82 +20,120 @@ import {
   FileSpreadsheet,
 } from "lucide-react"
 
+// Force dynamic rendering since we use cookies() for Supabase client
+export const dynamic = 'force-dynamic'
+
 export default async function HomePage() {
-  const supabase = await createClient()
-
-  console.log("[v0] HomePage rendering started")
-
+  let supabase = null
   let teams = null
   let teamCount = 0
   let matchCount = 0
   let recentMatches = null
   let topPokemon = null
 
+  console.log("[v0] HomePage rendering started")
+
   try {
-    // Fetch key statistics with error handling
-    try {
-      const result = await supabase
-        .from("teams")
-        .select("*", { count: "exact" })
-        .order("wins", { ascending: false })
-        .limit(5)
-
-      teams = result.data
-      teamCount = result.count || 0
-      console.log("[v0] Teams fetched:", teamCount)
-    } catch (error) {
-      console.log("[v0] Teams table not yet created:", error)
-    }
-
-    try {
-      const result = await supabase.from("matches").select("*", { count: "exact", head: true }).eq("is_playoff", false)
-
-      matchCount = result.count || 0
-      console.log("[v0] Matches count:", matchCount)
-    } catch (error) {
-      console.log("[v0] Matches table not yet created:", error)
-    }
-
-    try {
-      const result = await supabase
-        .from("matches")
-        .select(
-          `
-          *,
-          team1:team1_id(name, coach_name),
-          team2:team2_id(name, coach_name),
-          winner:winner_id(name)
-        `,
-        )
-        .order("created_at", { ascending: false })
-        .limit(3)
-
-      recentMatches = result.data
-      console.log("[v0] Recent matches fetched:", recentMatches?.length || 0)
-    } catch (error) {
-      console.log("[v0] Error fetching recent matches:", error)
-    }
-
-    try {
-      const result = await supabase
-        .from("pokemon_stats")
-        .select(
-          `
-          pokemon_id,
-          pokemon:pokemon_id(name, sprite_front),
-          kills
-        `,
-        )
-        .order("kills", { ascending: false })
-        .limit(3)
-
-      topPokemon = result.data
-      console.log("[v0] Top pokemon fetched:", topPokemon?.length || 0)
-    } catch (error) {
-      console.log("[v0] Error fetching pokemon stats:", error)
-    }
+    supabase = await createClient()
   } catch (error) {
-    console.log("[v0] Error creating Supabase client:", error)
+    console.error("[v0] Error creating Supabase client:", error)
+    // Continue without Supabase client - page will render with empty data
+    // Don't throw - allow page to render gracefully
+    supabase = null
+  }
+
+  if (supabase) {
+    try {
+      // Fetch key statistics with error handling
+      // Wrap each query in try-catch to prevent one failure from breaking the page
+      try {
+        const result = await supabase
+          .from("teams")
+          .select("*", { count: "exact" })
+          .order("wins", { ascending: false })
+          .limit(5)
+
+        if (result.error) {
+          console.warn("[v0] Teams query error:", result.error)
+        } else {
+          teams = result.data
+          teamCount = result.count || 0
+          console.log("[v0] Teams fetched:", teamCount)
+        }
+      } catch (error) {
+        console.warn("[v0] Teams fetch exception:", error)
+        // Continue - page will render with empty teams
+      }
+
+      try {
+        const result = await supabase
+          .from("matches")
+          .select("*", { count: "exact", head: true })
+          .eq("is_playoff", false)
+
+        if (result.error) {
+          console.warn("[v0] Matches count query error:", result.error)
+        } else {
+          matchCount = result.count || 0
+          console.log("[v0] Matches count:", matchCount)
+        }
+      } catch (error) {
+        console.warn("[v0] Matches count fetch exception:", error)
+        // Continue - page will render with 0 matches
+      }
+
+      try {
+        const result = await supabase
+          .from("matches")
+          .select(
+            `
+            *,
+            team1:team1_id(name, coach_name),
+            team2:team2_id(name, coach_name),
+            winner:winner_id(name)
+          `,
+          )
+          .order("created_at", { ascending: false })
+          .limit(3)
+
+        if (result.error) {
+          console.warn("[v0] Recent matches query error:", result.error)
+        } else {
+          recentMatches = result.data
+          console.log("[v0] Recent matches fetched:", recentMatches?.length || 0)
+        }
+      } catch (error) {
+        console.warn("[v0] Recent matches fetch exception:", error)
+        // Continue - page will render without recent matches
+      }
+
+      try {
+        const result = await supabase
+          .from("pokemon_stats")
+          .select(
+            `
+            pokemon_id,
+            pokemon:pokemon_id(name, sprite_front),
+            kills
+          `,
+          )
+          .order("kills", { ascending: false })
+          .limit(3)
+
+        if (result.error) {
+          console.warn("[v0] Pokemon stats query error:", result.error)
+        } else {
+          topPokemon = result.data
+          console.log("[v0] Top pokemon fetched:", topPokemon?.length || 0)
+        }
+      } catch (error) {
+        console.warn("[v0] Pokemon stats fetch exception:", error)
+        // Continue - page will render without top pokemon
+      }
+    } catch (error) {
+      console.error("[v0] Unexpected error during data fetching:", error)
+      // Don't throw - allow page to render gracefully
+    }
   }
 
   return (
@@ -262,7 +301,10 @@ export default async function HomePage() {
                             </span>
                             <div>
                               <p className="font-semibold">{team.name}</p>
-                              <p className="text-sm text-muted-foreground">{team.coach_name}</p>
+                              <div className="flex items-center gap-1.5">
+                                <PokeballIcon role="coach" size="xs" />
+                                <p className="text-sm text-muted-foreground">{team.coach_name}</p>
+                              </div>
                             </div>
                           </div>
                           <div className="text-right">
