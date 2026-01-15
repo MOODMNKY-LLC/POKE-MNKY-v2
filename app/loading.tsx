@@ -1,6 +1,3 @@
-import Image from "next/image"
-import { PokeballIcon } from "@/components/ui/pokeball-icon"
-
 /**
  * Root Loading Component
  * 
@@ -9,6 +6,9 @@ import { PokeballIcon } from "@/components/ui/pokeball-icon"
  * 
  * Uses Next.js App Router's loading.tsx convention - automatically
  * shown while the page.tsx is loading server-side data.
+ * 
+ * Note: Uses regular img tags instead of next/image to avoid AbortError
+ * issues during navigation with Turbopack.
  */
 export default function Loading() {
   return (
@@ -23,13 +23,12 @@ export default function Loading() {
       <div className="relative z-10 flex flex-col items-center justify-center space-y-8 px-4">
         {/* League Logo */}
         <div className="relative h-24 w-24 sm:h-32 sm:w-32 md:h-40 md:w-40 animate-fade-in">
-          <Image
+          <img
             src="/league-logo.png"
             alt="Average at Best Battle League"
-            width={160}
-            height={160}
-            priority
             className="h-full w-full object-contain drop-shadow-lg"
+            loading="eager"
+            decoding="async"
           />
         </div>
 
@@ -45,9 +44,15 @@ export default function Loading() {
 
         {/* Loading Indicator */}
         <div className="flex flex-col items-center space-y-4 animate-fade-in-delay">
-          {/* Animated Pokeball */}
-          <div className="relative">
-            <PokeballIcon className="h-12 w-12 sm:h-16 sm:w-16 text-primary animate-spin-slow" />
+          {/* Animated Pokeball - using SVG directly to avoid component issues */}
+          <div className="relative h-12 w-12 sm:h-16 sm:w-16">
+            <img
+              src="/pokeball-normal.svg"
+              alt="Loading"
+              className="h-full w-full text-primary animate-spin-slow"
+              loading="eager"
+              decoding="async"
+            />
             {/* Pulsing ring effect */}
             <div className="absolute inset-0 rounded-full border-2 border-primary/30 animate-ping" />
           </div>
