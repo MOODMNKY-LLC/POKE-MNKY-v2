@@ -453,11 +453,12 @@ export function getSpriteUrl(
   supabaseUrl?: string,
 ): string | null {
   const sprites = pokemon.sprites || {}
+  const pokemonAny = pokemon as any
 
   // Check for database-stored sprite paths first (from pokepedia_pokemon table)
   // These paths are storage-agnostic, so check MinIO first, then fallback to GitHub
-  if (mode === "front" && (pokemon as any).sprite_front_default_path) {
-    const storagePath = (pokemon as any).sprite_front_default_path
+  if (mode === "front" && pokemonAny.sprite_front_default_path) {
+    const storagePath = pokemonAny.sprite_front_default_path
     // Try MinIO first (if configured)
     const minioUrl = getMinIOSpriteUrl(storagePath)
     if (minioUrl) {
@@ -469,8 +470,8 @@ export function getSpriteUrl(
     return `https://raw.githubusercontent.com/PokeAPI/sprites/master/${storagePath}`
   }
   
-  if (mode === "artwork" && (pokemon as any).sprite_official_artwork_path) {
-    const storagePath = (pokemon as any).sprite_official_artwork_path
+  if (mode === "artwork" && pokemonAny.sprite_official_artwork_path) {
+    const storagePath = pokemonAny.sprite_official_artwork_path
     // Try MinIO first (if configured)
     const minioUrl = getMinIOSpriteUrl(storagePath)
     if (minioUrl) {
@@ -480,7 +481,27 @@ export function getSpriteUrl(
     return `https://raw.githubusercontent.com/PokeAPI/sprites/master/${storagePath}`
   }
 
-  // Fallback to external URLs from sprites JSONB
+  // Check if sprites object contains paths (from pokepedia_pokemon adaptation)
+  // If front_default contains a path (not a URL), try to resolve it
+  if (mode === "front" && sprites.front_default && !sprites.front_default.startsWith("http")) {
+    const storagePath = sprites.front_default
+    const minioUrl = getMinIOSpriteUrl(storagePath)
+    if (minioUrl) {
+      return minioUrl
+    }
+    return `https://raw.githubusercontent.com/PokeAPI/sprites/master/${storagePath}`
+  }
+
+  if (mode === "artwork" && sprites.official_artwork && !sprites.official_artwork.startsWith("http")) {
+    const storagePath = sprites.official_artwork
+    const minioUrl = getMinIOSpriteUrl(storagePath)
+    if (minioUrl) {
+      return minioUrl
+    }
+    return `https://raw.githubusercontent.com/PokeAPI/sprites/master/${storagePath}`
+  }
+
+  // Fallback to external URLs from sprites JSONB (full URLs)
   switch (mode) {
     case "back":
       return sprites.back_default || sprites.front_default || null
