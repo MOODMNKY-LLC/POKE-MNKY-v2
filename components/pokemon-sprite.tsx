@@ -89,6 +89,8 @@ export function PokemonSprite({
         }}
         unoptimized
         priority={mode === "artwork"}
+        loading={mode === "artwork" ? "eager" : "lazy"} // Lazy load non-artwork images
+        sizes={mode === "artwork" ? "320px" : `${pixelSize}px`} // Proper sizing hints
       />
     </div>
   )
