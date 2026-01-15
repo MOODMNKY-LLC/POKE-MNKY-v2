@@ -130,6 +130,35 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* Body text uses Fredoka for readability - cascades to all elements */
+    font-family: var(--font-sans);
+  }
+  
+  /* All headings use Permanent Marker for consistent Pokémon branding */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-marker);
+    letter-spacing: 0.02em;
+    font-weight: 400; /* Permanent Marker only has one weight */
+  }
+  
+  /* Ensure headings maintain their size hierarchy */
+  h1 {
+    @apply text-4xl sm:text-5xl xl:text-6xl;
+  }
+  h2 {
+    @apply text-3xl sm:text-4xl md:text-5xl;
+  }
+  h3 {
+    @apply text-2xl sm:text-3xl;
+  }
+  h4 {
+    @apply text-xl sm:text-2xl;
+  }
+  h5 {
+    @apply text-lg sm:text-xl;
+  }
+  h6 {
+    @apply text-base sm:text-lg;
   }
 }
 
@@ -205,24 +234,35 @@
     }
   }
   /* Adding Pokémon-inspired typography utilities */
-  /* Pokémon brand heading style - playful and bold */
+  /* Pokémon brand heading style - playful and bold (Permanent Marker) */
   .text-pokemon {
     font-family: var(--font-marker);
     letter-spacing: 0.02em;
     text-transform: uppercase;
   }
 
-  /* Friendly Pokémon body text */
+  /* Friendly Pokémon body text (Fredoka) */
   .text-friendly {
     font-family: var(--font-sans);
     font-weight: 400;
   }
 
-  /* Bold Pokémon headings */
+  /* Bold Pokémon headings - uses Permanent Marker */
   .text-pokemon-bold {
+    font-family: var(--font-marker);
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+  
+  /* Utility class to explicitly use Permanent Marker font */
+  .font-marker {
+    font-family: var(--font-marker);
+    letter-spacing: 0.02em;
+  }
+  
+  /* Utility class to explicitly use Fredoka font (body text) */
+  .font-fredoka {
     font-family: var(--font-sans);
-    font-weight: 700;
-    letter-spacing: -0.02em;
   }
 }
 

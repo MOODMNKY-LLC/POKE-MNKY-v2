@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Calendar, Trophy, Clock, CheckCircle2, AlertCircle } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { PokeballIcon } from "@/components/ui/pokeball-icon"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 
@@ -114,7 +115,10 @@ export default function MatchesPage() {
                   <h3 className={`text-xl font-bold ${match.winner === match.team1.name ? "text-primary" : ""}`}>
                     {match.team1.name}
                   </h3>
-                  <p className="text-sm text-muted-foreground">{match.team1.coach}</p>
+                  <div className="flex items-center justify-center gap-1.5 sm:justify-end">
+                    <PokeballIcon role="coach" size="xs" />
+                    <p className="text-sm text-muted-foreground">{match.team1.coach}</p>
+                  </div>
                   {match.status === "completed" && match.team1_score !== undefined && (
                     <p className="text-3xl font-bold mt-2">{match.team1_score}</p>
                   )}
@@ -134,7 +138,10 @@ export default function MatchesPage() {
                   <h3 className={`text-xl font-bold ${match.winner === match.team2.name ? "text-primary" : ""}`}>
                     {match.team2.name}
                   </h3>
-                  <p className="text-sm text-muted-foreground">{match.team2.coach}</p>
+                  <div className="flex items-center justify-center gap-1.5 sm:justify-start">
+                    <PokeballIcon role="coach" size="xs" />
+                    <p className="text-sm text-muted-foreground">{match.team2.coach}</p>
+                  </div>
                   {match.status === "completed" && match.team2_score !== undefined && (
                     <p className="text-3xl font-bold mt-2">{match.team2_score}</p>
                   )}

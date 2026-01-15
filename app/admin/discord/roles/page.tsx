@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { createBrowserClient } from "@/lib/supabase/client"
 import { Loader2, RefreshCw, Users, ArrowRight, CheckCircle2, AlertCircle } from "lucide-react"
+import { PokeballIcon } from "@/components/ui/pokeball-icon"
 import { toast } from "sonner"
 import Link from "next/link"
 
@@ -205,6 +206,7 @@ export default function DiscordRolesPage() {
                           <p className="text-xs text-muted-foreground">{user.discord_username}</p>
                         </div>
                         <div className="flex items-center gap-2">
+                          <PokeballIcon role={user.role} size="xs" />
                           <Badge variant={getRoleBadgeVariant(user.role)} className="capitalize">
                             {user.role || "viewer"}
                           </Badge>

@@ -9,6 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { UserAvatar } from "@/components/ui/user-avatar"
+import { PokeballIcon } from "@/components/ui/pokeball-icon"
 import { Shield, Users, Search, Filter } from "lucide-react"
 import type { UserRole } from "@/lib/rbac"
 import Link from "next/link"
@@ -222,10 +224,15 @@ function UsersManagementContent() {
                   <TableRow key={user.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <Avatar>
-                          <AvatarImage src={user.avatar_url || user.discord_avatar} />
-                          <AvatarFallback>{user.display_name?.[0] || user.username?.[0] || "U"}</AvatarFallback>
-                        </Avatar>
+                        <UserAvatar
+                          src={user.avatar_url || user.discord_avatar}
+                          alt={user.display_name || user.username}
+                          fallback={user.display_name?.[0] || user.username?.[0] || "U"}
+                          role={user.role}
+                          size="sm"
+                          showBadge={true}
+                          showPokeball={false}
+                        />
                         <div>
                           <div className="font-medium">{user.display_name || user.username || "Unnamed"}</div>
                           <div className="text-sm text-muted-foreground">{user.email}</div>
@@ -234,21 +241,24 @@ function UsersManagementContent() {
                     </TableCell>
                     <TableCell>{user.team_name || <span className="text-muted-foreground">No team</span>}</TableCell>
                     <TableCell>
-                      <Select
-                        value={user.role}
-                        onValueChange={(newRole) => updateUserRole(user.id, newRole as UserRole)}
-                        disabled={user.id === currentUser?.id}
-                      >
-                        <SelectTrigger className="w-[140px]">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="admin">Admin</SelectItem>
-                          <SelectItem value="commissioner">Commissioner</SelectItem>
-                          <SelectItem value="coach">Coach</SelectItem>
-                          <SelectItem value="viewer">Viewer</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <div className="flex items-center gap-2">
+                        <PokeballIcon role={user.role} size="xs" />
+                        <Select
+                          value={user.role}
+                          onValueChange={(newRole) => updateUserRole(user.id, newRole as UserRole)}
+                          disabled={user.id === currentUser?.id}
+                        >
+                          <SelectTrigger className="w-[140px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="admin">Admin</SelectItem>
+                            <SelectItem value="commissioner">Commissioner</SelectItem>
+                            <SelectItem value="coach">Coach</SelectItem>
+                            <SelectItem value="viewer">Viewer</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </TableCell>
                     <TableCell>
                       {user.discord_username ? (

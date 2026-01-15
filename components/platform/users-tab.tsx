@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { PokeballIcon } from "@/components/ui/pokeball-icon"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { createBrowserClient } from "@/lib/supabase/client"
@@ -146,9 +147,12 @@ export function UsersTab({ projectRef }: { projectRef: string }) {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={getRoleBadgeVariant(user.role)} className="capitalize">
-                          {user.role || "viewer"}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <PokeballIcon role={user.role} size="xs" />
+                          <Badge variant={getRoleBadgeVariant(user.role)} className="capitalize">
+                            {user.role || "viewer"}
+                          </Badge>
+                        </div>
                       </TableCell>
                       <TableCell>
                         {user.discord_username ? (

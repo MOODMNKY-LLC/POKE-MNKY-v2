@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { UserAvatar } from "@/components/ui/user-avatar"
 import { createBrowserClient } from "@/lib/supabase/client"
 import type { User } from "@supabase/supabase-js"
 
@@ -43,10 +44,17 @@ export function RealtimeAvatarStack({ channel, maxAvatars = 5 }: RealtimeAvatarS
   return (
     <div className="flex -space-x-2">
       {activeUsers.map((user: any, i) => (
-        <Avatar key={i} className="border-2 border-background">
-          <AvatarImage src={user.avatar_url || "/placeholder.svg"} />
-          <AvatarFallback>{user.email?.[0]?.toUpperCase()}</AvatarFallback>
-        </Avatar>
+        <UserAvatar
+          key={i}
+          src={user.avatar_url || user.user_metadata?.avatar_url}
+          alt={user.email || "User"}
+          fallback={user.email?.[0]?.toUpperCase() || "U"}
+          role={user.role || user.user_metadata?.role}
+          size="sm"
+          showBadge={true}
+          showPokeball={false}
+          className="border-2 border-background"
+        />
       ))}
       {activeUsers.length >= maxAvatars && (
         <div className="flex items-center justify-center w-10 h-10 rounded-full bg-muted border-2 border-background text-xs font-medium">

@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { PokeballIcon } from "@/components/ui/pokeball-icon"
 import Link from "next/link"
 
 export default async function StandingsPage() {
@@ -61,7 +62,12 @@ export default async function StandingsPage() {
                     {team.name}
                   </Link>
                 </td>
-                <td className="p-3 text-muted-foreground">{team.coach}</td>
+                <td className="p-3">
+                  <div className="flex items-center gap-2">
+                    <PokeballIcon role="coach" size="xs" />
+                    <span className="text-muted-foreground">{team.coach}</span>
+                  </div>
+                </td>
                 <td className="p-3 text-center font-bold">{team.wins}</td>
                 <td className="p-3 text-center font-bold">{team.losses}</td>
                 <td className="p-3 text-center">

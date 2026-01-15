@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { createBrowserClient } from "@/lib/supabase/client"
 import { Loader2, ExternalLink, CheckCircle2, XCircle, Users, Settings } from "lucide-react"
+import { PokeballIcon } from "@/components/ui/pokeball-icon"
 import { toast } from "sonner"
 
 export function AuthTab({ projectRef }: { projectRef: string }) {
@@ -240,9 +241,12 @@ export function AuthTab({ projectRef }: { projectRef: string }) {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge variant={getRoleBadgeVariant(user.role)} className="capitalize">
-                              {user.role}
-                            </Badge>
+                            <div className="flex items-center gap-2">
+                              <PokeballIcon role={user.role} size="xs" />
+                              <Badge variant={getRoleBadgeVariant(user.role)} className="capitalize">
+                                {user.role}
+                              </Badge>
+                            </div>
                           </TableCell>
                           <TableCell>
                             {user.discord_username ? (
