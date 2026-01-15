@@ -272,12 +272,20 @@
     animation: fadeIn 0.5s ease-in-out;
   }
 
+  .animate-fade-in-delay {
+    animation: fadeIn 0.5s ease-in-out 0.3s both;
+  }
+
   .animate-slide-up {
     animation: slideUp 0.5s ease-out;
   }
 
   .animate-scale-in {
     animation: scaleIn 0.3s ease-out;
+  }
+
+  .animate-spin-slow {
+    animation: spin 3s linear infinite;
   }
 
   /* Marquee animations for smooth scrolling */
