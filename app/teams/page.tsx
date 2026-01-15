@@ -48,7 +48,10 @@ export default async function TeamsPage() {
                           <div className="space-y-2 text-sm">
                             <div className="flex items-center justify-between">
                               <span className="text-muted-foreground">Coach</span>
-                              <span className="font-medium">{team.coach}</span>
+                              <div className="flex items-center gap-1.5">
+                                <PokeballIcon role="coach" size="xs" />
+                                <span className="font-medium">{team.coach}</span>
+                              </div>
                             </div>
                             <div className="flex items-center justify-between">
                               <span className="text-muted-foreground">Differential</span>

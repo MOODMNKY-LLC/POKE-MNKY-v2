@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { PokeballIcon } from '@/components/ui/pokeball-icon';
 import { ExternalLink, Play, Clock, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -11,8 +12,8 @@ import { toast } from 'sonner';
 interface Match {
   id: string;
   week: number;
-  team1?: { name: string };
-  team2?: { name: string };
+  team1?: { name: string; coach_name?: string };
+  team2?: { name: string; coach_name?: string };
   status: string;
   showdown_room_url?: string;
   showdown_room_id?: string;
@@ -121,7 +122,27 @@ export default function MatchLobby() {
                 </Badge>
               </div>
               <CardDescription>
-                {match.team1?.name || 'Team 1'} vs {match.team2?.name || 'Team 2'}
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{match.team1?.name || 'Team 1'}</span>
+                    {match.team1?.coach_name && (
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <PokeballIcon role="coach" size="xs" />
+                        <span>{match.team1.coach_name}</span>
+                      </div>
+                    )}
+                  </div>
+                  <span className="text-muted-foreground">vs</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{match.team2?.name || 'Team 2'}</span>
+                    {match.team2?.coach_name && (
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <PokeballIcon role="coach" size="xs" />
+                        <span>{match.team2.coach_name}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">

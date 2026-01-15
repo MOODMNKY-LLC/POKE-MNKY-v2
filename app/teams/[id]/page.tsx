@@ -55,7 +55,10 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ id:
                   <Badge variant="outline">{team.conference} Conference</Badge>
                 </div>
                 <h1 className="text-4xl font-bold tracking-tight">{team.name}</h1>
-                <p className="mt-2 text-lg text-muted-foreground">Coached by {team.coach}</p>
+                <div className="flex items-center gap-2 mt-2">
+                  <PokeballIcon role="coach" size="sm" />
+                  <p className="text-lg text-muted-foreground">Coached by {team.coach}</p>
+                </div>
               </div>
               <div className="flex gap-4">
                 <Card>
