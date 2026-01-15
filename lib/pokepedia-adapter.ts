@@ -122,14 +122,15 @@ export function adaptPokepediaToDisplayData(
   // Sprite paths will be handled by getSpriteUrl() function
   // It already knows how to handle sprite_front_default_path and sprite_official_artwork_path
   const sprites = {
-    front_default: row.sprite_front_default_path || null,
+    front_default: null, // Will be resolved via sprite_front_default_path
     front_shiny: null, // Not in pokepedia_pokemon, will use fallback
     back_default: null, // Not in pokepedia_pokemon, will use fallback
     back_shiny: null, // Not in pokepedia_pokemon, will use fallback
-    official_artwork: row.sprite_official_artwork_path || null,
+    official_artwork: null, // Will be resolved via sprite_official_artwork_path
   }
 
-  return {
+  // Create adapted PokemonDisplayData with sprite path properties preserved
+  const adapted: PokemonDisplayData & { sprite_front_default_path?: string | null; sprite_official_artwork_path?: string | null } = {
     pokemon_id: row.id,
     name: row.name,
     types,
@@ -146,7 +147,12 @@ export function adaptPokepediaToDisplayData(
     height: row.height || undefined,
     weight: row.weight || undefined,
     base_experience: row.base_experience || null,
+    // Preserve sprite path properties for getSpriteUrl() to use
+    sprite_front_default_path: row.sprite_front_default_path || null,
+    sprite_official_artwork_path: row.sprite_official_artwork_path || null,
   }
+
+  return adapted
 }
 
 /**
