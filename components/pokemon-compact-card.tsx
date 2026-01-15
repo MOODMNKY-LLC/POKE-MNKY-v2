@@ -51,12 +51,21 @@ export function PokemonCompactCard({
     )
   }
 
-  if (error || !pokemon) {
+  // Handle error state - only show if we don't have provided data
+  if (!providedPokemonData && error) {
     return (
-      <Card className={cn("p-2 flex items-center justify-center min-h-[140px]", className)}>
+      <Card 
+        className={cn("p-2 flex items-center justify-center", className)} 
+        style={{ minHeight: "200px", width: "180px" }} // Fixed dimensions
+      >
         <p className="text-[9px] text-destructive">Error</p>
       </Card>
     )
+  }
+
+  // If no pokemon data available (and not loading), return null
+  if (!pokemon && !loading) {
+    return null
   }
 
   const typeColors = getPokemonTypeColors(pokemon.types)
