@@ -13,6 +13,7 @@ import { Marquee } from "./ui/marquee"
 import { BlurFade } from "./ui/blur-fade"
 import { cn } from "@/lib/utils"
 import { STARTER_POKEMON_BY_GENERATION } from "@/lib/pokemon-evolution"
+import { usePokemonBatch } from "@/hooks/use-pokemon-batch"
 
 export function PokemonStarterShowcase() {
   // Flatten all starter Pokemon from all generations
@@ -25,6 +26,12 @@ export function PokemonStarterShowcase() {
     })
     return starters
   }, [])
+
+  // Extract Pokemon IDs for batch fetching
+  const pokemonIds = useMemo(() => allStarters.map(s => s.id), [allStarters])
+  
+  // Batch fetch all Pokemon data at once
+  const { pokemonMap, loading: batchLoading } = usePokemonBatch(pokemonIds)
 
   return (
     <BlurFade delay={0.1} className="w-full space-y-6">
@@ -47,23 +54,28 @@ export function PokemonStarterShowcase() {
         <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-20 bg-gradient-to-l from-background via-background/80 to-transparent" />
         
         <Marquee pauseOnHover className="[--duration:120s] [--gap:1rem] w-full max-w-full overflow-x-hidden">
-          {allStarters.map((starter) => (
-            <div
-              key={`${starter.generation}-${starter.id}`}
-              className="flex-shrink-0 w-[180px]"
-            >
-              <BlurFade delay={0} duration={0.3} className="h-full">
-                <PokemonCompactCard
-                  pokemonId={starter.id}
-                  showEvolution={false}
-                  className={cn(
-                    "h-full card-transition",
-                    "hover:shadow-lg hover:border-primary/50"
-                  )}
-                />
-              </BlurFade>
-            </div>
-          ))}
+          {allStarters.map((starter) => {
+            const pokemonData = pokemonMap.get(starter.id)
+            return (
+              <div
+                key={`${starter.generation}-${starter.id}`}
+                className="flex-shrink-0 w-[180px]"
+                style={{ minHeight: "200px" }} // Fixed height to prevent layout shift
+              >
+                <BlurFade delay={0} duration={0.3} className="h-full">
+                  <PokemonCompactCard
+                    pokemonId={starter.id}
+                    pokemonData={pokemonData} // Pass pre-fetched data
+                    showEvolution={false}
+                    className={cn(
+                      "h-full card-transition",
+                      "hover:shadow-lg hover:border-primary/50"
+                    )}
+                  />
+                </BlurFade>
+              </div>
+            )
+          })}
         </Marquee>
       </div>
 
