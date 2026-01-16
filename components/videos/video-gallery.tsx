@@ -120,44 +120,48 @@ export function VideoGallery() {
   return (
     <div className="space-y-6">
       {/* Search and filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search videos..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
+            className="pl-10 tap-target"
           />
         </div>
         
-        <Select value={sortOption} onValueChange={(value) => setSortOption(value as SortOption)}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Sort by" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="newest">Newest First</SelectItem>
-            <SelectItem value="oldest">Oldest First</SelectItem>
-            <SelectItem value="views">Most Views</SelectItem>
-            <SelectItem value="likes">Most Likes</SelectItem>
-          </SelectContent>
-        </Select>
-        
-        <div className="flex gap-2">
-          <Button
-            variant={viewMode === 'grid' ? 'default' : 'outline'}
-            size="icon"
-            onClick={() => setViewMode('grid')}
-          >
-            <Grid3x3 className="h-4 w-4" />
-          </Button>
-          <Button
-            variant={viewMode === 'list' ? 'default' : 'outline'}
-            size="icon"
-            onClick={() => setViewMode('list')}
-          >
-            <List className="h-4 w-4" />
-          </Button>
+        <div className="flex gap-2 sm:gap-4">
+          <Select value={sortOption} onValueChange={(value) => setSortOption(value as SortOption)}>
+            <SelectTrigger className="w-full sm:w-[180px] tap-target">
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="newest">Newest First</SelectItem>
+              <SelectItem value="oldest">Oldest First</SelectItem>
+              <SelectItem value="views">Most Views</SelectItem>
+              <SelectItem value="likes">Most Likes</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          <div className="flex gap-2">
+            <Button
+              variant={viewMode === 'grid' ? 'default' : 'outline'}
+              size="icon"
+              onClick={() => setViewMode('grid')}
+              className="tap-target"
+            >
+              <Grid3x3 className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'outline'}
+              size="icon"
+              onClick={() => setViewMode('list')}
+              className="tap-target"
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -176,8 +180,8 @@ export function VideoGallery() {
           <div
             className={
               viewMode === 'grid'
-                ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'
-                : 'space-y-4'
+                ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6'
+                : 'space-y-3 sm:space-y-4'
             }
           >
             {filteredAndSortedVideos.map((video) => (
