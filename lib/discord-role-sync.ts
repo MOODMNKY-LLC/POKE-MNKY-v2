@@ -31,20 +31,10 @@ export const DISCORD_TO_APP_ROLE_MAP: Record<string, UserRole> = {
 
 /**
  * Get Discord bot client instance
- * Reuses existing bot client if available, otherwise creates new one
+ * Creates a temporary client for API operations
+ * NOTE: Discord bot is hosted externally - this creates a temporary client for role sync operations
  */
 async function createDiscordClient() {
-  // Try to reuse existing bot client from discord-bot-service
-  try {
-    const { getDiscordBotClient } = await import("@/lib/discord-bot-service")
-    const existingClient = getDiscordBotClient()
-    if (existingClient?.isReady()) {
-      return existingClient
-    }
-  } catch (error) {
-    // Fallback to creating new client
-  }
-
   if (!process.env.DISCORD_BOT_TOKEN) {
     throw new Error("DISCORD_BOT_TOKEN is not configured")
   }
@@ -60,34 +50,18 @@ async function createDiscordClient() {
 
 /**
  * Get Discord guild instance
- * Reuses existing bot client if available
+ * Creates a temporary client for API operations
+ * NOTE: Discord bot is hosted externally - this creates a temporary client for role sync operations
  */
 async function getGuild() {
   if (!process.env.DISCORD_GUILD_ID) {
     throw new Error("DISCORD_GUILD_ID is not configured")
   }
 
-  // Try to reuse existing bot client
-  let client: any
-  let shouldDestroy = false
-  
-  try {
-    const { getDiscordBotClient } = await import("@/lib/discord-bot-service")
-    const existingClient = getDiscordBotClient()
-    if (existingClient?.isReady()) {
-      client = existingClient
-      shouldDestroy = false // Don't destroy shared client
-    } else {
-      client = await createDiscordClient()
-      shouldDestroy = true
-    }
-  } catch (error) {
-    client = await createDiscordClient()
-    shouldDestroy = true
-  }
-
+  // Create temporary client for API operations
+  const client = await createDiscordClient()
   const guild = await client.guilds.fetch(process.env.DISCORD_GUILD_ID)
-  return { guild, client, shouldDestroy }
+  return { guild, client, shouldDestroy: true } // Always destroy temporary client
 }
 
 /**

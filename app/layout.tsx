@@ -9,6 +9,7 @@ import { ServiceWorkerRegistration } from "@/components/service-worker-registrat
 import { PWAInstallPrompt } from "@/components/pwa-install-prompt"
 import { ConditionalHeader } from "@/components/conditional-header"
 import { Suspense } from "react"
+import { Toaster } from "sonner"
 import "./globals.css"
 
 const fredoka = Fredoka({
@@ -125,6 +126,7 @@ export default function RootLayout({
         <Analytics />
         <ServiceWorkerRegistration />
         <PWAInstallPrompt />
+        <Toaster position="top-right" />
       </body>
     </html>
   )
