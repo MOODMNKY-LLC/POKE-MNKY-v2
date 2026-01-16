@@ -102,6 +102,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           url: "/dashboard/team/builder",
         },
         {
+          title: "Free Agency",
+          url: "/dashboard/free-agency",
+        },
+        {
           title: "Team Stats",
           url: "/dashboard/team/stats",
         },
