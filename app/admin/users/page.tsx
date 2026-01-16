@@ -11,11 +11,12 @@ import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { UserAvatar } from "@/components/ui/user-avatar"
 import { PokeballIcon } from "@/components/ui/pokeball-icon"
-import { Shield, Users, Search, Filter } from "lucide-react"
+import { Shield, Users, Search, Filter, CheckCircle2, AlertCircle } from "lucide-react"
 import type { UserRole } from "@/lib/rbac"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Suspense } from "react"
+import { toast } from "sonner"
 
 function UsersManagementContent() {
   const [users, setUsers] = useState<any[]>([])
@@ -119,11 +120,17 @@ function UsersManagementContent() {
         if (!syncResponse.ok) {
           const errorData = await syncResponse.json()
           console.warn("Discord sync failed (non-critical):", errorData.error)
-          // Don't show error to user - app role was updated successfully
+          // Show toast warning but don't block
+          toast.warning(`Role updated in app, but Discord sync failed: ${errorData.error}`)
+        } else {
+          toast.success(`Role updated and synced to Discord`)
         }
+      } else {
+        toast.success(`Role updated (user not connected to Discord)`)
       }
     } catch (error) {
       console.warn("Discord sync error (non-critical):", error)
+      toast.warning("Role updated in app, but Discord sync encountered an error")
       // Don't block the UI update
     }
 
@@ -279,6 +286,11 @@ function UsersManagementContent() {
                             <SelectItem value="viewer">Viewer</SelectItem>
                           </SelectContent>
                         </Select>
+                        {user.discord_id && (
+                          <span className="text-xs text-muted-foreground" title="Will sync to Discord">
+                            <CheckCircle2 className="h-3 w-3 text-green-500" />
+                          </span>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>

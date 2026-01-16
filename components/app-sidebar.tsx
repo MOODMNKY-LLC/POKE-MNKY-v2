@@ -113,6 +113,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     })
   }
 
+  // Add calculator link (available to all users)
+  navItems.push({
+    title: "Damage Calculator",
+    url: "/calc",
+    icon: Sparkles,
+  })
+
   // Add dashboard-specific items
   navItems.push(
     {

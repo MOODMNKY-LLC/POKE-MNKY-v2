@@ -4,8 +4,10 @@
  */
 
 import { Client, GatewayIntentBits, Events, GuildMember } from "discord.js"
+import { REST, Routes } from "discord.js"
 import { syncDiscordRoleToApp } from "@/lib/discord-role-sync"
 import { assignCoachToTeam } from "@/lib/coach-assignment"
+import { allCommands } from "@/lib/discord-commands"
 
 let discordClient: Client | null = null
 
@@ -28,6 +30,12 @@ export async function initializeDiscordBot(): Promise<Client> {
     ],
   })
 
+  // Register commands when bot is ready
+  client.once(Events.ClientReady, async () => {
+    console.log(`[Discord Bot] Logged in as ${client.user?.tag}`)
+    await registerCommands(client)
+  })
+
   // Handle role changes
   client.on(Events.GuildMemberUpdate, async (oldMember: GuildMember, newMember: GuildMember) => {
     try {
@@ -46,9 +54,42 @@ export async function initializeDiscordBot(): Promise<Client> {
     }
   })
 
-  // Handle bot ready
-  client.once(Events.ClientReady, () => {
-    console.log(`[Discord Bot] Logged in as ${client.user?.tag}`)
+  // Handle command interactions
+  client.on(Events.InteractionCreate, async (interaction) => {
+    if (interaction.isChatInputCommand()) {
+      const command = allCommands.find((cmd) => cmd.data.name === interaction.commandName)
+
+      if (command) {
+        try {
+          await command.execute(interaction)
+        } catch (error) {
+          console.error(`[Discord Bot] Error executing ${interaction.commandName}:`, error)
+          if (interaction.deferred || interaction.replied) {
+            await interaction.editReply({
+              content: "There was an error while executing this command!",
+            })
+          } else {
+            await interaction.reply({
+              content: "There was an error while executing this command!",
+              ephemeral: true,
+            })
+          }
+        }
+      }
+    }
+
+    // Handle autocomplete interactions
+    if (interaction.isAutocomplete()) {
+      const command = allCommands.find((cmd) => cmd.data.name === interaction.commandName)
+
+      if (command?.autocomplete) {
+        try {
+          await command.autocomplete(interaction)
+        } catch (error) {
+          console.error(`[Discord Bot] Error handling autocomplete for ${interaction.commandName}:`, error)
+        }
+      }
+    }
   })
 
   // Handle errors
@@ -119,6 +160,35 @@ async function handleRoleChange(
         )
       }
     }
+  }
+}
+
+/**
+ * Register Discord slash commands
+ */
+async function registerCommands(client: Client) {
+  try {
+    if (!process.env.DISCORD_CLIENT_ID || !process.env.DISCORD_GUILD_ID) {
+      console.warn("[Discord Bot] Missing DISCORD_CLIENT_ID or DISCORD_GUILD_ID, skipping command registration")
+      return
+    }
+
+    console.log("[Discord Bot] Started refreshing application (/) commands.")
+
+    const rest = new REST({ version: "10" }).setToken(process.env.DISCORD_BOT_TOKEN!)
+    const commands = allCommands.map((cmd) => cmd.data.toJSON())
+
+    await rest.put(
+      Routes.applicationGuildCommands(
+        process.env.DISCORD_CLIENT_ID!,
+        process.env.DISCORD_GUILD_ID!
+      ),
+      { body: commands }
+    )
+
+    console.log(`[Discord Bot] Successfully registered ${commands.length} application commands.`)
+  } catch (error) {
+    console.error("[Discord Bot] Error registering commands:", error)
   }
 }
 
