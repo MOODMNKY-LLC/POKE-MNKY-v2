@@ -304,7 +304,7 @@ function UsersManagementContent() {
               </TableHeader>
               <TableBody>
                 {filteredUsers.map((user) => (
-                  <TableRow key={user.id}>
+                  <TableRow key={user.id} className="tap-target">
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <UserAvatar

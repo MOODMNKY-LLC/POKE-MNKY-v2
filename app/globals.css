@@ -258,12 +258,64 @@
       padding-left: 1rem;
       padding-right: 1rem;
     }
+
+    /* Improve touch targets on mobile */
+    button,
+    a,
+    [role="button"] {
+      min-height: 44px;
+      min-width: 44px;
+    }
+
+    /* Better spacing for mobile forms */
+    input,
+    select,
+    textarea {
+      font-size: 16px; /* Prevents zoom on iOS */
+    }
+
+    /* Optimize table scrolling on mobile */
+    table {
+      font-size: 0.875rem;
+    }
   }
 
   /* Prevent text size adjustment on iOS */
   @supports (-webkit-touch-callout: none) {
     body {
       -webkit-text-size-adjust: 100%;
+    }
+
+    /* Improve iOS Safari scrolling */
+    * {
+      -webkit-overflow-scrolling: touch;
+    }
+  }
+
+  /* Mobile performance optimizations */
+  @media (max-width: 768px) {
+    /* Reduce animations on mobile for better performance */
+    @media (prefers-reduced-motion: no-preference) {
+      * {
+        animation-duration: 0.15s !important;
+        transition-duration: 0.15s !important;
+      }
+    }
+
+    /* Optimize images for mobile */
+    img {
+      max-width: 100%;
+      height: auto;
+    }
+  }
+
+  /* Improve mobile viewport handling */
+  @supports (padding: max(0px)) {
+    .safe-area-padding {
+      padding-left: max(1rem, env(safe-area-inset-left));
+      padding-right: max(1rem, env(safe-area-inset-right));
+      padding-top: max(1rem, env(safe-area-inset-top));
+      padding-bottom: max(1rem, env(safe-area-inset-bottom));
     }
   }
   /* Adding Pokémon-inspired typography utilities */

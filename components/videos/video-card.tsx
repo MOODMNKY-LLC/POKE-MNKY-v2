@@ -24,7 +24,7 @@ export function VideoCard({ video, viewMode, onClick }: VideoCardProps) {
   if (viewMode === 'list') {
     return (
       <Card
-        className="cursor-pointer hover:shadow-lg transition-shadow"
+        className="cursor-pointer hover:shadow-lg transition-shadow tap-target"
         onClick={onClick}
       >
         <CardContent className="p-4">

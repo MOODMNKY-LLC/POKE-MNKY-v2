@@ -50,7 +50,7 @@ export const metadata: Metadata = {
     description: "Competitive Pokémon Battle League platform",
   },
   generator: "v0.app",
-  manifest: "/manifest.json",
+  manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
