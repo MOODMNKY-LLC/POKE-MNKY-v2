@@ -75,7 +75,6 @@ function UsersManagementContent() {
   }, [users, searchTerm, roleFilter])
 
   async function fetchUsers() {
-    const supabase = createBrowserClient()
     setLoading(true)
     const { data, error } = await supabase
       .from("user_management_view")
@@ -107,12 +106,32 @@ function UsersManagementContent() {
       metadata: { new_role: newRole },
     })
 
+    // Sync to Discord (non-blocking - don't fail if Discord sync fails)
+    try {
+      const userProfile = users.find((u) => u.id === userId)
+      if (userProfile?.discord_id) {
+        const syncResponse = await fetch("/api/discord/sync-user-role", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId, appRole: newRole }),
+        })
+
+        if (!syncResponse.ok) {
+          const errorData = await syncResponse.json()
+          console.warn("Discord sync failed (non-critical):", errorData.error)
+          // Don't show error to user - app role was updated successfully
+        }
+      }
+    } catch (error) {
+      console.warn("Discord sync error (non-critical):", error)
+      // Don't block the UI update
+    }
+
     fetchUsers()
   }
 
   async function toggleUserStatus(userId: string, currentStatus: boolean) {
     const supabase = createBrowserClient()
-    const { error } = await supabase.from("profiles").update({ is_active: !currentStatus }).eq("id", userId)
 
     if (error) {
       console.error("Error updating status:", error)

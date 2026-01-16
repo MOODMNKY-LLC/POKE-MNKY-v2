@@ -139,14 +139,14 @@
     /* Body text uses Fredoka for readability - cascades to all elements */
     font-family: var(--font-sans);
   }
-  
+
   /* All headings use Permanent Marker for consistent Pokémon branding */
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-marker);
     letter-spacing: 0.02em;
     font-weight: 400; /* Permanent Marker only has one weight */
   }
-  
+
   /* Ensure headings maintain their size hierarchy */
   h1 {
     @apply text-4xl sm:text-5xl xl:text-6xl;
@@ -259,13 +259,13 @@
     letter-spacing: 0.02em;
     text-transform: uppercase;
   }
-  
+
   /* Utility class to explicitly use Permanent Marker font */
   .font-marker {
     font-family: var(--font-marker);
     letter-spacing: 0.02em;
   }
-  
+
   /* Utility class to explicitly use Fredoka font (body text) */
   .font-fredoka {
     font-family: var(--font-sans);
@@ -390,7 +390,7 @@
     -ms-overflow-style: none; /* IE and Edge */
     scrollbar-width: none; /* Firefox */
   }
-  
+
   .scrollbar-hide::-webkit-scrollbar {
     display: none; /* Chrome, Safari, Opera */
   }
@@ -402,7 +402,7 @@
     scrollbar-width: none; /* Firefox */
     -ms-overflow-style: none; /* IE and Edge */
   }
-  
+
   .hide-scrollbar::-webkit-scrollbar {
     display: none; /* Chrome, Safari, Opera */
   }
