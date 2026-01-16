@@ -53,7 +53,7 @@ async function createDiscordClient() {
  * Creates a temporary client for API operations
  * NOTE: Discord bot is hosted externally - this creates a temporary client for role sync operations
  */
-async function getGuild() {
+export async function getGuild() {
   if (!process.env.DISCORD_GUILD_ID) {
     throw new Error("DISCORD_GUILD_ID is not configured")
   }
