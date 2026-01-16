@@ -88,6 +88,13 @@ export default async function DashboardPage() {
                 <CardContent>
                   <div className="space-y-2">
                     <Link
+                      href="/draft"
+                      className="text-sm text-primary hover:underline"
+                    >
+                      Draft Room
+                    </Link>
+                    <br />
+                    <Link
                       href="/matches/submit"
                       className="text-sm text-primary hover:underline"
                     >

@@ -306,6 +306,9 @@ export default function DiscordConfigPage() {
           <Link href="/admin">Back to Admin</Link>
         </Button>
         <Button asChild variant="outline">
+          <Link href="/admin/discord/bot">Bot Management</Link>
+        </Button>
+        <Button asChild variant="outline">
           <Link href="/admin/discord/roles">Role Sync</Link>
         </Button>
         <Button asChild variant="outline">

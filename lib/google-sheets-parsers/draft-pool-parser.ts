@@ -13,6 +13,7 @@ interface DraftPoolPokemon {
   row_index: number
   is_available: boolean
   generation?: number
+  pokemon_id?: number
 }
 
 export class DraftPoolParser extends BaseParser {
@@ -357,7 +358,7 @@ export class DraftPoolParser extends BaseParser {
       // Look for "X Points" headers
       // Headers are at columns I, L, O, etc. (indices 8, 11, 14, ...)
       // Pattern: Every 3 columns starting from column I
-      // Now scanning more columns to find point values down to 2
+      // Now scanning more columns to find point values down to 1
       for (let col = 8; col < Math.min(rowData.length, 200); col += 3) {
         const headerValue = String(rowData[col] || "").trim()
         
@@ -365,7 +366,7 @@ export class DraftPoolParser extends BaseParser {
         const match = headerValue.match(/(\d+)\s*points?/i)
         if (match) {
           const pointValue = parseInt(match[1], 10)
-          if (pointValue >= 2 && pointValue <= 20) {
+          if (pointValue >= 1 && pointValue <= 20) {
             // Pokemon are one column after header (col + 1)
             const pokemonCol = col + 1
             teamMapping.push({
@@ -407,16 +408,20 @@ export class DraftPoolParser extends BaseParser {
       let enriched = 0
       const generationMap = new Map<string, number>()
 
-      // Try exact match first
+      // Try exact match first - also get pokemon_id for sprite support
       const { data: exactMatches } = await this.supabase
         .from("pokemon_cache")
-        .select("name, generation")
+        .select("pokemon_id, name, generation")
         .in("name", normalizedNames)
 
+      const pokemonIdMap = new Map<string, number>()
       if (exactMatches) {
         for (const pokemon of exactMatches) {
           if (pokemon.generation) {
             generationMap.set(pokemon.name.toLowerCase(), pokemon.generation)
+          }
+          if (pokemon.pokemon_id) {
+            pokemonIdMap.set(pokemon.name.toLowerCase(), pokemon.pokemon_id)
           }
         }
       }
@@ -451,14 +456,18 @@ export class DraftPoolParser extends BaseParser {
         }
       }
 
-      // Enrich draft pool
+      // Enrich draft pool with generation and pokemon_id
       for (const pokemon of draftPool) {
         const normalized = pokemon.pokemon_name.toLowerCase().replace(/\s+/g, "-")
         const gen = generationMap.get(normalized) || generationMap.get(pokemon.pokemon_name.toLowerCase())
+        const pokemonId = pokemonIdMap.get(normalized) || pokemonIdMap.get(pokemon.pokemon_name.toLowerCase())
         
         if (gen) {
           pokemon.generation = gen
           enriched++
+        }
+        if (pokemonId) {
+          pokemon.pokemon_id = pokemonId
         }
       }
 
@@ -493,6 +502,7 @@ export class DraftPoolParser extends BaseParser {
         point_value: pokemon.point_value,
         is_available: pokemon.is_available,
         generation: pokemon.generation || null,
+        pokemon_id: pokemon.pokemon_id || null,
         sheet_name: this.sheet.title,
         sheet_row: pokemon.row_index,
         sheet_column: this.getColumnLetter(pokemon.column_index),
