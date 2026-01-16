@@ -18,6 +18,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Suspense } from "react"
 import { toast } from "sonner"
+import { DiscordManagementSection } from "@/components/admin/discord-management-section"
 
 function UsersManagementContent() {
   const [users, setUsers] = useState<any[]>([])
@@ -411,6 +412,21 @@ function UsersManagementContent() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Discord Management Section */}
+      <div id="discord" className="mt-8 scroll-mt-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Discord Management</CardTitle>
+            <CardDescription>
+              Configure role mappings, sync permissions, and manage Discord integration
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <DiscordManagementSection />
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Link Discord Account Dialog */}
       <Dialog open={linkDialogOpen} onOpenChange={setLinkDialogOpen}>
