@@ -18,10 +18,21 @@ import {
   Shield,
   Workflow,
   FileSpreadsheet,
+  Github,
 } from "lucide-react"
 
 // Force dynamic rendering since we use cookies() for Supabase client
 export const dynamic = 'force-dynamic'
+
+// Helper function to add timeout to promises
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, name: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`${name} timed out after ${timeoutMs}ms`)), timeoutMs)
+    ),
+  ])
+}
 
 export default async function HomePage() {
   let supabase = null
@@ -33,26 +44,101 @@ export default async function HomePage() {
 
   console.log("[v0] HomePage rendering started")
 
-  try {
-    supabase = await createClient()
-  } catch (error) {
-    console.error("[v0] Error creating Supabase client:", error)
-    // Continue without Supabase client - page will render with empty data
-    // Don't throw - allow page to render gracefully
+  // Quick check if Supabase URL is reachable (only for local development)
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const isLocalSupabase = supabaseUrl?.includes('127.0.0.1') || supabaseUrl?.includes('localhost')
+  
+  // For local Supabase, do a quick connectivity check first
+  let supabaseAvailable = true
+  if (isLocalSupabase) {
+    try {
+      // Quick HEAD request to check if Supabase is running (2 second timeout)
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 2000)
+      await fetch(`${supabaseUrl}/rest/v1/`, { 
+        method: 'HEAD', 
+        signal: controller.signal 
+      }).catch(() => {
+        supabaseAvailable = false
+      })
+      clearTimeout(timeoutId)
+    } catch {
+      supabaseAvailable = false
+    }
+  }
+
+  if (supabaseAvailable) {
+    try {
+      supabase = await withTimeout(createClient(), 5000, "Supabase client creation")
+    } catch (error) {
+      console.warn("[v0] Supabase client creation failed:", error)
+      supabase = null
+    }
+  } else {
+    console.warn("[v0] Local Supabase not available, skipping data fetch")
     supabase = null
   }
 
   if (supabase) {
     try {
-      // Fetch key statistics with error handling
-      // Wrap each query in try-catch to prevent one failure from breaking the page
-      try {
-        const result = await supabase
-          .from("teams")
-          .select("*", { count: "exact" })
-          .order("wins", { ascending: false })
-          .limit(5)
+      // Fetch all data in parallel with timeouts to prevent hanging
+      // Each query has a 10 second timeout, and we'll wait max 15 seconds total
+      const queryTimeout = 10000 // 10 seconds per query
+      
+      const [teamsResult, matchesCountResult, recentMatchesResult, pokemonStatsResult] = await Promise.allSettled([
+        // Teams query
+        withTimeout(
+          supabase
+            .from("teams")
+            .select("*", { count: "exact" })
+            .order("wins", { ascending: false })
+            .limit(5),
+          queryTimeout,
+          "Teams query"
+        ),
+        
+        // Matches count query
+        withTimeout(
+          supabase
+            .from("matches")
+            .select("*", { count: "exact", head: true })
+            .eq("is_playoff", false),
+          queryTimeout,
+          "Matches count query"
+        ),
+        
+        // Recent matches query
+        withTimeout(
+          supabase
+            .from("matches")
+            .select(
+              `
+              *,
+              team1:team1_id(name, coach_name),
+              team2:team2_id(name, coach_name),
+              winner:winner_id(name)
+            `,
+            )
+            .order("created_at", { ascending: false })
+            .limit(3),
+          queryTimeout,
+          "Recent matches query"
+        ),
+        
+        // Pokemon stats check (quick check first)
+        withTimeout(
+          supabase
+            .from("pokemon_stats")
+            .select("pokemon_id, kills")
+            .limit(1),
+          queryTimeout,
+          "Pokemon stats check"
+        ),
+      ])
 
+      // Process teams result
+      if (teamsResult.status === "fulfilled") {
+        const result = teamsResult.value
         if (result.error) {
           console.warn("[v0] Teams query error:", result.error)
         } else {
@@ -60,75 +146,90 @@ export default async function HomePage() {
           teamCount = result.count || 0
           console.log("[v0] Teams fetched:", teamCount)
         }
-      } catch (error) {
-        console.warn("[v0] Teams fetch exception:", error)
-        // Continue - page will render with empty teams
+      } else {
+        console.warn("[v0] Teams query failed:", teamsResult.reason)
       }
 
-      try {
-        const result = await supabase
-          .from("matches")
-          .select("*", { count: "exact", head: true })
-          .eq("is_playoff", false)
-
+      // Process matches count result
+      if (matchesCountResult.status === "fulfilled") {
+        const result = matchesCountResult.value
         if (result.error) {
           console.warn("[v0] Matches count query error:", result.error)
         } else {
           matchCount = result.count || 0
           console.log("[v0] Matches count:", matchCount)
         }
-      } catch (error) {
-        console.warn("[v0] Matches count fetch exception:", error)
-        // Continue - page will render with 0 matches
+      } else {
+        console.warn("[v0] Matches count query failed:", matchesCountResult.reason)
       }
 
-      try {
-        const result = await supabase
-          .from("matches")
-          .select(
-            `
-            *,
-            team1:team1_id(name, coach_name),
-            team2:team2_id(name, coach_name),
-            winner:winner_id(name)
-          `,
-          )
-          .order("created_at", { ascending: false })
-          .limit(3)
-
+      // Process recent matches result
+      if (recentMatchesResult.status === "fulfilled") {
+        const result = recentMatchesResult.value
         if (result.error) {
           console.warn("[v0] Recent matches query error:", result.error)
         } else {
           recentMatches = result.data
           console.log("[v0] Recent matches fetched:", recentMatches?.length || 0)
         }
-      } catch (error) {
-        console.warn("[v0] Recent matches fetch exception:", error)
-        // Continue - page will render without recent matches
+      } else {
+        console.warn("[v0] Recent matches query failed:", recentMatchesResult.reason)
       }
 
-      try {
-        const result = await supabase
-          .from("pokemon_stats")
-          .select(
-            `
-            pokemon_id,
-            pokemon:pokemon_id(name, sprite_front),
-            kills
-          `,
-          )
-          .order("kills", { ascending: false })
-          .limit(3)
-
-        if (result.error) {
+      // Process pokemon stats result
+      if (pokemonStatsResult.status === "fulfilled") {
+        const result = pokemonStatsResult.value
+        if (result.error && result.error.code === '42703') {
+          // Column doesn't exist - skip top pokemon
+          console.warn("[v0] Pokemon stats table doesn't have kills column - skipping top pokemon")
+          topPokemon = []
+        } else if (result.error) {
           console.warn("[v0] Pokemon stats query error:", result.error)
+          topPokemon = []
+        } else if (result.data && result.data.length > 0) {
+          // Table has kills column - fetch full stats (with timeout)
+          try {
+            const statsResult = await withTimeout(
+              supabase
+                .from("pokemon_stats")
+                .select("pokemon_id, kills")
+                .order("kills", { ascending: false })
+                .limit(3),
+              queryTimeout,
+              "Pokemon stats fetch"
+            )
+
+            if (statsResult.data && statsResult.data.length > 0) {
+              // Fetch pokemon details separately (with timeout)
+              const pokemonIds = statsResult.data.map((stat: any) => stat.pokemon_id)
+              const pokemonDataResult = await withTimeout(
+                supabase
+                  .from("pokemon")
+                  .select("id, name, type1, type2")
+                  .in("id", pokemonIds),
+                queryTimeout,
+                "Pokemon details fetch"
+              )
+
+              // Combine the data
+              topPokemon = statsResult.data.map((stat: any) => ({
+                ...stat,
+                pokemon: pokemonDataResult.data?.find((p: any) => p.id === stat.pokemon_id) || null,
+              }))
+              console.log("[v0] Top pokemon fetched:", topPokemon?.length || 0)
+            } else {
+              topPokemon = []
+            }
+          } catch (error) {
+            console.warn("[v0] Pokemon stats fetch exception:", error)
+            topPokemon = []
+          }
         } else {
-          topPokemon = result.data
-          console.log("[v0] Top pokemon fetched:", topPokemon?.length || 0)
+          topPokemon = []
         }
-      } catch (error) {
-        console.warn("[v0] Pokemon stats fetch exception:", error)
-        // Continue - page will render without top pokemon
+      } else {
+        console.warn("[v0] Pokemon stats check failed:", pokemonStatsResult.reason)
+        topPokemon = []
       }
     } catch (error) {
       console.error("[v0] Unexpected error during data fetching:", error)
@@ -147,28 +248,27 @@ export default async function HomePage() {
                   <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none text-balance break-words">
                     Average at Best
                     <span className="block bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
-                      Battle League
+                      Battle League Platform
                     </span>
                   </h1>
                   <p className="w-full max-w-full text-muted-foreground text-base sm:text-lg md:text-xl text-pretty break-words">
-                    The ultimate Pokémon competitive platform powered by AI insights, Discord integration, and real-time
-                    analytics.
+                    A 20-team Pokémon draft league platform featuring point-budget drafting, Showdown-accurate battles, AI-powered insights, and seamless Discord integration. Build your team, compete weekly, and climb the standings.
                   </p>
                 </div>
 
-                <div className="flex flex-col gap-3 min-[400px]:flex-row">
+                <div className="flex flex-col gap-3 min-[400px]:flex-row w-full max-w-md">
                   <Button
                     asChild
                     size="lg"
-                    className="bg-gradient-to-r from-primary to-accent hover:opacity-90 tap-target"
+                    className="bg-gradient-to-r from-primary to-accent hover:opacity-90 tap-target w-full min-[400px]:w-auto"
                   >
-                    <Link href="/teams/builder">
+                    <Link href="/teams/builder" className="flex items-center justify-center">
                       <Brain className="mr-2 h-5 w-5" />
                       Build Your Team
                     </Link>
                   </Button>
-                  <Button asChild variant="outline" size="lg" className="tap-target bg-transparent">
-                    <Link href="/pokedex">
+                  <Button asChild variant="outline" size="lg" className="tap-target bg-transparent w-full min-[400px]:w-auto">
+                    <Link href="/pokedex" className="flex items-center justify-center">
                       <Sparkles className="mr-2 h-5 w-5" />
                       Explore Pokédex
                     </Link>
@@ -207,7 +307,7 @@ export default async function HomePage() {
                   <span className="text-pokemon-bold">Complete Battle League Platform</span>
                 </h2>
                 <p className="mx-auto max-w-[700px] text-muted-foreground text-lg md:text-xl text-balance">
-                  Everything you need to run a competitive Pokémon battle league, all in one place
+                  Everything you need to manage a competitive Pokémon draft league: point-budget drafting, match scheduling, standings tracking, and AI-powered insights—all integrated with Discord.
                 </p>
               </div>
             </div>
@@ -239,14 +339,14 @@ export default async function HomePage() {
               />
               <FeatureCard
                 icon={<Zap className="h-8 w-8" />}
-                title="Battle Engine"
-                description="Showdown-accurate battle simulation with turn-by-turn logging and AI move selection for realistic matches."
-                status="in-progress"
+                title="Showdown Integration"
+                description="Seamless integration with Pokémon Showdown for 6v6 Singles battles. Create rooms programmatically, validate teams against rosters, and track results automatically."
+                status="active"
               />
               <FeatureCard
                 icon={<Trophy className="h-8 w-8" />}
-                title="Team Builder"
-                description="Draft simulator with point budget constraints, type coverage analysis, and real-time validation against league rules."
+                title="Draft System"
+                description="Point-budget draft system (120 points per team) with snake draft format, real-time budget tracking, and automatic validation against league rules."
                 status="active"
               />
               <FeatureCard
@@ -273,10 +373,10 @@ export default async function HomePage() {
 
         {/* Live Data Section */}
         <section className="w-full border-t border-border/40 bg-muted/20 py-12 md:py-20 lg:py-24">
-          <div className="container px-4 md:px-6">
-            <div className="grid gap-8 lg:grid-cols-2 lg:gap-12">
+          <div className="container mx-auto px-4 md:px-6">
+            <div className="grid gap-8 lg:grid-cols-2 lg:gap-12 lg:items-start">
               {/* Current Standings */}
-              <Card className="border-2">
+              <Card className="border-2 h-full flex flex-col">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle className="flex items-center gap-2">
@@ -287,7 +387,7 @@ export default async function HomePage() {
                   </div>
                   <CardDescription>Top 5 teams in the league right now</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex-1">
                   {teams && teams.length > 0 ? (
                     <div className="space-y-3">
                       {teams.map((team: any, index: number) => (
@@ -326,7 +426,7 @@ export default async function HomePage() {
               </Card>
 
               {/* Top Pokemon */}
-              <Card className="border-2">
+              <Card className="border-2 h-full flex flex-col">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle className="flex items-center gap-2">
@@ -337,9 +437,9 @@ export default async function HomePage() {
                   </div>
                   <CardDescription>Most valuable Pokémon this season</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex-1">
                   {topPokemon && topPokemon.length > 0 ? (
-                    <div className="grid gap-3">
+                    <div className="space-y-3">
                       {topPokemon.map((pokemon: any) => (
                         <div
                           key={pokemon.id}
@@ -430,31 +530,31 @@ export default async function HomePage() {
 
         {/* CTA Section */}
         <section className="w-full border-t border-border/40 bg-gradient-to-b from-muted/20 to-background py-12 md:py-20 lg:py-24">
-          <div className="container px-4 md:px-6">
-            <div className="flex flex-col items-center justify-center space-y-6 text-center">
+          <div className="container mx-auto px-4 md:px-6">
+            <div className="flex flex-col items-center justify-center space-y-6 text-center max-w-4xl mx-auto">
               <div className="space-y-3">
                 <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-balance">
                   Ready to Join the League?
                 </h2>
                 <p className="mx-auto max-w-[600px] text-muted-foreground text-lg md:text-xl text-balance">
-                  Sign in with Discord to start building your championship team
+                  Sign in with Discord to start building your championship team. Join 20 coaches competing in Season 5 with point-budget drafting, weekly battles, and AI-powered insights.
                 </p>
               </div>
-              <div className="flex flex-col gap-3 min-[400px]:flex-row">
+              <div className="flex flex-col gap-3 min-[400px]:flex-row justify-center items-center w-full max-w-md mx-auto">
                 <Button
                   asChild
                   size="lg"
-                  className="bg-gradient-to-r from-primary to-accent hover:opacity-90 tap-target"
+                  className="bg-gradient-to-r from-primary to-accent hover:opacity-90 tap-target w-full min-[400px]:w-auto"
                 >
-                  <Link href="/auth/login">
+                  <Link href="/auth/login" className="flex items-center justify-center">
                     <MessageSquare className="mr-2 h-5 w-5" />
                     Sign In with Discord
                   </Link>
                 </Button>
-                <Button asChild variant="outline" size="lg" className="tap-target bg-transparent">
-                  <Link href="/admin">
-                    <Database className="mr-2 h-5 w-5" />
-                    Admin Dashboard
+                <Button asChild variant="outline" size="lg" className="tap-target bg-transparent w-full min-[400px]:w-auto">
+                  <Link href="/teams/builder" className="flex items-center justify-center">
+                    <Brain className="mr-2 h-5 w-5" />
+                    Build Your Team
                   </Link>
                 </Button>
               </div>
@@ -464,9 +564,9 @@ export default async function HomePage() {
 
         {/* Footer */}
         <footer className="w-full border-t border-border/40 bg-muted/20 py-8 md:py-12">
-          <div className="container mx-auto px-4 md:px-6">
-            <div className="grid gap-8 sm:grid-cols-2 md:grid-cols-4">
-              <div className="space-y-3">
+          <div className="container mx-auto px-4 md:px-6 max-w-7xl">
+            <div className="grid gap-8 sm:grid-cols-2 md:grid-cols-4 justify-items-start md:justify-items-center">
+              <div className="space-y-3 w-full sm:w-auto">
                 <h3 className="font-semibold">League</h3>
                 <ul className="space-y-2 text-sm">
                   <li>
@@ -491,7 +591,7 @@ export default async function HomePage() {
                   </li>
                 </ul>
               </div>
-              <div className="space-y-3">
+              <div className="space-y-3 w-full sm:w-auto">
                 <h3 className="font-semibold">Tools</h3>
                 <ul className="space-y-2 text-sm">
                   <li>
@@ -516,7 +616,7 @@ export default async function HomePage() {
                   </li>
                 </ul>
               </div>
-              <div className="space-y-3">
+              <div className="space-y-3 w-full sm:w-auto">
                 <h3 className="font-semibold">Platform</h3>
                 <ul className="space-y-2 text-sm">
                   <li>
@@ -536,7 +636,7 @@ export default async function HomePage() {
                   </li>
                 </ul>
               </div>
-              <div className="space-y-3">
+              <div className="space-y-3 w-full sm:w-auto">
                 <h3 className="font-semibold">Connect</h3>
                 <ul className="space-y-2 text-sm">
                   <li>
@@ -550,8 +650,36 @@ export default async function HomePage() {
                 </ul>
               </div>
             </div>
-            <div className="mt-8 border-t border-border/40 pt-8 text-center text-sm text-muted-foreground">
-              <p>&copy; 2026 Average at Best Battle League. Built with Next.js, Supabase, and AI.</p>
+            <div className="mt-8 border-t border-border/40 pt-8">
+              <div className="flex flex-col items-center justify-center gap-4 text-center max-w-4xl mx-auto">
+                <p className="text-sm text-muted-foreground">
+                  &copy; 2026 Average at Best Battle League Platform. All rights reserved. Built by{" "}
+                  <Link
+                    href="https://moodmnky.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-semibold text-foreground hover:text-primary transition-colors"
+                  >
+                    MOODMNKY LLC
+                  </Link>
+                  .
+                </p>
+                <Button
+                  asChild
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <Link
+                    href="https://github.com/MOODMNKY-LLC/POKE-MNKY-v2"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Github className="h-4 w-4" />
+                    View on GitHub
+                  </Link>
+                </Button>
+              </div>
             </div>
           </div>
         </footer>

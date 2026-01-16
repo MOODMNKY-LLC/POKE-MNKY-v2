@@ -28,13 +28,13 @@ export default function DiscordRolesPage() {
   const [loading, setLoading] = useState(false)
   const [syncing, setSyncing] = useState(false)
   const [newMapping, setNewMapping] = useState({ discordRoleId: "", discordRoleName: "", appRole: "viewer" as AppRole })
-  const supabase = createBrowserClient()
 
   useEffect(() => {
     loadUsers()
   }, [])
 
   async function loadUsers() {
+    const supabase = createBrowserClient()
     setLoading(true)
     try {
       const { data, error } = await supabase

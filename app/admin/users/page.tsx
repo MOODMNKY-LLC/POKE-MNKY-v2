@@ -25,9 +25,9 @@ function UsersManagementContent() {
   const [roleFilter, setRoleFilter] = useState<string>("all")
   const [currentUser, setCurrentUser] = useState<any>(null)
   const router = useRouter()
-  const supabase = createBrowserClient()
 
   useEffect(() => {
+    const supabase = createBrowserClient()
     // Check if user is admin
     supabase.auth.getUser().then(({ data }) => {
       if (!data.user) {
@@ -75,6 +75,7 @@ function UsersManagementContent() {
   }, [users, searchTerm, roleFilter])
 
   async function fetchUsers() {
+    const supabase = createBrowserClient()
     setLoading(true)
     const { data, error } = await supabase
       .from("user_management_view")
@@ -110,6 +111,7 @@ function UsersManagementContent() {
   }
 
   async function toggleUserStatus(userId: string, currentStatus: boolean) {
+    const supabase = createBrowserClient()
     const { error } = await supabase.from("profiles").update({ is_active: !currentStatus }).eq("id", userId)
 
     if (error) {

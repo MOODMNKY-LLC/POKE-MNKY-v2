@@ -1,0 +1,28 @@
+{
+  "name": "@poke-mnky/integration-worker",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Integration worker for automating Showdown battle result capture and standings updates",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "test": "tsx src/test.ts",
+    "test:websocket": "tsx src/test-websocket.ts",
+    "test:integration": "tsx src/test-integration.ts",
+    "test:room-manager": "tsx src/test-room-manager.ts"
+  },
+  "dependencies": {
+    "@pkmn/protocol": "^0.5.0",
+    "@pkmn/client": "^0.5.0",
+    "@supabase/supabase-js": "^2.39.0",
+    "ws": "^8.16.0",
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/ws": "^8.5.10",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  }
+}

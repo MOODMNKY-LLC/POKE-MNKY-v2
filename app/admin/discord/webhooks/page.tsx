@@ -19,13 +19,13 @@ export default function DiscordWebhooksPage() {
   const [testing, setTesting] = useState<string | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [newWebhook, setNewWebhook] = useState({ name: "", webhook_url: "", enabled: true })
-  const supabase = createBrowserClient()
 
   useEffect(() => {
     loadWebhooks()
   }, [])
 
   async function loadWebhooks() {
+    const supabase = createBrowserClient()
     setLoading(true)
     try {
       const { data, error } = await supabase.from("discord_webhooks").select("*").order("created_at", { ascending: false })
@@ -61,6 +61,7 @@ export default function DiscordWebhooksPage() {
   async function deleteWebhook(id: string) {
     if (!confirm("Are you sure you want to delete this webhook?")) return
 
+    const supabase = createBrowserClient()
     try {
       const { error } = await supabase.from("discord_webhooks").delete().eq("id", id)
 
@@ -73,6 +74,7 @@ export default function DiscordWebhooksPage() {
   }
 
   async function toggleWebhook(id: string, currentEnabled: boolean) {
+    const supabase = createBrowserClient()
     try {
       const { error } = await supabase.from("discord_webhooks").update({ enabled: !currentEnabled }).eq("id", id)
 

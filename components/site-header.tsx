@@ -14,7 +14,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { UserAvatar } from "@/components/ui/user-avatar"
 import { PokeballIcon } from "@/components/ui/pokeball-icon"
-import { MessageSquare, Sparkles, Menu, Database, Brain, Trophy, Calendar, Users, BookOpen, LogOut, Info, Loader2, CheckCircle2, Swords, ChevronDown } from "lucide-react"
+import { MessageSquare, Sparkles, Menu, Database, Brain, Trophy, Calendar, Users, BookOpen, LogOut, Info, Loader2, CheckCircle2, Swords, ChevronDown, FileText } from "lucide-react"
 import { ThemeSwitcher } from "@/components/theme-switcher"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
@@ -28,24 +28,46 @@ export function SiteHeader() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [syncState, setSyncState] = useState<any>(null)
+  const [mounted, setMounted] = useState(false)
   const router = useRouter()
-  const supabase = createClient()
+
+  // Only create Supabase client on the client side
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
+    // Only run on client side
+    if (!mounted) return
+
+    let supabase
+    try {
+      supabase = createClient()
+    } catch (error) {
+      console.error("[SiteHeader] Error creating Supabase client:", error)
+      setIsLoading(false)
+      return
+    }
+
     // Get initial session and profile
     const getUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      setUser(user)
-      
-      // Fetch user profile for role information
-      if (user) {
-        const profile = await getCurrentUserProfile(supabase)
-        setUserProfile(profile)
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser()
+        setUser(user)
+        
+        // Fetch user profile for role information
+        if (user) {
+          const profile = await getCurrentUserProfile(supabase)
+          setUserProfile(profile)
+        }
+        
+        setIsLoading(false)
+      } catch (error) {
+        console.error("[SiteHeader] Error fetching user:", error)
+        setIsLoading(false)
       }
-      
-      setIsLoading(false)
     }
 
     getUser()
@@ -56,15 +78,19 @@ export function SiteHeader() {
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setUser(session?.user ?? null)
       if (session?.user) {
-        const profile = await getCurrentUserProfile(supabase)
-        setUserProfile(profile)
+        try {
+          const profile = await getCurrentUserProfile(supabase)
+          setUserProfile(profile)
+        } catch (error) {
+          console.error("[SiteHeader] Error fetching profile:", error)
+        }
       } else {
         setUserProfile(null)
       }
     })
 
     return () => subscription.unsubscribe()
-  }, [supabase.auth])
+  }, [mounted])
 
   // Get sync state from window (exposed by PokepediaSyncProvider)
   useEffect(() => {
@@ -89,9 +115,18 @@ export function SiteHeader() {
   }
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    router.push("/")
-    router.refresh()
+    if (!mounted) return
+    try {
+      const supabase = createClient()
+      await supabase.auth.signOut()
+      router.push("/")
+      router.refresh()
+    } catch (error) {
+      console.error("[SiteHeader] Error signing out:", error)
+      // Still redirect even if sign out fails
+      router.push("/")
+      router.refresh()
+    }
   }
 
   const discordAvatar = user?.user_metadata?.avatar_url
@@ -111,10 +146,10 @@ export function SiteHeader() {
                 loading="eager"
               />
             </div>
-            <span className="hidden font-bold text-foreground lg:inline-block group-hover:text-primary transition-colors font-marker">
+            <span className="hidden font-bold text-foreground lg:inline-block group-hover:text-primary transition-colors font-marker" suppressHydrationWarning>
               Average at Best Battle League
             </span>
-            <span className="hidden font-bold text-foreground sm:inline-block lg:hidden font-marker">AAB League</span>
+            <span className="hidden font-bold text-foreground sm:inline-block lg:hidden font-marker" suppressHydrationWarning>AAB League</span>
           </Link>
         </div>
 
@@ -145,29 +180,12 @@ export function SiteHeader() {
             <div className="h-6 w-px bg-border mx-1" />
             
             {/* Showdown Section */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-                  <Swords className="h-4 w-4 mr-1.5" />
-                  Showdown
-                  <ChevronDown className="h-3 w-3 ml-1" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
-                <DropdownMenuItem asChild>
-                  <Link href="/showdown" className="cursor-pointer">
-                    <Swords className="mr-2 h-4 w-4" />
-                    Battle Simulator
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/teams/builder" className="cursor-pointer">
-                    <Brain className="mr-2 h-4 w-4" />
-                    Team Builder
-                  </Link>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Link href="/showdown">
+              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+                <Swords className="h-4 w-4 mr-1.5" />
+                Showdown
+              </Button>
+            </Link>
             
             {/* Divider */}
             <div className="h-6 w-px bg-border mx-1" />
@@ -185,6 +203,28 @@ export function SiteHeader() {
                 Insights
               </Button>
             </Link>
+            
+            {/* Divider */}
+            <div className="h-6 w-px bg-border mx-1" />
+            
+            {/* Resources Section */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild suppressHydrationWarning>
+                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+                  <FileText className="h-4 w-4 mr-1.5" />
+                  Resources
+                  <ChevronDown className="h-3 w-3 ml-1" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem asChild>
+                  <Link href="/docs/api" className="cursor-pointer">
+                    <FileText className="mr-2 h-4 w-4" />
+                    API Documentation
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
           <div className="flex items-center gap-2">
             {/* Sync Status Indicator - Always visible */}
@@ -222,7 +262,7 @@ export function SiteHeader() {
             {!isLoading &&
               (user ? (
                 <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
+                  <DropdownMenuTrigger asChild suppressHydrationWarning>
                     <Button variant="ghost" size="sm" className="gap-2">
                       <Avatar className="h-7 w-7">
                         <AvatarImage src={discordAvatar || "/placeholder.svg"} alt={discordUsername} />
@@ -287,9 +327,9 @@ export function SiteHeader() {
           <ThemeSwitcher />
           {!isLoading &&
             (user ? (
-              <DropdownMenu>
+              <DropdownMenu suppressHydrationWarning>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="p-1" suppressHydrationWarning>
+                  <Button variant="ghost" size="sm" className="p-1">
                     <UserAvatar
                       src={discordAvatar || undefined}
                       alt={discordUsername}
@@ -407,6 +447,21 @@ export function SiteHeader() {
                   >
                     <Sparkles className="h-5 w-5" />
                     AI Insights
+                  </Link>
+                </div>
+                
+                {/* Divider */}
+                <div className="h-px bg-border" />
+                
+                {/* Resources Section */}
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase px-2">Resources</p>
+                  <Link
+                    href="/docs/api"
+                    className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2"
+                  >
+                    <FileText className="h-5 w-5" />
+                    API Documentation
                   </Link>
                 </div>
                 

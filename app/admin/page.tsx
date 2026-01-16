@@ -16,9 +16,9 @@ export default function AdminPage() {
   const [lastSync, setLastSync] = useState<any>(null)
   const [platformOpen, setPlatformOpen] = useState(false)
   const router = useRouter()
-  const supabase = createBrowserClient()
 
   useEffect(() => {
+    const supabase = createBrowserClient()
     supabase.auth.getUser().then(({ data, error }) => {
       if (error || !data.user) {
         router.push("/auth/login")
@@ -28,6 +28,7 @@ export default function AdminPage() {
     })
 
     async function fetchStats() {
+      const supabase = createBrowserClient()
       const { count: teamCount } = await supabase.from("teams").select("*", { count: "exact", head: true })
       const { count: matchCount } = await supabase.from("matches").select("*", { count: "exact", head: true })
       const { count: pokemonCount } = await supabase.from("pokemon").select("*", { count: "exact", head: true })

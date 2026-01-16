@@ -18,7 +18,6 @@ export function AuthTab({ projectRef }: { projectRef: string }) {
   const [users, setUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [usersLoading, setUsersLoading] = useState(false)
-  const supabase = createBrowserClient()
 
   useEffect(() => {
     loadAuthStatus()
@@ -26,6 +25,7 @@ export function AuthTab({ projectRef }: { projectRef: string }) {
   }, [])
 
   async function loadAuthStatus() {
+    const supabase = createBrowserClient()
     try {
       // Check Discord OAuth via health check API (more reliable)
       const healthResponse = await fetch("/api/admin/health-check")
@@ -71,6 +71,7 @@ export function AuthTab({ projectRef }: { projectRef: string }) {
   }
 
   async function loadUsers() {
+    const supabase = createBrowserClient()
     setUsersLoading(true)
     try {
       const { data, error } = await supabase

@@ -37,9 +37,8 @@ export function PokepediaSyncStatus() {
   const [seeding, setSeeding] = useState(false);
   const [processing, setProcessing] = useState(false);
 
-  const supabase = createClient();
-
   const fetchStats = async () => {
+    const supabase = createClient();
     try {
       // Fetch queue stats
       const { data: queueData, error: queueError } = await supabase.rpc(

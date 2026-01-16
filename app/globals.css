@@ -44,40 +44,46 @@
 }
 
 .dark {
-  /* Authentic Pokémon Gold/Black dark theme inspired by Pokémon Gold/Silver */
-  --background: oklch(0.12 0.01 80); /* Deep black background */
-  --foreground: oklch(0.97 0.005 80); /* Bright text */
-  --card: oklch(0.16 0.015 80); /* Dark gray cards */
+  /* Master Ball Palette: Gold/Black/White - Matching PokéAPI Docs Site */
+  /* Background: #1A1A1A (oklch 0.12 0.01 80) */
+  --background: oklch(0.12 0.01 80); /* Deep black background - matches docs */
+  --foreground: oklch(0.97 0.005 80); /* Bright white text #F7F7F7 */
+  /* Cards: #262626 (oklch 0.16 0.015 80) - matches docs card-background-dark */
+  --card: oklch(0.16 0.015 80); /* Dark gray cards - matches docs */
   --card-foreground: oklch(0.97 0.005 80);
-  --popover: oklch(0.14 0.015 80);
+  --popover: oklch(0.16 0.015 80); /* Match cards */
   --popover-foreground: oklch(0.97 0.005 80);
   /* Pokémon Gold #B3A125 converted to OKLCH */
   --primary: oklch(0.703 0.106 92); /* Authentic Pokémon Gold */
   --primary-foreground: oklch(0.12 0.01 92);
-  --secondary: oklch(0.25 0.02 80); /* Dark gray accent */
+  /* Secondary: Match card gray for consistency */
+  --secondary: oklch(0.16 0.015 80); /* Dark gray accent - matches card gray */
   --secondary-foreground: oklch(0.97 0.005 80);
-  --muted: oklch(0.22 0.015 80);
+  /* Muted: Slightly lighter than card for subtle differentiation */
+  --muted: oklch(0.18 0.015 80); /* Slightly lighter gray */
   --muted-foreground: oklch(0.6 0.01 80);
-  /* Pokémon Silver/Yellow for accent */
+  /* Pokémon Yellow for accent */
   --accent: oklch(0.885 0.176 95); /* Pokémon Yellow accent */
   --accent-foreground: oklch(0.12 0.01 95);
   --destructive: oklch(0.548 0.217 27); /* Pokémon Red for destructive */
   --destructive-foreground: oklch(0.99 0.005 27);
-  --border: oklch(0.28 0.015 80);
-  --input: oklch(0.24 0.015 80);
+  /* Border: #454545 (oklch 0.28 0.015 80) - matches docs border-color-dark */
+  --border: oklch(0.28 0.015 80); /* Border gray - matches docs */
+  --input: oklch(0.16 0.015 80); /* Match card gray for inputs */
   --ring: oklch(0.703 0.106 92);
   --chart-1: oklch(0.703 0.106 92); /* Gold */
   --chart-2: oklch(0.885 0.176 95); /* Yellow */
   --chart-3: oklch(0.485 0.186 264); /* Blue */
   --chart-4: oklch(0.5 0.12 165); /* Green */
   --chart-5: oklch(0.6 0.15 340); /* Purple */
-  --sidebar: oklch(0.14 0.015 80);
+  /* Sidebar: Match card gray for consistency */
+  --sidebar: oklch(0.16 0.015 80); /* Match card gray */
   --sidebar-foreground: oklch(0.97 0.005 80);
   --sidebar-primary: oklch(0.703 0.106 92);
   --sidebar-primary-foreground: oklch(0.12 0.01 92);
-  --sidebar-accent: oklch(0.22 0.015 80);
+  --sidebar-accent: oklch(0.18 0.015 80); /* Match muted */
   --sidebar-accent-foreground: oklch(0.97 0.005 80);
-  --sidebar-border: oklch(0.28 0.015 80);
+  --sidebar-border: oklch(0.28 0.015 80); /* Match border */
   --sidebar-ring: oklch(0.703 0.106 92);
 }
 
@@ -376,29 +382,7 @@
   }
 }
 
-/* Better mobile grid pattern */
-@layer base {
-  body::before {
-    content: "";
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image: linear-gradient(rgba(104, 211, 180, 0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(104, 211, 180, 0.03) 1px, transparent 1px);
-    background-size: 50px 50px;
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  @media (max-width: 768px) {
-    body::before {
-      background-size: 30px 30px;
-      opacity: 0.5;
-    }
-  }
-}
+/* Better mobile grid pattern - removed duplicate, using neutral gray */
 
 /* Hide scrollbar utility */
 @layer utilities {
@@ -408,6 +392,18 @@
   }
   
   .scrollbar-hide::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+  }
+}
+
+/* Hide scrollbars for Pokédex and other specific components */
+@layer utilities {
+  .hide-scrollbar {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+  }
+  
+  .hide-scrollbar::-webkit-scrollbar {
     display: none; /* Chrome, Safari, Opera */
   }
 }

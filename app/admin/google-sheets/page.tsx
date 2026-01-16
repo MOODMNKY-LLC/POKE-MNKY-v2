@@ -95,7 +95,6 @@ export default function GoogleSheetsConfigPage() {
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [expandedSheet, setExpandedSheet] = useState<string | null>(null) // For manual configuration
-  const supabase = createBrowserClient()
 
   useEffect(() => {
     loadConfig()
@@ -248,6 +247,7 @@ export default function GoogleSheetsConfigPage() {
         return
       }
 
+      const supabase = createBrowserClient()
       const { data: user } = await supabase.auth.getUser()
       if (!user.user) {
         setError("You must be logged in to save configuration")
