@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { PokeballIcon } from "@/components/ui/pokeball-icon"
+import { redisCache, CacheKeys, CacheTTL } from "@/lib/cache/redis"
 import {
   Database,
   Zap,
@@ -21,8 +22,9 @@ import {
   Github,
 } from "lucide-react"
 
-// Force dynamic rendering since we use cookies() for Supabase client
-export const dynamic = 'force-dynamic'
+// Incremental Static Regeneration (ISR)
+// Revalidate homepage every 60 seconds to keep data fresh while reducing database load
+export const revalidate = 60 // Revalidate every 60 seconds
 
 // Helper function to add timeout to promises
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number, name: string): Promise<T> {
@@ -59,16 +61,34 @@ export default async function HomePage() {
 
   if (supabase) {
     try {
-      // Fetch all data in parallel with shorter timeouts for faster failure handling
-      // Reduced from 10s to 3s per query - sufficient for most database operations
-      const queryTimeout = 3000 // 3 seconds per query
-      
-      const [teamsResult, matchesCountResult, recentMatchesResult, pokemonStatsResult] = await Promise.allSettled([
-        // Teams query
+      // Try to load from cache first (Redis/Upstash KV)
+      const [cachedTeams, cachedMatchCount, cachedRecentMatches, cachedTopPokemon] = await Promise.all([
+        redisCache.get(CacheKeys.homepageTeams),
+        redisCache.get(CacheKeys.homepageMatchCount),
+        redisCache.get(CacheKeys.homepageRecentMatches),
+        redisCache.get(CacheKeys.homepageTopPokemon),
+      ])
+
+      // If all data is cached, use it (ISR will handle revalidation)
+      if (cachedTeams && cachedMatchCount !== null && cachedRecentMatches && cachedTopPokemon !== null) {
+        teams = cachedTeams.data || null
+        teamCount = cachedTeams.count || 0
+        matchCount = cachedMatchCount
+        recentMatches = cachedRecentMatches
+        topPokemon = cachedTopPokemon
+        console.log("[v0] Loaded all data from cache")
+      } else {
+        // Fetch all data in parallel with reasonable timeouts
+        // Increased to 10s per query to handle slower database connections and larger datasets
+        // Using Promise.allSettled so one slow query doesn't block others
+        const queryTimeout = 10000 // 10 seconds per query - allows for network latency and database processing
+        
+        const [teamsResult, matchesCountResult, recentMatchesResult, pokemonStatsResult] = await Promise.allSettled([
+        // Teams query - optimized: select only needed columns
         withTimeout(
           supabase
             .from("teams")
-            .select("*", { count: "exact" })
+            .select("id, name, wins, losses, division, conference, coach_name, avatar_url", { count: "exact" })
             .order("wins", { ascending: false })
             .limit(5),
           queryTimeout,
@@ -85,18 +105,26 @@ export default async function HomePage() {
           "Matches count query"
         ),
         
-        // Recent matches query
+        // Recent matches query - optimized: select only needed columns, fetch teams separately for better performance
         withTimeout(
           supabase
             .from("matches")
             .select(
               `
-              *,
+              id,
+              week,
+              team1_id,
+              team2_id,
+              winner_id,
+              team1_score,
+              team2_score,
+              created_at,
               team1:team1_id(name, coach_name),
               team2:team2_id(name, coach_name),
               winner:winner_id(name)
             `,
             )
+            .eq("is_playoff", false)
             .order("created_at", { ascending: false })
             .limit(3),
           queryTimeout,
@@ -126,7 +154,10 @@ export default async function HomePage() {
           console.log("[v0] Teams fetched:", teamCount)
         }
       } else {
-        console.warn("[v0] Teams query failed:", teamsResult.reason)
+        // Only log timeout errors in development - they're handled gracefully
+        if (process.env.NODE_ENV === 'development') {
+          console.warn("[v0] Teams query failed:", teamsResult.reason)
+        }
       }
 
       // Process matches count result
@@ -139,7 +170,9 @@ export default async function HomePage() {
           console.log("[v0] Matches count:", matchCount)
         }
       } else {
-        console.warn("[v0] Matches count query failed:", matchesCountResult.reason)
+        if (process.env.NODE_ENV === 'development') {
+          console.warn("[v0] Matches count query failed:", matchesCountResult.reason)
+        }
       }
 
       // Process recent matches result
@@ -152,7 +185,9 @@ export default async function HomePage() {
           console.log("[v0] Recent matches fetched:", recentMatches?.length || 0)
         }
       } else {
-        console.warn("[v0] Recent matches query failed:", recentMatchesResult.reason)
+        if (process.env.NODE_ENV === 'development') {
+          console.warn("[v0] Recent matches query failed:", recentMatchesResult.reason)
+        }
       }
 
       // Process pokemon stats result - optimized to fetch stats and details in parallel
@@ -214,8 +249,35 @@ export default async function HomePage() {
           topPokemon = []
         }
       } else {
-        console.warn("[v0] Pokemon stats query failed:", pokemonStatsResult.reason)
+        if (process.env.NODE_ENV === 'development') {
+          console.warn("[v0] Pokemon stats query failed:", pokemonStatsResult.reason)
+        }
         topPokemon = []
+      }
+
+        // Cache successful results (non-blocking)
+        // This improves performance for subsequent requests
+        if (redisCache.isEnabled()) {
+          Promise.all([
+            teams && teamCount !== null
+              ? redisCache.set(CacheKeys.homepageTeams, { data: teams, count: teamCount }, { ttl: CacheTTL.homepage })
+              : Promise.resolve(false),
+            matchCount !== null
+              ? redisCache.set(CacheKeys.homepageMatchCount, matchCount, { ttl: CacheTTL.homepage })
+              : Promise.resolve(false),
+            recentMatches
+              ? redisCache.set(CacheKeys.homepageRecentMatches, recentMatches, { ttl: CacheTTL.homepage })
+              : Promise.resolve(false),
+            topPokemon !== null
+              ? redisCache.set(CacheKeys.homepageTopPokemon, topPokemon, { ttl: CacheTTL.homepage })
+              : Promise.resolve(false),
+          ]).catch((error) => {
+            // Cache writes are non-critical - log but don't fail
+            if (process.env.NODE_ENV === 'development') {
+              console.warn("[v0] Cache write failed (non-critical):", error)
+            }
+          })
+        }
       }
     } catch (error) {
       console.error("[v0] Unexpected error during data fetching:", error)
