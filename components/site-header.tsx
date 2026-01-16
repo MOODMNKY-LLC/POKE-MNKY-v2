@@ -14,7 +14,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { UserAvatar } from "@/components/ui/user-avatar"
 import { PokeballIcon } from "@/components/ui/pokeball-icon"
-import { MessageSquare, Sparkles, Menu, Database, Brain, Trophy, Calendar, Users, BookOpen, LogOut, Info, Loader2, CheckCircle2, Swords, ChevronDown, FileText, LayoutDashboard, ClipboardList } from "lucide-react"
+import { MessageSquare, Sparkles, Menu, Database, Brain, Trophy, Calendar, Users, BookOpen, LogOut, Info, Loader2, CheckCircle2, Swords, ChevronDown, FileText, LayoutDashboard, ClipboardList, Video } from "lucide-react"
 import { ThemeSwitcher } from "@/components/theme-switcher"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
@@ -262,6 +262,12 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
               <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
                 <Sparkles className="h-4 w-4 mr-1.5" />
                 Insights
+              </Button>
+            </Link>
+            <Link href="/videos">
+              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+                <Video className="h-4 w-4 mr-1.5" />
+                Videos
               </Button>
             </Link>
             

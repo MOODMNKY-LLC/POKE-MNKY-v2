@@ -1,5 +1,23 @@
 # Discord Bot - Quick Reference
 
+> **⚠️ NOTE**: The Discord bot is now hosted externally on a local server (`moodmnky@10.3.0.119`).  
+> This repository contains API endpoints and integrations that work with the external bot.  
+> Bot initialization and command handling are managed by the external bot service.
+
+## 🔗 External Bot Location
+
+- **Server**: `moodmnky@10.3.0.119`
+- **Status**: Bot runs independently on external server
+- **API Endpoints**: All Discord API endpoints remain functional in this repository
+
+## 📝 What's Still Here
+
+- ✅ Discord API endpoints (`/api/discord/*`)
+- ✅ Discord command handlers (`lib/discord-commands/`)
+- ✅ Discord role sync utilities (`lib/discord-role-sync.ts`)
+- ✅ Discord notifications (`lib/discord-notifications.ts`)
+- ✅ Webhook integrations
+
 ## 🚀 Quick Start (Local Development)
 
 \`\`\`bash
@@ -11,7 +29,7 @@ cp .env.example .env.local
 pnpm run discord-bot:dev
 \`\`\`
 
-That's it! The bot will start and automatically restart when you make code changes.
+**Note**: Bot commands are now handled by the external bot service. This repository's API endpoints integrate with it.
 
 ## 📝 Available Commands
 

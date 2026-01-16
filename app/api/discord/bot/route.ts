@@ -1,16 +1,16 @@
 /**
  * Discord Bot API Endpoint
- * Initializes and manages the Discord bot service
  * 
- * POST /api/discord/bot - Initialize bot
- * GET /api/discord/bot - Get bot status
+ * NOTE: Discord bot is now hosted externally on local server (moodmnky@10.3.0.119)
+ * This endpoint provides information about the external bot configuration.
+ * 
+ * POST /api/discord/bot - Bot initialization (handled externally)
+ * GET /api/discord/bot - Get bot status info
  */
 
 import { NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase/server"
-import { initializeDiscordBot, getDiscordBotClient } from "@/lib/discord-bot-service"
 
-// Use Node.js runtime for Discord.js (requires native modules)
 export const runtime = 'nodejs'
 
 export async function POST(request: NextRequest) {
@@ -36,27 +36,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden - Admin access required" }, { status: 403 })
     }
 
-    // Check environment variables
-    if (!process.env.DISCORD_BOT_TOKEN || !process.env.DISCORD_GUILD_ID) {
-      return NextResponse.json(
-        { error: "Discord bot not configured. Check environment variables." },
-        { status: 500 },
-      )
-    }
-
-    // Initialize bot
-    const client = await initializeDiscordBot()
-
     return NextResponse.json({
       success: true,
-      message: "Discord bot initialized",
-      ready: client.isReady(),
-      user: client.user?.tag || null,
+      message: "Discord bot is hosted externally on local server",
+      location: "moodmnky@10.3.0.119",
+      note: "Bot initialization is handled by the external bot service. API endpoints and integrations remain functional.",
     })
   } catch (error: any) {
     console.error("[Discord Bot API] Error:", error)
     return NextResponse.json(
-      { error: error.message || "Failed to initialize Discord bot" },
+      { error: error.message || "Failed to get bot info" },
       { status: 500 },
     )
   }
@@ -85,12 +74,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden - Admin access required" }, { status: 403 })
     }
 
-    const client = getDiscordBotClient()
-
     return NextResponse.json({
-      initialized: client !== null,
-      ready: client?.isReady() || false,
-      user: client?.user?.tag || null,
+      initialized: false,
+      ready: false,
+      location: "external",
+      server: "moodmnky@10.3.0.119",
+      note: "Discord bot is hosted externally. API endpoints and integrations remain functional.",
     })
   } catch (error: any) {
     console.error("[Discord Bot API] Error:", error)
