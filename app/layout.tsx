@@ -8,6 +8,7 @@ import { PokepediaSyncProvider } from "@/components/pokepedia-sync-provider"
 import { ServiceWorkerRegistration } from "@/components/service-worker-registration"
 import { PWAInstallPrompt } from "@/components/pwa-install-prompt"
 import { ConditionalHeader } from "@/components/conditional-header"
+import { Suspense } from "react"
 import "./globals.css"
 
 const fredoka = Fredoka({

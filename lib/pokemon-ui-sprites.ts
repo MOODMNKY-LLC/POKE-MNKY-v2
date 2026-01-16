@@ -29,31 +29,12 @@ export function getTypeSpriteUrl(type: string): string {
 /**
  * Get sprite URL for a Pokemon stat icon
  * Stats: hp, attack, defense, special-attack, special-defense, speed
- * Note: Stat sprites don't exist in PokeAPI, so this returns null to avoid 404 errors
+ * Note: Stat sprites don't exist in PokeAPI or GitHub sprites repo, so this returns null to avoid 404 errors
  * Components should use CSS/icons as fallback
  */
 export function getStatSpriteUrl(stat: string): string | null {
-  const statMap: Record<string, string> = {
-    hp: "hp",
-    attack: "attack",
-    defense: "defense",
-    "special-attack": "special-attack",
-    "special_attack": "special-attack",
-    "special-defense": "special-defense",
-    "special_defense": "special-defense",
-    speed: "speed",
-  }
-  
-  const normalizedStat = statMap[stat.toLowerCase()] || stat.toLowerCase()
-  
-  // Try MinIO first (if we add stat sprites in the future)
-  const minioPath = `sprites/stats/${normalizedStat}.png`
-  const minioUrl = getMinIOSpriteUrl(minioPath)
-  if (minioUrl) {
-    return minioUrl
-  }
-  
-  // Stat sprites don't exist in PokeAPI, return null to avoid 404 errors
+  // Stat sprites don't exist in PokeAPI or GitHub sprites repo
+  // Return null immediately to avoid 404 errors
   // Components should handle null and show CSS/icons instead
   return null
 }

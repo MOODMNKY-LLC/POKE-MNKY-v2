@@ -16,6 +16,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { User, Shield, History, Gamepad2, CheckCircle2, XCircle, Loader2, RefreshCw } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { getCurrentUserProfile, type UserProfile } from "@/lib/rbac"
+import { CoachCard } from "@/components/profile/coach-card"
+import { ShowdownTeamsSection } from "@/components/profile/showdown-teams-section"
 import Link from "next/link"
 
 export default function ProfilePage() {
@@ -23,6 +25,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [activity, setActivity] = useState<any[]>([])
+  const [team, setTeam] = useState<any>(null)
   const router = useRouter()
 
   // Form state
@@ -38,6 +41,12 @@ export default function ProfilePage() {
     loadProfile()
     loadActivity()
   }, [])
+
+  useEffect(() => {
+    if (profile?.team_id) {
+      loadTeam()
+    }
+  }, [profile?.team_id])
 
   async function loadProfile() {
     const supabase = createBrowserClient()
@@ -191,6 +200,14 @@ export default function ProfilePage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Coach Card & Showdown Teams (only for coaches) */}
+      {profile.role === "coach" && (
+        <div className="space-y-4 mb-6">
+          <CoachCard team={team} userId={profile.id} />
+          <ShowdownTeamsSection userId={profile.id} />
+        </div>
+      )}
 
       {/* Tabs */}
       <Tabs defaultValue="general" className="space-y-4">

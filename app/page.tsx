@@ -44,11 +44,16 @@ export default async function HomePage() {
 
   console.log("[v0] HomePage rendering started")
 
-  // Create Supabase client - skip unnecessary connectivity checks
+  // Create Supabase client - handle errors gracefully
+  // Supabase client creation may fail if network is unavailable or config is missing
   try {
     supabase = await withTimeout(createClient(), 2000, "Supabase client creation")
-  } catch (error) {
-    console.warn("[v0] Supabase client creation failed:", error)
+  } catch (error: any) {
+    // Silently handle fetch failures - page will render without data
+    // Only log non-network errors (config issues, etc.)
+    if (error?.message && !error.message.includes("fetch failed") && !error.message.includes("timeout")) {
+      console.warn("[v0] Supabase client creation failed:", error.message)
+    }
     supabase = null
   }
 
@@ -173,11 +178,33 @@ export default async function HomePage() {
               "Pokemon details fetch"
             )
 
-            // Combine the data
-            topPokemon = result.data.map((stat: any) => ({
-              ...stat,
-              pokemon: pokemonDataResult.data?.find((p: any) => p.id === stat.pokemon_id) || null,
-            }))
+            // Aggregate kills per Pokemon
+            const pokemonKills = new Map<string, { kills: number; matches: number; pokemon: any }>()
+            
+            result.data.forEach((stat: any) => {
+              const pokemonId = stat.pokemon_id
+              if (!pokemonKills.has(pokemonId)) {
+                pokemonKills.set(pokemonId, {
+                  kills: 0,
+                  matches: 0,
+                  pokemon: pokemonDataResult.data?.find((p: any) => p.id === pokemonId) || null,
+                })
+              }
+              const current = pokemonKills.get(pokemonId)!
+              current.kills += stat.kills || 0
+              current.matches += 1
+            })
+            
+            // Convert to array and sort by kills
+            topPokemon = Array.from(pokemonKills.values())
+              .sort((a, b) => b.kills - a.kills)
+              .slice(0, 3)
+              .map((stat) => ({
+                pokemon_name: stat.pokemon?.name || "Unknown",
+                kos_scored: stat.kills,
+                times_used: stat.matches,
+                pokemon: stat.pokemon,
+              }))
             console.log("[v0] Top pokemon fetched:", topPokemon?.length || 0)
           } catch (error) {
             console.warn("[v0] Pokemon details fetch exception:", error)
@@ -200,7 +227,7 @@ export default async function HomePage() {
     <>
         {/* Hero Section with Pokemon Showcase */}
         <section className="relative w-full border-b border-border/40 bg-gradient-to-b from-background to-muted/20 py-12 md:py-20 lg:py-24 overflow-x-hidden">
-          <div className="container mx-auto px-4 md:px-6 max-w-full">
+          <div className="container mx-auto px-4 md:px-6">
             <div className="grid gap-8 lg:grid-cols-2 lg:gap-12 items-center">
               <div className="flex flex-col justify-center space-y-6 animate-slide-up min-w-0">
                 <div className="space-y-3 min-w-0">
@@ -553,6 +580,11 @@ export default async function HomePage() {
               <div className="space-y-3 w-full sm:w-auto">
                 <h3 className="font-semibold">Tools</h3>
                 <ul className="space-y-2 text-sm">
+                  <li>
+                    <Link href="/draft" className="text-muted-foreground hover:text-primary transition-colors">
+                      Draft Room
+                    </Link>
+                  </li>
                   <li>
                     <Link href="/teams/builder" className="text-muted-foreground hover:text-primary transition-colors">
                       Team Builder

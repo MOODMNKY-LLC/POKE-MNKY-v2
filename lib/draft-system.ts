@@ -185,16 +185,36 @@ export class DraftSystem {
       }
     }
 
-    // Get Pokemon ID from cache
+    // Get Pokemon from cache to extract types
     const { data: pokemonCache } = await this.supabase
       .from("pokemon_cache")
-      .select("pokemon_id, name")
+      .select("pokemon_id, name, types")
       .ilike("name", pokemon.pokemon_name)
       .limit(1)
       .single()
 
     if (!pokemonCache) {
       return { success: false, error: `Pokemon "${pokemonName}" not found in cache` }
+    }
+
+    // Get or create Pokemon entry in pokemon table (for roster reference)
+    // pokemon table has: id (UUID), name, type1, type2
+    const types = pokemonCache.types || []
+    const { data: pokemonEntry, error: pokemonError } = await this.supabase
+      .from("pokemon")
+      .upsert(
+        {
+          name: pokemon.pokemon_name.toLowerCase(),
+          type1: types[0] || null,
+          type2: types[1] || null,
+        },
+        { onConflict: "name" },
+      )
+      .select()
+      .single()
+
+    if (pokemonError || !pokemonEntry) {
+      return { success: false, error: `Failed to create Pokemon entry: ${pokemonError?.message}` }
     }
 
     // Create draft pick
@@ -206,10 +226,10 @@ export class DraftSystem {
       round: session.current_round,
     }
 
-    // Store pick in team_rosters
+    // Store pick in team_rosters (using UUID from pokemon table)
     const { error: pickError } = await this.supabase.from("team_rosters").insert({
       team_id: teamId,
-      pokemon_id: pokemonCache.pokemon_id,
+      pokemon_id: pokemonEntry.id, // UUID from pokemon table
       draft_round: session.current_round,
       draft_order: session.current_pick_number,
       draft_points: pokemon.point_value,
@@ -277,10 +297,10 @@ export class DraftSystem {
     maxPoints?: number
     generation?: number
     search?: string
-  }): Promise<Array<{ pokemon_name: string; point_value: number; generation: number | null }>> {
+  }): Promise<Array<{ pokemon_name: string; point_value: number; generation: number | null; pokemon_id: number | null }>> {
     let query = this.supabase
       .from("draft_pool")
-      .select("pokemon_name, point_value, generation")
+      .select("pokemon_name, point_value, generation, pokemon_id")
       .eq("is_available", true)
       .order("point_value", { ascending: false })
       .order("pokemon_name", { ascending: true })

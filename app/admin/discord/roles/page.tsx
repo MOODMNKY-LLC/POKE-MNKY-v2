@@ -257,7 +257,10 @@ export default function DiscordRolesPage() {
 
       <div className="flex gap-2">
         <Button asChild variant="outline">
-          <Link href="/admin/discord/config">Back to Config</Link>
+          <Link href="/admin/discord/bot">Bot Management</Link>
+        </Button>
+        <Button asChild variant="outline">
+          <Link href="/admin/discord/config">Bot Config</Link>
         </Button>
         <Button asChild variant="outline">
           <Link href="/admin">Back to Admin</Link>

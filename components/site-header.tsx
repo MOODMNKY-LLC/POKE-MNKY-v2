@@ -14,7 +14,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { UserAvatar } from "@/components/ui/user-avatar"
 import { PokeballIcon } from "@/components/ui/pokeball-icon"
-import { MessageSquare, Sparkles, Menu, Database, Brain, Trophy, Calendar, Users, BookOpen, LogOut, Info, Loader2, CheckCircle2, Swords, ChevronDown, FileText, LayoutDashboard } from "lucide-react"
+import { MessageSquare, Sparkles, Menu, Database, Brain, Trophy, Calendar, Users, BookOpen, LogOut, Info, Loader2, CheckCircle2, Swords, ChevronDown, FileText, LayoutDashboard, ClipboardList } from "lucide-react"
 import { ThemeSwitcher } from "@/components/theme-switcher"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
@@ -49,6 +49,7 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
     // Only run on client side
     if (!mounted) return
 
+    let cancelled = false
     let supabase
     try {
       supabase = createClient()
@@ -59,52 +60,91 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
     }
 
     // Only fetch if we don't have server-side data
-    const getUser = async () => {
+    // Use getSession() first (faster, checks local storage)
+    // Then rely on onAuthStateChange for actual user data
+    const checkAuth = async () => {
       // If we already have server-side data, skip fetching
       if (hasServerData) {
+        setIsLoading(false)
         return
       }
 
+      setIsLoading(true)
+
+      // Quick session check (checks local storage, doesn't hit server)
       try {
-        setIsLoading(true)
-        const {
-          data: { user },
-        } = await supabase.auth.getUser()
-        setUser(user)
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
         
-        // Fetch user profile for role information
-        if (user) {
-          const profile = await getCurrentUserProfile(supabase)
-          setUserProfile(profile)
+        if (cancelled) return
+
+        // If no session, show login button immediately
+        if (!session || sessionError) {
+          setIsLoading(false)
+          // Don't set user here - let onAuthStateChange handle it
+          return
+        }
+
+        // If we have a session, set user from session (faster than getUser())
+        if (session.user && !cancelled) {
+          setUser(session.user)
+          
+          // Fetch profile asynchronously (don't block)
+          getCurrentUserProfile(supabase)
+            .then(profile => {
+              if (!cancelled) {
+                setUserProfile(profile)
+              }
+            })
+            .catch(profileError => {
+              console.debug("[SiteHeader] Error fetching profile:", profileError)
+            })
         }
         
-        setIsLoading(false)
+        if (!cancelled) {
+          setIsLoading(false)
+        }
       } catch (error) {
-        console.error("[SiteHeader] Error fetching user:", error)
+        if (cancelled) return
+        console.debug("[SiteHeader] Session check error:", error)
         setIsLoading(false)
+        // Don't set user to null - let onAuthStateChange handle it
       }
     }
 
-    getUser()
+    // Check auth state quickly
+    checkAuth()
 
-    // Listen for auth changes
+    // Listen for auth changes (this is more reliable than getUser)
+    // This fires immediately with current session and on any auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (cancelled) return
+      
+      // Update user immediately when auth state changes
       setUser(session?.user ?? null)
+      setIsLoading(false) // Always set loading to false when auth state changes
+      
       if (session?.user) {
-        try {
-          const profile = await getCurrentUserProfile(supabase)
-          setUserProfile(profile)
-        } catch (error) {
-          console.error("[SiteHeader] Error fetching profile:", error)
-        }
+        // Fetch profile asynchronously (don't block)
+        getCurrentUserProfile(supabase)
+          .then(profile => {
+            if (!cancelled) {
+              setUserProfile(profile)
+            }
+          })
+          .catch(profileError => {
+            console.debug("[SiteHeader] Error fetching profile:", profileError)
+          })
       } else {
         setUserProfile(null)
       }
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      cancelled = true
+      subscription.unsubscribe()
+    }
   }, [mounted, hasServerData])
 
   // Get sync state from window (exposed by PokepediaSyncProvider)
@@ -188,6 +228,12 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
               <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
                 <Calendar className="h-4 w-4 mr-1.5" />
                 Schedule
+              </Button>
+            </Link>
+            <Link href="/draft">
+              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+                <ClipboardList className="h-4 w-4 mr-1.5" />
+                Draft
               </Button>
             </Link>
             
@@ -437,6 +483,13 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
                   >
                     <Calendar className="h-5 w-5" />
                     Schedule
+                  </Link>
+                  <Link
+                    href="/draft"
+                    className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2"
+                  >
+                    <ClipboardList className="h-5 w-5" />
+                    Draft Room
                   </Link>
                 </div>
                 
