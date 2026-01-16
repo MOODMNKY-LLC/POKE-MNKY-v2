@@ -44,46 +44,19 @@ export default async function HomePage() {
 
   console.log("[v0] HomePage rendering started")
 
-  // Quick check if Supabase URL is reachable (only for local development)
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const isLocalSupabase = supabaseUrl?.includes('127.0.0.1') || supabaseUrl?.includes('localhost')
-  
-  // For local Supabase, do a quick connectivity check first
-  let supabaseAvailable = true
-  if (isLocalSupabase) {
-    try {
-      // Quick HEAD request to check if Supabase is running (2 second timeout)
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 2000)
-      await fetch(`${supabaseUrl}/rest/v1/`, { 
-        method: 'HEAD', 
-        signal: controller.signal 
-      }).catch(() => {
-        supabaseAvailable = false
-      })
-      clearTimeout(timeoutId)
-    } catch {
-      supabaseAvailable = false
-    }
-  }
-
-  if (supabaseAvailable) {
-    try {
-      supabase = await withTimeout(createClient(), 5000, "Supabase client creation")
-    } catch (error) {
-      console.warn("[v0] Supabase client creation failed:", error)
-      supabase = null
-    }
-  } else {
-    console.warn("[v0] Local Supabase not available, skipping data fetch")
+  // Create Supabase client - skip unnecessary connectivity checks
+  try {
+    supabase = await withTimeout(createClient(), 2000, "Supabase client creation")
+  } catch (error) {
+    console.warn("[v0] Supabase client creation failed:", error)
     supabase = null
   }
 
   if (supabase) {
     try {
-      // Fetch all data in parallel with timeouts to prevent hanging
-      // Each query has a 10 second timeout, and we'll wait max 15 seconds total
-      const queryTimeout = 10000 // 10 seconds per query
+      // Fetch all data in parallel with shorter timeouts for faster failure handling
+      // Reduced from 10s to 3s per query - sufficient for most database operations
+      const queryTimeout = 3000 // 3 seconds per query
       
       const [teamsResult, matchesCountResult, recentMatchesResult, pokemonStatsResult] = await Promise.allSettled([
         // Teams query
@@ -125,14 +98,15 @@ export default async function HomePage() {
           "Recent matches query"
         ),
         
-        // Pokemon stats check (quick check first)
+        // Pokemon stats query - try to fetch directly, handle missing column gracefully
         withTimeout(
           supabase
             .from("pokemon_stats")
             .select("pokemon_id, kills")
-            .limit(1),
+            .order("kills", { ascending: false })
+            .limit(3),
           queryTimeout,
-          "Pokemon stats check"
+          "Pokemon stats query"
         ),
       ])
 
@@ -176,7 +150,7 @@ export default async function HomePage() {
         console.warn("[v0] Recent matches query failed:", recentMatchesResult.reason)
       }
 
-      // Process pokemon stats result
+      // Process pokemon stats result - optimized to fetch stats and details in parallel
       if (pokemonStatsResult.status === "fulfilled") {
         const result = pokemonStatsResult.value
         if (result.error && result.error.code === '42703') {
@@ -187,48 +161,33 @@ export default async function HomePage() {
           console.warn("[v0] Pokemon stats query error:", result.error)
           topPokemon = []
         } else if (result.data && result.data.length > 0) {
-          // Table has kills column - fetch full stats (with timeout)
+          // Fetch pokemon details in parallel with stats
+          const pokemonIds = result.data.map((stat: any) => stat.pokemon_id)
           try {
-            const statsResult = await withTimeout(
+            const pokemonDataResult = await withTimeout(
               supabase
-                .from("pokemon_stats")
-                .select("pokemon_id, kills")
-                .order("kills", { ascending: false })
-                .limit(3),
+                .from("pokemon")
+                .select("id, name, type1, type2")
+                .in("id", pokemonIds),
               queryTimeout,
-              "Pokemon stats fetch"
+              "Pokemon details fetch"
             )
 
-            if (statsResult.data && statsResult.data.length > 0) {
-              // Fetch pokemon details separately (with timeout)
-              const pokemonIds = statsResult.data.map((stat: any) => stat.pokemon_id)
-              const pokemonDataResult = await withTimeout(
-                supabase
-                  .from("pokemon")
-                  .select("id, name, type1, type2")
-                  .in("id", pokemonIds),
-                queryTimeout,
-                "Pokemon details fetch"
-              )
-
-              // Combine the data
-              topPokemon = statsResult.data.map((stat: any) => ({
-                ...stat,
-                pokemon: pokemonDataResult.data?.find((p: any) => p.id === stat.pokemon_id) || null,
-              }))
-              console.log("[v0] Top pokemon fetched:", topPokemon?.length || 0)
-            } else {
-              topPokemon = []
-            }
+            // Combine the data
+            topPokemon = result.data.map((stat: any) => ({
+              ...stat,
+              pokemon: pokemonDataResult.data?.find((p: any) => p.id === stat.pokemon_id) || null,
+            }))
+            console.log("[v0] Top pokemon fetched:", topPokemon?.length || 0)
           } catch (error) {
-            console.warn("[v0] Pokemon stats fetch exception:", error)
+            console.warn("[v0] Pokemon details fetch exception:", error)
             topPokemon = []
           }
         } else {
           topPokemon = []
         }
       } else {
-        console.warn("[v0] Pokemon stats check failed:", pokemonStatsResult.reason)
+        console.warn("[v0] Pokemon stats query failed:", pokemonStatsResult.reason)
         topPokemon = []
       }
     } catch (error) {

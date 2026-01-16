@@ -14,7 +14,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { UserAvatar } from "@/components/ui/user-avatar"
 import { PokeballIcon } from "@/components/ui/pokeball-icon"
-import { MessageSquare, Sparkles, Menu, Database, Brain, Trophy, Calendar, Users, BookOpen, LogOut, Info, Loader2, CheckCircle2, Swords, ChevronDown, FileText } from "lucide-react"
+import { MessageSquare, Sparkles, Menu, Database, Brain, Trophy, Calendar, Users, BookOpen, LogOut, Info, Loader2, CheckCircle2, Swords, ChevronDown, FileText, LayoutDashboard } from "lucide-react"
 import { ThemeSwitcher } from "@/components/theme-switcher"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
@@ -22,11 +22,20 @@ import { useEffect, useState } from "react"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
 import { Badge } from "@/components/ui/badge"
 import { getCurrentUserProfile, type UserProfile } from "@/lib/rbac"
+import type { User } from "@supabase/supabase-js"
 
-export function SiteHeader() {
-  const [user, setUser] = useState<SupabaseUser | null>(null)
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+interface SiteHeaderProps {
+  initialUser?: User | null
+  initialProfile?: UserProfile | null
+}
+
+export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}) {
+  // Determine if we have server-side data (even if null, it means server tried)
+  const hasServerData = initialUser !== undefined
+  
+  const [user, setUser] = useState<SupabaseUser | null>(initialUser ?? null)
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(initialProfile ?? null)
+  const [isLoading, setIsLoading] = useState(!hasServerData) // Start as false if we have server data
   const [syncState, setSyncState] = useState<any>(null)
   const [mounted, setMounted] = useState(false)
   const router = useRouter()
@@ -49,9 +58,15 @@ export function SiteHeader() {
       return
     }
 
-    // Get initial session and profile
+    // Only fetch if we don't have server-side data
     const getUser = async () => {
+      // If we already have server-side data, skip fetching
+      if (hasServerData) {
+        return
+      }
+
       try {
+        setIsLoading(true)
         const {
           data: { user },
         } = await supabase.auth.getUser()
@@ -90,7 +105,7 @@ export function SiteHeader() {
     })
 
     return () => subscription.unsubscribe()
-  }, [mounted])
+  }, [mounted, hasServerData])
 
   // Get sync state from window (exposed by PokepediaSyncProvider)
   useEffect(() => {
@@ -207,6 +222,20 @@ export function SiteHeader() {
             {/* Divider */}
             <div className="h-6 w-px bg-border mx-1" />
             
+            {/* Dashboard Link - Only visible to authenticated users */}
+            {user && (
+              <>
+                <Link href="/dashboard">
+                  <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+                    <LayoutDashboard className="h-4 w-4 mr-1.5" />
+                    Dashboard
+                  </Button>
+                </Link>
+                {/* Divider */}
+                <div className="h-6 w-px bg-border mx-1" />
+              </>
+            )}
+            
             {/* Resources Section */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild suppressHydrationWarning>
@@ -259,50 +288,52 @@ export function SiteHeader() {
             <div className="h-6 w-px bg-border" />
             
             <ThemeSwitcher />
-            {!isLoading &&
-              (user ? (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild suppressHydrationWarning>
-                    <Button variant="ghost" size="sm" className="gap-2">
-                      <Avatar className="h-7 w-7">
-                        <AvatarImage src={discordAvatar || "/placeholder.svg"} alt={discordUsername} />
-                        <AvatarFallback className="bg-[#5865F2] text-white text-xs">{userInitials}</AvatarFallback>
-                      </Avatar>
-                      <span className="hidden md:inline-block">{discordUsername}</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuLabel>
-                      <div className="flex flex-col space-y-1">
-                        <p className="text-sm font-medium leading-none">{discordUsername}</p>
-                        <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
-                      </div>
-                    </DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link href="/admin" className="cursor-pointer">
-                        <Database className="mr-2 h-4 w-4" />
-                        Admin Dashboard
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={handleSignOut}
-                      className="cursor-pointer text-destructive focus:text-destructive"
-                    >
-                      <LogOut className="mr-2 h-4 w-4" />
-                      Sign Out
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              ) : (
-                <Button asChild size="sm" className="bg-gradient-to-r from-primary to-secondary hover:opacity-90">
-                  <Link href="/auth/login">
-                    <MessageSquare className="h-4 w-4 mr-2" />
-                    Login
-                  </Link>
-                </Button>
-              ))}
+            {isLoading ? (
+              // Loading skeleton to prevent layout shift
+              <div className="h-8 w-24 animate-pulse rounded-md bg-muted" />
+            ) : user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild suppressHydrationWarning>
+                  <Button variant="ghost" size="sm" className="gap-2">
+                    <Avatar className="h-7 w-7">
+                      <AvatarImage src={discordAvatar || "/placeholder.svg"} alt={discordUsername} />
+                      <AvatarFallback className="bg-[#5865F2] text-white text-xs">{userInitials}</AvatarFallback>
+                    </Avatar>
+                    <span className="hidden md:inline-block">{discordUsername}</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none">{discordUsername}</p>
+                      <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin" className="cursor-pointer">
+                      <Database className="mr-2 h-4 w-4" />
+                      Admin Dashboard
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={handleSignOut}
+                    className="cursor-pointer text-destructive focus:text-destructive"
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button asChild size="sm" className="bg-gradient-to-r from-primary to-secondary hover:opacity-90">
+                <Link href="/auth/login">
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  Login
+                </Link>
+              </Button>
+            )}
           </div>
         </nav>
 
@@ -325,9 +356,11 @@ export function SiteHeader() {
             )}
           </Button>
           <ThemeSwitcher />
-          {!isLoading &&
-            (user ? (
-              <DropdownMenu suppressHydrationWarning>
+          {isLoading ? (
+            // Loading skeleton to prevent layout shift
+            <div className="h-8 w-8 animate-pulse rounded-md bg-muted" />
+          ) : user ? (
+            <DropdownMenu suppressHydrationWarning>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="p-1">
                     <UserAvatar
@@ -371,7 +404,7 @@ export function SiteHeader() {
                   <MessageSquare className="h-4 w-4" />
                 </Link>
               </Button>
-            ))}
+            )}
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="ghost" size="sm" className="px-2" suppressHydrationWarning>
@@ -452,6 +485,23 @@ export function SiteHeader() {
                 
                 {/* Divider */}
                 <div className="h-px bg-border" />
+                
+                {/* Dashboard Section - Only visible to authenticated users */}
+                {user && (
+                  <>
+                    <div className="space-y-2">
+                      <Link
+                        href="/dashboard"
+                        className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2"
+                      >
+                        <LayoutDashboard className="h-5 w-5" />
+                        Dashboard
+                      </Link>
+                    </div>
+                    {/* Divider */}
+                    <div className="h-px bg-border" />
+                  </>
+                )}
                 
                 {/* Resources Section */}
                 <div className="space-y-2">

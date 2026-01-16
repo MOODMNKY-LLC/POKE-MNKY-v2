@@ -38,5 +38,12 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
+  // Protect dashboard routes (member-only, requires authentication)
+  if (request.nextUrl.pathname.startsWith("/dashboard") && !user) {
+    const url = request.nextUrl.clone()
+    url.pathname = "/auth/login"
+    return NextResponse.redirect(url)
+  }
+
   return supabaseResponse
 }

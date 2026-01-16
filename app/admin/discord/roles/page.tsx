@@ -54,14 +54,18 @@ export default function DiscordRolesPage() {
   async function syncRoles() {
     setSyncing(true)
     try {
-      // TODO: Implement actual Discord role sync
-      // This would:
-      // 1. Fetch Discord server roles
-      // 2. Map Discord roles to app roles based on mappings
-      // 3. Update user profiles in database
-      // 4. Handle conflicts
+      const response = await fetch("/api/discord/sync-roles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      })
 
-      toast.success("Role sync completed")
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to sync roles")
+      }
+
+      toast.success(data.message || "Role sync completed")
       loadUsers()
     } catch (error: any) {
       toast.error("Failed to sync roles: " + error.message)
