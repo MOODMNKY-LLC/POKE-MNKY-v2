@@ -1,14 +1,42 @@
 import { createClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { PokeballIcon } from "@/components/ui/pokeball-icon"
 import Link from "next/link"
-// import { mockTeams } from "@/lib/mock-data"
+
+export const dynamic = 'force-dynamic'
 
 const divisions = ["Kanto", "Johto", "Hoenn", "Sinnoh"]
 
 export default async function TeamsPage() {
-  const supabase = await createClient()
-  const { data: teams } = await supabase.from("teams").select("*").order("name")
+  try {
+    const supabase = await createClient()
+    const { data: teams, error } = await supabase.from("teams").select("*").order("name")
+
+    if (error) {
+      console.error("[Teams Page] Error fetching teams:", error)
+      throw error
+    }
+
+    if (!teams || teams.length === 0) {
+      return (
+        <>
+          <div className="border-b border-border bg-muted/30 py-8">
+            <div className="container mx-auto px-4 md:px-6">
+              <h1 className="text-4xl font-bold tracking-tight">All Teams</h1>
+              <p className="mt-2 text-muted-foreground">Browse all teams competing in the league</p>
+            </div>
+          </div>
+          <div className="container mx-auto px-4 md:px-6 py-8">
+            <Card>
+              <CardContent className="py-12 text-center">
+                <p className="text-muted-foreground">No teams found. Teams will appear here once they are added to the league.</p>
+              </CardContent>
+            </Card>
+          </div>
+        </>
+      )
+    }
 
   // Group by division
 
@@ -76,6 +104,29 @@ export default async function TeamsPage() {
             )
           })}
         </div>
-    </>
-  )
+      </>
+    )
+  } catch (error) {
+    console.error("[Teams Page] Failed to load teams:", error)
+    return (
+      <>
+        <div className="border-b border-border bg-muted/30 py-8">
+          <div className="container mx-auto px-4 md:px-6">
+            <h1 className="text-4xl font-bold tracking-tight">All Teams</h1>
+            <p className="mt-2 text-muted-foreground">Browse all teams competing in the league</p>
+          </div>
+        </div>
+        <div className="container mx-auto px-4 md:px-6 py-8">
+          <Card>
+            <CardContent className="py-12 text-center">
+              <p className="text-destructive font-semibold mb-2">Failed to load teams</p>
+              <p className="text-sm text-muted-foreground">
+                {error instanceof Error ? error.message : "An unexpected error occurred. Please try again later."}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </>
+    )
+  }
 }
