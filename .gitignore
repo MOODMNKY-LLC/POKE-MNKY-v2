@@ -49,3 +49,5 @@ temp/**/*.gif
 temp/**/*.svg
 temp/Pokemon-Showdown-Teams/
 temp/pokepaste-repo/
+
+.vercel

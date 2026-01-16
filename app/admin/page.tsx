@@ -5,7 +5,7 @@ import { createBrowserClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { Database, Calendar, Trophy, Users, RefreshCw, Settings } from "lucide-react"
+import { Database, Calendar, Trophy, Users, RefreshCw, Settings, MessageSquare } from "lucide-react"
 import { SupabaseManager } from "@/components/platform/supabase-manager"
 import { PokepediaSyncStatus } from "@/components/admin/pokepedia-sync-status"
 import { useRouter } from "next/navigation"
@@ -239,6 +239,35 @@ export default function AdminPage() {
               <Button asChild variant="outline" className="w-full bg-transparent">
                 <Link href="/admin/users">Manage Users</Link>
               </Button>
+            </CardContent>
+          </Card>
+
+          {/* Discord Management */}
+          <Card>
+            <CardHeader>
+              <MessageSquare className="mb-2 h-8 w-8 text-primary" />
+              <CardTitle>Discord Management</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-4 text-sm text-muted-foreground">
+                Manage Discord roles, sync permissions, and configure bot settings.
+              </p>
+              <div className="flex flex-col gap-2">
+                <Button asChild variant="outline" className="w-full bg-transparent">
+                  <Link href="/admin/users#discord">Manage Discord</Link>
+                </Button>
+                <div className="flex gap-2">
+                  <Button asChild variant="ghost" size="sm" className="flex-1 text-xs">
+                    <Link href="/admin/discord/config">Config</Link>
+                  </Button>
+                  <Button asChild variant="ghost" size="sm" className="flex-1 text-xs">
+                    <Link href="/admin/discord/bot">Bot Status</Link>
+                  </Button>
+                  <Button asChild variant="ghost" size="sm" className="flex-1 text-xs">
+                    <Link href="/admin/discord/webhooks">Webhooks</Link>
+                  </Button>
+                </div>
+              </div>
             </CardContent>
           </Card>
 

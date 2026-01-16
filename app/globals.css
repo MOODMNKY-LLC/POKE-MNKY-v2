@@ -294,11 +294,14 @@
 
   /* Mobile performance optimizations */
   @media (max-width: 768px) {
-    /* Reduce animations on mobile for better performance */
-    @media (prefers-reduced-motion: no-preference) {
-      * {
-        animation-duration: 0.15s !important;
-        transition-duration: 0.15s !important;
+    /* Respect prefers-reduced-motion for accessibility */
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
       }
     }
 
@@ -306,6 +309,13 @@
     img {
       max-width: 100%;
       height: auto;
+    }
+
+    /* Ensure long-duration animations (marquee, slow spins) maintain their duration on mobile */
+    .animate-marquee,
+    .animate-marquee-vertical,
+    .animate-spin-slow {
+      animation-duration: var(--duration, inherit) !important;
     }
   }
 
