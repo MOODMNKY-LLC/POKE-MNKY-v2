@@ -36,23 +36,39 @@ export function PokemonCompactCard({
   const { pokemon: fetchedPokemon, loading, error } = usePokemonData(pokemonId)
   const pokemon = providedPokemonData || fetchedPokemon
 
-  // Show loading state only if we don't have provided data and are still fetching
-  if (!providedPokemonData && loading) {
+  // If no pokemon data available but we have pokemonId, show sprite-only card
+  // This allows sprites to load from GitHub PokeAPI/sprites repo even when data fetch fails or is still loading
+  // This is the PRIMARY way to display Pokemon - sprites from GitHub repo
+  if (!pokemon && pokemonId) {
     return (
       <Card 
-        className={cn("p-2 flex items-center justify-center", className)} 
-        style={{ minHeight: "200px", width: "180px" }} // Fixed dimensions to prevent layout shift
+        className={cn("p-2 flex flex-col items-center justify-center", className)} 
+        style={{ minHeight: "200px", width: "180px" }}
       >
-        <div className="flex flex-col items-center gap-1">
-          <PokeballIcon size={16} className="animate-spin text-muted-foreground" />
-          <p className="text-[9px] text-muted-foreground">Loading...</p>
+        <div className="flex flex-col items-center gap-2 w-full">
+          <div className="relative w-20 h-20 flex items-center justify-center bg-muted/20 rounded-md overflow-hidden">
+            <PokemonSprite
+              name={`pokemon-${pokemonId}`}
+              pokemonId={pokemonId}
+              size="md"
+              mode="artwork"
+              className="drop-shadow-md"
+            />
+          </div>
+          <p className="text-xs text-muted-foreground text-center font-medium">#{String(pokemonId).padStart(4, "0")}</p>
+          {loading && (
+            <div className="flex items-center gap-1">
+              <PokeballIcon size={10} className="animate-spin text-muted-foreground" />
+              <p className="text-[9px] text-muted-foreground">Loading data...</p>
+            </div>
+          )}
         </div>
       </Card>
     )
   }
 
   // Handle error state - only show if we don't have provided data
-  if (!providedPokemonData && error) {
+  if (!providedPokemonData && error && !pokemonId) {
     return (
       <Card 
         className={cn("p-2 flex items-center justify-center", className)} 
@@ -63,9 +79,19 @@ export function PokemonCompactCard({
     )
   }
 
-  // If no pokemon data available (and not loading), return null
-  if (!pokemon && !loading) {
-    return null
+  // If no pokemon data and no pokemonId, show loading placeholder
+  if (!pokemon && !pokemonId) {
+    return (
+      <Card 
+        className={cn("p-2 flex items-center justify-center", className)} 
+        style={{ minHeight: "200px", width: "180px" }}
+      >
+        <div className="flex flex-col items-center gap-2">
+          <PokeballIcon size={24} className="text-muted-foreground" />
+          <p className="text-xs text-muted-foreground text-center">Loading...</p>
+        </div>
+      </Card>
+    )
   }
 
   const typeColors = getPokemonTypeColors(pokemon.types)

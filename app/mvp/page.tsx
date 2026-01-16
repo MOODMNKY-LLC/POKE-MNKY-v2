@@ -6,23 +6,77 @@ import { Trophy, Zap, Target } from "lucide-react"
 export default async function MVPPage() {
   const supabase = await createClient()
 
-  // Fetch pokemon stats
-  const { data: allStats } = await supabase
-    .from("pokemon_stats")
-    .select(
-      `
-      pokemon_id,
-      kills,
-      pokemon:pokemon_id(name, type1, type2),
-      team:team_id(name, division)
-    `,
+  // Check if pokemon_stats table has kills column (league stats)
+  let allStats: any[] = []
+  
+  try {
+    const testResult = await supabase
+      .from("pokemon_stats")
+      .select("pokemon_id, kills, team_id")
+      .limit(1)
+
+    if (testResult.error && testResult.error.code === '42703') {
+      // Column doesn't exist - pokemon_stats is the pokedex version, not league stats
+      // Return empty state
+      return (
+        <div className="container mx-auto px-4 py-8">
+          <h1 className="text-3xl font-bold mb-6">MVP Standings</h1>
+          <p className="text-muted-foreground">No match statistics available yet. Stats will appear here once matches are recorded.</p>
+        </div>
+      )
+    }
+
+    // Table has kills column - fetch all stats
+    const statsResult = await supabase
+      .from("pokemon_stats")
+      .select("pokemon_id, kills, team_id")
+      .order("kills", { ascending: false })
+
+    if (statsResult.error) {
+      console.error("Error fetching pokemon stats:", statsResult.error)
+      allStats = []
+    } else {
+      allStats = statsResult.data || []
+    }
+  } catch (error) {
+    console.error("Exception fetching pokemon stats:", error)
+    allStats = []
+  }
+
+  if (!allStats || allStats.length === 0) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-3xl font-bold mb-6">MVP Standings</h1>
+        <p className="text-muted-foreground">No stats available yet.</p>
+      </div>
     )
-    .order("kills", { ascending: false })
+  }
+
+  // Fetch pokemon and team data separately
+  const pokemonIds = [...new Set(allStats.map((stat: any) => stat.pokemon_id))]
+  const teamIds = [...new Set(allStats.map((stat: any) => stat.team_id))]
+
+  const { data: pokemonData } = await supabase
+    .from("pokemon")
+    .select("id, name, type1, type2")
+    .in("id", pokemonIds)
+
+  const { data: teamData } = await supabase
+    .from("teams")
+    .select("id, name, division")
+    .in("id", teamIds)
+
+  // Combine the data
+  const statsWithRelations = allStats.map((stat: any) => ({
+    ...stat,
+    pokemon: pokemonData?.find((p: any) => p.id === stat.pokemon_id) || null,
+    team: teamData?.find((t: any) => t.id === stat.team_id) || null,
+  }))
 
   // Aggregate kills per pokemon
   const pokemonKills = new Map<string, any>()
 
-  allStats?.forEach((stat) => {
+  statsWithRelations.forEach((stat) => {
     const pokemonId = stat.pokemon_id
     if (!pokemonKills.has(pokemonId)) {
       pokemonKills.set(pokemonId, {

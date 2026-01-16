@@ -4,8 +4,9 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ExternalLink, History, Loader2, Calendar } from 'lucide-react';
+import { ExternalLink, History, Loader2, Calendar, Play } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { extractReplayId } from '@/lib/showdown/replay-utils';
 
 interface Match {
   id: string;
@@ -112,12 +113,22 @@ export default function ReplayLibrary() {
               
               {match.showdown_room_url && (
                 <Button
-                  onClick={() => window.open(match.showdown_room_url, '_blank')}
+                  onClick={() => {
+                    // Extract replay ID from room URL or use showdown_room_id
+                    const replayId = extractReplayId(match.showdown_room_url) || match.showdown_room_id;
+                    
+                    if (replayId) {
+                      router.push(`/showdown/replay/${replayId}`);
+                    } else {
+                      // Fallback to external link
+                      window.open(match.showdown_room_url, '_blank');
+                    }
+                  }}
                   className="w-full"
                   variant="default"
                 >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  View Replay
+                  <History className="h-4 w-4 mr-2" />
+                  Watch Replay
                 </Button>
               )}
               

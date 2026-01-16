@@ -24,7 +24,6 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false)
   const [activity, setActivity] = useState<any[]>([])
   const router = useRouter()
-  const supabase = createBrowserClient()
 
   // Form state
   const [displayName, setDisplayName] = useState("")
@@ -41,6 +40,7 @@ export default function ProfilePage() {
   }, [])
 
   async function loadProfile() {
+    const supabase = createBrowserClient()
     const profile = await getCurrentUserProfile(supabase)
 
     if (!profile) {
@@ -56,6 +56,7 @@ export default function ProfilePage() {
   }
 
   async function loadActivity() {
+    const supabase = createBrowserClient()
     const { data } = await supabase
       .from("user_activity_log")
       .select("*")
@@ -70,6 +71,7 @@ export default function ProfilePage() {
   async function saveProfile() {
     if (!profile) return
 
+    const supabase = createBrowserClient()
     setSaving(true)
 
     const { error } = await supabase

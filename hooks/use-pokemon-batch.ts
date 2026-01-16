@@ -6,8 +6,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { createBrowserClient } from "@/lib/supabase/client"
-import { adaptPokepediaToDisplayData, parseJsonbField } from "@/lib/pokepedia-adapter"
+import { getPokemon } from "@/lib/pokemon-utils"
 import type { PokemonDisplayData } from "@/lib/pokemon-utils"
 
 export function usePokemonBatch(pokemonIds: number[]) {
@@ -28,43 +27,63 @@ export function usePokemonBatch(pokemonIds: number[]) {
       setError(null)
       
       try {
-        const supabase = createBrowserClient()
+        // CLIENT-SIDE: Skip Supabase entirely, fetch directly from official PokeAPI
+        // This aligns with our architecture: client-side uses official API via pokenode-ts
+        console.log("[usePokemonBatch] Client-side: Fetching directly from official PokeAPI for", pokemonIds.length, "Pokemon")
         
-        // Batch fetch all Pokemon in a single query
-        const { data, error: queryError } = await supabase
-          .from("pokepedia_pokemon")
-          .select("*")
-          .in("id", pokemonIds)
-
-        if (queryError) {
-          throw new Error(`Failed to fetch Pokemon batch: ${queryError.message}`)
-        }
-
-        if (!cancelled && data) {
-          const map = new Map<number, PokemonDisplayData>()
-          
-          // Process each Pokemon
-          data.forEach((row) => {
-            try {
-              const adapted = adaptPokepediaToDisplayData({
-                ...row,
-                types: parseJsonbField<string[]>(row.types) || row.types,
-                base_stats: parseJsonbField<typeof row.base_stats>(row.base_stats) || row.base_stats,
-                abilities: parseJsonbField<typeof row.abilities>(row.abilities) || row.abilities,
-              })
-              map.set(row.id, adapted)
-            } catch (adaptError) {
-              console.error(`Error adapting Pokemon ${row.id}:`, adaptError)
+        // Fetch each Pokemon individually using getPokemon (which uses official API on client-side)
+        const map = new Map<number, PokemonDisplayData>()
+        const fetchPromises = pokemonIds.map(async (id) => {
+          try {
+            const pokemon = await getPokemon(id)
+            if (pokemon) {
+              map.set(id, pokemon)
+              console.log(`[usePokemonBatch] Successfully fetched Pokemon ${id}: ${pokemon.name}`)
+            } else {
+              console.debug(`[usePokemonBatch] No data returned for Pokemon ${id}`)
             }
-          })
-          
+          } catch (err) {
+            console.debug(`[usePokemonBatch] Failed to fetch Pokemon ${id}:`, err)
+          }
+        })
+
+        await Promise.allSettled(fetchPromises)
+        
+        console.log(`[usePokemonBatch] Complete. Fetched ${map.size} out of ${pokemonIds.length} Pokemon`)
+        
+        if (!cancelled) {
           setPokemonMap(map)
           setLoading(false)
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Failed to fetch Pokemon batch")
-          setLoading(false)
+          console.error("[usePokemonBatch] Unexpected error:", err)
+          // Try fallback to individual fetches
+          try {
+            const map = new Map<number, PokemonDisplayData>()
+            const fetchPromises = pokemonIds.map(async (id) => {
+              try {
+                const pokemon = await getPokemon(id)
+                if (pokemon) {
+                  map.set(id, pokemon)
+                }
+              } catch (fetchErr) {
+                console.debug(`[usePokemonBatch] Failed to fetch Pokemon ${id}:`, fetchErr)
+              }
+            })
+
+            await Promise.allSettled(fetchPromises)
+            
+            if (!cancelled) {
+              setPokemonMap(map)
+              setLoading(false)
+            }
+          } catch (fallbackErr) {
+            if (!cancelled) {
+              setError(err instanceof Error ? err.message : "Failed to fetch Pokemon batch")
+              setLoading(false)
+            }
+          }
         }
       }
     }

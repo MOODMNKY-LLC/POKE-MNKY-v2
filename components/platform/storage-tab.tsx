@@ -14,13 +14,13 @@ export function StorageTab({ projectRef }: { projectRef: string }) {
   const [buckets, setBuckets] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [newBucketName, setNewBucketName] = useState("")
-  const supabase = createBrowserClient()
 
   useEffect(() => {
     loadBuckets()
   }, [])
 
   async function loadBuckets() {
+    const supabase = createBrowserClient()
     setLoading(true)
     try {
       // Try using client-side storage API first
@@ -96,6 +96,7 @@ export function StorageTab({ projectRef }: { projectRef: string }) {
       return
     }
 
+    const supabase = createBrowserClient()
     try {
       const { error } = await supabase.storage.deleteBucket(bucketName)
       if (error) throw error

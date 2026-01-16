@@ -5,7 +5,13 @@
 
 import { createBrowserClient } from "@/lib/supabase/client"
 
-const supabase = createBrowserClient()
+// Lazy initialization - only create client when needed (client-side only)
+function getSupabaseClient() {
+  if (typeof window === 'undefined') {
+    throw new Error('Supabase client can only be created on the client side')
+  }
+  return createBrowserClient()
+}
 
 export interface EvolutionLink {
   id: number
@@ -52,6 +58,9 @@ function extractIdFromUrl(url: string | null | undefined): number | null {
  */
 export async function getPokemonEvolutionChain(pokemonId: number): Promise<EvolutionLink[]> {
   try {
+    // Only create client when function is called (client-side only)
+    const supabase = getSupabaseClient()
+    
     // Try to get species_id from pokemon_comprehensive first
     let speciesId: number | null = null
 

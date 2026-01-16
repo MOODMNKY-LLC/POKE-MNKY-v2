@@ -63,24 +63,24 @@ export function PokemonSprite({
 
   // Determine sprite URL priority:
   // 1. Provided sprite prop
-  // 2. Supabase Storage path (from pokepedia_pokemon table)
-  // 3. Pokemon object with sprites (external URLs)
-  // 4. Fallback to PokeAPI URL
+  // 2. GitHub PokeAPI/sprites repo (when pokemonId available) - PRIMARY SOURCE
+  // 3. Supabase Storage path (from pokepedia_pokemon table)
+  // 4. Pokemon object with sprites (external URLs)
   const primarySpriteUrl = useMemo(() => {
     if (sprite) {
       return sprite
-    } else if (pokemon) {
-      // getSpriteUrl now checks Supabase Storage paths first, then external URLs
-      return getSpriteUrl(pokemon, mode)
     } else if (pokemonId) {
-      // getFallbackSpriteUrl now checks MinIO first, then Supabase Storage, then GitHub
-      // Handle artwork mode separately
+      // PRIMARY: Use GitHub PokeAPI/sprites repo directly when pokemonId is available
+      // This ensures sprites load even when Pokemon data isn't fetched
       const fallbackMode = mode === "artwork" ? "artwork" : mode === "back" ? "back" : "front"
       return getFallbackSpriteUrl(pokemonId, mode === "shiny", fallbackMode)
+    } else if (pokemon) {
+      // getSpriteUrl checks Supabase Storage paths first, then external URLs
+      return getSpriteUrl(pokemon, mode)
     } else {
       return null
     }
-  }, [sprite, pokemon, pokemonId, mode])
+  }, [sprite, pokemonId, pokemon, mode])
 
   // Determine GitHub fallback URL for when primary URL fails
   const githubFallbackUrl = useMemo(() => {

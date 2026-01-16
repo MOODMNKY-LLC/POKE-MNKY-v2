@@ -27,6 +27,8 @@ export function DatabaseTab({ projectRef }: DatabaseTabProps) {
     
     // Fallback: try to extract from environment variable
     // Note: NEXT_PUBLIC_ vars are available at runtime in client components
+    if (typeof window === 'undefined') return projectRef || "" // Skip during SSR
+    
     const envUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
     const isLocal = envUrl.includes("localhost") || envUrl.includes("127.0.0.1")
     
@@ -47,7 +49,8 @@ export function DatabaseTab({ projectRef }: DatabaseTabProps) {
     return projectRef || ""
   }
 
-  const validProjectRef = getValidProjectRef()
+  // Only call getValidProjectRef when needed (not during SSR)
+  const validProjectRef = typeof window !== 'undefined' ? getValidProjectRef() : projectRef || ""
 
   // Clean SQL from markdown code blocks and extra whitespace
   const cleanSQL = (sql: string): string => {

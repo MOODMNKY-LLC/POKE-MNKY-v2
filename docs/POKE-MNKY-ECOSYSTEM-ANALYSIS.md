@@ -907,9 +907,21 @@ For each endpoint, document:
 - `/app/teams/builder/` - Team builder interface
 - `/app/standings/` - Standings display
 - `/app/showdown/` - Showdown integration UI (if exists)
+- `/app/docs/api/` - **NEW**: PokéAPI documentation integration (see Phase 2 Integration Guide)
 - Other major pages and their functionality
 - Reusable components and their purposes
 - UI libraries and design system
+
+**PokéAPI Documentation Integration** (Phase 2):
+- **Service**: `pokeapi-docs` container (managed by server agent)
+- **Production URL**: `https://pokeapi-docs.moodmnky.com`
+- **Integration Guide**: See `temp/POKEAPI-DOCS-PHASE2-INTEGRATION.md` for detailed instructions
+- **Implementation Options**: 
+  1. Embedded route (`/docs/api`) with iframe
+  2. Direct link to documentation site
+  3. Enhanced Pokédex integration with API links
+- **Theming**: App agent can customize styles by accessing server files (see integration guide)
+- **Discord Bot**: `/api-docs` command already implemented (no action needed)
 
 ### Integration with Server Services
 

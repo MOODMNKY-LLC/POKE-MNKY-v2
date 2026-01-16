@@ -1,5 +1,7 @@
 "use client"
 
+export const dynamic = 'force-dynamic'
+
 import { useState, useEffect } from "react"
 import { createBrowserClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -27,9 +29,9 @@ export default function PokepediaDashboardPage() {
   const [activeTab, setActiveTab] = useState("overview")
   const [projectRef, setProjectRef] = useState<string>("")
   const router = useRouter()
-  const supabase = createBrowserClient()
 
   useEffect(() => {
+    const supabase = createBrowserClient()
     supabase.auth.getUser().then(({ data, error }) => {
       if (error || !data.user) {
         router.push("/auth/login")
@@ -108,7 +110,7 @@ export default function PokepediaDashboardPage() {
     fetchStats()
     const interval = setInterval(fetchStats, 30000) // Refresh every 30 seconds
     return () => clearInterval(interval)
-  }, [router, supabase])
+  }, [router])
 
   const statCards = [
     {
