@@ -7,11 +7,12 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { UserAvatar } from "@/components/ui/user-avatar"
 import { PokeballIcon } from "@/components/ui/pokeball-icon"
-import { Shield, Users, Search, Filter, CheckCircle2, AlertCircle } from "lucide-react"
+import { Shield, Users, Search, Filter, CheckCircle2, AlertCircle, Link2, Loader2, Plus, X } from "lucide-react"
 import type { UserRole } from "@/lib/rbac"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -25,6 +26,14 @@ function UsersManagementContent() {
   const [searchTerm, setSearchTerm] = useState("")
   const [roleFilter, setRoleFilter] = useState<string>("all")
   const [currentUser, setCurrentUser] = useState<any>(null)
+  const [linkingDiscord, setLinkingDiscord] = useState<string | null>(null)
+  const [discordRoles, setDiscordRoles] = useState<any[]>([])
+  const [loadingRoles, setLoadingRoles] = useState(false)
+  const [assigningRole, setAssigningRole] = useState<string | null>(null)
+  const [selectedUserForRoles, setSelectedUserForRoles] = useState<string | null>(null)
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false)
+  const [linkDialogUserId, setLinkDialogUserId] = useState<string | null>(null)
+  const [discordUsernameInput, setDiscordUsernameInput] = useState("")
   const router = useRouter()
 
   useEffect(() => {
@@ -77,6 +86,7 @@ function UsersManagementContent() {
 
   async function fetchUsers() {
     setLoading(true)
+    const supabase = createBrowserClient()
     const { data, error } = await supabase
       .from("user_management_view")
       .select("*")
@@ -90,22 +100,25 @@ function UsersManagementContent() {
   }
 
   async function updateUserRole(userId: string, newRole: UserRole) {
+    const supabase = createBrowserClient()
     const { error } = await supabase.from("profiles").update({ role: newRole }).eq("id", userId)
 
     if (error) {
       console.error("Error updating role:", error)
-      alert("Failed to update role")
+      toast.error("Failed to update role")
       return
     }
 
     // Log activity
-    await supabase.from("user_activity_log").insert({
-      user_id: currentUser.id,
-      action: "update_user_role",
-      resource_type: "profile",
-      resource_id: userId,
-      metadata: { new_role: newRole },
-    })
+    if (currentUser) {
+      await supabase.from("user_activity_log").insert({
+        user_id: currentUser.id,
+        action: "update_user_role",
+        resource_type: "profile",
+        resource_id: userId,
+        metadata: { new_role: newRole },
+      })
+    }
 
     // Sync to Discord (non-blocking - don't fail if Discord sync fails)
     try {
@@ -139,14 +152,56 @@ function UsersManagementContent() {
 
   async function toggleUserStatus(userId: string, currentStatus: boolean) {
     const supabase = createBrowserClient()
+    const { error } = await supabase
+      .from("profiles")
+      .update({ is_active: !currentStatus })
+      .eq("id", userId)
 
     if (error) {
       console.error("Error updating status:", error)
-      alert("Failed to update status")
+      toast.error("Failed to update status")
       return
     }
 
+    toast.success(`User ${!currentStatus ? "activated" : "deactivated"}`)
     fetchUsers()
+  }
+
+  function openLinkDialog(userId: string) {
+    setLinkDialogUserId(userId)
+    setDiscordUsernameInput("")
+    setLinkDialogOpen(true)
+  }
+
+  async function linkDiscordAccount() {
+    if (!linkDialogUserId || !discordUsernameInput.trim()) {
+      toast.error("Please enter a Discord username")
+      return
+    }
+
+    setLinkingDiscord(linkDialogUserId)
+    try {
+      const response = await fetch("/api/discord/link-account", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: linkDialogUserId, discordUsername: discordUsernameInput.trim() }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to link Discord account")
+      }
+
+      toast.success(data.message || "Discord account linked successfully")
+      setLinkDialogOpen(false)
+      setDiscordUsernameInput("")
+      fetchUsers()
+    } catch (error: any) {
+      toast.error(`Failed to link Discord: ${error.message}`)
+    } finally {
+      setLinkingDiscord(null)
+    }
   }
 
   if (loading) {
@@ -271,33 +326,64 @@ function UsersManagementContent() {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <PokeballIcon role={user.role} size="xs" />
-                        <Select
-                          value={user.role}
-                          onValueChange={(newRole) => updateUserRole(user.id, newRole as UserRole)}
-                          disabled={user.id === currentUser?.id}
-                        >
-                          <SelectTrigger className="w-[140px]">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="admin">Admin</SelectItem>
-                            <SelectItem value="commissioner">Commissioner</SelectItem>
-                            <SelectItem value="coach">Coach</SelectItem>
-                            <SelectItem value="viewer">Viewer</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        {user.discord_id && (
-                          <span className="text-xs text-muted-foreground" title="Will sync to Discord">
-                            <CheckCircle2 className="h-3 w-3 text-green-500" />
-                          </span>
+                        {user.id === currentUser?.id ? (
+                          <div className="flex items-center gap-2">
+                            <Badge variant="secondary" className="w-[140px] justify-center">
+                              {user.role || "viewer"}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground" title="Cannot change your own role">
+                              (You)
+                            </span>
+                          </div>
+                        ) : (
+                          <>
+                            <Select
+                              value={user.role}
+                              onValueChange={(newRole) => updateUserRole(user.id, newRole as UserRole)}
+                            >
+                              <SelectTrigger className="w-[140px]">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="admin">Admin</SelectItem>
+                                <SelectItem value="commissioner">Commissioner</SelectItem>
+                                <SelectItem value="coach">Coach</SelectItem>
+                                <SelectItem value="viewer">Viewer</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            {user.discord_id && (
+                              <span className="text-xs text-muted-foreground" title="Will sync to Discord">
+                                <CheckCircle2 className="h-3 w-3 text-green-500" />
+                              </span>
+                            )}
+                          </>
                         )}
                       </div>
                     </TableCell>
                     <TableCell>
                       {user.discord_username ? (
-                        <span className="text-sm">{user.discord_username}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm">{user.discord_username}</span>
+                          <DiscordRolesDialog userId={user.id} discordId={user.discord_id} />
+                        </div>
                       ) : (
-                        <span className="text-sm text-muted-foreground">Not connected</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-muted-foreground">Not connected</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openLinkDialog(user.id)}
+                            disabled={linkingDiscord === user.id}
+                            className="h-6 px-2"
+                            title="Link Discord account"
+                          >
+                            {linkingDiscord === user.id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <Link2 className="h-3 w-3" />
+                            )}
+                          </Button>
+                        </div>
                       )}
                     </TableCell>
                     <TableCell>
@@ -325,7 +411,236 @@ function UsersManagementContent() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Link Discord Account Dialog */}
+      <Dialog open={linkDialogOpen} onOpenChange={setLinkDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Link Discord Account</DialogTitle>
+            <DialogDescription>
+              Enter the Discord username to link this account
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">
+                Discord Username
+              </label>
+              <Input
+                placeholder="username#1234 or just username"
+                value={discordUsernameInput}
+                onChange={(e) => setDiscordUsernameInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    linkDiscordAccount()
+                  }
+                }}
+                autoFocus
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                The user must be a member of your Discord server
+              </p>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setLinkDialogOpen(false)
+                  setDiscordUsernameInput("")
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={linkDiscordAccount}
+                disabled={!discordUsernameInput.trim() || linkingDiscord !== null}
+              >
+                {linkingDiscord ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Linking...
+                  </>
+                ) : (
+                  "Link Account"
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
+  )
+}
+
+// Discord Roles Dialog Component
+function DiscordRolesDialog({ userId, discordId }: { userId: string; discordId: string }) {
+  const [open, setOpen] = useState(false)
+  const [availableRoles, setAvailableRoles] = useState<any[]>([])
+  const [userRoles, setUserRoles] = useState<any[]>([])
+  const [loading, setLoading] = useState(false)
+  const [assigning, setAssigning] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (open) {
+      fetchData()
+    }
+  }, [open, userId])
+
+  async function fetchData() {
+    setLoading(true)
+    try {
+      // Fetch available roles and user's current roles in parallel
+      const [rolesRes, userRolesRes] = await Promise.all([
+        fetch("/api/discord/roles"),
+        fetch(`/api/discord/user-roles?userId=${userId}`),
+      ])
+
+      const rolesData = await rolesRes.json()
+      const userRolesData = await userRolesRes.json()
+
+      if (rolesData.success) {
+        setAvailableRoles(rolesData.roles || [])
+      }
+      if (userRolesData.success) {
+        setUserRoles(userRolesData.roles || [])
+      }
+    } catch (error: any) {
+      toast.error(`Failed to load Discord roles: ${error.message}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function assignRole(roleId: string, action: 'add' | 'remove') {
+    setAssigning(roleId)
+    try {
+      const response = await fetch("/api/discord/assign-role", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, discordRoleId: roleId, action }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || `Failed to ${action} role`)
+      }
+
+      toast.success(data.message)
+      fetchData() // Refresh roles
+    } catch (error: any) {
+      toast.error(`Failed to ${action} role: ${error.message}`)
+    } finally {
+      setAssigning(null)
+    }
+  }
+
+  const userRoleIds = new Set(userRoles.map(r => r.id))
+  const unassignedRoles = availableRoles.filter(r => !userRoleIds.has(r.id))
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="sm" className="h-6 px-2">
+          <Shield className="h-3 w-3" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Manage Discord Roles</DialogTitle>
+          <DialogDescription>
+            Assign or remove Discord roles for this user
+          </DialogDescription>
+        </DialogHeader>
+
+        {loading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin" />
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {/* Current Roles */}
+            <div>
+              <h3 className="font-semibold mb-3">Current Roles ({userRoles.length})</h3>
+              {userRoles.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No Discord roles assigned</p>
+              ) : (
+                <div className="space-y-2">
+                  {userRoles.map((role) => (
+                    <div
+                      key={role.id}
+                      className="flex items-center justify-between p-2 border rounded-lg"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-4 h-4 rounded-full"
+                          style={{ backgroundColor: role.color }}
+                        />
+                        <span className="text-sm font-medium">{role.name}</span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => assignRole(role.id, 'remove')}
+                        disabled={assigning === role.id}
+                      >
+                        {assigning === role.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <X className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Available Roles */}
+            <div>
+              <h3 className="font-semibold mb-3">Available Roles ({unassignedRoles.length})</h3>
+              {unassignedRoles.length === 0 ? (
+                <p className="text-sm text-muted-foreground">All roles assigned</p>
+              ) : (
+                <div className="space-y-2">
+                  {unassignedRoles.map((role) => (
+                    <div
+                      key={role.id}
+                      className="flex items-center justify-between p-2 border rounded-lg"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-4 h-4 rounded-full"
+                          style={{ backgroundColor: role.color }}
+                        />
+                        <div>
+                          <span className="text-sm font-medium">{role.name}</span>
+                          <span className="text-xs text-muted-foreground ml-2">
+                            ({role.memberCount} members)
+                          </span>
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => assignRole(role.id, 'add')}
+                        disabled={assigning === role.id}
+                      >
+                        {assigning === role.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Plus className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   )
 }
 
