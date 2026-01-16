@@ -72,6 +72,16 @@ export default function TeamLibrary() {
       });
 
       if (!response.ok) {
+        // Handle authentication errors specifically
+        if (response.status === 401) {
+          const errorData = await response.json().catch(() => ({ error: 'Unauthorized' }));
+          console.warn('[Team Library] Authentication required:', errorData);
+          // Don't show error toast for auth - let the UI handle it gracefully
+          setTeams([]);
+          return;
+        }
+
+        // Handle other errors
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
         const errorMessage = errorData.error || `Failed to fetch teams (${response.status})`;
         console.error('Failed to fetch teams:', {
@@ -86,8 +96,11 @@ export default function TeamLibrary() {
       setTeams(data.teams || []);
     } catch (error) {
       console.error('Failed to fetch teams:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to load teams';
-      toast.error(errorMessage);
+      // Only show error toast for non-auth errors
+      if (!(error instanceof Error && error.message === 'Unauthorized')) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to load teams';
+        toast.error(errorMessage);
+      }
       setTeams([]); // Clear teams on error
     } finally {
       setLoading(false);
@@ -241,16 +254,23 @@ export default function TeamLibrary() {
       </Card>
 
       {/* Teams Grid/List */}
-      {teams.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">
-          <p className="text-lg mb-2">No teams found</p>
-          <p className="text-sm">
-            {searchQuery || formatFilter !== 'all' || generationFilter !== 'all'
-              ? 'Try adjusting your filters'
-              : 'Upload or import teams to get started'}
-          </p>
-        </div>
-      ) : (
+      {teams.length === 0 && !loading ? (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <p className="text-lg mb-2 font-semibold">No teams found</p>
+            <p className="text-sm text-muted-foreground mb-4">
+              {searchQuery || formatFilter !== 'all' || generationFilter !== 'all'
+                ? 'Try adjusting your filters'
+                : 'You need to be logged in to view your teams. Please sign in to continue.'}
+            </p>
+            {!searchQuery && formatFilter === 'all' && generationFilter === 'all' && (
+              <Button asChild>
+                <a href="/auth/login">Sign In</a>
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      ) : teams.length > 0 ? (
         <div className={viewMode === 'grid' 
           ? 'grid gap-4 md:grid-cols-2 lg:grid-cols-3' 
           : 'space-y-4'
@@ -266,7 +286,7 @@ export default function TeamLibrary() {
             />
           ))}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
