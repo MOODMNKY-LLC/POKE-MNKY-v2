@@ -33,6 +33,7 @@ function ConsentScreenContent() {
   // Prevent multiple simultaneous requests
   const fetchingRef = useRef(false)
   const fetchedAuthorizationIdsRef = useRef<Set<string>>(new Set())
+  const ageIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   // Check environment variables on mount
   useEffect(() => {
@@ -76,57 +77,102 @@ function ConsentScreenContent() {
     fetchedAuthorizationIdsRef.current.add(id)
     fetchingRef.current = true
     
-    checkAuthAndFetchDetails(id).finally(() => {
+    // Fetch authorization details first, then start polling only if valid
+    checkAuthAndFetchDetails(id).then((success) => {
+      fetchingRef.current = false
+      
+      // Only start polling if authorization is valid and we have details
+      if (success && !error) {
+        // Check authorization age periodically (every 30 seconds)
+        ageIntervalRef.current = setInterval(async () => {
+          if (id && startTime) {
+            const ageMinutes = Math.floor((Date.now() - startTime) / 60000)
+            setAuthorizationAge(ageMinutes)
+            
+            // If authorization is getting old, re-validate it
+            // Stop polling if authorization becomes invalid
+            if (ageMinutes > 8) {
+              const shouldStop = await checkAuthorizationAge(id)
+              if (shouldStop && ageIntervalRef.current) {
+                clearInterval(ageIntervalRef.current)
+                ageIntervalRef.current = null
+              }
+            }
+          }
+        }, 30000)
+      }
+    }).catch(() => {
       fetchingRef.current = false
     })
-    
-    // Check authorization age periodically (every 30 seconds)
-    const ageInterval = setInterval(() => {
-      if (id && startTime) {
-        const ageMinutes = Math.floor((Date.now() - startTime) / 60000)
-        setAuthorizationAge(ageMinutes)
-        
-        // If authorization is getting old, re-validate it
-        if (ageMinutes > 8) {
-          checkAuthorizationAge(id)
-        }
-      }
-    }, 30000)
 
     return () => {
-      clearInterval(ageInterval)
+      if (ageIntervalRef.current) {
+        clearInterval(ageIntervalRef.current)
+        ageIntervalRef.current = null
+      }
       fetchingRef.current = false
     }
   }, [searchParams]) // Removed authorizationStartTime from dependencies to prevent re-runs
 
   // Check authorization age/validity periodically
-  const checkAuthorizationAge = async (id: string) => {
+  // Returns true if authorization is invalid and polling should stop
+  const checkAuthorizationAge = async (id: string): Promise<boolean> => {
     // Don't check if we're already processing or have an error
     if (fetchingRef.current || error) {
-      return
+      return false
     }
     
     try {
       const supabase = createClient()
       const { data, error: detailsError } = await supabase.auth.oauth.getAuthorizationDetails(id)
       
-      if (detailsError || !data || !data.client) {
-        // Only set error if we don't already have one (to avoid overwriting more specific errors)
+      // Check for specific error messages that indicate authorization is invalid/expired
+      if (detailsError) {
+        const errorMessage = detailsError.message || ""
+        if (errorMessage.includes('cannot be processed') || 
+            errorMessage.includes('validation_failed') ||
+            errorMessage.includes('expired') ||
+            errorMessage.includes('invalid') ||
+            detailsError.status === 400) {
+          // Stop polling - authorization is invalid
+          if (ageIntervalRef.current) {
+            clearInterval(ageIntervalRef.current)
+            ageIntervalRef.current = null
+          }
+          // Only set error if we don't already have one (to avoid overwriting more specific errors)
+          if (!error) {
+            setError("Authorization request expired or invalid. Please start the authorization flow again from the application.")
+          }
+          setAuthDetails(null)
+          return true // Signal to stop polling
+        }
+      }
+      
+      if (!data || !data.client) {
+        // Stop polling - no valid data
+        if (ageIntervalRef.current) {
+          clearInterval(ageIntervalRef.current)
+          ageIntervalRef.current = null
+        }
         if (!error) {
           setError("Authorization request expired. Please start the authorization flow again from the application.")
         }
         setAuthDetails(null)
+        return true // Signal to stop polling
       }
+      
+      return false // Continue polling
     } catch (err) {
       // Ignore errors in age check - don't disrupt user experience
       console.warn("Authorization age check failed:", err)
+      return false // Continue polling on unexpected errors
     }
   }
 
-  const checkAuthAndFetchDetails = async (id: string) => {
+  const checkAuthAndFetchDetails = async (id: string): Promise<boolean> => {
     // Don't fetch if already approved or if we're already processing
     if (approved || fetchingRef.current) {
-      return
+      return false
     }
     
     try {
@@ -140,7 +186,7 @@ function ConsentScreenContent() {
         setError("Failed to check authentication status")
         setLoading(false)
         fetchingRef.current = false
-        return
+        return false
       }
 
       if (!session) {
@@ -148,7 +194,7 @@ function ConsentScreenContent() {
         setIsAuthenticated(false)
         setLoading(false)
         fetchingRef.current = false
-        return
+        return false
       }
 
       setIsAuthenticated(true)
@@ -242,15 +288,15 @@ function ConsentScreenContent() {
 
       if (data) {
         setAuthDetails(data)
+        setLoading(false)
+        fetchingRef.current = false
+        return true // Authorization is valid
       } else {
         setError("No authorization details received. The authorization request may be invalid.")
         setLoading(false)
         fetchingRef.current = false
-        return
+        return false // Authorization is invalid
       }
-
-      setLoading(false)
-      fetchingRef.current = false
     } catch (err) {
       console.error("Error in checkAuthAndFetchDetails:", err)
       fetchingRef.current = false
@@ -260,6 +306,7 @@ function ConsentScreenContent() {
         setError(err instanceof Error ? err.message : "An unexpected error occurred")
       }
       setLoading(false)
+      return false // Authorization check failed
     }
   }
 
