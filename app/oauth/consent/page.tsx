@@ -77,57 +77,29 @@ function ConsentScreenContent() {
 
       setIsAuthenticated(true)
 
-      // Fetch authorization details
-      // Note: These methods may need to be called via REST API if not available in JS client
-      // Using type assertion to handle potential missing methods
-      const authClient = supabase.auth as any
+      // Fetch authorization details using official Supabase SDK method
+      // Reference: https://supabase.com/docs/reference/javascript/auth-admin-oauth-getauthorizationdetails
+      const { data, error: detailsError } = await supabase.auth.oauth.getAuthorizationDetails(id)
 
-      if (authClient.oauth?.getAuthorizationDetails) {
-        const { data, error: detailsError } = await authClient.oauth.getAuthorizationDetails(id)
-
-        if (detailsError) {
-          console.error("Authorization details error:", detailsError)
-          setError(detailsError.message || "Failed to fetch authorization details")
-          setLoading(false)
-          return
-        }
-
-        if (data) {
-          setAuthDetails(data)
-        }
-      } else {
-        // Fallback: Try REST API call if methods don't exist
-        console.warn("OAuth methods not available in client, trying REST API")
+      if (detailsError) {
+        console.error("Authorization details error:", detailsError)
         
-        // Get environment variables safely
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-        if (!supabaseUrl || !supabaseAnonKey) {
-          setError("Missing Supabase configuration. Please check environment variables.")
-          setLoading(false)
-          return
+        // Provide helpful error messages
+        if (detailsError.message?.includes("not found") || detailsError.message?.includes("invalid")) {
+          setError("Invalid or expired authorization request. Please start the authorization flow again.")
+        } else {
+          setError(detailsError.message || "Failed to fetch authorization details")
         }
+        setLoading(false)
+        return
+      }
 
-        const response = await fetch(
-          `${supabaseUrl}/auth/v1/oauth/authorization/${id}`,
-          {
-            headers: {
-              Authorization: `Bearer ${session.access_token}`,
-              apikey: supabaseAnonKey,
-            },
-          }
-        )
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ error_description: "Failed to fetch authorization details" }))
-          setError(errorData.error_description || "Failed to fetch authorization details")
-          setLoading(false)
-          return
-        }
-
-        const data = await response.json()
+      if (data) {
         setAuthDetails(data)
+      } else {
+        setError("No authorization details received. The authorization request may be invalid.")
+        setLoading(false)
+        return
       }
 
       setLoading(false)
@@ -173,80 +145,47 @@ function ConsentScreenContent() {
 
     try {
       const supabase = createClient()
-      const { data: { session } } = await supabase.auth.getSession()
+      
+      // Check if user is authenticated
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
 
-      if (!session) {
-        setError("You must be logged in to approve authorization")
+      if (sessionError || !session) {
+        setError("You must be logged in to approve authorization. Please sign in first.")
         setProcessing(false)
         return
       }
 
-      // Use REST API directly - SDK method may not work correctly
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      // Use official Supabase SDK method as per documentation
+      // Reference: https://supabase.com/docs/reference/javascript/auth-admin-oauth-approveauthorization
+      const { data, error: approveError } = await supabase.auth.oauth.approveAuthorization(authorizationId)
 
-      if (!supabaseUrl || !supabaseAnonKey) {
-        setError("Missing Supabase configuration. Please check environment variables.")
-        setProcessing(false)
-        return
-      }
-
-      // Try the consent endpoint with approve decision
-      const response = await fetch(
-        `${supabaseUrl}/auth/v1/oauth/authorizations/${authorizationId}/consent`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-            apikey: supabaseAnonKey,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            decision: "approve",
-          }),
-        }
-      )
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ 
-          error_description: "Failed to approve authorization. The authorization request may have expired. Please try again.",
-          error: "authorization_failed"
-        }))
+      if (approveError) {
+        console.error("Approve authorization error:", approveError)
         
-        console.error("Approve API error:", errorData)
-        
-        // Provide helpful error messages
-        if (response.status === 400) {
-          setError(errorData.error_description || "Authorization request cannot be processed. It may have expired. Please start the authorization flow again.")
-        } else if (response.status === 401) {
+        // Provide helpful error messages based on error type
+        if (approveError.message?.includes("cannot be processed") || approveError.message?.includes("expired")) {
+          setError("This authorization request has expired or is invalid. Please start the authorization flow again from the application.")
+        } else if (approveError.message?.includes("unauthorized") || approveError.message?.includes("session")) {
           setError("Your session has expired. Please sign in again.")
         } else {
-          setError(errorData.error_description || `Failed to approve authorization (${response.status})`)
+          setError(approveError.message || "Failed to approve authorization. Please try again.")
         }
         setProcessing(false)
         return
       }
 
-      // Check if response has redirect URI
-      const data = await response.json().catch(() => ({}))
-      
-      // Supabase should redirect automatically, but if we get a redirect_uri, use it
-      if (data.redirect_uri && typeof window !== 'undefined') {
-        window.location.href = data.redirect_uri
+      // The SDK method returns { data: { redirect_to: string } }
+      // We must redirect the user to this URL to complete the OAuth flow
+      if (data?.redirect_to && typeof window !== 'undefined') {
+        window.location.href = data.redirect_to
       } else {
-        // Wait a moment for Supabase to process, then check if we need to redirect
-        setTimeout(() => {
-          // If still on consent page after 2 seconds, show success message
-          if (typeof window !== 'undefined' && window.location.pathname === '/oauth/consent') {
-            setError(null)
-            // The redirect should happen automatically via Supabase
-            // If not, user can close the window or we'll show a success message
-          }
-        }, 2000)
+        // Fallback: if no redirect_to, show error
+        setError("Authorization approved but no redirect URL received. Please contact support.")
+        setProcessing(false)
       }
     } catch (err) {
       console.error("Approve error:", err)
-      setError(err instanceof Error ? err.message : "An unexpected error occurred")
+      setError(err instanceof Error ? err.message : "An unexpected error occurred while approving authorization")
       setProcessing(false)
     }
   }
@@ -259,62 +198,45 @@ function ConsentScreenContent() {
 
     try {
       const supabase = createClient()
-      const { data: { session } } = await supabase.auth.getSession()
-
-      if (!session) {
-        setError("You must be logged in to deny authorization")
-        setProcessing(false)
-        return
-      }
-
-      // Use REST API directly - SDK method may not work correctly
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-      if (!supabaseUrl || !supabaseAnonKey) {
-        setError("Missing Supabase configuration. Please check environment variables.")
-        setProcessing(false)
-        return
-      }
-
-      // Try the consent endpoint with deny decision
-      const response = await fetch(
-        `${supabaseUrl}/auth/v1/oauth/authorizations/${authorizationId}/consent`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-            apikey: supabaseAnonKey,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            decision: "deny",
-          }),
-        }
-      )
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ 
-          error_description: "Failed to deny authorization",
-          error: "authorization_failed"
-        }))
-        
-        console.error("Deny API error:", errorData)
-        setError(errorData.error_description || `Failed to deny authorization (${response.status})`)
-        setProcessing(false)
-        return
-      }
-
-      // Check if response has redirect URI
-      const data = await response.json().catch(() => ({}))
       
-      // Supabase should redirect automatically, but if we get a redirect_uri, use it
-      if (data.redirect_uri && typeof window !== 'undefined') {
-        window.location.href = data.redirect_uri
+      // Check if user is authenticated
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+
+      if (sessionError || !session) {
+        setError("You must be logged in to deny authorization. Please sign in first.")
+        setProcessing(false)
+        return
+      }
+
+      // Use official Supabase SDK method as per documentation
+      // Reference: https://supabase.com/docs/reference/javascript/auth-admin-oauth-denyauthorization
+      const { data, error: denyError } = await supabase.auth.oauth.denyAuthorization(authorizationId)
+
+      if (denyError) {
+        console.error("Deny authorization error:", denyError)
+        
+        // Provide helpful error messages
+        if (denyError.message?.includes("cannot be processed") || denyError.message?.includes("expired")) {
+          setError("This authorization request has expired or is invalid.")
+        } else {
+          setError(denyError.message || "Failed to deny authorization. Please try again.")
+        }
+        setProcessing(false)
+        return
+      }
+
+      // The SDK method returns { data: { redirect_to: string } }
+      // We must redirect the user to this URL to complete the OAuth flow
+      if (data?.redirect_to && typeof window !== 'undefined') {
+        window.location.href = data.redirect_to
+      } else {
+        // Fallback: if no redirect_to, show error
+        setError("Authorization denied but no redirect URL received. Please contact support.")
+        setProcessing(false)
       }
     } catch (err) {
       console.error("Deny error:", err)
-      setError(err instanceof Error ? err.message : "An unexpected error occurred")
+      setError(err instanceof Error ? err.message : "An unexpected error occurred while denying authorization")
       setProcessing(false)
     }
   }
