@@ -83,12 +83,36 @@ function ConsentScreenContent() {
 
       if (detailsError) {
         console.error("Authorization details error:", detailsError)
+        console.error("Error code:", detailsError.status)
+        console.error("Authorization ID:", id)
+        console.error("Session user:", session?.user?.id)
         
-        // Provide helpful error messages
+        // Provide helpful error messages with diagnostics
         if (detailsError.message?.includes("not found") || detailsError.message?.includes("invalid")) {
-          setError("Invalid or expired authorization request. Please start the authorization flow again.")
+          setError(
+            "Invalid or expired authorization request. This could mean:\n" +
+            "1. The authorization request expired (they expire after ~10 minutes)\n" +
+            "2. OAuth Server is not enabled in Supabase Dashboard\n" +
+            "3. Authorization path mismatch (check Supabase Dashboard → Auth → OAuth Server)\n" +
+            "4. The authorization_id is invalid\n\n" +
+            "Please start the authorization flow again from the application."
+          )
+        } else if (detailsError.status === 404) {
+          setError(
+            "Authorization request not found. Possible causes:\n" +
+            "• OAuth Server not enabled in Supabase Dashboard\n" +
+            "• Authorization path mismatch (should be '/oauth/consent')\n" +
+            "• Authorization request expired\n\n" +
+            "Check: Supabase Dashboard → Authentication → OAuth Server"
+          )
+        } else if (detailsError.status === 401) {
+          setError("Authentication required. Please ensure you're logged in with a valid session.")
         } else {
-          setError(detailsError.message || "Failed to fetch authorization details")
+          setError(
+            `${detailsError.message || "Failed to fetch authorization details"}\n\n` +
+            `Error code: ${detailsError.status || "unknown"}\n` +
+            `Check browser console for more details.`
+          )
         }
         setLoading(false)
         return
