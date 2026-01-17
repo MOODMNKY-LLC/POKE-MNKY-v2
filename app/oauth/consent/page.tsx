@@ -15,6 +15,7 @@ interface AuthorizationDetails {
     id: string
   }
   scopes: string[]
+  redirect_url?: string // If present, authorization already processed
 }
 
 function ConsentScreenContent() {
@@ -236,6 +237,28 @@ function ConsentScreenContent() {
 
       if (data) {
         console.log("Authorization details fetched successfully:", data)
+        
+        // Check if authorization already processed (redirect_url present)
+        if (data.redirect_url) {
+          console.log("Authorization already processed, redirecting to:", data.redirect_url)
+          // Authorization was already approved/processed - redirect immediately
+          if (typeof window !== 'undefined') {
+            window.location.href = data.redirect_url
+          }
+          setLoading(false)
+          fetchingRef.current = false
+          return true // Authorization was processed
+        }
+        
+        // Check if we have client details (normal consent screen flow)
+        if (!data.client) {
+          console.warn("No client details in authorization response")
+          setError("Invalid authorization response. Missing client information.")
+          setLoading(false)
+          fetchingRef.current = false
+          return false
+        }
+        
         setAuthDetails(data)
         setLoading(false)
         fetchingRef.current = false
