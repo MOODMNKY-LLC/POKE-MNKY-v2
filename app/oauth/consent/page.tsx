@@ -50,14 +50,21 @@ function ConsentScreenContent() {
 
   useEffect(() => {
     // Ensure we're on the client side
-    if (typeof window === 'undefined') return
+    if (typeof window === 'undefined') {
+      console.log("Skipping - server side")
+      return
+    }
 
+    console.log("useEffect triggered, checking authorization_id")
     const id = searchParams.get("authorization_id")
     if (!id) {
+      console.warn("No authorization_id parameter found")
       setError("Missing authorization_id parameter")
       setLoading(false)
       return
     }
+    
+    console.log("Authorization ID found:", id)
     
     // Prevent duplicate requests for the same authorization ID
     if (fetchedAuthorizationIdsRef.current.has(id)) {
@@ -77,12 +84,16 @@ function ConsentScreenContent() {
     fetchedAuthorizationIdsRef.current.add(id)
     fetchingRef.current = true
     
+    console.log("Calling checkAuthAndFetchDetails for:", id)
+    
     // Fetch authorization details first, then start polling only if valid
     checkAuthAndFetchDetails(id).then((success) => {
+      console.log("checkAuthAndFetchDetails completed, success:", success)
       fetchingRef.current = false
       
-      // Only start polling if authorization is valid and we have details
-      if (success && !error) {
+      // Only start polling if authorization is valid (success === true)
+      if (success) {
+        console.log("Starting polling interval for authorization age check")
         // Check authorization age periodically (every 30 seconds)
         ageIntervalRef.current = setInterval(async () => {
           if (id && startTime) {
@@ -100,9 +111,14 @@ function ConsentScreenContent() {
             }
           }
         }, 30000)
+      } else {
+        console.log("Not starting polling - authorization invalid or failed")
       }
-    }).catch(() => {
+    }).catch((err) => {
+      console.error("Promise rejection in checkAuthAndFetchDetails:", err)
       fetchingRef.current = false
+      setLoading(false)
+      // Error should already be set by checkAuthAndFetchDetails, but ensure loading is false
     })
 
     return () => {
@@ -172,8 +188,11 @@ function ConsentScreenContent() {
   const checkAuthAndFetchDetails = async (id: string): Promise<boolean> => {
     // Don't fetch if already approved or if we're already processing
     if (approved || fetchingRef.current) {
+      console.log("Skipping fetch - already approved or fetching:", { approved, fetching: fetchingRef.current })
       return false
     }
+    
+    console.log("Starting checkAuthAndFetchDetails for authorization:", id)
     
     try {
       const supabase = createClient()
@@ -283,22 +302,25 @@ function ConsentScreenContent() {
           )
         }
         setLoading(false)
-        return
+        fetchingRef.current = false
+        return false // Authorization check failed
       }
 
       if (data) {
+        console.log("Authorization details fetched successfully:", data)
         setAuthDetails(data)
         setLoading(false)
         fetchingRef.current = false
         return true // Authorization is valid
       } else {
+        console.warn("No authorization details received")
         setError("No authorization details received. The authorization request may be invalid.")
         setLoading(false)
         fetchingRef.current = false
         return false // Authorization is invalid
       }
     } catch (err) {
-      console.error("Error in checkAuthAndFetchDetails:", err)
+      console.error("Exception in checkAuthAndFetchDetails:", err)
       fetchingRef.current = false
       if (err instanceof Error && err.message.includes("Supabase client")) {
         setError("Failed to initialize authentication. Please refresh the page.")
