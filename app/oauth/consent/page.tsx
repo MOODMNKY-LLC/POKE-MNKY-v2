@@ -33,13 +33,10 @@ function ConsentScreenContent() {
   const [error, setError] = useState<string | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
   const [approved, setApproved] = useState(false) // Prevent double-click
-  const [authorizationAge, setAuthorizationAge] = useState<number | null>(null) // Track age in minutes
-  const [authorizationStartTime, setAuthorizationStartTime] = useState<number | null>(null) // Track when we first saw it
   
   // Prevent multiple simultaneous requests
   const fetchingRef = useRef(false)
   const fetchedAuthorizationIdsRef = useRef<Set<string>>(new Set())
-  const ageIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   // Check environment variables on mount
   useEffect(() => {
@@ -88,41 +85,15 @@ function ConsentScreenContent() {
     }
     
     setAuthorizationId(id)
-    const startTime = Date.now()
-    setAuthorizationStartTime(startTime)
     fetchedAuthorizationIdsRef.current.add(id)
     fetchingRef.current = true
     
     console.log("Calling checkAuthAndFetchDetails for:", id)
     
-    // Fetch authorization details first, then start polling only if valid
+    // Fetch authorization details once
     checkAuthAndFetchDetails(id).then((success) => {
       console.log("checkAuthAndFetchDetails completed, success:", success)
       fetchingRef.current = false
-      
-      // Only start polling if authorization is valid (success === true)
-      if (success) {
-        console.log("Starting polling interval for authorization age check")
-        // Check authorization age periodically (every 30 seconds)
-        ageIntervalRef.current = setInterval(async () => {
-          if (id && startTime) {
-            const ageMinutes = Math.floor((Date.now() - startTime) / 60000)
-            setAuthorizationAge(ageMinutes)
-            
-            // If authorization is getting old, re-validate it
-            // Stop polling if authorization becomes invalid
-            if (ageMinutes > 8) {
-              const shouldStop = await checkAuthorizationAge(id)
-              if (shouldStop && ageIntervalRef.current) {
-                clearInterval(ageIntervalRef.current)
-                ageIntervalRef.current = null
-              }
-            }
-          }
-        }, 30000)
-      } else {
-        console.log("Not starting polling - authorization invalid or failed")
-      }
     }).catch((err) => {
       console.error("Promise rejection in checkAuthAndFetchDetails:", err)
       fetchingRef.current = false
@@ -131,10 +102,6 @@ function ConsentScreenContent() {
     })
 
     return () => {
-      if (ageIntervalRef.current) {
-        clearInterval(ageIntervalRef.current)
-        ageIntervalRef.current = null
-      }
       fetchingRef.current = false
     }
     } catch (err) {
@@ -143,62 +110,7 @@ function ConsentScreenContent() {
       setLoading(false)
       fetchingRef.current = false
     }
-  }, [searchParams]) // Removed authorizationStartTime from dependencies to prevent re-runs
-
-  // Check authorization age/validity periodically
-  // Returns true if authorization is invalid and polling should stop
-  const checkAuthorizationAge = async (id: string): Promise<boolean> => {
-    // Don't check if we're already processing or have an error
-    if (fetchingRef.current || error) {
-      return false
-    }
-    
-    try {
-      const supabase = createClient()
-      const { data, error: detailsError } = await supabase.auth.oauth.getAuthorizationDetails(id)
-      
-      // Check for specific error messages that indicate authorization is invalid/expired
-      if (detailsError) {
-        const errorMessage = detailsError.message || ""
-        if (errorMessage.includes('cannot be processed') || 
-            errorMessage.includes('validation_failed') ||
-            errorMessage.includes('expired') ||
-            errorMessage.includes('invalid') ||
-            detailsError.status === 400) {
-          // Stop polling - authorization is invalid
-          if (ageIntervalRef.current) {
-            clearInterval(ageIntervalRef.current)
-            ageIntervalRef.current = null
-          }
-          // Only set error if we don't already have one (to avoid overwriting more specific errors)
-          if (!error) {
-            setError("Authorization request expired or invalid. Please start the authorization flow again from the application.")
-          }
-          setAuthDetails(null)
-          return true // Signal to stop polling
-        }
-      }
-      
-      if (!data || !data.client) {
-        // Stop polling - no valid data
-        if (ageIntervalRef.current) {
-          clearInterval(ageIntervalRef.current)
-          ageIntervalRef.current = null
-        }
-        if (!error) {
-          setError("Authorization request expired. Please start the authorization flow again from the application.")
-        }
-        setAuthDetails(null)
-        return true // Signal to stop polling
-      }
-      
-      return false // Continue polling
-    } catch (err) {
-      // Ignore errors in age check - don't disrupt user experience
-      console.warn("Authorization age check failed:", err)
-      return false // Continue polling on unexpected errors
-    }
-  }
+  }, [searchParams])
 
   const checkAuthAndFetchDetails = async (id: string): Promise<boolean> => {
     // Don't fetch if already approved or if we're already processing
@@ -725,19 +637,6 @@ function ConsentScreenContent() {
               )}
             </Button>
           </div>
-
-          {/* Authorization age warning */}
-          {authorizationAge !== null && authorizationAge > 8 && authDetails?.client && (
-            <div className="rounded-md bg-yellow-500/10 border border-yellow-500/20 p-3 text-sm text-yellow-600 dark:text-yellow-400">
-              <div className="flex items-start gap-2">
-                <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                <p>
-                  ⚠️ This authorization request is getting old ({authorizationAge} minutes). 
-                  Please approve soon to avoid expiration.
-                </p>
-              </div>
-            </div>
-          )}
 
           {/* Footer */}
           <div className="text-center pt-4 border-t">
