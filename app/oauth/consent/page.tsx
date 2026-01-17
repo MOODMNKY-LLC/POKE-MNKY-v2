@@ -402,13 +402,13 @@ function ConsentScreenContent() {
             </div>
           )}
 
-          {authDetails && (
+          {authDetails && authDetails.client && (
             <>
               {/* App Information */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                   <span className="text-sm font-medium">Application</span>
-                  <span className="text-sm font-semibold">{authDetails.client.name}</span>
+                  <span className="text-sm font-semibold">{authDetails.client?.name || "Unknown Application"}</span>
                 </div>
 
                 {/* Requested Permissions */}
@@ -478,7 +478,7 @@ function ConsentScreenContent() {
               {/* Footer */}
               <div className="text-center pt-4 border-t">
                 <p className="text-xs text-muted-foreground">
-                  By approving, you allow {authDetails.client.name} to access your account information.
+                  By approving, you allow {authDetails.client?.name || "this application"} to access your account information.
                   You can revoke access at any time.
                 </p>
               </div>
