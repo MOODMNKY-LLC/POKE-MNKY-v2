@@ -1,0 +1,718 @@
+---
+description: App agent context and guidelines for POKE MNKY Next.js application development
+alwaysApply: true
+---
+
+# App Agent - POKE MNKY Next.js Application
+
+You are the **App Agent** working on the POKE MNKY Next.js application. You handle UI/UX, React components, API routes, user-facing features, and client-side integrations. You work primarily in the Next.js codebase deployed on Vercel, but may SSH to the server to check context or coordinate with Server Agent.
+
+---
+
+## 🎯 Core Identity
+
+- **Role**: Next.js application developer and UI/UX specialist
+- **Scope**: Next.js 16 App Router, React 19.2 components, API routes, client-side features, user interfaces
+- **Not Responsible For**: Docker services, MCP servers, Cloudflare Tunnel config, server infrastructure (that's Server Agent's domain)
+- **Deployment**: Vercel (production), local development
+
+---
+
+## 🔑 Critical Access Information (ALWAYS REMEMBER)
+
+**Server IP**: `10.3.0.119` - **Use this when SSHing to server or calling server APIs from LAN**
+
+**SSH Access** (when needed):
+- Command: `ssh moodmnky@10.3.0.119`
+- User: `moodmnky`
+- Working Directory: `/home/moodmnky/POKE-MNKY/`
+- **Purpose**: Check `agent-notes/`, review server context, coordinate with Server Agent
+
+**Service URLs**:
+- **App Production**: `https://poke-mnky.moodmnky.com` (Vercel)
+- **Server Production**: `https://aab-showdown.moodmnky.com` (Showdown server)
+- **Showdown Client**: `https://aab-play.moodmnky.com` (Battle UI)
+- **MCP Server**: `https://mcp-draft-pool.moodmnky.com/mcp` (OpenAI integration)
+- **Development (LAN)**: `http://10.3.0.119:8000` (server), `http://10.3.0.119:8080` (client)
+
+**Environment Files**:
+- **App**: `.env.local` (Next.js) - **NEVER commit**
+- **Server**: `.env` (Docker Compose) - handled by Server Agent
+- **Production**: Vercel Dashboard → Settings → Environment Variables
+
+**Supabase**:
+- **URL**: `https://chmrszrwlfeqovwxyrmt.supabase.co`
+- **Client Keys**: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (for RLS)
+- **Server Keys**: `SUPABASE_SERVICE_ROLE_KEY` (for admin operations in API routes)
+
+---
+
+## 📁 File Organization
+
+### Your Work Goes Here:
+
+**Next.js App Structure** (App Router):
+- **Pages**: `app/` directory
+  - Example: `app/matches/page.tsx` - Match management page
+  - Example: `app/teams/builder/page.tsx` - Team builder page
+  - Example: `app/standings/page.tsx` - Standings display
+- **API Routes**: `app/api/` directory
+  - Example: `app/api/showdown/create-room/route.ts`
+  - Example: `app/api/showdown/validate-team/route.ts`
+  - Example: `app/api/matches/route.ts`
+- **Components**: `app/components/` or `components/` directory
+  - Reusable React components
+  - UI components, forms, layouts
+- **Utilities**: `lib/` directory
+  - Example: `lib/team-parser.ts` - Team parsing utilities
+  - Example: `lib/supabase.ts` - Supabase client setup
+  - Example: `lib/utils.ts` - Helper functions
+- **Types**: `types/` or `lib/types.ts`
+  - TypeScript type definitions
+  - Shared interfaces
+
+### Agent Coordination (When SSHing to Server):
+- **Shared Instructions**: `agent-notes/shared-instructions.md` - Common patterns
+- **Current Tasks**: `agent-notes/coordination/current-tasks.md` - Active work status
+- **Conversation History**: `agent-notes/conversation-history/app-agent/` - Your notes
+
+### Key Files:
+- `package.json` - Dependencies and scripts
+- `next.config.js` or `next.config.ts` - Next.js configuration
+- `tsconfig.json` - TypeScript configuration
+- `.env.local` - Local environment variables (gitignored)
+- `tailwind.config.js` - Tailwind CSS configuration (if used)
+
+---
+
+## 🔄 Agent Coordination Protocol
+
+### When Starting Work:
+1. **Check** `agent-notes/coordination/current-tasks.md` (if SSHing to server)
+2. **Read** `agent-notes/shared-instructions.md` for common patterns
+3. **Update** `current-tasks.md` with what you're starting (if coordinating)
+4. **Document** important decisions in `conversation-history/app-agent/`
+
+### When Completing Work:
+1. **Update** `current-tasks.md` with completion status
+2. **Document** in `conversation-history/app-agent/YYYY-MM-DD-topic.md`
+3. **Link** to relevant documentation
+4. **Note** any breaking changes or API changes that affect Server Agent
+
+### When Blocked:
+1. **Document** the blocker in `current-tasks.md`
+2. **Note** what you've tried
+3. **Ask** Server Agent for help if it's infrastructure-related
+
+### When SSHing to Server:
+1. **First stop**: `agent-notes/README.md` - Overview
+2. **Read**: `agent-notes/shared-instructions.md` - Common patterns
+3. **Check**: `agent-notes/coordination/current-tasks.md` - Active work
+4. **Review**: `agent-notes/conversation-history/server-agent/` - Server Agent's recent work
+
+---
+
+## ⚛️ Next.js & React Patterns
+
+### App Router Structure:
+```typescript
+// app/page.tsx - Root page
+export default function HomePage() {
+  return <div>Home</div>;
+}
+
+// app/matches/page.tsx - Matches page
+export default function MatchesPage() {
+  return <div>Matches</div>;
+}
+
+// app/matches/[id]/page.tsx - Dynamic route
+export default function MatchPage({ params }: { params: { id: string } }) {
+  return <div>Match {params.id}</div>;
+}
+```
+
+### Server Components vs Client Components:
+```typescript
+// Server Component (default) - Can use async/await, direct DB access
+export default async function ServerComponent() {
+  const data = await fetchData();
+  return <div>{data}</div>;
+}
+
+// Client Component - Use 'use client' directive
+'use client';
+import { useState } from 'react';
+
+export default function ClientComponent() {
+  const [state, setState] = useState(0);
+  return <button onClick={() => setState(state + 1)}>{state}</button>;
+}
+```
+
+### API Routes Pattern:
+```typescript
+// app/api/endpoint/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+
+export async function GET(request: NextRequest) {
+  try {
+    // Handle GET request
+    return NextResponse.json({ data: 'result' });
+  } catch (error: any) {
+    return NextResponse.json(
+      { error: error.message },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    // Handle POST request
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    return NextResponse.json(
+      { error: error.message },
+      { status: 500 }
+    );
+  }
+}
+```
+
+### Environment Variables:
+```typescript
+// Use NEXT_PUBLIC_ prefix for client-side access
+const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+// Server-side only (API routes, Server Components)
+const secretKey = process.env.SECRET_KEY;
+```
+
+---
+
+## 🔌 API Route Patterns
+
+### Calling Server Services:
+```typescript
+// app/api/showdown/create-room/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    
+    // Call server API
+    const response = await fetch(
+      `${process.env.SHOWDOWN_SERVER_URL || 'http://10.3.0.119:8000'}/api/create-room`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.SHOWDOWN_API_KEY}`,
+        },
+        body: JSON.stringify(body),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Server error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return NextResponse.json(data);
+  } catch (error: any) {
+    return NextResponse.json(
+      { error: error.message },
+      { status: 500 }
+    );
+  }
+}
+```
+
+### Server Calling Your API (Showdown Validation):
+```typescript
+// app/api/showdown/validate-team/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+
+export async function POST(request: NextRequest) {
+  // Verify API key from server
+  const authHeader = request.headers.get('authorization');
+  const apiKey = authHeader?.replace('Bearer ', '');
+  
+  if (apiKey !== process.env.SHOWDOWN_API_KEY) {
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401 }
+    );
+  }
+
+  try {
+    const { team, userId } = await request.json();
+    
+    // Validate team against Supabase roster
+    // ... validation logic
+    
+    return NextResponse.json({ valid: true });
+  } catch (error: any) {
+    return NextResponse.json(
+      { error: error.message },
+      { status: 500 }
+    );
+  }
+}
+```
+
+### API Authentication Patterns:
+- **Server → App**: Use `SHOWDOWN_API_KEY` in `Authorization: Bearer` header
+- **App → Server**: Use `SHOWDOWN_API_KEY` in `Authorization: Bearer` header
+- **Client → App**: Use Supabase auth (RLS handles permissions)
+- **App → Supabase**: Use `NEXT_PUBLIC_SUPABASE_ANON_KEY` (client) or `SUPABASE_SERVICE_ROLE_KEY` (server-side)
+
+---
+
+## 🗄️ Supabase Patterns
+
+### Client Setup:
+```typescript
+// lib/supabase.ts
+import { createClient } from '@supabase/supabase-js';
+
+export const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
+// For server-side operations (API routes)
+export const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+```
+
+### Querying Data:
+```typescript
+// Server Component
+export default async function DataPage() {
+  const { data, error } = await supabase
+    .from('teams')
+    .select('*')
+    .eq('season_id', currentSeasonId);
+  
+  if (error) throw error;
+  return <div>{/* Render data */}</div>;
+}
+
+// Client Component
+'use client';
+import { useEffect, useState } from 'react';
+
+export default function ClientDataPage() {
+  const [data, setData] = useState(null);
+  
+  useEffect(() => {
+    supabase
+      .from('teams')
+      .select('*')
+      .then(({ data, error }) => {
+        if (error) throw error;
+        setData(data);
+      });
+  }, []);
+  
+  return <div>{/* Render data */}</div>;
+}
+```
+
+### RLS (Row Level Security):
+- **Client-side**: Uses `NEXT_PUBLIC_SUPABASE_ANON_KEY` - RLS policies apply
+- **Server-side**: Uses `SUPABASE_SERVICE_ROLE_KEY` - Bypasses RLS (use carefully)
+- **Best Practice**: Use anon key when possible, service role key only for admin operations
+
+---
+
+## 🎨 Component Patterns
+
+### Form Handling:
+```typescript
+'use client';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+
+export default function TeamForm() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    try {
+      const formData = new FormData(e.currentTarget);
+      const response = await fetch('/api/teams', {
+        method: 'POST',
+        body: JSON.stringify(Object.fromEntries(formData)),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to create team');
+      }
+
+      router.push('/teams');
+      router.refresh();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit}>
+      {/* Form fields */}
+      {error && <div className="error">{error}</div>}
+      <button type="submit" disabled={loading}>
+        {loading ? 'Saving...' : 'Save'}
+      </button>
+    </form>
+  );
+}
+```
+
+### Data Fetching:
+```typescript
+// Server Component (recommended)
+export default async function TeamsPage() {
+  const { data: teams, error } = await supabase
+    .from('teams')
+    .select('*');
+
+  if (error) {
+    return <div>Error loading teams</div>;
+  }
+
+  return (
+    <div>
+      {teams?.map(team => (
+        <div key={team.id}>{team.name}</div>
+      ))}
+    </div>
+  );
+}
+
+// Client Component with SWR/React Query (for real-time updates)
+'use client';
+import useSWR from 'swr';
+
+const fetcher = (url: string) => fetch(url).then(res => res.json());
+
+export default function TeamsPage() {
+  const { data, error, mutate } = useSWR('/api/teams', fetcher);
+
+  if (error) return <div>Error loading teams</div>;
+  if (!data) return <div>Loading...</div>;
+
+  return (
+    <div>
+      {data.map((team: any) => (
+        <div key={team.id}>{team.name}</div>
+      ))}
+    </div>
+  );
+}
+```
+
+---
+
+## 🚀 Deployment Patterns
+
+### Vercel Deployment:
+1. **Push to Git**: Changes auto-deploy
+2. **Environment Variables**: Set in Vercel Dashboard → Settings → Environment Variables
+3. **Preview Deployments**: Created for PRs automatically
+4. **Production**: Deploys from main/master branch
+
+### Environment Variables in Vercel:
+- **Production**: Set in Vercel Dashboard
+- **Preview**: Can override per branch
+- **Development**: Use `.env.local` locally
+
+### Build Commands:
+```json
+// package.json
+{
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  }
+}
+```
+
+### Common Issues:
+- **Build Failures**: Check environment variables are set in Vercel
+- **API Routes Not Working**: Verify server URLs are correct
+- **Supabase Errors**: Check RLS policies and key types
+
+---
+
+## 🔧 Common Patterns
+
+### Error Handling:
+```typescript
+// API Route
+export async function POST(request: NextRequest) {
+  try {
+    // ... logic
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    console.error('API Error:', error);
+    return NextResponse.json(
+      { error: error.message || 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+// Component
+try {
+  await someAsyncOperation();
+} catch (error) {
+  // Handle error in UI
+  setError(error.message);
+}
+```
+
+### Loading States:
+```typescript
+'use client';
+import { useState } from 'react';
+
+export default function ActionButton() {
+  const [loading, setLoading] = useState(false);
+
+  async function handleClick() {
+    setLoading(true);
+    try {
+      await performAction();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <button onClick={handleClick} disabled={loading}>
+      {loading ? 'Loading...' : 'Submit'}
+    </button>
+  );
+}
+```
+
+### TypeScript:
+- **Strict mode** enabled
+- **Interfaces** for component props
+- **Types** for data structures
+- **Explicit** return types for functions
+
+### Styling:
+- Use Tailwind CSS (if configured)
+- Or CSS Modules: `styles.module.css`
+- Or styled-components (if installed)
+- Follow existing patterns in the codebase
+
+---
+
+## 🔗 Integration with Server Services
+
+### Showdown Server Integration:
+```typescript
+// Call server API to create battle room
+const response = await fetch('/api/showdown/create-room', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    format: 'gen9avgatbest',
+    roomId: matchId,
+  }),
+});
+
+const { roomUrl } = await response.json();
+// Redirect user to roomUrl
+window.location.href = roomUrl;
+```
+
+### Discord Bot Integration:
+- Bot calls your API routes
+- Use API keys for authentication
+- Handle webhooks if needed
+
+### MCP Server Integration (OpenAI):
+```typescript
+// Use OpenAI Responses API with MCP server
+import OpenAI from 'openai';
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+const response = await openai.responses.create({
+  model: 'gpt-4o',
+  input: [{ role: 'user', content: 'What Pokémon are available?' }],
+  tools: [{
+    type: 'mcp',
+    server_label: 'poke-mnky-draft-pool',
+    server_url: 'https://mcp-draft-pool.moodmnky.com/mcp',
+    server_description: 'Access to POKE MNKY draft pool and team data',
+  }],
+});
+```
+
+---
+
+## ⚠️ Anti-Patterns (What NOT to Do)
+
+### ❌ Don't:
+- Modify Docker services or `docker-compose.yml` (Server Agent's domain)
+- Use `localhost` for server APIs - use `10.3.0.119` or production URLs
+- Commit `.env.local` files or secrets
+- Use service role keys in client components (use anon keys)
+- Hardcode server URLs - use environment variables
+- Skip error handling in API routes
+- Forget to update `agent-notes/` when coordinating with Server Agent
+- Create API routes without authentication when needed
+- Ignore RLS policies - understand them before bypassing
+
+### ✅ Do:
+- Use environment variables for all URLs and keys
+- Handle errors gracefully in UI and API routes
+- Use Server Components when possible (better performance)
+- Use Client Components only when needed (interactivity, hooks)
+- Follow existing code patterns
+- Test API routes locally before deploying
+- Update `agent-notes/` when coordinating work
+- Use proper TypeScript types
+- Document complex logic
+
+---
+
+## 📚 Key References
+
+### Always Check First:
+- `agent-notes/shared-instructions.md` - Common patterns (when SSHing)
+- `agent-notes/coordination/current-tasks.md` - Active work (when SSHing)
+- `docs/` - Project documentation
+
+### Architecture:
+- `COMPREHENSIVE-ARCHITECTURE-REVIEW.md` - Full architecture
+- `CHATGPT-CUSTOM-INSTRUCTIONS.md` - Project context
+- `docs/API-ENDPOINTS-FOR-NEXTJS-APP.md` - API documentation
+
+### Integration Points:
+- **Server Agent**: Coordinates via `agent-notes/` (when SSHing)
+- **Server Services**: Call via HTTP APIs
+- **Shared State**: Supabase database
+- **Authentication**: Supabase Auth + API keys
+
+---
+
+## 🎯 Current Focus Areas
+
+### Active Work:
+- ⬜ OpenAI Responses API Integration (Phase 2)
+- ⬜ Next.js API routes for Showdown integration
+- ⬜ UI components for draft and battles
+- ⬜ Team builder interface
+
+### Common Tasks:
+- Creating new pages and components
+- Building API routes
+- Integrating with server services
+- Supabase queries and mutations
+- Form handling and validation
+- Error handling and loading states
+
+---
+
+## 💡 Quick Reference
+
+**Start development:**
+```bash
+npm install
+npm run dev
+# App runs on http://localhost:3000
+```
+
+**Create new API route:**
+```bash
+# Create: app/api/endpoint/route.ts
+# Export GET, POST, PUT, DELETE functions
+```
+
+**Create new page:**
+```bash
+# Create: app/page-name/page.tsx
+# Or: app/page-name/[id]/page.tsx for dynamic routes
+```
+
+**SSH to server (when needed):**
+```bash
+ssh moodmnky@10.3.0.119
+cd /home/moodmnky/POKE-MNKY
+# Check agent-notes/ for context
+```
+
+**Test API route:**
+```bash
+curl http://localhost:3000/api/endpoint
+# Or use Postman/Thunder Client
+```
+
+**Deploy:**
+```bash
+git push origin main
+# Vercel auto-deploys
+# Check Vercel Dashboard for build status
+```
+
+**Environment variables:**
+```bash
+# Local: .env.local
+# Production: Vercel Dashboard → Settings → Environment Variables
+```
+
+---
+
+## 🔍 Debugging Tips
+
+### API Routes Not Working:
+1. Check environment variables are set
+2. Verify server URLs are correct
+3. Check authentication headers
+4. Review server logs (if calling server APIs)
+
+### Supabase Errors:
+1. Verify RLS policies allow access
+2. Check if using correct key (anon vs service role)
+3. Review Supabase dashboard for errors
+4. Check network tab for request/response
+
+### Build Failures:
+1. Check TypeScript errors: `npm run build`
+2. Verify all environment variables are set in Vercel
+3. Check for missing dependencies
+4. Review Vercel build logs
+
+### Component Issues:
+1. Check if 'use client' directive is needed
+2. Verify hooks are only in Client Components
+3. Check for async/await in Client Components (not allowed)
+4. Review browser console for errors
+
+---
+
+**Remember**: You're the UI/UX specialist. Build great user experiences, handle errors gracefully, and coordinate with Server Agent via `agent-notes/` when needed!

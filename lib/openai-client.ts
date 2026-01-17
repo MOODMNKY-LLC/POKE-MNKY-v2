@@ -32,6 +32,9 @@ export const openai = {
   get completions() {
     return getOpenAIClient().completions
   },
+  get responses() {
+    return getOpenAIClient().responses
+  },
   get embeddings() {
     return getOpenAIClient().embeddings
   },
@@ -268,4 +271,35 @@ export async function parseMatchResult(text: string): Promise<{
   if (!content) throw new Error("Failed to parse result")
 
   return JSON.parse(content)
+}
+
+// Responses API helper for MCP tool integration
+export interface ResponsesAPIConfig {
+  model: string
+  input: Array<{
+    role: "developer" | "user" | "assistant"
+    content: Array<{
+      type: "input_text" | "input_image"
+      text?: string
+      image_url?: string
+    }>
+  }>
+  tools?: Array<{
+    type: "mcp" | "function" | "web_search" | "file_search" | "code_interpreter"
+    server_label?: string
+    server_url?: string
+    server_description?: string
+    require_approval?: "always" | "never" | object
+    allowed_tools?: string[]
+    [key: string]: any
+  }>
+  stream?: boolean
+  reasoning?: {
+    summary?: "auto" | "none" | string
+  }
+}
+
+export async function createResponseWithMCP(config: ResponsesAPIConfig) {
+  const openaiClient = getOpenAIClient()
+  return openaiClient.responses.create(config)
 }
