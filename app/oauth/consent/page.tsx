@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, Suspense } from "react"
+import { useEffect, useState, Suspense, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
@@ -29,6 +29,10 @@ function ConsentScreenContent() {
   const [approved, setApproved] = useState(false) // Prevent double-click
   const [authorizationAge, setAuthorizationAge] = useState<number | null>(null) // Track age in minutes
   const [authorizationStartTime, setAuthorizationStartTime] = useState<number | null>(null) // Track when we first saw it
+  
+  // Prevent multiple simultaneous requests
+  const fetchingRef = useRef(false)
+  const fetchedAuthorizationIdsRef = useRef<Set<string>>(new Set())
 
   // Check environment variables on mount
   useEffect(() => {
@@ -53,14 +57,33 @@ function ConsentScreenContent() {
       setLoading(false)
       return
     }
+    
+    // Prevent duplicate requests for the same authorization ID
+    if (fetchedAuthorizationIdsRef.current.has(id)) {
+      console.log("Authorization already fetched, skipping duplicate request:", id)
+      return
+    }
+    
+    // Prevent multiple simultaneous requests
+    if (fetchingRef.current) {
+      console.log("Request already in progress, skipping:", id)
+      return
+    }
+    
     setAuthorizationId(id)
-    setAuthorizationStartTime(Date.now()) // Track when we first see the authorization
-    checkAuthAndFetchDetails(id)
+    const startTime = Date.now()
+    setAuthorizationStartTime(startTime)
+    fetchedAuthorizationIdsRef.current.add(id)
+    fetchingRef.current = true
+    
+    checkAuthAndFetchDetails(id).finally(() => {
+      fetchingRef.current = false
+    })
     
     // Check authorization age periodically (every 30 seconds)
     const ageInterval = setInterval(() => {
-      if (id && authorizationStartTime) {
-        const ageMinutes = Math.floor((Date.now() - authorizationStartTime) / 60000)
+      if (id && startTime) {
+        const ageMinutes = Math.floor((Date.now() - startTime) / 60000)
         setAuthorizationAge(ageMinutes)
         
         // If authorization is getting old, re-validate it
@@ -70,17 +93,28 @@ function ConsentScreenContent() {
       }
     }, 30000)
 
-    return () => clearInterval(ageInterval)
-  }, [searchParams, authorizationStartTime])
+    return () => {
+      clearInterval(ageInterval)
+      fetchingRef.current = false
+    }
+  }, [searchParams]) // Removed authorizationStartTime from dependencies to prevent re-runs
 
   // Check authorization age/validity periodically
   const checkAuthorizationAge = async (id: string) => {
+    // Don't check if we're already processing or have an error
+    if (fetchingRef.current || error) {
+      return
+    }
+    
     try {
       const supabase = createClient()
       const { data, error: detailsError } = await supabase.auth.oauth.getAuthorizationDetails(id)
       
       if (detailsError || !data || !data.client) {
-        setError("Authorization request expired. Please start the authorization flow again from the application.")
+        // Only set error if we don't already have one (to avoid overwriting more specific errors)
+        if (!error) {
+          setError("Authorization request expired. Please start the authorization flow again from the application.")
+        }
         setAuthDetails(null)
       }
     } catch (err) {
@@ -90,6 +124,11 @@ function ConsentScreenContent() {
   }
 
   const checkAuthAndFetchDetails = async (id: string) => {
+    // Don't fetch if already approved or if we're already processing
+    if (approved || fetchingRef.current) {
+      return
+    }
+    
     try {
       const supabase = createClient()
 
@@ -100,6 +139,7 @@ function ConsentScreenContent() {
         console.error("Session check error:", sessionError)
         setError("Failed to check authentication status")
         setLoading(false)
+        fetchingRef.current = false
         return
       }
 
@@ -107,6 +147,7 @@ function ConsentScreenContent() {
         // User not logged in - redirect to login with return URL
         setIsAuthenticated(false)
         setLoading(false)
+        fetchingRef.current = false
         return
       }
 
@@ -132,26 +173,42 @@ function ConsentScreenContent() {
         
         // Provide helpful error messages with diagnostics
         if (detailsError.status === 400) {
-          // 400 Bad Request - most common for "cannot be processed"
-          setError(
-            "Authorization request cannot be processed (400 Bad Request).\n\n" +
-            "Possible causes:\n" +
-            "1. Authorization request expired (expires after ~10 minutes)\n" +
-            "2. OAuth Server not enabled in Supabase Dashboard\n" +
-            "3. Authorization path mismatch (should be '/oauth/consent')\n" +
-            "4. OAuth client not properly registered\n" +
-            "5. Site URL mismatch in Supabase configuration\n\n" +
-            "Diagnostics:\n" +
-            `• Authorization ID: ${id}\n` +
-            `• Session User: ${session?.user?.id || 'None'}\n` +
-            `• Error Code: 400\n\n` +
-            "Action Required:\n" +
-            "1. Check Supabase Dashboard → Authentication → OAuth Server\n" +
-            "2. Verify OAuth Server is enabled\n" +
-            "3. Verify Authorization Path is '/oauth/consent'\n" +
-            "4. Verify Site URL matches your domain\n" +
-            "5. Start a fresh authorization flow from the application"
-          )
+          // 400 Bad Request - could be expired, already processed, or validation failed
+          const errorMessage = detailsError.message || ""
+          
+          if (errorMessage.includes("cannot be processed") || errorMessage.includes("validation_failed")) {
+            // Authorization was already processed or expired
+            setError(
+              "Authorization request cannot be processed.\n\n" +
+              "This usually means:\n" +
+              "1. Authorization request was already approved/denied\n" +
+              "2. Authorization request expired (expires after ~10 minutes)\n" +
+              "3. Authorization request is invalid or malformed\n\n" +
+              "Please start a fresh authorization flow from the application."
+            )
+          } else {
+            // Other 400 errors
+            setError(
+              "Authorization request cannot be processed (400 Bad Request).\n\n" +
+              "Possible causes:\n" +
+              "1. Authorization request expired (expires after ~10 minutes)\n" +
+              "2. OAuth Server not enabled in Supabase Dashboard\n" +
+              "3. Authorization path mismatch (should be '/oauth/consent')\n" +
+              "4. OAuth client not properly registered\n" +
+              "5. Site URL mismatch in Supabase configuration\n\n" +
+              "Diagnostics:\n" +
+              `• Authorization ID: ${id}\n` +
+              `• Session User: ${session?.user?.id || 'None'}\n` +
+              `• Error Code: 400\n` +
+              `• Error Message: ${errorMessage}\n\n` +
+              "Action Required:\n" +
+              "1. Check Supabase Dashboard → Authentication → OAuth Server\n" +
+              "2. Verify OAuth Server is enabled\n" +
+              "3. Verify Authorization Path is '/oauth/consent'\n" +
+              "4. Verify Site URL matches your domain\n" +
+              "5. Start a fresh authorization flow from the application"
+            )
+          }
         } else if (detailsError.message?.includes("not found") || detailsError.message?.includes("invalid")) {
           setError(
             "Invalid or expired authorization request. This could mean:\n" +
@@ -188,12 +245,15 @@ function ConsentScreenContent() {
       } else {
         setError("No authorization details received. The authorization request may be invalid.")
         setLoading(false)
+        fetchingRef.current = false
         return
       }
 
       setLoading(false)
+      fetchingRef.current = false
     } catch (err) {
       console.error("Error in checkAuthAndFetchDetails:", err)
+      fetchingRef.current = false
       if (err instanceof Error && err.message.includes("Supabase client")) {
         setError("Failed to initialize authentication. Please refresh the page.")
       } else {
