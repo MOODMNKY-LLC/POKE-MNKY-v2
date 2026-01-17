@@ -138,6 +138,31 @@ https://poke-mnky.moodmnky.com/auth/callback
 
 ---
 
+### Issue 7: `oauth_client_not_found` Error (400)
+
+**Symptom**: Error log shows `oauth_client_not_found` with `client_id=YOUR_CLIENT_ID`
+
+**Cause**: Open WebUI (or other OAuth client) is using placeholder values instead of actual Client ID
+
+**Check**:
+1. Supabase Dashboard → Authentication → OAuth Server → Clients
+2. Verify OAuth client exists and is active
+3. Copy the actual Client ID (not `YOUR_CLIENT_ID`)
+
+**Solution**: 
+1. Configure Open WebUI with the actual Client ID from Supabase
+2. See `docs/OPEN-WEBUI-OAUTH-CONFIGURATION.md` for detailed steps
+3. Set environment variables or config file with real Client ID
+4. Restart Open WebUI after configuration
+
+**Quick Fix**:
+- Get Client ID from Supabase Dashboard
+- Update Open WebUI configuration (environment variables or config file)
+- Replace `YOUR_CLIENT_ID` with actual Client ID
+- Restart Open WebUI
+
+---
+
 ### Issue 6: User Session Issues
 
 **Symptom**: Error when user is logged in but still gets auth errors
