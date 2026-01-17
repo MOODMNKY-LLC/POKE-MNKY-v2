@@ -26,6 +26,9 @@ function ConsentScreenContent() {
   const [processing, setProcessing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
+  const [approved, setApproved] = useState(false) // Prevent double-click
+  const [authorizationAge, setAuthorizationAge] = useState<number | null>(null) // Track age in minutes
+  const [authorizationStartTime, setAuthorizationStartTime] = useState<number | null>(null) // Track when we first saw it
 
   // Check environment variables on mount
   useEffect(() => {
@@ -51,8 +54,40 @@ function ConsentScreenContent() {
       return
     }
     setAuthorizationId(id)
+    setAuthorizationStartTime(Date.now()) // Track when we first see the authorization
     checkAuthAndFetchDetails(id)
-  }, [searchParams])
+    
+    // Check authorization age periodically (every 30 seconds)
+    const ageInterval = setInterval(() => {
+      if (id && authorizationStartTime) {
+        const ageMinutes = Math.floor((Date.now() - authorizationStartTime) / 60000)
+        setAuthorizationAge(ageMinutes)
+        
+        // If authorization is getting old, re-validate it
+        if (ageMinutes > 8) {
+          checkAuthorizationAge(id)
+        }
+      }
+    }, 30000)
+
+    return () => clearInterval(ageInterval)
+  }, [searchParams, authorizationStartTime])
+
+  // Check authorization age/validity periodically
+  const checkAuthorizationAge = async (id: string) => {
+    try {
+      const supabase = createClient()
+      const { data, error: detailsError } = await supabase.auth.oauth.getAuthorizationDetails(id)
+      
+      if (detailsError || !data || !data.client) {
+        setError("Authorization request expired. Please start the authorization flow again from the application.")
+        setAuthDetails(null)
+      }
+    } catch (err) {
+      // Ignore errors in age check - don't disrupt user experience
+      console.warn("Authorization age check failed:", err)
+    }
+  }
 
   const checkAuthAndFetchDetails = async (id: string) => {
     try {
@@ -162,20 +197,32 @@ function ConsentScreenContent() {
   }
 
   const handleApprove = async () => {
-    if (!authorizationId) return
+    if (!authorizationId || approved) return // Prevent double-click
 
     setProcessing(true)
     setError(null)
+    setApproved(true) // Disable button immediately to prevent double-click
 
     try {
       const supabase = createClient()
       
-      // Check if user is authenticated
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      // CRITICAL: Re-check session before approving
+      const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession()
 
-      if (sessionError || !session) {
-        setError("You must be logged in to approve authorization. Please sign in first.")
+      if (sessionError || !currentSession) {
+        setError("Session expired. Please log in again.")
         setProcessing(false)
+        setApproved(false) // Re-enable on error
+        return
+      }
+
+      // CRITICAL: Re-verify authorization is still valid before approving
+      const { data: details, error: detailsError } = await supabase.auth.oauth.getAuthorizationDetails(authorizationId)
+
+      if (detailsError || !details || !details.client) {
+        setError("Authorization request expired or invalid. Please start the authorization flow again from the application.")
+        setProcessing(false)
+        setApproved(false) // Re-enable on error
         return
       }
 
@@ -186,15 +233,18 @@ function ConsentScreenContent() {
       if (approveError) {
         console.error("Approve authorization error:", approveError)
         
-        // Provide helpful error messages based on error type
-        if (approveError.message?.includes("cannot be processed") || approveError.message?.includes("expired")) {
-          setError("This authorization request has expired or is invalid. Please start the authorization flow again from the application.")
+        // Enhanced error handling for common 400 errors
+        if (approveError.message?.includes("cannot be processed")) {
+          setError("Authorization request expired or already processed. Please start the authorization flow again from the application.")
+        } else if (approveError.message?.includes("expired") || approveError.message?.includes("invalid")) {
+          setError("Authorization request expired or invalid. Please start the authorization flow again from the application.")
         } else if (approveError.message?.includes("unauthorized") || approveError.message?.includes("session")) {
           setError("Your session has expired. Please sign in again.")
         } else {
           setError(approveError.message || "Failed to approve authorization. Please try again.")
         }
         setProcessing(false)
+        setApproved(false) // Re-enable on error
         return
       }
 
@@ -206,16 +256,18 @@ function ConsentScreenContent() {
         // Fallback: if no redirect_to, show error
         setError("Authorization approved but no redirect URL received. Please contact support.")
         setProcessing(false)
+        setApproved(false) // Re-enable on error
       }
     } catch (err) {
       console.error("Approve error:", err)
       setError(err instanceof Error ? err.message : "An unexpected error occurred while approving authorization")
       setProcessing(false)
+      setApproved(false) // Re-enable on error
     }
   }
 
   const handleDeny = async () => {
-    if (!authorizationId) return
+    if (!authorizationId || approved) return // Prevent action if already approved
 
     setProcessing(true)
     setError(null)
@@ -254,14 +306,23 @@ function ConsentScreenContent() {
       if (data?.redirect_to && typeof window !== 'undefined') {
         window.location.href = data.redirect_to
       } else {
-        // Fallback: if no redirect_to, show error
-        setError("Authorization denied but no redirect URL received. Please contact support.")
+        // Fallback: if no redirect_to, show success message
+        setError("Authorization denied. You can close this window.")
         setProcessing(false)
       }
     } catch (err) {
       console.error("Deny error:", err)
       setError(err instanceof Error ? err.message : "An unexpected error occurred while denying authorization")
       setProcessing(false)
+    }
+  }
+
+  const handleStartOver = () => {
+    // Redirect to Open WebUI auth page to restart flow
+    // Or redirect to home page if we don't know the client app
+    if (typeof window !== 'undefined') {
+      // Try to redirect to a common auth page, or home
+      window.location.href = "https://aab-gpt.moodmnky.com/auth"
     }
   }
 
@@ -352,8 +413,26 @@ function ConsentScreenContent() {
         </CardHeader>
         <CardContent className="space-y-6">
           {error && (
-            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive text-center">
-              {error}
+            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive space-y-2">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-medium mb-1">Error</p>
+                  <p className="whitespace-pre-line">{error}</p>
+                  
+                  {/* Show "Start Over" button for expired/invalid errors */}
+                  {(error.includes("expired") || error.includes("invalid") || error.includes("not found") || error.includes("cannot be processed")) && (
+                    <Button
+                      onClick={handleStartOver}
+                      variant="outline"
+                      size="sm"
+                      className="mt-3 w-full"
+                    >
+                      Start Over
+                    </Button>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 
@@ -388,11 +467,17 @@ function ConsentScreenContent() {
           )}
 
           {/* Show message if details aren't loaded */}
-          {!authDetails && !error && (
-            <div className="text-center py-4">
-              <p className="text-sm text-muted-foreground">
-                Loading authorization details...
-              </p>
+          {!authDetails && !error && !loading && (
+            <div className="text-center py-8 space-y-4">
+              <p className="text-muted-foreground">Unable to load authorization details</p>
+              <div className="flex flex-col gap-2">
+                <Button onClick={handleStartOver} variant="default" className="w-full">
+                  Start Over
+                </Button>
+                <Button asChild variant="outline" className="w-full">
+                  <Link href="/">Return to Home</Link>
+                </Button>
+              </div>
             </div>
           )}
 
@@ -400,11 +485,16 @@ function ConsentScreenContent() {
           <div className="flex flex-col gap-3 pt-4">
             <Button
               onClick={handleApprove}
-              disabled={processing || !authorizationId}
+              disabled={processing || approved || !authorizationId || !isAuthenticated || !authDetails?.client}
               className="w-full"
               size="lg"
             >
-              {processing ? (
+              {approved ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Approving...
+                </>
+              ) : processing ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Processing...
@@ -418,7 +508,7 @@ function ConsentScreenContent() {
             </Button>
             <Button
               onClick={handleDeny}
-              disabled={processing || !authorizationId}
+              disabled={processing || approved || !authorizationId}
               variant="outline"
               className="w-full"
               size="lg"
@@ -436,6 +526,19 @@ function ConsentScreenContent() {
               )}
             </Button>
           </div>
+
+          {/* Authorization age warning */}
+          {authorizationAge !== null && authorizationAge > 8 && authDetails?.client && (
+            <div className="rounded-md bg-yellow-500/10 border border-yellow-500/20 p-3 text-sm text-yellow-600 dark:text-yellow-400">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                <p>
+                  ⚠️ This authorization request is getting old ({authorizationAge} minutes). 
+                  Please approve soon to avoid expiration.
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Footer */}
           <div className="text-center pt-4 border-t">
