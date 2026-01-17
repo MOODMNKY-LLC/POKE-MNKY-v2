@@ -595,9 +595,18 @@ function ConsentScreenContent() {
 
           {/* Action Buttons - ALWAYS SHOW */}
           <div className="flex flex-col gap-3 pt-4">
+            {/* Debug info - remove after fixing */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="text-xs text-muted-foreground p-2 bg-muted rounded">
+                Debug: processing={String(processing)}, approved={String(approved)}, 
+                authorizationId={authorizationId ? 'yes' : 'no'}, 
+                isAuthenticated={String(isAuthenticated)}, 
+                hasClient={authDetails?.client ? 'yes' : 'no'}
+              </div>
+            )}
             <Button
               onClick={handleApprove}
-              disabled={processing || approved || !authorizationId || !isAuthenticated || !authDetails?.client}
+              disabled={processing || approved || !authorizationId || isAuthenticated === false || !authDetails?.client}
               className="w-full"
               size="lg"
             >
