@@ -8,6 +8,9 @@ const nextConfig = {
   },
   // Exclude discord.js from server-side bundling (uses native modules)
   serverExternalPackages: ['discord.js'],
+  // Turbopack config (empty - using defaults)
+  // Note: Source map warnings are harmless and can be ignored
+  turbopack: {},
 }
 
 export default nextConfig

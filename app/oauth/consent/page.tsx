@@ -117,13 +117,42 @@ function ConsentScreenContent() {
       const { data, error: detailsError } = await supabase.auth.oauth.getAuthorizationDetails(id)
 
       if (detailsError) {
-        console.error("Authorization details error:", detailsError)
+        // Enhanced error logging with full diagnostic information
+        console.error("=== AUTHORIZATION DETAILS ERROR ===")
+        console.error("Error:", detailsError)
+        console.error("Error message:", detailsError.message)
+        console.error("Error status:", detailsError.status)
         console.error("Error code:", detailsError.status)
         console.error("Authorization ID:", id)
-        console.error("Session user:", session?.user?.id)
+        console.error("Session user ID:", session?.user?.id)
+        console.error("Session exists:", !!session)
+        console.error("Supabase URL:", process.env.NEXT_PUBLIC_SUPABASE_URL)
+        console.error("Request URL:", `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/oauth/authorizations/${id}`)
+        console.error("===================================")
         
         // Provide helpful error messages with diagnostics
-        if (detailsError.message?.includes("not found") || detailsError.message?.includes("invalid")) {
+        if (detailsError.status === 400) {
+          // 400 Bad Request - most common for "cannot be processed"
+          setError(
+            "Authorization request cannot be processed (400 Bad Request).\n\n" +
+            "Possible causes:\n" +
+            "1. Authorization request expired (expires after ~10 minutes)\n" +
+            "2. OAuth Server not enabled in Supabase Dashboard\n" +
+            "3. Authorization path mismatch (should be '/oauth/consent')\n" +
+            "4. OAuth client not properly registered\n" +
+            "5. Site URL mismatch in Supabase configuration\n\n" +
+            "Diagnostics:\n" +
+            `• Authorization ID: ${id}\n` +
+            `• Session User: ${session?.user?.id || 'None'}\n` +
+            `• Error Code: 400\n\n` +
+            "Action Required:\n" +
+            "1. Check Supabase Dashboard → Authentication → OAuth Server\n" +
+            "2. Verify OAuth Server is enabled\n" +
+            "3. Verify Authorization Path is '/oauth/consent'\n" +
+            "4. Verify Site URL matches your domain\n" +
+            "5. Start a fresh authorization flow from the application"
+          )
+        } else if (detailsError.message?.includes("not found") || detailsError.message?.includes("invalid")) {
           setError(
             "Invalid or expired authorization request. This could mean:\n" +
             "1. The authorization request expired (they expire after ~10 minutes)\n" +
@@ -134,7 +163,7 @@ function ConsentScreenContent() {
           )
         } else if (detailsError.status === 404) {
           setError(
-            "Authorization request not found. Possible causes:\n" +
+            "Authorization request not found (404). Possible causes:\n" +
             "• OAuth Server not enabled in Supabase Dashboard\n" +
             "• Authorization path mismatch (should be '/oauth/consent')\n" +
             "• Authorization request expired\n\n" +
@@ -146,7 +175,8 @@ function ConsentScreenContent() {
           setError(
             `${detailsError.message || "Failed to fetch authorization details"}\n\n` +
             `Error code: ${detailsError.status || "unknown"}\n` +
-            `Check browser console for more details.`
+            `Authorization ID: ${id}\n` +
+            `Check browser console for full diagnostic details.`
           )
         }
         setLoading(false)
@@ -420,16 +450,41 @@ function ConsentScreenContent() {
                   <p className="font-medium mb-1">Error</p>
                   <p className="whitespace-pre-line">{error}</p>
                   
-                  {/* Show "Start Over" button for expired/invalid errors */}
-                  {(error.includes("expired") || error.includes("invalid") || error.includes("not found") || error.includes("cannot be processed")) && (
-                    <Button
-                      onClick={handleStartOver}
-                      variant="outline"
-                      size="sm"
-                      className="mt-3 w-full"
-                    >
-                      Start Over
-                    </Button>
+                  {/* Show diagnostic info for 400 errors */}
+                  {error.includes("400") || error.includes("cannot be processed") ? (
+                    <div className="mt-3 space-y-2">
+                      <div className="rounded-md bg-muted/50 p-2 text-xs">
+                        <p className="font-medium mb-1">Quick Checks:</p>
+                        <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                          <li>OAuth Server enabled in Supabase Dashboard?</li>
+                          <li>Authorization Path set to <code className="bg-background px-1 rounded">/oauth/consent</code>?</li>
+                          <li>Site URL matches your domain?</li>
+                          <li>OAuth client registered?</li>
+                        </ul>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <Button
+                          onClick={handleStartOver}
+                          variant="outline"
+                          size="sm"
+                          className="w-full"
+                        >
+                          Start Over
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    /* Show "Start Over" button for other expired/invalid errors */
+                    (error.includes("expired") || error.includes("invalid") || error.includes("not found")) && (
+                      <Button
+                        onClick={handleStartOver}
+                        variant="outline"
+                        size="sm"
+                        className="mt-3 w-full"
+                      >
+                        Start Over
+                      </Button>
+                    )
                   )}
                 </div>
               </div>

@@ -280,7 +280,10 @@ export default async function HomePage() {
         }
       }
     } catch (error) {
-      console.error("[v0] Unexpected error during data fetching:", error)
+      // Only log in development - production errors are handled gracefully
+      if (process.env.NODE_ENV === 'development') {
+        console.error("[v0] Unexpected error during data fetching:", error)
+      }
       // Don't throw - allow page to render gracefully
     }
   }
