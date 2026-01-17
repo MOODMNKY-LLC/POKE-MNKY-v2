@@ -27,7 +27,23 @@ function ConsentScreenContent() {
   const [error, setError] = useState<string | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
 
+  // Check environment variables on mount
   useEffect(() => {
+    if (typeof window === 'undefined') return
+    
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      setError("Missing Supabase configuration. Please check environment variables.")
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    // Ensure we're on the client side
+    if (typeof window === 'undefined') return
+
     const id = searchParams.get("authorization_id")
     if (!id) {
       setError("Missing authorization_id parameter")
@@ -39,9 +55,9 @@ function ConsentScreenContent() {
   }, [searchParams])
 
   const checkAuthAndFetchDetails = async (id: string) => {
-    const supabase = createClient()
-
     try {
+      const supabase = createClient()
+
       // Check if user is authenticated
       const { data: { session }, error: sessionError } = await supabase.auth.getSession()
 
@@ -82,18 +98,29 @@ function ConsentScreenContent() {
       } else {
         // Fallback: Try REST API call if methods don't exist
         console.warn("OAuth methods not available in client, trying REST API")
+        
+        // Get environment variables safely
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+        if (!supabaseUrl || !supabaseAnonKey) {
+          setError("Missing Supabase configuration. Please check environment variables.")
+          setLoading(false)
+          return
+        }
+
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/oauth/authorization/${id}`,
+          `${supabaseUrl}/auth/v1/oauth/authorization/${id}`,
           {
             headers: {
               Authorization: `Bearer ${session.access_token}`,
-              apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
+              apikey: supabaseAnonKey,
             },
           }
         )
 
         if (!response.ok) {
-          const errorData = await response.json()
+          const errorData = await response.json().catch(() => ({ error_description: "Failed to fetch authorization details" }))
           setError(errorData.error_description || "Failed to fetch authorization details")
           setLoading(false)
           return
@@ -106,7 +133,11 @@ function ConsentScreenContent() {
       setLoading(false)
     } catch (err) {
       console.error("Error in checkAuthAndFetchDetails:", err)
-      setError(err instanceof Error ? err.message : "An unexpected error occurred")
+      if (err instanceof Error && err.message.includes("Supabase client")) {
+        setError("Failed to initialize authentication. Please refresh the page.")
+      } else {
+        setError(err instanceof Error ? err.message : "An unexpected error occurred")
+      }
       setLoading(false)
     }
   }
@@ -114,16 +145,23 @@ function ConsentScreenContent() {
   const handleLogin = async () => {
     if (!authorizationId) return
 
-    const supabase = createClient()
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "discord",
-      options: {
-        redirectTo: `${window.location.origin}/oauth/consent?authorization_id=${authorizationId}`,
-      },
-    })
+    try {
+      const supabase = createClient()
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "discord",
+        options: {
+          redirectTo: typeof window !== 'undefined' 
+            ? `${window.location.origin}/oauth/consent?authorization_id=${authorizationId}`
+            : `/oauth/consent?authorization_id=${authorizationId}`,
+        },
+      })
 
-    if (error) {
-      setError(error.message)
+      if (error) {
+        setError(error.message)
+      }
+    } catch (err) {
+      console.error("Login error:", err)
+      setError(err instanceof Error ? err.message : "Failed to initiate login")
     }
   }
 
@@ -159,20 +197,29 @@ function ConsentScreenContent() {
         // No need to manually redirect
       } else {
         // Fallback: REST API call
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+        if (!supabaseUrl || !supabaseAnonKey) {
+          setError("Missing Supabase configuration. Please check environment variables.")
+          setProcessing(false)
+          return
+        }
+
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/oauth/authorization/${authorizationId}/approve`,
+          `${supabaseUrl}/auth/v1/oauth/authorization/${authorizationId}/approve`,
           {
             method: "POST",
             headers: {
               Authorization: `Bearer ${session.access_token}`,
-              apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
+              apikey: supabaseAnonKey,
               "Content-Type": "application/json",
             },
           }
         )
 
         if (!response.ok) {
-          const errorData = await response.json()
+          const errorData = await response.json().catch(() => ({ error_description: "Failed to approve authorization" }))
           setError(errorData.error_description || "Failed to approve authorization")
           setProcessing(false)
           return
@@ -180,7 +227,7 @@ function ConsentScreenContent() {
 
         // Redirect will be handled by Supabase
         const data = await response.json()
-        if (data.redirect_uri) {
+        if (data.redirect_uri && typeof window !== 'undefined') {
           window.location.href = data.redirect_uri
         }
       }
@@ -222,20 +269,29 @@ function ConsentScreenContent() {
         // Success - Supabase will redirect automatically
       } else {
         // Fallback: REST API call
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+        if (!supabaseUrl || !supabaseAnonKey) {
+          setError("Missing Supabase configuration. Please check environment variables.")
+          setProcessing(false)
+          return
+        }
+
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/oauth/authorization/${authorizationId}/deny`,
+          `${supabaseUrl}/auth/v1/oauth/authorization/${authorizationId}/deny`,
           {
             method: "POST",
             headers: {
               Authorization: `Bearer ${session.access_token}`,
-              apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
+              apikey: supabaseAnonKey,
               "Content-Type": "application/json",
             },
           }
         )
 
         if (!response.ok) {
-          const errorData = await response.json()
+          const errorData = await response.json().catch(() => ({ error_description: "Failed to deny authorization" }))
           setError(errorData.error_description || "Failed to deny authorization")
           setProcessing(false)
           return
@@ -243,7 +299,7 @@ function ConsentScreenContent() {
 
         // Redirect will be handled by Supabase
         const data = await response.json()
-        if (data.redirect_uri) {
+        if (data.redirect_uri && typeof window !== 'undefined') {
           window.location.href = data.redirect_uri
         }
       }
