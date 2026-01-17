@@ -402,93 +402,98 @@ function ConsentScreenContent() {
             </div>
           )}
 
+          {/* App Information - Show if available */}
           {authDetails && authDetails.client && (
-            <>
-              {/* App Information */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                  <span className="text-sm font-medium">Application</span>
-                  <span className="text-sm font-semibold">{authDetails.client?.name || "Unknown Application"}</span>
-                </div>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                <span className="text-sm font-medium">Application</span>
+                <span className="text-sm font-semibold">{authDetails.client?.name || "Unknown Application"}</span>
+              </div>
 
-                {/* Requested Permissions */}
+              {/* Requested Permissions */}
+              {authDetails.scopes && authDetails.scopes.length > 0 && (
                 <div className="space-y-2">
                   <p className="text-sm font-medium">Requested Permissions:</p>
                   <div className="space-y-2">
-                    {authDetails.scopes && authDetails.scopes.length > 0 ? (
-                      authDetails.scopes.map((scope) => (
-                        <div
-                          key={scope}
-                          className="flex items-center gap-2 p-2 rounded-md bg-muted/30"
-                        >
-                          <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0" />
-                          <span className="text-sm capitalize">
-                            {scope === "openid" ? "OpenID Connect" : scope === "email" ? "Email Address" : scope === "profile" ? "Profile Information" : scope}
-                          </span>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-sm text-muted-foreground">No specific permissions requested</p>
-                    )}
+                    {authDetails.scopes.map((scope) => (
+                      <div
+                        key={scope}
+                        className="flex items-center gap-2 p-2 rounded-md bg-muted/30"
+                      >
+                        <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0" />
+                        <span className="text-sm capitalize">
+                          {scope === "openid" ? "OpenID Connect" : scope === "email" ? "Email Address" : scope === "profile" ? "Profile Information" : scope}
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex flex-col gap-3 pt-4">
-                <Button
-                  onClick={handleApprove}
-                  disabled={processing}
-                  className="w-full"
-                  size="lg"
-                >
-                  {processing ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="mr-2 h-4 w-4" />
-                      Approve
-                    </>
-                  )}
-                </Button>
-                <Button
-                  onClick={handleDeny}
-                  disabled={processing}
-                  variant="outline"
-                  className="w-full"
-                  size="lg"
-                >
-                  {processing ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      <XCircle className="mr-2 h-4 w-4" />
-                      Deny
-                    </>
-                  )}
-                </Button>
-              </div>
-
-              {/* Footer */}
-              <div className="text-center pt-4 border-t">
-                <p className="text-xs text-muted-foreground">
-                  By approving, you allow {authDetails.client?.name || "this application"} to access your account information.
-                  You can revoke access at any time.
-                </p>
-              </div>
-            </>
+              )}
+            </div>
           )}
 
+          {/* Show message if details aren't loaded */}
           {!authDetails && !error && (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">Unable to load authorization details</p>
-              <Button asChild variant="outline" className="mt-4">
+            <div className="text-center py-4">
+              <p className="text-sm text-muted-foreground">
+                Loading authorization details...
+              </p>
+            </div>
+          )}
+
+          {/* Action Buttons - ALWAYS SHOW */}
+          <div className="flex flex-col gap-3 pt-4">
+            <Button
+              onClick={handleApprove}
+              disabled={processing || !authorizationId}
+              className="w-full"
+              size="lg"
+            >
+              {processing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="mr-2 h-4 w-4" />
+                  Approve
+                </>
+              )}
+            </Button>
+            <Button
+              onClick={handleDeny}
+              disabled={processing || !authorizationId}
+              variant="outline"
+              className="w-full"
+              size="lg"
+            >
+              {processing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <XCircle className="mr-2 h-4 w-4" />
+                  Deny
+                </>
+              )}
+            </Button>
+          </div>
+
+          {/* Footer */}
+          <div className="text-center pt-4 border-t">
+            <p className="text-xs text-muted-foreground">
+              By approving, you allow {authDetails?.client?.name || "this application"} to access your account information.
+              You can revoke access at any time.
+            </p>
+          </div>
+
+          {/* Error state with return button */}
+          {error && !authorizationId && (
+            <div className="text-center pt-4">
+              <Button asChild variant="outline" className="w-full">
                 <Link href="/">Return to Home</Link>
               </Button>
             </div>
