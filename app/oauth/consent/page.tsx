@@ -18,8 +18,14 @@ interface AuthorizationDetails {
 }
 
 function ConsentScreenContent() {
+  console.log("ConsentScreenContent component rendering")
+  
+  console.log("ConsentScreenContent component rendering")
+  
   const router = useRouter()
   const searchParams = useSearchParams()
+  console.log("searchParams obtained, URL:", typeof window !== 'undefined' ? window.location.href : 'server')
+  
   const [authorizationId, setAuthorizationId] = useState<string | null>(null)
   const [authDetails, setAuthDetails] = useState<AuthorizationDetails | null>(null)
   const [loading, setLoading] = useState(true)
@@ -55,8 +61,11 @@ function ConsentScreenContent() {
       return
     }
 
-    console.log("useEffect triggered, checking authorization_id")
-    const id = searchParams.get("authorization_id")
+    try {
+      console.log("useEffect triggered, checking authorization_id")
+      console.log("searchParams:", searchParams)
+      const id = searchParams.get("authorization_id")
+      console.log("authorization_id from searchParams:", id)
     if (!id) {
       console.warn("No authorization_id parameter found")
       setError("Missing authorization_id parameter")
@@ -126,6 +135,12 @@ function ConsentScreenContent() {
         clearInterval(ageIntervalRef.current)
         ageIntervalRef.current = null
       }
+      fetchingRef.current = false
+    }
+    } catch (err) {
+      console.error("Error in useEffect:", err)
+      setError("Failed to read authorization ID from URL. Please check the URL and try again.")
+      setLoading(false)
       fetchingRef.current = false
     }
   }, [searchParams]) // Removed authorizationStartTime from dependencies to prevent re-runs
@@ -747,6 +762,8 @@ function ConsentScreenContent() {
 }
 
 export default function ConsentPage() {
+  console.log("ConsentPage wrapper component rendering")
+  
   return (
     <Suspense
       fallback={
@@ -755,7 +772,7 @@ export default function ConsentPage() {
             <CardContent className="pt-6">
               <div className="flex flex-col items-center justify-center space-y-4 py-8">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="text-muted-foreground">Loading...</p>
+                <p className="text-muted-foreground">Loading authorization request...</p>
               </div>
             </CardContent>
           </Card>
