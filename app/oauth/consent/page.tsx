@@ -86,11 +86,11 @@ function ConsentScreenContent() {
     
     setAuthorizationId(id)
     fetchedAuthorizationIdsRef.current.add(id)
-    fetchingRef.current = true
     
     console.log("Calling checkAuthAndFetchDetails for:", id)
     
     // Fetch authorization details once
+    fetchingRef.current = true
     checkAuthAndFetchDetails(id).then((success) => {
       console.log("checkAuthAndFetchDetails completed, success:", success)
       fetchingRef.current = false
@@ -113,9 +113,10 @@ function ConsentScreenContent() {
   }, [searchParams])
 
   const checkAuthAndFetchDetails = async (id: string): Promise<boolean> => {
-    // Don't fetch if already approved or if we're already processing
-    if (approved || fetchingRef.current) {
-      console.log("Skipping fetch - already approved or fetching:", { approved, fetching: fetchingRef.current })
+    // Don't fetch if already approved
+    if (approved) {
+      console.log("Skipping fetch - already approved")
+      fetchingRef.current = false
       return false
     }
     
