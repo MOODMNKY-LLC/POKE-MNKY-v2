@@ -135,23 +135,36 @@ export default function MCPRestAPIPlaygroundPage() {
 
   // Helper function to call proxy API route
   const callProxyAPI = async (endpoint: string, params: any = {}) => {
-    const response = await fetch(`/api/mcp-proxy${endpoint}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(params),
-    })
+    try {
+      const response = await fetch(`/api/mcp-proxy${endpoint}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(params),
+      })
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      const error = new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`)
-      ;(error as any).status = response.status
-      ;(error as any).statusText = response.statusText
-      throw error
+      const data = await response.json().catch(() => ({}))
+
+      if (!response.ok) {
+        const error = new Error(
+          data.error || data.message || `HTTP ${response.status}: ${response.statusText}`
+        )
+        ;(error as any).status = response.status
+        ;(error as any).statusText = response.statusText || data.statusText
+        ;(error as any).details = data.details
+        throw error
+      }
+
+      return data
+    } catch (error: any) {
+      // Re-throw if it's already our formatted error
+      if (error.status) {
+        throw error
+      }
+      // Otherwise wrap network errors
+      throw new Error(`Network error: ${error.message}`)
     }
-
-    return await response.json()
   }
 
   const handleTest = async (toolName: string, params: any) => {
@@ -230,8 +243,11 @@ export default function MCPRestAPIPlaygroundPage() {
         }
         case "smogon-meta": {
           if (!params.pokemon_name) throw new Error("pokemon_name is required")
-          const parsedParams: any = { pokemon_name: params.pokemon_name }
-          if (params.format) parsedParams.format = params.format
+          const parsedParams: any = { pokemon_name: params.pokemon_name.trim() }
+          // Only include format if it's provided and not empty
+          if (params.format && params.format.trim()) {
+            parsedParams.format = params.format.trim()
+          }
           const response = await callProxyAPI("/api/get_smogon_meta", parsedParams)
           result = response.data
           rateLimit = response.rateLimit
