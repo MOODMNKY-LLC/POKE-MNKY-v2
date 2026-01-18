@@ -129,28 +129,59 @@ export function createMCPClient(config: MCPClientConfig = {}) {
 
       // Handle non-2xx responses
       if (!response.ok) {
-        let errorData: { error?: { code?: string; message?: string; details?: unknown } } = {}
+        let errorData: any = {}
+        let errorMessage = response.statusText
+        let errorCode: string | undefined
+        let errorDetails: unknown
         
         try {
           const contentType = response.headers.get("content-type")
           if (contentType?.includes("application/json")) {
             errorData = await response.json()
+            // Handle different error response formats
+            if (errorData.error) {
+              // Format: { error: { code, message, details } }
+              errorMessage = errorData.error.message || errorData.error || errorMessage
+              errorCode = errorData.error.code
+              errorDetails = errorData.error.details
+            } else if (errorData.message) {
+              // Format: { message: "...", code: "...", details: ... }
+              errorMessage = errorData.message
+              errorCode = errorData.code
+              errorDetails = errorData.details
+            } else if (typeof errorData === "string") {
+              // Format: plain string
+              errorMessage = errorData
+            } else {
+              // Try to extract message from any field
+              errorMessage = errorData.message || errorData.error || JSON.stringify(errorData) || errorMessage
+            }
           } else {
             const text = await response.text()
-            errorData = { error: { message: text || response.statusText } }
+            errorMessage = text || response.statusText
+            errorData = { error: { message: errorMessage } }
           }
         } catch (e) {
           // If JSON parsing fails, use status text
-          errorData = { error: { message: response.statusText } }
+          console.warn("[MCP Client] Failed to parse error response:", e)
+          errorMessage = response.statusText || "Unknown error"
         }
 
-        const error = errorData.error || {}
+        console.error("[MCP Client] API Error:", {
+          status: response.status,
+          statusText: response.statusText,
+          message: errorMessage,
+          code: errorCode,
+          details: errorDetails,
+          url: response.url,
+        })
+
         throw new MCPApiError(
           response.status,
           response.statusText,
-          error.code,
-          error.details,
-          error.message
+          errorCode,
+          errorDetails,
+          errorMessage
         )
       }
 
