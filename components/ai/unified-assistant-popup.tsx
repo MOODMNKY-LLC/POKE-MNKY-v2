@@ -16,8 +16,8 @@
 import { useState, useEffect, useRef } from "react"
 import { usePathname } from "next/navigation"
 import { useIsMobile } from "@/hooks/use-mobile"
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
@@ -471,6 +471,9 @@ export function UnifiedAssistantPopup({
                   <SheetTitle className="text-lg font-semibold">
                     {agentContext.title}
                   </SheetTitle>
+                  <SheetDescription className="sr-only">
+                    {agentContext.description || "AI-powered assistant for POKE MNKY"}
+                  </SheetDescription>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     {agentContext.description}
                   </p>
@@ -507,9 +510,12 @@ export function UnifiedAssistantPopup({
           "pb-safe"
         )}
       >
-        <DialogTitle className="sr-only">
-          {agentContext.title || "AI Assistant"}
-        </DialogTitle>
+            <DialogTitle className="sr-only">
+              {agentContext.title || "AI Assistant"}
+            </DialogTitle>
+            <DialogDescription className="sr-only">
+              {agentContext.description || "AI-powered assistant for POKE MNKY"}
+            </DialogDescription>
         {popupContent}
       </DialogContent>
     </Dialog>
