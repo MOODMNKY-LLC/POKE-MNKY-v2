@@ -9,7 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server"
-import { mcpClient } from "@/lib/mcp-rest-client"
+import { mcpClient, MCPApiError } from "@/lib/mcp-rest-client"
 
 export async function POST(
   request: NextRequest,
@@ -116,10 +116,26 @@ export async function POST(
       error: error.message,
       status: error.status,
       statusText: error.statusText,
+      code: error.code,
+      details: error.details,
       stack: error.stack,
     })
     
-    // Extract more detailed error information if available
+    // Handle MCPApiError specifically
+    if (error instanceof MCPApiError) {
+      return NextResponse.json(
+        {
+          error: error.message,
+          status: error.status,
+          statusText: error.statusText,
+          code: error.code,
+          details: error.details,
+        },
+        { status: error.status }
+      )
+    }
+    
+    // Handle other errors
     const errorMessage = error.message || "Internal server error"
     const errorStatus = error.status || 500
     const errorStatusText = error.statusText || "Internal Server Error"
