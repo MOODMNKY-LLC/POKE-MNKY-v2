@@ -115,6 +115,14 @@ Be friendly, helpful, and knowledgeable about Pokémon competitive play. Always 
       )
     }
 
+    // Log tool configuration
+    console.log('[General Assistant] Tool configuration:', {
+      mcpEnabled,
+      hasTools: !!tools,
+      toolCount: tools ? Object.keys(tools).length : 0,
+      mcpServerUrl,
+    })
+
     // Stream text with tool call limits (from mnky-command pattern)
     const result = await streamText({
       model: openai(model),
@@ -122,6 +130,25 @@ Be friendly, helpful, and knowledgeable about Pokémon competitive play. Always 
       messages: modelMessages, // Use 'messages' not 'prompt' - convertToModelMessages returns message array
       tools,
       stopWhen: stepCountIs(5), // Limit tool call loops to prevent infinite recursion
+      onStepFinish: (step) => {
+        // Log tool calls when they happen
+        if (step.toolCalls && step.toolCalls.length > 0) {
+          console.log('[General Assistant] Tool calls executed:', {
+            count: step.toolCalls.length,
+            tools: step.toolCalls.map((tc: any) => ({
+              toolCallId: tc.toolCallId,
+              toolName: tc.toolName,
+              args: tc.args,
+            })),
+          })
+        }
+      },
+    })
+
+    // Log result metadata
+    console.log('[General Assistant] Stream result created:', {
+      hasTextStream: !!result.textStream,
+      hasToolCalls: !!result.toolCalls,
     })
 
     // Use newer UI message stream API (from mnky-command pattern)
