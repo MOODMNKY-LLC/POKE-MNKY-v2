@@ -98,6 +98,16 @@ export function UnifiedAssistantPopup({
     ? detectAssistantContext(`/${selectedAgent}`, context)
     : detectedContext
 
+  // Debug: Log the detected context
+  useEffect(() => {
+    console.log("[UnifiedAssistantPopup] Agent context:", {
+      pathname,
+      selectedAgent,
+      agentType: agentContext.agentType,
+      apiEndpoint: agentContext.apiEndpoint,
+    })
+  }, [pathname, selectedAgent, agentContext])
+
   // Initialize speech recognition
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -319,7 +329,7 @@ export function UnifiedAssistantPopup({
       {!isMinimized && (
         <div className="flex-1 overflow-hidden">
           <BaseChatInterface
-            apiEndpoint={agentContext.apiEndpoint}
+            apiEndpoint={agentContext.apiEndpoint || "/api/ai/assistant"}
             title=""
             description=""
             characterPalette={agentContext.characterPalette}
