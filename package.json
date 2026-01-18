@@ -116,6 +116,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "dotenv": "^17.2.3",
+    "openapi-typescript": "^7.10.1",
     "postcss": "^8.5",
     "shadcn": "^3.6.3",
     "tailwindcss": "^4.1.9",

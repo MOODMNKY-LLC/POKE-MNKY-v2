@@ -14,7 +14,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { UserAvatar } from "@/components/ui/user-avatar"
 import { PokeballIcon } from "@/components/ui/pokeball-icon"
-import { MessageSquare, Sparkles, Menu, Database, Brain, Trophy, Calendar, Users, BookOpen, LogOut, Info, Loader2, CheckCircle2, Swords, ChevronDown, FileText, LayoutDashboard, ClipboardList, PlayCircle } from "lucide-react"
+import { MessageSquare, Sparkles, Menu, Database, Brain, Trophy, Calendar, Users, BookOpen, LogOut, Info, Loader2, CheckCircle2, Swords, ChevronDown, FileText, LayoutDashboard, ClipboardList, PlayCircle, TestTube } from "lucide-react"
 import { ThemeSwitcher } from "@/components/theme-switcher"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
@@ -268,6 +268,17 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
               <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
                 <PlayCircle className="h-4 w-4 mr-1.5" />
                 Videos
+              </Button>
+            </Link>
+            
+            {/* Divider */}
+            <div className="h-6 w-px bg-border mx-1" />
+            
+            {/* Testing Section */}
+            <Link href="/test/mcp-rest-api">
+              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+                <TestTube className="h-4 w-4 mr-1.5" />
+                API Playground
               </Button>
             </Link>
             
@@ -571,6 +582,20 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
                   >
                     <FileText className="h-5 w-5" />
                     API Documentation
+                  </Link>
+                  <Link
+                    href="/test-mcp"
+                    className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2"
+                  >
+                    <TestTube className="h-5 w-5" />
+                    MCP Testing Playground
+                  </Link>
+                  <Link
+                    href="/test/mcp-rest-api"
+                    className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2"
+                  >
+                    <TestTube className="h-5 w-5" />
+                    REST API Playground
                   </Link>
                 </div>
                 

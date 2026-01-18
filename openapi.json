@@ -1,0 +1,2185 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "POKE MNKY Draft Pool MCP Server API",
+    "description": "Comprehensive API for accessing draft pool data, team information, and Pokémon data for the POKE MNKY Battle League.\n\n## Overview\n\nThis API provides multiple access methods:\n- **MCP Protocol** (JSON-RPC) - For MCP-compatible clients\n- **REST API** - Standard HTTP endpoints for all tools\n- **OAuth 2.0** - Token-based authentication\n- **OpenAI Function Calling** - SDK-friendly format\n\n## Capabilities\n\n- **9 Tools** - Execute actions and queries\n- **13 Resources** - Access structured data\n- **3 Prompts** - Reusable workflow templates\n\n## Authentication\n\nThe API supports two authentication methods:\n1. **API Key** - Use `Authorization: Bearer <MCP_API_KEY>` or `X-API-Key: <MCP_API_KEY>` header\n2. **OAuth Token** - Use `Authorization: Bearer <access_token>` header (obtained from `/token` endpoint)\n\n## Rate Limiting\n\n- **General API**: 100 requests per 15 minutes\n- **Heavy Endpoints**: 50 requests per 15 minutes\n- **Token Endpoint**: 10 requests per minute (strict)\n- **Discovery Endpoints**: 200 requests per 15 minutes\n\nRate limit information is returned in response headers:\n- `RateLimit-Limit`: Maximum requests allowed\n- `RateLimit-Remaining`: Remaining requests in window\n- `RateLimit-Reset`: Time when limit resets (Unix timestamp)\n\n## Caching\n\nResponses are cached for improved performance:\n- **Pokémon Types**: 1 hour\n- **Smogon Meta**: 1 hour\n- **Ability/Move Mechanics**: 1 hour\n- **Available Pokémon**: 5 minutes\n\nCache statistics available via `/health` endpoint.\n\n## Session Management\n\nMCP protocol uses session-based communication:\n- Maximum 100 concurrent sessions\n- Session timeout: 10 minutes of inactivity\n- Sessions identified by `MCP-Session-Id` header\n- Use `DELETE /mcp` to explicitly terminate sessions",
+    "version": "1.0.1",
+    "contact": {
+      "name": "POKE MNKY",
+      "url": "https://poke-mnky.moodmnky.com",
+      "email": "support@moodmnky.com"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://mcp-draft-pool.moodmnky.com",
+      "description": "Production server"
+    },
+    {
+      "url": "http://localhost:3001",
+      "description": "Local development server"
+    }
+  ],
+  "paths": {
+    "/mcp": {
+      "post": {
+        "summary": "MCP Protocol Endpoint (JSON-RPC)",
+        "description": "Main endpoint for MCP protocol communication. Supports JSON-RPC 2.0 requests for tools, resources, and prompts.",
+        "operationId": "mcp_protocol",
+        "tags": [
+          "mcp-protocol"
+        ],
+        "security": [
+          {
+            "apiKey": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "jsonrpc",
+                  "method",
+                  "id"
+                ],
+                "properties": {
+                  "jsonrpc": {
+                    "type": "string",
+                    "enum": [
+                      "2.0"
+                    ],
+                    "description": "JSON-RPC version (must be \"2.0\")"
+                  },
+                  "method": {
+                    "type": "string",
+                    "description": "MCP method name",
+                    "enum": [
+                      "initialize",
+                      "tools/list",
+                      "tools/call",
+                      "resources/list",
+                      "resources/read",
+                      "prompts/list",
+                      "prompts/get"
+                    ],
+                    "example": "tools/call"
+                  },
+                  "params": {
+                    "type": "object",
+                    "description": "Method-specific parameters",
+                    "additionalProperties": true
+                  },
+                  "id": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "number"
+                      }
+                    ],
+                    "description": "Request ID for matching responses"
+                  }
+                }
+              },
+              "examples": {
+                "initialize": {
+                  "summary": "Initialize MCP session",
+                  "value": {
+                    "jsonrpc": "2.0",
+                    "method": "initialize",
+                    "params": {
+                      "protocolVersion": "2024-11-05",
+                      "capabilities": {},
+                      "clientInfo": {
+                        "name": "example-client",
+                        "version": "1.0.0"
+                      }
+                    },
+                    "id": 1
+                  }
+                },
+                "tools_call": {
+                  "summary": "Call a tool",
+                  "value": {
+                    "jsonrpc": "2.0",
+                    "method": "tools/call",
+                    "params": {
+                      "name": "get_available_pokemon",
+                      "arguments": {
+                        "limit": 10,
+                        "point_range": [
+                          1,
+                          20
+                        ]
+                      }
+                    },
+                    "id": 2
+                  }
+                },
+                "resources_read": {
+                  "summary": "Read a resource",
+                  "value": {
+                    "jsonrpc": "2.0",
+                    "method": "resources/read",
+                    "params": {
+                      "uri": "draft-board://current"
+                    },
+                    "id": 3
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful JSON-RPC response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "jsonrpc",
+                    "id"
+                  ],
+                  "properties": {
+                    "jsonrpc": {
+                      "type": "string",
+                      "enum": [
+                        "2.0"
+                      ]
+                    },
+                    "result": {
+                      "type": "object",
+                      "description": "Method-specific result",
+                      "additionalProperties": true
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/JsonRpcError"
+                    },
+                    "id": {
+                      "oneOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "number"
+                        }
+                      ],
+                      "nullable": true
+                    }
+                  }
+                }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "Server-Sent Events stream for server-to-client messages"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Session not found or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonRpcError"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitExceeded"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          },
+          "503": {
+            "description": "Server at capacity (max sessions reached)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonRpcError"
+                }
+              }
+            }
+          }
+        },
+        "x-rate-limit": {
+          "window": "15 minutes",
+          "max": 100
+        }
+      },
+      "get": {
+        "summary": "MCP Protocol Endpoint (Server-Sent Events)",
+        "description": "GET endpoint for Server-Sent Events (SSE) streaming. Used for server-to-client messages in MCP protocol.",
+        "operationId": "mcp_protocol_sse",
+        "tags": [
+          "mcp-protocol"
+        ],
+        "security": [
+          {
+            "apiKey": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "MCP-Session-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Session ID for stateful MCP communication"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SSE stream",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "Server-Sent Events stream"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Session not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Terminate MCP Session",
+        "description": "Explicitly terminate an MCP session",
+        "operationId": "mcp_protocol_delete",
+        "tags": [
+          "mcp-protocol"
+        ],
+        "security": [
+          {
+            "apiKey": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "MCP-Session-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Session ID to terminate"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Session terminated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "Session terminated"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Session not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/get_available_pokemon": {
+      "post": {
+        "summary": "Get Available Pokémon",
+        "description": "Get available Pokémon in the draft pool with optional filters",
+        "operationId": "get_available_pokemon",
+        "tags": [
+          "tools"
+        ],
+        "security": [
+          {
+            "apiKey": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "point_range": {
+                    "type": "array",
+                    "items": {
+                      "type": "number"
+                    },
+                    "minItems": 2,
+                    "maxItems": 2
+                  },
+                  "generation": {
+                    "type": "number"
+                  },
+                  "type": {
+                    "type": "string"
+                  },
+                  "limit": {
+                    "type": "number",
+                    "default": 100
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "pokemon": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "pokemon_name": {
+                            "type": "string"
+                          },
+                          "point_value": {
+                            "type": "number"
+                          },
+                          "generation": {
+                            "type": "number"
+                          },
+                          "available": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "pokemon_name",
+                          "point_value",
+                          "available"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "count": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "pokemon",
+                    "count"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitExceeded"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "x-rate-limit": {
+          "window": "15 minutes",
+          "max": 100
+        }
+      },
+      "get": {
+        "summary": "Get Available Pokémon (GET)",
+        "description": "Get available Pokémon in the draft pool with optional filters. Supports query parameters for simple filtering.",
+        "operationId": "get_available_pokemon_get",
+        "tags": [
+          "tools"
+        ],
+        "security": [
+          {
+            "apiKey": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 100
+            },
+            "description": "Maximum number of results"
+          },
+          {
+            "name": "point_range",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Point value range as \"[min,max]\" or \"min,max\"",
+            "example": "[1,20]"
+          },
+          {
+            "name": "generation",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Pokémon generation number"
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Pokémon type filter"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "pokemon": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "pokemon_name": {
+                            "type": "string"
+                          },
+                          "point_value": {
+                            "type": "number"
+                          },
+                          "generation": {
+                            "type": "number"
+                          },
+                          "available": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "pokemon_name",
+                          "point_value",
+                          "available"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "count": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "pokemon",
+                    "count"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitExceeded"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "x-rate-limit": {
+          "window": "15 minutes",
+          "max": 100
+        }
+      }
+    },
+    "/api/get_draft_status": {
+      "post": {
+        "summary": "Get Draft Status",
+        "description": "Get current draft session status including current pick, round, and whose turn it is",
+        "operationId": "get_draft_status",
+        "tags": [
+          "tools"
+        ],
+        "security": [
+          {
+            "apiKey": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "season_id": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "session_id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "current_pick": {
+                      "type": "number"
+                    },
+                    "current_round": {
+                      "type": "number"
+                    },
+                    "current_team_id": {
+                      "type": "string"
+                    },
+                    "total_picks": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "session_id",
+                    "status",
+                    "current_pick",
+                    "current_round",
+                    "total_picks"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitExceeded"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "x-rate-limit": {
+          "window": "15 minutes",
+          "max": 100
+        }
+      }
+    },
+    "/api/get_team_budget": {
+      "post": {
+        "summary": "Get Team Budget",
+        "description": "Get team's draft budget including total, spent, and remaining points",
+        "operationId": "get_team_budget",
+        "tags": [
+          "tools"
+        ],
+        "security": [
+          {
+            "apiKey": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "team_id": {
+                    "type": "string"
+                  },
+                  "season_id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "team_id"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "team_id": {
+                      "type": "string"
+                    },
+                    "total_points": {
+                      "type": "number"
+                    },
+                    "spent_points": {
+                      "type": "number"
+                    },
+                    "remaining_points": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "team_id",
+                    "total_points",
+                    "spent_points",
+                    "remaining_points"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitExceeded"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "x-rate-limit": {
+          "window": "15 minutes",
+          "max": 100
+        }
+      }
+    },
+    "/api/get_team_picks": {
+      "post": {
+        "summary": "Get Team Picks",
+        "description": "Get all draft picks for a team",
+        "operationId": "get_team_picks",
+        "tags": [
+          "tools"
+        ],
+        "security": [
+          {
+            "apiKey": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "team_id": {
+                    "type": "string"
+                  },
+                  "season_id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "team_id"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "team_id": {
+                      "type": "string"
+                    },
+                    "picks": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "pokemon_name": {
+                            "type": "string"
+                          },
+                          "point_value": {
+                            "type": "number"
+                          },
+                          "pick_number": {
+                            "type": "number"
+                          },
+                          "round": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "pokemon_name",
+                          "point_value",
+                          "pick_number",
+                          "round"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "total_picks": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "team_id",
+                    "picks",
+                    "total_picks"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitExceeded"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "x-rate-limit": {
+          "window": "15 minutes",
+          "max": 100
+        }
+      }
+    },
+    "/api/get_pokemon_types": {
+      "post": {
+        "summary": "Get Pokémon Types",
+        "description": "Get Pokémon type information (primary and secondary types) from pokepedia_pokemon table",
+        "operationId": "get_pokemon_types",
+        "tags": [
+          "tools"
+        ],
+        "security": [
+          {
+            "apiKey": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "pokemon_name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "pokemon_name"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "pokemon_name": {
+                      "type": "string"
+                    },
+                    "type_primary": {
+                      "type": "string"
+                    },
+                    "type_secondary": {
+                      "type": "string"
+                    },
+                    "types": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "pokemon_name",
+                    "types"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitExceeded"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "x-rate-limit": {
+          "window": "15 minutes",
+          "max": 100
+        }
+      }
+    },
+    "/api/get_smogon_meta": {
+      "post": {
+        "summary": "Get Smogon Meta",
+        "description": "Get competitive meta data from Smogon for a Pokémon",
+        "operationId": "get_smogon_meta",
+        "tags": [
+          "tools"
+        ],
+        "security": [
+          {
+            "apiKey": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "pokemon_name": {
+                    "type": "string"
+                  },
+                  "format": {
+                    "type": "string",
+                    "default": "gen9ou"
+                  },
+                  "source_date": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "pokemon_name"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "pokemon_name": {
+                      "type": "string"
+                    },
+                    "format": {
+                      "type": "string"
+                    },
+                    "generation": {
+                      "type": "number"
+                    },
+                    "tier": {
+                      "type": "string"
+                    },
+                    "usage_rate": {
+                      "type": "number"
+                    },
+                    "roles": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "common_moves": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "common_items": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "common_abilities": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "common_evs": {},
+                    "checks": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "counters": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "source_date": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "pokemon_name",
+                    "format",
+                    "roles",
+                    "common_moves",
+                    "common_items",
+                    "common_abilities",
+                    "checks",
+                    "counters"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitExceeded"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "x-rate-limit": {
+          "window": "15 minutes",
+          "max": 100
+        }
+      }
+    },
+    "/api/get_ability_mechanics": {
+      "post": {
+        "summary": "Get Ability Mechanics",
+        "description": "Get detailed mechanics explanation for a Pokémon ability",
+        "operationId": "get_ability_mechanics",
+        "tags": [
+          "tools"
+        ],
+        "security": [
+          {
+            "apiKey": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ability_name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "ability_name"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ability_name": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "mechanics": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "ability_name",
+                    "description",
+                    "mechanics"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitExceeded"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "x-rate-limit": {
+          "window": "15 minutes",
+          "max": 100
+        }
+      }
+    },
+    "/api/get_move_mechanics": {
+      "post": {
+        "summary": "Get Move Mechanics",
+        "description": "Get detailed mechanics explanation for a Pokémon move",
+        "operationId": "get_move_mechanics",
+        "tags": [
+          "tools"
+        ],
+        "security": [
+          {
+            "apiKey": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "move_name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "move_name"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "move_name": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "mechanics": {
+                      "type": "string"
+                    },
+                    "power": {
+                      "type": "number"
+                    },
+                    "accuracy": {
+                      "type": "number"
+                    },
+                    "pp": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "move_name",
+                    "description",
+                    "mechanics"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitExceeded"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "x-rate-limit": {
+          "window": "15 minutes",
+          "max": 100
+        }
+      }
+    },
+    "/api/analyze_pick_value": {
+      "post": {
+        "summary": "Analyze Pick Value",
+        "description": "Analyze if a Pokémon pick is good value based on point cost and competitive viability",
+        "operationId": "analyze_pick_value",
+        "tags": [
+          "tools"
+        ],
+        "security": [
+          {
+            "apiKey": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "pokemon_name": {
+                    "type": "string"
+                  },
+                  "point_value": {
+                    "type": "number"
+                  },
+                  "format": {
+                    "type": "string",
+                    "default": "gen9ou"
+                  }
+                },
+                "required": [
+                  "pokemon_name",
+                  "point_value"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "pokemon_name": {
+                      "type": "string"
+                    },
+                    "point_value": {
+                      "type": "number"
+                    },
+                    "analysis": {
+                      "type": "string"
+                    },
+                    "value_score": {
+                      "type": "number"
+                    },
+                    "recommendation": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "pokemon_name",
+                    "point_value",
+                    "analysis",
+                    "value_score",
+                    "recommendation"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitExceeded"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "x-rate-limit": {
+          "window": "15 minutes",
+          "max": 100
+        }
+      }
+    },
+    "/token": {
+      "post": {
+        "summary": "OAuth Token Endpoint",
+        "description": "OAuth 2.0 token endpoint supporting client_credentials grant type. Returns JWT access tokens for MCP server authentication.",
+        "operationId": "oauth_token",
+        "tags": [
+          "oauth"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "grant_type"
+                ],
+                "properties": {
+                  "grant_type": {
+                    "type": "string",
+                    "enum": [
+                      "client_credentials"
+                    ],
+                    "description": "OAuth grant type (only client_credentials supported)"
+                  },
+                  "client_id": {
+                    "type": "string",
+                    "description": "OAuth client ID (if not using Basic Auth)"
+                  },
+                  "client_secret": {
+                    "type": "string",
+                    "description": "OAuth client secret (if not using Basic Auth)"
+                  },
+                  "scope": {
+                    "type": "string",
+                    "default": "mcp",
+                    "description": "OAuth scope (default: \"mcp\")"
+                  }
+                }
+              }
+            },
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "grant_type"
+                ],
+                "properties": {
+                  "grant_type": {
+                    "type": "string",
+                    "enum": [
+                      "client_credentials"
+                    ]
+                  },
+                  "client_id": {
+                    "type": "string"
+                  },
+                  "client_secret": {
+                    "type": "string"
+                  },
+                  "scope": {
+                    "type": "string",
+                    "default": "mcp"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Token issued successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "access_token",
+                    "token_type",
+                    "expires_in"
+                  ],
+                  "properties": {
+                    "access_token": {
+                      "type": "string",
+                      "description": "JWT access token"
+                    },
+                    "token_type": {
+                      "type": "string",
+                      "enum": [
+                        "Bearer"
+                      ],
+                      "example": "Bearer"
+                    },
+                    "expires_in": {
+                      "type": "integer",
+                      "description": "Token expiration time in seconds",
+                      "example": 3600
+                    },
+                    "scope": {
+                      "type": "string",
+                      "example": "mcp"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "unsupported_grant_type"
+                      ]
+                    },
+                    "error_description": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid client credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_client"
+                      ]
+                    },
+                    "error_description": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitExceeded"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "x-rate-limit": {
+          "window": "1 minute",
+          "max": 10,
+          "description": "Strict rate limit for token endpoint to prevent brute force attacks"
+        }
+      }
+    },
+    "/.well-known/oauth-authorization-server": {
+      "get": {
+        "summary": "OAuth Authorization Server Discovery",
+        "description": "OAuth 2.0 Authorization Server Metadata (RFC 8414). Returns OAuth server configuration including endpoints and supported features.",
+        "operationId": "oauth_discovery",
+        "tags": [
+          "oauth",
+          "discovery"
+        ],
+        "responses": {
+          "200": {
+            "description": "OAuth server metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "issuer": {
+                      "type": "string",
+                      "example": "https://mcp-draft-pool.moodmnky.com"
+                    },
+                    "token_endpoint": {
+                      "type": "string",
+                      "example": "https://mcp-draft-pool.moodmnky.com/token"
+                    },
+                    "registration_endpoint": {
+                      "type": "string",
+                      "example": "https://mcp-draft-pool.moodmnky.com/register"
+                    },
+                    "grant_types_supported": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "example": [
+                        "client_credentials"
+                      ]
+                    },
+                    "token_endpoint_auth_methods_supported": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "example": [
+                        "client_secret_basic",
+                        "client_secret_post"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "x-rate-limit": {
+          "window": "15 minutes",
+          "max": 200
+        }
+      }
+    },
+    "/.well-known/mcp": {
+      "get": {
+        "summary": "MCP Discovery Endpoint",
+        "description": "MCP server discovery endpoint. Returns server capabilities, version, and endpoint information.",
+        "operationId": "mcp_discovery",
+        "tags": [
+          "discovery"
+        ],
+        "responses": {
+          "200": {
+            "description": "MCP server metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "mcpVersion": {
+                      "type": "string",
+                      "example": "2024-11-05"
+                    },
+                    "serverName": {
+                      "type": "string",
+                      "example": "poke-mnky-draft-pool"
+                    },
+                    "serverVersion": {
+                      "type": "string",
+                      "example": "1.0.1"
+                    },
+                    "protocolVersion": {
+                      "type": "string",
+                      "example": "2024-11-05"
+                    },
+                    "capabilities": {
+                      "type": "object",
+                      "properties": {
+                        "tools": {
+                          "type": "object"
+                        },
+                        "prompts": {
+                          "type": "object"
+                        },
+                        "resources": {
+                          "type": "object"
+                        }
+                      }
+                    },
+                    "endpoints": {
+                      "type": "object",
+                      "properties": {
+                        "mcp": {
+                          "type": "string",
+                          "example": "https://mcp-draft-pool.moodmnky.com/mcp"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-rate-limit": {
+          "window": "15 minutes",
+          "max": 200
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Health Check",
+        "description": "Returns server health status, version, and session statistics",
+        "operationId": "health_check",
+        "tags": [
+          "utility"
+        ],
+        "responses": {
+          "200": {
+            "description": "Server is healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "ok"
+                    },
+                    "service": {
+                      "type": "string",
+                      "example": "poke-mnky-draft-pool-mcp-server"
+                    },
+                    "version": {
+                      "type": "string",
+                      "example": "1.0.1"
+                    },
+                    "tools": {
+                      "type": "object",
+                      "properties": {
+                        "count": {
+                          "type": "integer",
+                          "example": 9
+                        },
+                        "available": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "sessions": {
+                      "type": "object",
+                      "properties": {
+                        "active": {
+                          "type": "integer"
+                        },
+                        "max": {
+                          "type": "integer"
+                        },
+                        "utilization": {
+                          "type": "integer"
+                        },
+                        "oldestSessionAge": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "cache": {
+                      "type": "object",
+                      "properties": {
+                        "hits": {
+                          "type": "integer"
+                        },
+                        "misses": {
+                          "type": "integer"
+                        },
+                        "size": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/functions": {
+      "get": {
+        "summary": "OpenAI Function Calling Format",
+        "description": "Returns all tools in OpenAI function calling format for SDK integration",
+        "operationId": "openai_functions",
+        "tags": [
+          "utility"
+        ],
+        "security": [
+          {
+            "apiKey": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OpenAI function definitions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "tools": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "function"
+                            ]
+                          },
+                          "function": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string"
+                              },
+                              "description": {
+                                "type": "string"
+                              },
+                              "parameters": {
+                                "type": "object"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/openapi.json": {
+      "get": {
+        "summary": "OpenAPI Specification",
+        "description": "Returns this OpenAPI specification in JSON format",
+        "operationId": "openapi_spec",
+        "tags": [
+          "utility"
+        ],
+        "responses": {
+          "200": {
+            "description": "OpenAPI 3.0 specification",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Complete OpenAPI 3.0 specification"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key",
+        "description": "API key for authentication. Format: `mnky_<64-character-hex-string>`. Can also use Authorization Bearer token."
+      },
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT or API Key",
+        "description": "Bearer token authentication. Use your MCP_API_KEY or OAuth access token as the bearer token."
+      },
+      "basicAuth": {
+        "type": "http",
+        "scheme": "basic",
+        "description": "Basic authentication for OAuth token endpoint. Format: `client_id:client_secret` base64 encoded."
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": [
+              "code",
+              "message"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "UNAUTHORIZED",
+                  "FORBIDDEN",
+                  "NOT_FOUND",
+                  "VALIDATION_ERROR",
+                  "RATE_LIMIT_EXCEEDED",
+                  "DATABASE_ERROR",
+                  "INTERNAL_SERVER_ERROR",
+                  "SERVICE_UNAVAILABLE",
+                  "TOOL_EXECUTION_FAILED"
+                ]
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "object",
+                "description": "Additional error details",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      },
+      "JsonRpcError": {
+        "type": "object",
+        "required": [
+          "jsonrpc",
+          "error",
+          "id"
+        ],
+        "properties": {
+          "jsonrpc": {
+            "type": "string",
+            "enum": [
+              "2.0"
+            ]
+          },
+          "error": {
+            "type": "object",
+            "required": [
+              "code",
+              "message"
+            ],
+            "properties": {
+              "code": {
+                "type": "integer",
+                "description": "JSON-RPC error code",
+                "example": -32000
+              },
+              "message": {
+                "type": "string"
+              },
+              "data": {
+                "type": "object",
+                "description": "Additional error data",
+                "additionalProperties": true
+              }
+            }
+          },
+          "id": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          }
+        }
+      },
+      "ValidationError": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": [
+              "code",
+              "message",
+              "details"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "VALIDATION_ERROR"
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "Request validation failed"
+              },
+              "details": {
+                "type": "object",
+                "properties": {
+                  "fields": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "path": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Bad Request - Invalid parameters or validation error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/Error"
+                },
+                {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              ]
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Unauthorized - Invalid or missing API key or OAuth token",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "UNAUTHORIZED",
+                "message": "Invalid or missing authentication credentials"
+              }
+            }
+          }
+        }
+      },
+      "RateLimitExceeded": {
+        "description": "Rate Limit Exceeded - Too many requests",
+        "headers": {
+          "RateLimit-Limit": {
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Maximum requests allowed in window"
+          },
+          "RateLimit-Remaining": {
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Remaining requests in current window"
+          },
+          "RateLimit-Reset": {
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Unix timestamp when rate limit resets"
+          },
+          "Retry-After": {
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Seconds to wait before retrying"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "RATE_LIMIT_EXCEEDED",
+                "message": "Too many requests. Please try again later.",
+                "details": {
+                  "retry_after": 900
+                }
+              }
+            }
+          }
+        }
+      },
+      "InternalServerError": {
+        "description": "Internal Server Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "INTERNAL_SERVER_ERROR",
+                "message": "An internal server error occurred"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "mcp-protocol",
+      "description": "MCP Protocol endpoints (JSON-RPC over HTTP)"
+    },
+    {
+      "name": "tools",
+      "description": "REST API endpoints for MCP tools"
+    },
+    {
+      "name": "oauth",
+      "description": "OAuth 2.0 authentication endpoints"
+    },
+    {
+      "name": "discovery",
+      "description": "Discovery endpoints for OAuth and MCP"
+    },
+    {
+      "name": "utility",
+      "description": "Utility endpoints (health, OpenAPI spec, functions)"
+    }
+  ]
+}
