@@ -85,15 +85,20 @@ export const ConversationScrollButton = ({
       <Button
         className={cn(
           "absolute bottom-4 left-[50%] translate-x-[-50%] rounded-full",
+          // Mobile/PWA touch optimization
+          "min-h-[44px] min-w-[44px] touch-manipulation active:scale-95",
+          // Safe area handling
+          "bottom-[max(1rem,env(safe-area-inset-bottom)+1rem)]",
           className
         )}
         onClick={handleScrollToBottom}
         size="icon"
         type="button"
         variant="outline"
+        aria-label="Scroll to bottom"
         {...props}
       >
-        <ArrowDownIcon className="size-4" />
+        <ArrowDownIcon className="size-5" />
       </Button>
     )
   );

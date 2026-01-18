@@ -193,7 +193,11 @@ export function UnifiedAssistantPopup({
               variant="ghost"
               size="icon"
               onClick={() => setIsMinimized(!isMinimized)}
-              className="h-8 w-8"
+              className={cn(
+                "h-10 w-10 min-h-[44px] min-w-[44px]",
+                "touch-manipulation active:scale-95"
+              )}
+              aria-label={isMinimized ? "Expand assistant" : "Minimize assistant"}
             >
               {isMinimized ? (
                 <Maximize2 className="h-4 w-4" />
@@ -208,7 +212,16 @@ export function UnifiedAssistantPopup({
                   <Settings className="h-4 w-4" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-80" align="end">
+              <PopoverContent 
+                className={cn(
+                  "w-[calc(100vw-2rem)] max-w-80",
+                  // Mobile optimization
+                  "max-h-[calc(100vh-8rem)] overflow-y-auto",
+                  // Safe area handling
+                  "pb-safe"
+                )} 
+                align="end"
+              >
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">Agent Type</Label>
@@ -368,35 +381,51 @@ export function UnifiedAssistantPopup({
               onChange={handleFileUpload}
               accept="image/*,application/pdf,.txt,.doc,.docx"
             />
-            <label htmlFor="file-upload">
-              <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-                <span>
-                  <Upload className="h-4 w-4" />
-                </span>
+            <label htmlFor="file-upload" className="touch-manipulation">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className={cn(
+                  "h-10 w-10 min-h-[44px] min-w-[44px]",
+                  "touch-manipulation active:scale-95"
+                )}
+                aria-label="Upload file"
+              >
+                <Upload className="h-5 w-5" />
               </Button>
             </label>
             <Button
               variant="ghost"
               size="icon"
-              className={cn("h-8 w-8", isRecording && "text-destructive")}
+              className={cn(
+                "h-10 w-10 min-h-[44px] min-w-[44px]",
+                "touch-manipulation active:scale-95",
+                isRecording && "text-destructive"
+              )}
               onClick={isRecording ? handleStopRecording : handleStartRecording}
+              aria-label={isRecording ? "Stop recording" : "Start voice input"}
             >
               {isRecording ? (
-                <MicOff className="h-4 w-4" />
+                <MicOff className="h-5 w-5" />
               ) : (
-                <Mic className="h-4 w-4" />
+                <Mic className="h-5 w-5" />
               )}
             </Button>
             <Button
               variant="ghost"
               size="icon"
-              className={cn("h-8 w-8", ttsEnabled && "text-primary")}
+              className={cn(
+                "h-10 w-10 min-h-[44px] min-w-[44px]",
+                "touch-manipulation active:scale-95",
+                ttsEnabled && "text-primary"
+              )}
               onClick={() => setTtsEnabled(!ttsEnabled)}
+              aria-label={ttsEnabled ? "Disable text-to-speech" : "Enable text-to-speech"}
             >
               {ttsEnabled ? (
-                <Volume2 className="h-4 w-4" />
+                <Volume2 className="h-5 w-5" />
               ) : (
-                <VolumeX className="h-4 w-4" />
+                <VolumeX className="h-5 w-5" />
               )}
             </Button>
           </div>
@@ -408,8 +437,17 @@ export function UnifiedAssistantPopup({
   if (isMobile) {
     return (
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent side="bottom" className="h-[90vh] p-0 flex flex-col">
-          <SheetHeader className="border-b pb-3 px-4 pt-4">
+        <SheetContent 
+          side="bottom" 
+          className={cn(
+            "h-[calc(100vh-env(safe-area-inset-bottom))] max-h-[90vh] p-0 flex flex-col",
+            // PWA safe area handling
+            "pb-[max(0px,env(safe-area-inset-bottom))]",
+            // Better mobile experience
+            "touch-pan-y overscroll-contain"
+          )}
+        >
+          <SheetHeader className="border-b pb-3 px-4 pt-safe">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <PokeMnkyAssistant size={32} />
@@ -444,7 +482,15 @@ export function UnifiedAssistantPopup({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl h-[85vh] p-0 flex flex-col">
+      <DialogContent 
+        className={cn(
+          "max-w-4xl h-[85vh] p-0 flex flex-col",
+          // Desktop optimization
+          "max-h-[calc(100vh-4rem)]",
+          // PWA safe area
+          "pb-safe"
+        )}
+      >
         {popupContent}
       </DialogContent>
     </Dialog>

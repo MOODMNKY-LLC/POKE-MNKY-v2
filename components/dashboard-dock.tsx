@@ -67,7 +67,15 @@ export function DashboardDock() {
   ]
 
   return (
-    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
+    <div 
+      className={cn(
+        "fixed bottom-4 left-1/2 -translate-x-1/2 z-50 pointer-events-none",
+        // PWA safe area handling - ensure dock doesn't overlap with safe areas
+        "bottom-[max(1rem,env(safe-area-inset-bottom)+1rem)]",
+        // Ensure it's below FAB (FAB is z-50, dock should be z-40)
+        "z-40"
+      )}
+    >
       <Dock className="shadow-lg pointer-events-auto">
         {navItems.map((item) => {
           const isActive = pathname === item.href || pathname?.startsWith(item.href + "/")
