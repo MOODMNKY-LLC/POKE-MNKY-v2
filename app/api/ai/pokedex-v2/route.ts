@@ -14,6 +14,7 @@ export async function POST(request: NextRequest) {
     // IMPORTANT: OpenAI Responses API requires publicly accessible URL (Cloudflare Tunnel)
     // OpenAI's cloud infrastructure cannot access private IPs - must use Cloudflare Tunnel URL
     const mcpServerUrl = process.env.MCP_DRAFT_POOL_SERVER_URL || "https://mcp-draft-pool.moodmnky.com/mcp"
+    const mcpApiKey = process.env.MCP_API_KEY
 
     if (useMCP) {
       // Use Responses API with MCP tools
@@ -47,6 +48,10 @@ export async function POST(request: NextRequest) {
               server_url: mcpServerUrl,
               server_description: "Access to POKE MNKY draft pool and team data",
               require_approval: "never", // Auto-approve tool calls for seamless experience
+              // Configure authentication: Bearer token in authorization field
+              ...(mcpApiKey && {
+                authorization: `Bearer ${mcpApiKey}`,
+              }),
             },
             {
               type: "function",

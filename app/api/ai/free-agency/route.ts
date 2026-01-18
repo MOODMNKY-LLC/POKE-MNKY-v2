@@ -23,8 +23,9 @@ export async function POST(request: Request) {
       return new Response('teamId is required', { status: 400 })
     }
 
-    // Get MCP server URL from environment
+    // Get MCP server URL and API key from environment
     const mcpServerUrl = process.env.MCP_DRAFT_POOL_SERVER_URL || 'https://mcp-draft-pool.moodmnky.com/mcp'
+    const mcpApiKey = process.env.MCP_API_KEY
 
     // Build system message with context
     const systemMessage = `You are an expert free agency and trade evaluation assistant for the Average at Best Battle League.
@@ -56,6 +57,10 @@ Use MCP tools to access team rosters, available Pokémon, and draft pool data. P
             serverUrl: mcpServerUrl,
             serverDescription: 'Access to POKE MNKY draft pool and team data. Provides tools for querying team rosters, available Pokémon, pick values, and draft status.',
             requireApproval: 'never',
+            // Configure authentication: Bearer token in authorization field
+            ...(mcpApiKey && {
+              authorization: `Bearer ${mcpApiKey}`,
+            }),
           }),
         }
       : undefined

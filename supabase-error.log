@@ -1,0 +1,20 @@
+WARNING: You are running different service versions locally than your linked project:
+supabase/storage-api:v1.33.5 => v1.33.0
+Run supabase link to update them.
+ edgeRuntime Skipped - Image is already present locally 
+ gateway Skipped - Image is already present locally 
+ realtime Skipped - Image is already present locally 
+ pgmeta Skipped - Image is already present locally 
+ storage Skipped - Image is already present locally 
+ studio Skipped - Image is already present locally 
+ vector Skipped - Image is already present locally 
+ auth Skipped - Image is already present locally 
+ imgProxy Skipped - Image is already present locally 
+ analytics Skipped - Image is already present locally 
+ db Skipped - Image is already present locally 
+ api Skipped - Image is already present locally 
+ mailpit Skipped - Image is already present locally 
+Starting database...
+Stopping containers...
+failed to connect to postgres: failed to connect to `host=127.0.0.1 user=postgres database=postgres`: failed to receive message (unexpected EOF)
+Try rerunning the command with --debug to troubleshoot the error.

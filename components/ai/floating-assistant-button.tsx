@@ -7,7 +7,7 @@
  * Positioned in bottom-right corner, ChatGPT-style.
  */
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { PokeMnkyAssistant } from "@/components/ui/poke-mnky-avatar"
@@ -35,6 +35,11 @@ export function FloatingAssistantButton({
   className,
 }: FloatingAssistantButtonProps) {
   const [isOpen, setIsOpen] = useState(false)
+
+  // Debug: Log when component renders
+  useEffect(() => {
+    console.log("[FloatingAssistantButton] Component mounted/rendered", { isOpen, context })
+  }, [isOpen, context])
 
   return (
     <>
