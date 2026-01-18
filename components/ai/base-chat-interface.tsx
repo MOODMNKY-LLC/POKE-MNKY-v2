@@ -83,15 +83,20 @@ export function BaseChatInterface({
   quickActions,
   onSendMessageReady,
 }: BaseChatInterfaceProps) {
+  // Debug: Log the API endpoint being used
+  useEffect(() => {
+    console.log("[BaseChatInterface] Using API endpoint:", apiEndpoint)
+  }, [apiEndpoint])
+
   const { messages, sendMessage, status, regenerate, error } = useChat({
-    api: apiEndpoint,
+    api: apiEndpoint || "/api/ai/assistant", // Fallback to default if undefined
     body,
     onError: (error) => {
       console.error("[BaseChatInterface] Chat error:", error)
     },
     onResponse: (response) => {
       if (!response.ok) {
-        console.error("[BaseChatInterface] API error:", response.status, response.statusText)
+        console.error("[BaseChatInterface] API error:", response.status, response.statusText, "URL:", response.url)
       }
     },
   })
