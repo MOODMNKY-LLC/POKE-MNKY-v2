@@ -29,6 +29,7 @@ export async function POST(
     switch (endpoint) {
       case "/api/health":
       case "/health": {
+        // Health check endpoint is /health (not /api/health)
         result = await mcpClient.healthCheck()
         break
       }
