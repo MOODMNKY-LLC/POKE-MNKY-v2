@@ -71,14 +71,30 @@ export async function POST(
             { status: 400 }
           )
         }
-        // Filter out empty format strings
-        const params: any = { pokemon_name: body.pokemon_name }
+        // Filter out empty format strings and normalize pokemon name
+        const params: any = { 
+          pokemon_name: String(body.pokemon_name).trim().toLowerCase()
+        }
         if (body.format && body.format.trim()) {
           params.format = body.format.trim()
         }
-        result = await mcpClient.getSmogonMeta(params)
-        rateLimit = result.rateLimit
-        result = result.data
+        
+        console.log("[MCP Proxy] Smogon meta request:", params)
+        
+        try {
+          result = await mcpClient.getSmogonMeta(params)
+          rateLimit = result.rateLimit
+          result = result.data
+        } catch (error: any) {
+          console.error("[MCP Proxy] Smogon meta error:", {
+            params,
+            error: error.message,
+            status: error.status,
+            code: error.code,
+            details: error.details,
+          })
+          throw error // Re-throw to be caught by outer catch
+        }
         break
       }
       case "/api/get_ability_mechanics": {
@@ -111,21 +127,34 @@ export async function POST(
       rateLimit,
     })
   } catch (error: any) {
-    console.error("[MCP Proxy] Error:", {
+    // Log detailed error information
+    const errorInfo = {
       endpoint,
-      error: error.message,
+      errorMessage: error.message,
       status: error.status,
       statusText: error.statusText,
       code: error.code,
       details: error.details,
-      stack: error.stack,
-    })
+      name: error.name,
+      stack: error.stack?.split('\n').slice(0, 5).join('\n'), // First 5 lines of stack
+    }
+    
+    console.error("[MCP Proxy] Error:", errorInfo)
     
     // Handle MCPApiError specifically
     if (error instanceof MCPApiError) {
+      // Construct a more informative error message
+      let errorMessage = error.message || `HTTP ${error.status}: ${error.statusText}`
+      if (error.code) {
+        errorMessage = `${error.code}: ${errorMessage}`
+      }
+      if (error.details) {
+        errorMessage += ` (Details: ${JSON.stringify(error.details)})`
+      }
+      
       return NextResponse.json(
         {
-          error: error.message,
+          error: errorMessage,
           status: error.status,
           statusText: error.statusText,
           code: error.code,
@@ -142,7 +171,7 @@ export async function POST(
     
     return NextResponse.json(
       {
-        error: errorMessage,
+        error: `${errorStatus} ${errorStatusText}: ${errorMessage}`,
         status: errorStatus,
         statusText: errorStatusText,
         details: error.details || undefined,
