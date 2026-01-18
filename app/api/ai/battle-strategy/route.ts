@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { messages, team1Id, team2Id, matchId } = body
+    const { messages, team1Id, team2Id, matchId, mcpEnabled = true, model } = body
 
     // Get MCP server URL from environment
     const mcpServerUrl = process.env.MCP_DRAFT_POOL_SERVER_URL || 'https://mcp-draft-pool.moodmnky.com/mcp'
@@ -43,21 +43,28 @@ Use MCP tools to access team rosters, Pokémon data, and battle information. Be 
     // Convert messages to model format
     const modelMessages = convertToModelMessages(messages || [])
 
-    // Use streamText with MCP tools
+    // Use selected model or default
+    const selectedModel = model || AI_MODELS.STRATEGY_COACH
+
+    // Conditionally include MCP tools
+    const tools = mcpEnabled
+      ? {
+          mcp: openai.tools.mcp({
+            serverLabel: 'poke-mnky-draft-pool',
+            serverUrl: mcpServerUrl,
+            serverDescription: 'Access to POKE MNKY draft pool and team data. Provides tools for querying team rosters, Pokémon stats, and battle information.',
+            requireApproval: 'never',
+          }),
+        }
+      : undefined
+
+    // Use streamText with conditional MCP tools
     const result = await streamText({
-      model: openai(AI_MODELS.STRATEGY_COACH), // Use GPT-5.2 for strategic reasoning
+      model: openai(selectedModel),
       system: systemMessage,
       messages: modelMessages,
-      tools: {
-        // MCP tool integration
-        mcp: openai.tools.mcp({
-          serverLabel: 'poke-mnky-draft-pool',
-          serverUrl: mcpServerUrl,
-          serverDescription: 'Access to POKE MNKY draft pool and team data. Provides tools for querying team rosters, Pokémon stats, and battle information.',
-          requireApproval: 'never',
-        }),
-      },
-      maxSteps: 5,
+      tools,
+      maxSteps: mcpEnabled ? 5 : 1,
     })
 
     // Return streaming response compatible with useChat

@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { messages, teamId, seasonId } = body
+    const { messages, teamId, seasonId, mcpEnabled = true, model } = body
 
     if (!teamId) {
       return new Response('teamId is required', { status: 400 })
@@ -45,21 +45,28 @@ Always use the available MCP tools to get real-time draft pool data, team budget
     // Convert messages to model format
     const modelMessages = convertToModelMessages(messages || [])
 
-    // Use streamText with MCP tools
+    // Use selected model or default
+    const selectedModel = model || AI_MODELS.STRATEGY_COACH
+
+    // Conditionally include MCP tools
+    const tools = mcpEnabled
+      ? {
+          mcp: openai.tools.mcp({
+            serverLabel: 'poke-mnky-draft-pool',
+            serverUrl: mcpServerUrl,
+            serverDescription: 'Access to POKE MNKY draft pool and team data. Provides tools for querying available Pokémon, team budgets, picks, and draft status.',
+            requireApproval: 'never', // Auto-approve for seamless experience
+          }),
+        }
+      : undefined
+
+    // Use streamText with conditional MCP tools
     const result = await streamText({
-      model: openai(AI_MODELS.STRATEGY_COACH), // Use GPT-5.2 for strategic reasoning
+      model: openai(selectedModel),
       system: systemMessage,
       messages: modelMessages,
-      tools: {
-        // MCP tool integration
-        mcp: openai.tools.mcp({
-          serverLabel: 'poke-mnky-draft-pool',
-          serverUrl: mcpServerUrl,
-          serverDescription: 'Access to POKE MNKY draft pool and team data. Provides tools for querying available Pokémon, team budgets, picks, and draft status.',
-          requireApproval: 'never', // Auto-approve for seamless experience
-        }),
-      },
-      maxSteps: 5, // Allow multi-step tool calls
+      tools,
+      maxSteps: mcpEnabled ? 5 : 1, // Allow multi-step tool calls only when MCP enabled
     })
 
     // Return streaming response compatible with useChat

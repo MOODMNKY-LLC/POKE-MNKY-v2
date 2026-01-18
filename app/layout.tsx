@@ -8,6 +8,7 @@ import { PokepediaSyncProvider } from "@/components/pokepedia-sync-provider"
 import { ServiceWorkerRegistration } from "@/components/service-worker-registration"
 import { PWAInstallPrompt } from "@/components/pwa-install-prompt"
 import { ConditionalHeader } from "@/components/conditional-header"
+import { AssistantWrapper } from "@/components/ai/assistant-wrapper"
 import { Suspense } from "react"
 import { Toaster } from "sonner"
 import "./globals.css"
@@ -127,6 +128,7 @@ export default function RootLayout({
         <ServiceWorkerRegistration />
         <PWAInstallPrompt />
         <Toaster position="top-right" />
+        <AssistantWrapper />
       </body>
     </html>
   )

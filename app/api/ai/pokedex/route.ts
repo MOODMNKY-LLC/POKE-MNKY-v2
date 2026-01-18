@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     
     // For useChat requests, use streamText
     if (isUseChatRequest) {
-      const { messages, selectedPokemon } = body
+      const { messages, selectedPokemon, mcpEnabled = true, model } = body
 
       // Get MCP server URL from environment
       const mcpServerUrl = process.env.MCP_DRAFT_POOL_SERVER_URL || 'https://mcp-draft-pool.moodmnky.com/mcp'
@@ -33,49 +33,58 @@ When asked about 'points', refer to draft point costs in the league draft pool. 
       // Convert messages to model format
       const modelMessages = convertToModelMessages(messages || [])
 
-      // Use streamText with MCP tools
-      const result = await streamText({
-        model: openai(AI_MODELS.POKEDEX_QA),
-        system: systemMessage,
-        messages: modelMessages,
-        tools: {
-          // MCP tool integration
-          mcp: openai.tools.mcp({
-            serverLabel: 'poke-mnky-draft-pool',
-            serverUrl: mcpServerUrl,
-            serverDescription: 'Access to POKE MNKY draft pool and team data. Provides tools for querying available Pokémon, draft costs, and team information.',
-            requireApproval: 'never',
-          }),
-          // Direct Pokémon data tool
-          get_pokemon: {
-            description: 'Fetch canonical Pokémon data including stats, types, abilities, and moves',
-            parameters: {
-              type: 'object',
-              properties: {
-                pokemon_name_or_id: {
-                  type: 'string',
-                  description: 'Pokémon name (e.g., "pikachu") or ID (e.g., "25")',
-                },
+      // Use selected model or default
+      const selectedModel = model || AI_MODELS.POKEDEX_QA
+
+      // Build tools object - always include get_pokemon, conditionally include MCP
+      const tools: any = {
+        // Direct Pokémon data tool (always available)
+        get_pokemon: {
+          description: 'Fetch canonical Pokémon data including stats, types, abilities, and moves',
+          parameters: {
+            type: 'object',
+            properties: {
+              pokemon_name_or_id: {
+                type: 'string',
+                description: 'Pokémon name (e.g., "pikachu") or ID (e.g., "25")',
               },
-              required: ['pokemon_name_or_id'],
             },
-            execute: async ({ pokemon_name_or_id }: { pokemon_name_or_id: string }) => {
-              const pokemonData = await getPokemonData(pokemon_name_or_id)
-              if (!pokemonData) {
-                return { error: 'Pokémon not found' }
-              }
-              return {
-                name: pokemonData.name,
-                types: pokemonData.types,
-                base_stats: pokemonData.base_stats,
-                abilities: pokemonData.abilities,
-                tier: pokemonData.tier,
-                draft_cost: pokemonData.draft_cost,
-              }
-            },
+            required: ['pokemon_name_or_id'],
+          },
+          execute: async ({ pokemon_name_or_id }: { pokemon_name_or_id: string }) => {
+            const pokemonData = await getPokemonData(pokemon_name_or_id)
+            if (!pokemonData) {
+              return { error: 'Pokémon not found' }
+            }
+            return {
+              name: pokemonData.name,
+              types: pokemonData.types,
+              base_stats: pokemonData.base_stats,
+              abilities: pokemonData.abilities,
+              tier: pokemonData.tier,
+              draft_cost: pokemonData.draft_cost,
+            }
           },
         },
-        maxSteps: 5,
+      }
+
+      // Conditionally add MCP tools
+      if (mcpEnabled) {
+        tools.mcp = openai.tools.mcp({
+          serverLabel: 'poke-mnky-draft-pool',
+          serverUrl: mcpServerUrl,
+          serverDescription: 'Access to POKE MNKY draft pool and team data. Provides tools for querying available Pokémon, draft costs, and team information.',
+          requireApproval: 'never',
+        })
+      }
+
+      // Use streamText with conditional MCP tools
+      const result = await streamText({
+        model: openai(selectedModel),
+        system: systemMessage,
+        messages: modelMessages,
+        tools,
+        maxSteps: mcpEnabled ? 5 : 1,
       })
 
       // Return streaming response compatible with useChat
