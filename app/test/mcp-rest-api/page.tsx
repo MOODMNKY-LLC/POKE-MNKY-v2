@@ -174,7 +174,8 @@ export default function MCPRestAPIPlaygroundPage() {
 
       switch (toolName) {
         case "health": {
-          const response = await callProxyAPI("/api/health", {})
+          // Health check endpoint is /health (not /api/health)
+          const response = await callProxyAPI("/health", {})
           result = response.data
           rateLimit = response.rateLimit
           break
