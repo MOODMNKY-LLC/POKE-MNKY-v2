@@ -31,6 +31,22 @@ export async function POST(request: Request) {
       )
     }
 
+    // Debug: Log message format for troubleshooting
+    console.log('[General Assistant] Raw messages received:', {
+      count: rawMessages.length,
+      firstMessage: rawMessages[0] ? {
+        role: rawMessages[0].role,
+        hasParts: !!rawMessages[0].parts,
+        hasContent: !!rawMessages[0].content,
+        keys: Object.keys(rawMessages[0]),
+      } : null,
+      allMessages: rawMessages.map((msg: any) => ({
+        role: msg.role,
+        hasParts: !!msg.parts,
+        hasContent: !!msg.content,
+      })),
+    })
+
     const systemMessage = `You are POKE MNKY, an expert AI assistant for the Average at Best Battle League, a competitive Pokémon draft league platform.
 
 You help coaches with:
@@ -60,7 +76,32 @@ Be friendly, helpful, and knowledgeable about Pokémon competitive play. Always 
     // Convert UI messages to model format (matching pokedex route pattern)
     // Note: We skip validateUIMessages as it may cause schema mismatches
     // The pokedex route works correctly without it
-    const modelMessages = convertToModelMessages(rawMessages)
+    let modelMessages
+    try {
+      modelMessages = convertToModelMessages(rawMessages)
+      console.log('[General Assistant] Successfully converted messages:', {
+        inputCount: rawMessages.length,
+        outputCount: modelMessages.length,
+        firstOutput: modelMessages[0] ? {
+          role: modelMessages[0].role,
+          hasContent: !!modelMessages[0].content,
+          contentType: typeof modelMessages[0].content,
+        } : null,
+      })
+    } catch (conversionError: any) {
+      console.error('[General Assistant] Error converting messages:', {
+        error: conversionError.message,
+        stack: conversionError.stack,
+        rawMessages: JSON.stringify(rawMessages, null, 2),
+      })
+      return NextResponse.json(
+        { 
+          error: 'Failed to convert messages',
+          details: conversionError.message,
+        },
+        { status: 400 }
+      )
+    }
 
     // Ensure we have valid messages
     if (!modelMessages || modelMessages.length === 0) {
