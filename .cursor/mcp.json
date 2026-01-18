@@ -22,14 +22,18 @@
         "run",
         "-i",
         "--rm",
-        "--network",
-        "host",
         "-e",
-        "SUPABASE_URL=http://127.0.0.1:54321",
+        "SUPABASE_URL=${SUPABASE_URL}",
         "-e",
-        "SUPABASE_SERVICE_ROLE_KEY=sb_secret_N7UND0UgjKTVK-Uodkm0Hg_xSvEMPvz",
-        "moodmnky/poke-mnky-draft-pool-mcp:latest"
-      ]
+        "SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}",
+        "-e",
+        "KB_BASE_PATH=/app/knowledge-base/aab-battle-league",
+        "moodmnky/poke-mnky-draft-pool-mcp:1.0.1"
+      ],
+      "env": {
+        "SUPABASE_URL": "https://chmrszrwlfeqovwxyrmt.supabase.co",
+        "SUPABASE_SERVICE_ROLE_KEY": "${env:SUPABASE_SERVICE_ROLE_KEY}"
+      }
     },
     "wolfram-alpha": {
       "command": "docker",

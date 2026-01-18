@@ -1,0 +1,49 @@
+{
+  "mcpServers": {
+    "supabase": {
+      "url": "https://mcp.supabase.com/mcp?project_ref=chmrszrwlfeqovwxyrmt",
+      "type": "http"
+    },
+    "shadcn": {
+      "command": "npx",
+      "args": [
+        "shadcn@latest",
+        "mcp"
+      ]
+    },
+    "supabase-local": {
+      "type": "streamable-http",
+      "url": "http://127.0.0.1:54321/mcp",
+      "description": "Supabase Local MCP Server - Direct access to local Supabase instance for database queries, schema inspection, and migrations"
+    },
+    "poke-mnky-draft-pool": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "--network",
+        "host",
+        "-e",
+        "SUPABASE_URL=http://127.0.0.1:54321",
+        "-e",
+        "SUPABASE_SERVICE_ROLE_KEY=sb_secret_N7UND0UgjKTVK-Uodkm0Hg_xSvEMPvz",
+        "moodmnky/poke-mnky-draft-pool-mcp:latest"
+      ]
+    },
+    "wolfram-alpha": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "-e",
+        "WOLFRAM_API_KEY",
+        "mcp/wolfram-alpha"
+      ],
+      "env": {
+        "WOLFRAM_API_KEY": "4RW37A-8XJ8H7JVVA"
+      }
+    }
+  }
+}

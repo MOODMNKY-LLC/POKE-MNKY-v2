@@ -1,7 +1,9 @@
-// Battle Strategy Agent API Route
-import { NextResponse } from 'next/server'
-import { analyzeMatchup, suggestBattleMoves, recommendTeraTypes } from '@/lib/agents/battle-strategy-agent'
+// Battle Strategy Agent API Route - Updated for useChat compatibility
+import { streamText } from 'ai'
+import { openai } from '@ai-sdk/openai'
+import { convertToModelMessages } from 'ai'
 import { createServerClient } from '@/lib/supabase/server'
+import { AI_MODELS } from '@/lib/openai-client'
 
 export async function POST(request: Request) {
   try {
@@ -11,84 +13,59 @@ export async function POST(request: Request) {
     } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return new Response('Unauthorized', { status: 401 })
     }
 
     const body = await request.json()
-    const { action } = body
+    const { messages, team1Id, team2Id, matchId } = body
 
-    // Action: 'matchup', 'moves', or 'tera'
-    if (action === 'matchup') {
-      const { team1Id, team2Id, seasonId } = body
-      if (!team1Id || !team2Id) {
-        return NextResponse.json({ error: 'team1Id and team2Id are required for matchup action' }, { status: 400 })
-      }
+    // Get MCP server URL from environment
+    const mcpServerUrl = process.env.MCP_DRAFT_POOL_SERVER_URL || 'https://mcp-draft-pool.moodmnky.com/mcp'
 
-      const analysis = await analyzeMatchup({
-        team1Id,
-        team2Id,
-        seasonId,
-      })
+    // Build system message with context
+    const systemMessage = `You are an expert Pokémon battle strategy coach for the Average at Best Battle League.
 
-      return NextResponse.json({
-        team1Id,
-        team2Id,
-        analysis,
-      })
-    }
+${team1Id ? `Team 1 ID: ${team1Id}` : ''}
+${team2Id ? `Team 2 ID: ${team2Id}` : ''}
+${matchId ? `Match ID: ${matchId}` : ''}
 
-    if (action === 'moves') {
-      const { teamId, opponentTeamId, activePokemon, opponentActivePokemon, battleState } = body
-      if (!teamId || !opponentTeamId || !activePokemon || !opponentActivePokemon) {
-        return NextResponse.json(
-          {
-            error:
-              'teamId, opponentTeamId, activePokemon, and opponentActivePokemon are required for moves action',
-          },
-          { status: 400 }
-        )
-      }
+Provide strategic battle analysis including:
+- Matchup analysis between teams
+- Move recommendations based on current battle state
+- Tera type suggestions
+- Defensive options and pivots
+- Win condition identification
+- Type coverage analysis
+- Speed tier considerations
 
-      const suggestions = await suggestBattleMoves(
-        teamId,
-        opponentTeamId,
-        activePokemon,
-        opponentActivePokemon,
-        battleState
-      )
+Use MCP tools to access team rosters, Pokémon data, and battle information. Be specific and tactical in your recommendations.`
 
-      return NextResponse.json({
-        teamId,
-        opponentTeamId,
-        activePokemon,
-        opponentActivePokemon,
-        suggestions,
-      })
-    }
+    // Convert messages to model format
+    const modelMessages = convertToModelMessages(messages || [])
 
-    if (action === 'tera') {
-      const { teamId, pokemon, opponentTeamId } = body
-      if (!teamId || !pokemon || !opponentTeamId) {
-        return NextResponse.json(
-          { error: 'teamId, pokemon, and opponentTeamId are required for tera action' },
-          { status: 400 }
-        )
-      }
+    // Use streamText with MCP tools
+    const result = await streamText({
+      model: openai(AI_MODELS.STRATEGY_COACH), // Use GPT-5.2 for strategic reasoning
+      system: systemMessage,
+      messages: modelMessages,
+      tools: {
+        // MCP tool integration
+        mcp: openai.tools.mcp({
+          serverLabel: 'poke-mnky-draft-pool',
+          serverUrl: mcpServerUrl,
+          serverDescription: 'Access to POKE MNKY draft pool and team data. Provides tools for querying team rosters, Pokémon stats, and battle information.',
+          requireApproval: 'never',
+        }),
+      },
+      maxSteps: 5,
+    })
 
-      const recommendations = await recommendTeraTypes(teamId, pokemon, opponentTeamId)
-      return NextResponse.json({
-        teamId,
-        pokemon,
-        opponentTeamId,
-        recommendations,
-      })
-    }
-
-    return NextResponse.json({ error: 'Invalid action. Use: matchup, moves, or tera' }, { status: 400 })
+    // Return streaming response compatible with useChat
+    return result.toDataStreamResponse()
   } catch (error) {
-    console.error('[v0] Battle Strategy Agent error:', error)
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Battle strategy agent failed' },
+    console.error('[Battle Strategy] Error:', error)
+    return new Response(
+      error instanceof Error ? error.message : 'Battle strategy agent failed',
       { status: 500 }
     )
   }

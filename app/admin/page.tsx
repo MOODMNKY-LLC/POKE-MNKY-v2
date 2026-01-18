@@ -8,6 +8,7 @@ import Link from "next/link"
 import { Database, Calendar, Trophy, Users, RefreshCw, Settings, MessageSquare } from "lucide-react"
 import { SupabaseManager } from "@/components/platform/supabase-manager"
 import { PokepediaSyncStatus } from "@/components/admin/pokepedia-sync-status"
+import { PokeMnkyPremium } from "@/components/ui/poke-mnky-avatar"
 import { useRouter } from "next/navigation"
 
 export default function AdminPage() {
@@ -62,9 +63,12 @@ export default function AdminPage() {
     <div className="flex min-h-screen flex-col bg-background">
       <header className="border-b border-border bg-card">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
-          <div>
-            <h1 className="text-xl font-bold">Admin Dashboard</h1>
-            <p className="text-sm text-muted-foreground">{user.email}</p>
+          <div className="flex items-center gap-3">
+            <PokeMnkyPremium size={32} className="shrink-0" />
+            <div>
+              <h1 className="text-xl font-bold">Admin Dashboard</h1>
+              <p className="text-sm text-muted-foreground">{user.email}</p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <Button onClick={() => setPlatformOpen(true)} variant="outline" size="sm">

@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation"
 import { TransactionForm } from "@/components/free-agency/transaction-form"
 import { AvailablePokemonBrowser } from "@/components/free-agency/available-pokemon-browser"
 import { TransactionHistory } from "@/components/free-agency/transaction-history"
+import { FreeAgencyChat } from "@/components/ai/free-agency-chat"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
@@ -70,7 +71,7 @@ export default function FreeAgencyPage() {
       setProfile(userProfile)
 
       // Get current season
-      const { data: season } = await client
+      const { data: season } = await supabase
         .from("seasons")
         .select("id")
         .eq("is_current", true)
@@ -264,6 +265,16 @@ export default function FreeAgencyPage() {
 
         <TabsContent value="history">
           <TransactionHistory teamId={profile.team_id} seasonId={seasonId} />
+        </TabsContent>
+
+        <TabsContent value="assistant">
+          <div className="h-[700px] border rounded-lg overflow-hidden">
+            <FreeAgencyChat
+              teamId={profile.team_id}
+              seasonId={seasonId}
+              className="h-full"
+            />
+          </div>
         </TabsContent>
       </Tabs>
     </div>

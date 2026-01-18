@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label"
 import { createBrowserClient } from "@/lib/supabase/client"
 import { Loader2, RefreshCw, Users, ArrowRight, CheckCircle2, AlertCircle } from "lucide-react"
 import { PokeballIcon } from "@/components/ui/pokeball-icon"
+import { EmptyState } from "@/components/ui/empty-state"
 import { toast } from "sonner"
 import Link from "next/link"
 
@@ -196,10 +197,11 @@ export default function DiscordRolesPage() {
             ) : (
               <div className="space-y-2 max-h-[500px] overflow-y-auto">
                 {users.filter((u) => u.discord_id).length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>No Discord-linked users found</p>
-                  </div>
+                  <EmptyState
+                    title="No Discord-linked users"
+                    description="Users who link their Discord account will appear here. They can link their account through the profile page."
+                    characterSize={64}
+                  />
                 ) : (
                   users
                     .filter((u) => u.discord_id)

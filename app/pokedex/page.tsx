@@ -1,20 +1,15 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import { Search, Sparkles, ImageIcon, ArrowRight, Zap, CheckCircle2, Loader2, Copy, Check, History, X } from "lucide-react"
+import { Search, ImageIcon, ArrowRight } from "lucide-react"
 import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
-import { MagicCard } from "@/components/ui/magic-card"
-import { ShimmerButton } from "@/components/ui/shimmer-button"
-import { BlurFade } from "@/components/ui/blur-fade"
 import { PokemonSprite } from "@/components/pokemon-sprite"
+import { EmptyState } from "@/components/ui/empty-state"
+import { PokedexChat } from "@/components/ai/pokedex-chat"
 import { getAllPokemonFromCache, searchPokemon, type PokemonDisplayData } from "@/lib/pokemon-utils"
 import { PokemonClient } from "pokenode-ts"
 import {
@@ -49,16 +44,7 @@ export default function PokedexPage() {
   const [pokemonList, setPokemonList] = useState<PokemonDisplayData[]>([])
   const [loading, setLoading] = useState(true)
   const [loadingDetails, setLoadingDetails] = useState(false)
-  const [aiQuestion, setAiQuestion] = useState("")
-  const [aiResponse, setAiResponse] = useState("")
-  const [aiLoading, setAiLoading] = useState(false)
-  const [useResponsesAPI, setUseResponsesAPI] = useState(false)
-  const [responseSource, setResponseSource] = useState<string | null>(null)
-  const [pokemonReferenced, setPokemonReferenced] = useState<string[]>([])
   const [spriteMode, setSpriteMode] = useState<"front" | "back" | "shiny" | "artwork">("front")
-  const [copied, setCopied] = useState(false)
-  const [conversationHistory, setConversationHistory] = useState<Array<{ question: string; answer: string; timestamp: number }>>([])
-  const [showHistory, setShowHistory] = useState(false)
 
   useEffect(() => {
     async function loadPokemon() {
@@ -140,83 +126,6 @@ export default function PokedexPage() {
   const filteredPokemon = searchQuery.trim()
     ? pokemonList
     : pokemonList.filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
-
-  const handleAskAI = async () => {
-    if (!aiQuestion.trim()) {
-      return
-    }
-
-    setAiLoading(true)
-    setResponseSource(null)
-    setPokemonReferenced([])
-    setAiResponse("") // Clear previous response
-    
-    try {
-      console.log("[Pokedex] Sending AI request:", { query: aiQuestion, useResponsesAPI })
-      
-      const response = await fetch("/api/ai/pokedex", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          query: aiQuestion,
-          useResponsesAPI: useResponsesAPI 
-        }),
-      })
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-
-      const data = await response.json()
-      console.log("[Pokedex] AI response:", data)
-      
-      const answer = data.answer || data.error || "No response"
-      setAiResponse(answer)
-      setResponseSource(data.source || null)
-      setPokemonReferenced(data.pokemon_referenced || [])
-
-      // Save to conversation history
-      const newEntry = {
-        question: aiQuestion,
-        answer,
-        timestamp: Date.now(),
-      }
-      const updatedHistory = [newEntry, ...conversationHistory].slice(0, 10) // Keep last 10
-      setConversationHistory(updatedHistory)
-      localStorage.setItem("pokedex-conversation-history", JSON.stringify(updatedHistory))
-    } catch (error) {
-      console.error("[Pokedex] AI request error:", error)
-      const errorMessage = "Error: " + (error instanceof Error ? error.message : "Unknown error")
-      setAiResponse(errorMessage)
-      setResponseSource("error")
-    } finally {
-      setAiLoading(false)
-    }
-  }
-
-  const handleCopyResponse = async () => {
-    if (!aiResponse) return
-    try {
-      await navigator.clipboard.writeText(aiResponse)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch (error) {
-      console.error("Failed to copy:", error)
-    }
-  }
-
-  const handleSuggestedPrompt = (prompt: string) => {
-    setAiQuestion(prompt)
-  }
-
-  const suggestedPrompts = [
-    `What are the best moves for ${selectedPokemon?.name || "this Pokémon"}?`,
-    `What Pokemon are available with 20 points in the draft pool?`,
-    "Show me the current draft status",
-    "What's my team's remaining budget?",
-    `What are ${selectedPokemon?.name || "this Pokémon"}'s weaknesses?`,
-    "Which Pokemon have the highest draft value?",
-  ]
 
   const getTierColor = (tier: string | null) => {
     if (!tier) return "bg-muted text-muted-foreground"
@@ -721,175 +630,22 @@ export default function PokedexPage() {
               </TabsContent>
 
               <TabsContent value="ai" className="space-y-4 mt-4">
-                <BlurFade delay={0.1} direction="up">
-                  <MagicCard className="p-0">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <Sparkles className="h-5 w-5 text-primary" />
-                          AI Pokémon Assistant
-                        </CardTitle>
-                        <CardDescription>
-                          Ask questions about {selectedPokemon.name}, competitive strategy, or draft pool data
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        {/* Responses API Toggle */}
-                        <BlurFade delay={0.15} direction="up">
-                          <div className="flex items-center justify-between p-4 bg-gradient-to-r from-muted/50 to-muted/30 rounded-lg border">
-                            <div className="flex items-center gap-3">
-                              <div className={`p-2 rounded-lg transition-colors ${useResponsesAPI ? 'bg-primary/10' : 'bg-muted'}`}>
-                                <Zap className={`h-4 w-4 transition-colors ${useResponsesAPI ? 'text-primary' : 'text-muted-foreground'}`} />
-                              </div>
-                              <div className="flex flex-col">
-                                <Label htmlFor="responses-api" className="text-sm font-medium cursor-pointer">
-                                  Responses API + MCP
-                                </Label>
-                                <span className="text-xs text-muted-foreground">
-                                  {useResponsesAPI ? 'Using MCP tools' : 'Using standard API'}
-                                </span>
-                              </div>
-                            </div>
-                            <Switch
-                              id="responses-api"
-                              checked={useResponsesAPI}
-                              onCheckedChange={setUseResponsesAPI}
-                            />
-                          </div>
-                        </BlurFade>
-
-                        {/* Question Input */}
-                        <BlurFade delay={0.2} direction="up">
-                          <div className="space-y-2">
-                            <Label htmlFor="ai-question" className="text-sm font-medium">
-                              Your Question
-                            </Label>
-                            <Textarea
-                              id="ai-question"
-                              placeholder={`What are the best moves for ${selectedPokemon.name}? Or ask about draft pool: "What Pokemon are available with 20 points?"`}
-                              value={aiQuestion}
-                              onChange={(e) => setAiQuestion(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && !aiLoading && aiQuestion.trim()) {
-                                  e.preventDefault()
-                                  handleAskAI()
-                                }
-                              }}
-                              rows={4}
-                              className="resize-none"
-                              disabled={aiLoading}
-                            />
-                            <p className="text-xs text-muted-foreground">
-                              Press Cmd+Enter (Mac) or Ctrl+Enter (Windows) to submit
-                            </p>
-                          </div>
-                        </BlurFade>
-
-                        {/* Submit Button */}
-                        <BlurFade delay={0.3} direction="up">
-                          <ShimmerButton
-                            onClick={(e) => {
-                              e.preventDefault()
-                              handleAskAI()
-                            }}
-                            disabled={aiLoading || !aiQuestion.trim()}
-                            className="w-full"
-                            type="button"
-                            background="hsl(var(--primary))"
-                            shimmerColor="rgba(255, 255, 255, 0.5)"
-                          >
-                            {aiLoading ? (
-                              <>
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                Thinking...
-                              </>
-                            ) : (
-                              <>
-                                <Sparkles className="h-4 w-4 mr-2" />
-                                Ask AI
-                              </>
-                            )}
-                          </ShimmerButton>
-                        </BlurFade>
-
-                        {/* Response Source Indicator */}
-                        {responseSource && (
-                          <BlurFade delay={0.3} direction="up">
-                            <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg border">
-                              <CheckCircle2 className={`h-4 w-4 ${responseSource === "responses_api_mcp" ? "text-green-500" : "text-blue-500"}`} />
-                              <div className="flex-1">
-                                <p className="text-xs font-medium">
-                                  {responseSource === "responses_api_mcp" ? "Responses API + MCP" : responseSource === "chat_completions" ? "Chat Completions" : responseSource}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  {responseSource === "responses_api_mcp" ? "Using MCP tools for enhanced data access" : "Using standard function calling"}
-                                </p>
-                              </div>
-                            </div>
-                          </BlurFade>
-                        )}
-
-                        {/* Referenced Pokemon */}
-                        {pokemonReferenced.length > 0 && (
-                          <BlurFade delay={0.35} direction="up">
-                            <div className="space-y-2">
-                              <Label className="text-xs font-medium text-muted-foreground">Referenced Pokémon</Label>
-                              <div className="flex flex-wrap gap-2">
-                                {pokemonReferenced.map((name, i) => (
-                                  <Badge key={i} variant="secondary" className="text-xs capitalize">
-                                    {name}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </div>
-                          </BlurFade>
-                        )}
-
-                        {/* AI Response */}
-                        {aiResponse && (
-                          <BlurFade delay={0.4} direction="up">
-                            <MagicCard className="p-0">
-                              <Card className="border-2">
-                                <CardHeader>
-                                  <div className="flex items-center justify-between">
-                                    <CardTitle className="text-sm flex items-center gap-2">
-                                      <Sparkles className="h-4 w-4 text-primary" />
-                                      AI Response
-                                    </CardTitle>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={handleCopyResponse}
-                                      className="h-7 w-7 p-0"
-                                    >
-                                      {copied ? (
-                                        <Check className="h-4 w-4 text-green-500" />
-                                      ) : (
-                                        <Copy className="h-4 w-4" />
-                                      )}
-                                    </Button>
-                                  </div>
-                                </CardHeader>
-                                <CardContent>
-                                  <div className="prose prose-sm dark:prose-invert max-w-none">
-                                    <p className="text-sm whitespace-pre-wrap leading-relaxed">{aiResponse}</p>
-                                  </div>
-                                </CardContent>
-                              </Card>
-                            </MagicCard>
-                          </BlurFade>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </MagicCard>
-                </BlurFade>
+                <div className="h-[600px] border rounded-lg overflow-hidden">
+                  <PokedexChat
+                    selectedPokemon={selectedPokemon?.name}
+                    className="h-full"
+                  />
+                </div>
               </TabsContent>
             </Tabs>
           ) : (
-            <Card className="h-full flex items-center justify-center">
-              <CardContent className="text-center text-muted-foreground">
-                <Sparkles className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Select a Pokémon to view details</p>
+            <Card className="h-full">
+              <CardContent className="p-8">
+                <EmptyState
+                  title="Select a Pokémon"
+                  description="Choose a Pokémon from the list to view detailed information, stats, moves, and AI-powered insights."
+                  characterSize={80}
+                />
               </CardContent>
             </Card>
           )}

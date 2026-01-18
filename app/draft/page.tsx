@@ -7,6 +7,7 @@ import { DraftBoard } from "@/components/draft/draft-board"
 import { TeamRosterPanel } from "@/components/draft/team-roster-panel"
 import { PickHistory } from "@/components/draft/pick-history"
 import { DraftChat } from "@/components/draft/draft-chat"
+import { DraftAssistantChat } from "@/components/ai/draft-assistant-chat"
 import { Card } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -217,6 +218,15 @@ export default function DraftRoomPage() {
             seasonId={session.season_id}
           />
           <PickHistory sessionId={session.id} />
+          {/* Draft Assistant Chat - New AI-powered assistant */}
+          <div className="h-[600px] border rounded-lg overflow-hidden">
+            <DraftAssistantChat
+              teamId={currentTeam?.id}
+              seasonId={session.season_id}
+              className="h-full"
+            />
+          </div>
+          {/* Legacy Draft Chat - Keep for now */}
           <DraftChat sessionId={session.id} />
         </div>
       </div>
