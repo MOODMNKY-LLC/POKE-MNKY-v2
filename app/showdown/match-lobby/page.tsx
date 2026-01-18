@@ -2,9 +2,11 @@
 
 import { Users, Play, Clock, ExternalLink, ArrowLeft } from 'lucide-react';
 import MatchLobby from '@/components/showdown/match-lobby';
+import { BattleStrategyChat } from '@/components/ai/battle-strategy-chat';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Link from 'next/link';
 
 export default function MatchLobbyPage() {
@@ -82,8 +84,23 @@ export default function MatchLobbyPage() {
         </Card>
       </div>
 
-      {/* Match Lobby Component */}
-      <MatchLobby />
+      {/* Match Lobby with Battle Strategy Assistant */}
+      <Tabs defaultValue="matches" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="matches">Match Lobby</TabsTrigger>
+          <TabsTrigger value="strategy">Battle Strategy</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="matches">
+          <MatchLobby />
+        </TabsContent>
+
+        <TabsContent value="strategy">
+          <div className="h-[700px] border rounded-lg overflow-hidden">
+            <BattleStrategyChat className="h-full" />
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

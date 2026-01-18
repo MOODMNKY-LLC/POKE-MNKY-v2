@@ -1,11 +1,9 @@
-// Free Agency Agent API Route
-import { NextResponse } from 'next/server'
-import {
-  evaluateFreeAgencyTarget,
-  evaluateTradeProposal,
-  suggestFreeAgencyTargets,
-} from '@/lib/agents/free-agency-agent'
+// Free Agency Agent API Route - Updated for useChat compatibility
+import { streamText } from 'ai'
+import { openai } from '@ai-sdk/openai'
+import { convertToModelMessages } from 'ai'
 import { createServerClient } from '@/lib/supabase/server'
+import { AI_MODELS } from '@/lib/openai-client'
 
 export async function POST(request: Request) {
   try {
@@ -15,67 +13,61 @@ export async function POST(request: Request) {
     } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return new Response('Unauthorized', { status: 401 })
     }
 
     const body = await request.json()
-    const { teamId, action } = body
+    const { messages, teamId, seasonId } = body
 
     if (!teamId) {
-      return NextResponse.json({ error: 'teamId is required' }, { status: 400 })
+      return new Response('teamId is required', { status: 400 })
     }
 
-    // Action: 'evaluate', 'trade', or 'suggest'
-    if (action === 'evaluate') {
-      const { pokemonName, seasonId } = body
-      if (!pokemonName) {
-        return NextResponse.json({ error: 'pokemonName is required for evaluate action' }, { status: 400 })
-      }
+    // Get MCP server URL from environment
+    const mcpServerUrl = process.env.MCP_DRAFT_POOL_SERVER_URL || 'https://mcp-draft-pool.moodmnky.com/mcp'
 
-      const evaluation = await evaluateFreeAgencyTarget({
-        teamId,
-        pokemonName,
-        seasonId,
-      })
+    // Build system message with context
+    const systemMessage = `You are an expert free agency and trade evaluation assistant for the Average at Best Battle League.
 
-      return NextResponse.json({
-        teamId,
-        pokemonName,
-        evaluation,
-      })
-    }
+Team ID: ${teamId}
+${seasonId ? `Season ID: ${seasonId}` : ''}
 
-    if (action === 'trade') {
-      const { proposedTrade } = body
-      if (!proposedTrade || !proposedTrade.giving || !proposedTrade.receiving) {
-        return NextResponse.json(
-          { error: 'proposedTrade with giving and receiving arrays is required' },
-          { status: 400 }
-        )
-      }
+Help coaches with:
+- Trade evaluation and analysis
+- Free agency target recommendations
+- Roster gap identification
+- Pick value assessment
+- Transaction suggestions
+- Team needs analysis
 
-      const evaluation = await evaluateTradeProposal(teamId, proposedTrade)
-      return NextResponse.json({
-        teamId,
-        proposedTrade,
-        evaluation,
-      })
-    }
+Use MCP tools to access team rosters, available Pokémon, and draft pool data. Provide specific, actionable recommendations with clear reasoning.`
 
-    if (action === 'suggest') {
-      const { needs } = body
-      const suggestions = await suggestFreeAgencyTargets(teamId, needs)
-      return NextResponse.json({
-        teamId,
-        suggestions,
-      })
-    }
+    // Convert messages to model format
+    const modelMessages = convertToModelMessages(messages || [])
 
-    return NextResponse.json({ error: 'Invalid action. Use: evaluate, trade, or suggest' }, { status: 400 })
+    // Use streamText with MCP tools
+    const result = await streamText({
+      model: openai(AI_MODELS.STRATEGY_COACH), // Use GPT-5.2 for strategic reasoning
+      system: systemMessage,
+      messages: modelMessages,
+      tools: {
+        // MCP tool integration
+        mcp: openai.tools.mcp({
+          serverLabel: 'poke-mnky-draft-pool',
+          serverUrl: mcpServerUrl,
+          serverDescription: 'Access to POKE MNKY draft pool and team data. Provides tools for querying team rosters, available Pokémon, pick values, and draft status.',
+          requireApproval: 'never',
+        }),
+      },
+      maxSteps: 5,
+    })
+
+    // Return streaming response compatible with useChat
+    return result.toDataStreamResponse()
   } catch (error) {
-    console.error('[v0] Free Agency Agent error:', error)
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Free agency agent failed' },
+    console.error('[Free Agency] Error:', error)
+    return new Response(
+      error instanceof Error ? error.message : 'Free agency agent failed',
       { status: 500 }
     )
   }

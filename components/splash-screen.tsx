@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import Image from "next/image"
 import { PokeballIcon } from "@/components/ui/pokeball-icon"
+import { PokeMnkyAssistant } from "@/components/ui/poke-mnky-avatar"
 
 interface SplashScreenProps {
   /** Whether the splash screen is visible */
@@ -109,11 +110,15 @@ export function SplashScreen({
 
         {/* Loading Indicator */}
         <div className="flex flex-col items-center space-y-4 animate-fade-in-delay">
-          {/* Animated Pokeball */}
-          <div className="relative">
-            <PokeballIcon className="h-12 w-12 sm:h-16 sm:w-16 text-primary animate-spin-slow" />
-            {/* Pulsing ring effect */}
-            <div className="absolute inset-0 rounded-full border-2 border-primary/30 animate-ping" />
+          {/* POKE MNKY Assistant Character */}
+          <div className="flex items-center gap-4">
+            <PokeMnkyAssistant size={64} className="animate-pulse" />
+            {/* Animated Pokeball */}
+            <div className="relative">
+              <PokeballIcon className="h-12 w-12 sm:h-16 sm:w-16 text-primary animate-spin-slow" />
+              {/* Pulsing ring effect */}
+              <div className="absolute inset-0 rounded-full border-2 border-primary/30 animate-ping" />
+            </div>
           </div>
 
           {/* Loading dots */}

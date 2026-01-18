@@ -1,3 +1,7 @@
+"use client"
+
+import { PokeMnkyAssistant } from "@/components/ui/poke-mnky-avatar"
+
 /**
  * Root Loading Component
  * 
@@ -48,17 +52,21 @@ export default function Loading() {
 
         {/* Loading Indicator */}
         <div className="flex flex-col items-center space-y-4 animate-fade-in-delay">
-          {/* Animated Pokeball - using SVG directly to avoid component issues */}
-          <div className="relative h-12 w-12 sm:h-16 sm:w-16">
-            <img
-              src="/pokeball-normal.svg"
-              alt="Loading"
-              className="h-full w-full text-primary animate-spin-slow"
-              loading="eager"
-              decoding="async"
-            />
-            {/* Pulsing ring effect */}
-            <div className="absolute inset-0 rounded-full border-2 border-primary/30 animate-ping" />
+          {/* POKE MNKY Assistant Character */}
+          <div className="flex items-center gap-4">
+            <PokeMnkyAssistant size={64} className="animate-pulse" />
+            {/* Animated Pokeball - using SVG directly to avoid component issues */}
+            <div className="relative h-12 w-12 sm:h-16 sm:w-16">
+              <img
+                src="/pokeball-normal.svg"
+                alt="Loading"
+                className="h-full w-full text-primary animate-spin-slow"
+                loading="eager"
+                decoding="async"
+              />
+              {/* Pulsing ring effect */}
+              <div className="absolute inset-0 rounded-full border-2 border-primary/30 animate-ping" />
+            </div>
           </div>
 
           {/* Loading dots */}

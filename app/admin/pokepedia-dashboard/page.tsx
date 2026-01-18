@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Database, HardDrive, Users, Key, FileText, Activity, Sparkles } from "lucide-react"
+import { PokeMnkyPremium } from "@/components/ui/poke-mnky-avatar"
 import { DatabaseTab } from "@/components/platform/database-tab"
 import { AuthTab } from "@/components/platform/auth-tab"
 import { StorageTab } from "@/components/platform/storage-tab"

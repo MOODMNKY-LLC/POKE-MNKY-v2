@@ -4,14 +4,18 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { WifiOff, RefreshCw, Home } from 'lucide-react'
+import { PokeMnkyAssistant } from '@/components/ui/poke-mnky-avatar'
 
 export default function OfflinePage() {
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-            <WifiOff className="h-8 w-8 text-muted-foreground" />
+          <div className="mx-auto mb-4 flex items-center justify-center gap-3">
+            <PokeMnkyAssistant size={64} />
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+              <WifiOff className="h-8 w-8 text-muted-foreground" />
+            </div>
           </div>
           <CardTitle className="text-2xl">You're Offline</CardTitle>
           <CardDescription>

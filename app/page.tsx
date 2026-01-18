@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { PokeballIcon } from "@/components/ui/pokeball-icon"
+import { EmptyState } from "@/components/ui/empty-state"
 import { redisCache, CacheKeys, CacheTTL } from "@/lib/cache/redis"
 import {
   Database,
@@ -468,10 +469,11 @@ export default async function HomePage() {
                       ))}
                     </div>
                   ) : (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <p>No team data available yet</p>
-                      <p className="text-sm mt-2">Run database migrations and sync Google Sheets</p>
-                    </div>
+                    <EmptyState
+                      title="No team data available yet"
+                      description="Run database migrations and sync Google Sheets to populate team data."
+                      characterSize={64}
+                    />
                   )}
                 </CardContent>
               </Card>
