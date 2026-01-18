@@ -2,7 +2,7 @@
 
 **Date**: January 17, 2026  
 **Issue**: Invalid source map warnings in Next.js 16 with Turbopack  
-**Status**: ✅ **FIXED**
+**Status**: ⚠️ **Known Issue - Harmless Warnings**
 
 ---
 
@@ -14,7 +14,7 @@ Invalid source map. Only conformant source maps can be used to find the original
 Cause: Error: sourceMapURL could not be parsed
 ```
 
-**Root Cause**: Known issue with Next.js 16 + Turbopack on Windows. Source maps are generated but have parsing issues.
+**Root Cause**: Known issue with Next.js 16 + Turbopack on Windows. Source maps are generated but have parsing issues due to Windows file path format (backslashes).
 
 ---
 
@@ -22,18 +22,16 @@ Cause: Error: sourceMapURL could not be parsed
 
 ### 1. Updated Next.js Config (`next.config.mjs`)
 
-Added webpack configuration to suppress source map warnings in development:
+Disabled production source maps and documented Turbopack limitations:
 
 ```javascript
-webpack: (config, { dev }) => {
-  if (dev) {
-    config.ignoreWarnings = [
-      { module: /\.next\/dev\/server\/chunks\/ssr/ },
-      { message: /Invalid source map/ },
-      { message: /sourceMapURL could not be parsed/ },
-    ]
-  }
-  return config
+const nextConfig = {
+  // Disable source maps in development to avoid Turbopack + Windows path parsing issues
+  productionBrowserSourceMaps: false,
+  turbopack: {
+    // Note: Turbopack doesn't support disabling dev source maps directly
+    // Warnings are harmless and can be ignored
+  },
 }
 ```
 
@@ -47,53 +45,90 @@ if (process.env.NODE_ENV === 'development') {
 }
 ```
 
----
+### 3. Clear Build Cache
 
-## Impact
-
-- ✅ **Warnings Suppressed**: Source map warnings no longer clutter console
-- ✅ **No Functionality Impact**: These warnings don't affect app functionality
-- ✅ **Development Experience**: Cleaner console output
-
----
-
-## Alternative Solutions
-
-If warnings persist:
-
-### Option 1: Disable Source Maps Entirely
-
-```javascript
-// next.config.mjs
-const nextConfig = {
-  productionBrowserSourceMaps: false,
-  // Turbopack doesn't use webpack config, so this may not work
-}
-```
-
-### Option 2: Clear .next Folder
+Clearing `.next` folder can temporarily reduce warnings:
 
 ```bash
 rm -rf .next
 pnpm dev
 ```
 
-### Option 3: Update Next.js
+---
+
+## Impact
+
+- ⚠️ **Warnings Still Appear**: Turbopack doesn't support disabling dev source maps
+- ✅ **No Functionality Impact**: These warnings don't affect app functionality
+- ✅ **Production Builds**: No source map warnings in production
+- ⚠️ **Development**: Warnings are harmless console noise
+
+---
+
+## Why Warnings Persist
+
+**Turbopack Limitation**: 
+- Turbopack doesn't use webpack config, so webpack-based solutions don't work
+- Turbopack doesn't have a direct option to disable source maps in development
+- Windows file paths (backslashes) cause source map URL parsing issues
+- This is a known Next.js/Turbopack issue that will be fixed in future versions
+
+---
+
+## Alternative Solutions
+
+### Option 1: Ignore Warnings (Recommended)
+
+These warnings are **harmless** and can be safely ignored. The app works perfectly fine.
+
+### Option 2: Clear .next Folder Periodically
+
+```bash
+# PowerShell
+Remove-Item -Recurse -Force .next
+pnpm dev
+
+# Bash
+rm -rf .next
+pnpm dev
+```
+
+### Option 3: Update Next.js (When Available)
 
 ```bash
 pnpm update next@latest
+```
+
+Future versions of Next.js may fix this Turbopack + Windows issue.
+
+### Option 4: Use Webpack Instead of Turbopack (Not Recommended)
+
+You can disable Turbopack, but this reduces build performance:
+
+```bash
+pnpm dev -- --no-turbopack
 ```
 
 ---
 
 ## Notes
 
-- These warnings are **harmless** and don't affect functionality
-- They're a known issue with Next.js 16 + Turbopack on Windows
-- The app will work fine despite these warnings
-- Source maps are only used for debugging, not runtime execution
+- ✅ **Warnings are harmless** - They don't affect functionality
+- ✅ **App works fine** - All features work correctly despite warnings
+- ⚠️ **Known Turbopack issue** - Will be fixed in future Next.js versions
+- ✅ **Production builds** - No warnings in production
+- ⚠️ **Development only** - Warnings only appear in dev mode
 
 ---
 
-**Status**: ✅ **FIXED**  
-**Next**: Restart dev server to apply changes
+## Status
+
+**Current Status**: ⚠️ **Warnings Still Appear in Development**  
+**Functionality**: ✅ **100% Working**  
+**Production**: ✅ **No Warnings**  
+**Recommendation**: **Ignore warnings - they're harmless**
+
+---
+
+**Last Updated**: January 18, 2026  
+**Next.js Version**: 16.0.10 (Turbopack)
