@@ -58,20 +58,43 @@ You help coaches with:
 
 Be friendly, helpful, and knowledgeable about Pokémon competitive play. Always use available tools when appropriate to get real-time data.`
 
-    // Get MCP server URL from environment
+    // Get MCP server URL and API key from environment
     const mcpServerUrl = process.env.MCP_DRAFT_POOL_SERVER_URL || 'https://mcp-draft-pool.moodmnky.com/mcp'
+    const mcpApiKey = process.env.MCP_API_KEY
+
+    // Build MCP server URL with authentication if API key is available
+    // OpenAI SDK's MCP tool might support auth via URL or we may need to configure it differently
+    // For now, try including API key in URL if needed, or configure auth headers if SDK supports it
+    let authenticatedMcpUrl = mcpServerUrl
+    if (mcpApiKey) {
+      // Try adding API key as query parameter (some MCP servers support this)
+      // Or use basic auth format: https://api_key@server.com/mcp
+      // Note: This depends on MCP server implementation
+      const url = new URL(mcpServerUrl)
+      url.searchParams.set('api_key', mcpApiKey)
+      authenticatedMcpUrl = url.toString()
+    }
 
     // Build tools object - conditionally include MCP tools
     const tools = mcpEnabled
       ? {
           mcp: openai.tools.mcp({
             serverLabel: 'poke-mnky-draft-pool',
-            serverUrl: mcpServerUrl,
+            serverUrl: authenticatedMcpUrl,
             serverDescription: 'Access to POKE MNKY draft pool and team data. Provides 9 tools: get_available_pokemon, get_draft_status, get_team_budget, get_team_picks, get_pokemon_types, get_smogon_meta, get_ability_mechanics, get_move_mechanics, analyze_pick_value.',
             requireApproval: 'never',
+            // Note: OpenAI SDK MCP tool might not support custom headers directly
+            // If query param doesn't work, we may need to use REST API approach instead
           }),
         }
       : undefined
+
+    // Log MCP configuration for debugging
+    console.log('[General Assistant] MCP configuration:', {
+      serverUrl: mcpServerUrl,
+      hasApiKey: !!mcpApiKey,
+      authenticatedUrl: authenticatedMcpUrl,
+    })
 
     // Convert UI messages to model format
     // convertToModelMessages handles UIMessage[] with 'parts' arrays directly
