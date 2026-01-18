@@ -73,16 +73,43 @@ Be friendly, helpful, and knowledgeable about Pokémon competitive play. Always 
         }
       : undefined
 
+    // Preprocess messages: convert parts array to content string if needed
+    // useChat sends messages with 'parts' array, but convertToModelMessages might expect 'content'
+    const preprocessedMessages = rawMessages.map((msg: any) => {
+      // If message has parts array but no content, extract content from parts
+      if (msg.parts && Array.isArray(msg.parts) && !msg.content) {
+        const content = msg.parts
+          .filter((p: any) => p.type === 'text')
+          .map((p: any) => p.text)
+          .join('')
+        return {
+          ...msg,
+          content,
+        }
+      }
+      return msg
+    })
+
     // Convert UI messages to model format (matching pokedex route pattern)
     // Note: We skip validateUIMessages as it may cause schema mismatches
     // The pokedex route works correctly without it
     let modelMessages
     try {
-      modelMessages = convertToModelMessages(rawMessages)
+      // Check if convertToModelMessages is async (might be in newer SDK versions)
+      const conversionResult = convertToModelMessages(preprocessedMessages)
+      
+      // Handle both sync and async cases
+      if (conversionResult instanceof Promise) {
+        modelMessages = await conversionResult
+      } else {
+        modelMessages = conversionResult
+      }
+
       console.log('[General Assistant] Successfully converted messages:', {
         inputCount: rawMessages.length,
-        outputCount: modelMessages.length,
-        firstOutput: modelMessages[0] ? {
+        preprocessedCount: preprocessedMessages.length,
+        outputCount: modelMessages?.length || 0,
+        firstOutput: modelMessages?.[0] ? {
           role: modelMessages[0].role,
           hasContent: !!modelMessages[0].content,
           contentType: typeof modelMessages[0].content,
@@ -93,6 +120,7 @@ Be friendly, helpful, and knowledgeable about Pokémon competitive play. Always 
         error: conversionError.message,
         stack: conversionError.stack,
         rawMessages: JSON.stringify(rawMessages, null, 2),
+        preprocessedMessages: JSON.stringify(preprocessedMessages, null, 2),
       })
       return NextResponse.json(
         { 
