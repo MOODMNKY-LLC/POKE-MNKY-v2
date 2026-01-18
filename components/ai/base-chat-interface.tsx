@@ -39,6 +39,7 @@ import { Reasoning, ReasoningContent, ReasoningTrigger } from "@/components/ai-e
 import { Sources, SourcesContent, Source, SourcesTrigger } from "@/components/ai-elements/sources"
 import { CodeBlock } from "@/components/ai-elements/code-block"
 import { Loader } from "@/components/ai-elements/loader"
+import { QuickActions } from "@/components/ai/quick-actions"
 import { cn } from "@/lib/utils"
 import type { UIMessage, ToolUIPart } from "ai"
 
@@ -79,6 +80,7 @@ export function BaseChatInterface({
   emptyStateTitle = "Start a conversation",
   emptyStateDescription = "Ask me anything!",
   className,
+  quickActions,
   onSendMessageReady,
 }: BaseChatInterfaceProps) {
   const { messages, sendMessage, status, regenerate } = useChat({
