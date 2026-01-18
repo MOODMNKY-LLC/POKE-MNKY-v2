@@ -11,6 +11,7 @@ import {
   BookOpen,
   Sparkles,
   Home,
+  ClipboardList,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -42,6 +43,11 @@ export function DashboardDock() {
       label: "Schedule",
       href: "/schedule",
       icon: Calendar,
+    },
+    {
+      label: "Draft",
+      href: "/draft",
+      icon: ClipboardList,
     },
     {
       label: "Showdown",

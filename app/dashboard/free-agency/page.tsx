@@ -226,6 +226,7 @@ export default function FreeAgencyPage() {
           <TabsTrigger value="submit">Submit Transaction</TabsTrigger>
           <TabsTrigger value="browse">Browse Available</TabsTrigger>
           <TabsTrigger value="history">Transaction History</TabsTrigger>
+          <TabsTrigger value="assistant">AI Assistant</TabsTrigger>
         </TabsList>
 
         <TabsContent value="submit" className="space-y-4">

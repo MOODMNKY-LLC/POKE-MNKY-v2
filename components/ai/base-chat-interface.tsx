@@ -15,7 +15,7 @@
  * This is the foundation for all agent-specific chat interfaces.
  */
 
-import { useState, Fragment } from "react"
+import { useState, Fragment, useEffect } from "react"
 import { useChat } from "@ai-sdk/react"
 import { CopyIcon, RefreshCcwIcon } from "lucide-react"
 import { PromptInputWrapper, type PromptInputMessage } from "./prompt-input-wrapper"
@@ -64,6 +64,8 @@ export interface BaseChatInterfaceProps {
   className?: string
   /** Quick actions to display above input */
   quickActions?: Array<{ label: string; prompt: string; icon?: React.ReactNode }>
+  /** Callback ref to expose sendMessage function */
+  onSendMessageReady?: (sendMessage: (message: { text: string }) => void) => void
 }
 
 export function BaseChatInterface({
@@ -77,6 +79,7 @@ export function BaseChatInterface({
   emptyStateTitle = "Start a conversation",
   emptyStateDescription = "Ask me anything!",
   className,
+  onSendMessageReady,
 }: BaseChatInterfaceProps) {
   const { messages, sendMessage, status, regenerate } = useChat({
     api: apiEndpoint,
@@ -84,6 +87,13 @@ export function BaseChatInterface({
   })
 
   const isLoading = status === "streaming" || status === "submitted"
+
+  // Expose sendMessage to parent component (for voice input, etc.)
+  useEffect(() => {
+    if (onSendMessageReady) {
+      onSendMessageReady(sendMessage)
+    }
+  }, [onSendMessageReady, sendMessage])
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text)
