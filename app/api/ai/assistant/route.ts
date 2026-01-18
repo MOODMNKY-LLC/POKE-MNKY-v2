@@ -59,19 +59,32 @@ Be friendly, helpful, and knowledgeable about Pokémon competitive play. Always 
       : undefined
 
     // Validate messages against tool schemas (from mnky-command pattern)
-    const messages = await validateUIMessages({
+    const validatedMessages = await validateUIMessages({
       messages: rawMessages,
       tools,
     })
 
     // Convert UI messages to model format
-    const prompt = convertToModelMessages(messages)
+    const modelMessages = convertToModelMessages(validatedMessages)
+
+    // Ensure we have valid messages
+    if (!modelMessages || modelMessages.length === 0) {
+      console.error('[General Assistant] No valid messages after conversion:', {
+        rawMessages,
+        validatedMessages,
+        modelMessages,
+      })
+      return NextResponse.json(
+        { error: 'No valid messages to process' },
+        { status: 400 }
+      )
+    }
 
     // Stream text with tool call limits (from mnky-command pattern)
     const result = await streamText({
       model: openai(model),
       system: systemMessage,
-      prompt,
+      messages: modelMessages, // Use 'messages' not 'prompt' - convertToModelMessages returns message array
       tools,
       stopWhen: stepCountIs(5), // Limit tool call loops to prevent infinite recursion
     })
