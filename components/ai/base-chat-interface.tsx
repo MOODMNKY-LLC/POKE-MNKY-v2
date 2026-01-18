@@ -100,6 +100,11 @@ export function BaseChatInterface({
   // Expose sendMessage to parent component (for voice input, etc.)
   // Use useCallback to create a stable reference
   const sendMessageWrapper = useCallback((message: { text: string }) => {
+    // Guard against undefined sendMessage
+    if (!sendMessage) {
+      console.warn("[BaseChatInterface] sendMessage is not available yet")
+      return
+    }
     sendMessage(message)
     // Clear input after sending
     setInput("")
@@ -107,15 +112,16 @@ export function BaseChatInterface({
 
   // Expose sendMessage function to parent - defer to avoid setState during render
   useEffect(() => {
-    if (onSendMessageReadyRef.current) {
-      // Use setTimeout to defer the state update to avoid setState during render
-      setTimeout(() => {
-        if (onSendMessageReadyRef.current) {
-          onSendMessageReadyRef.current(sendMessageWrapper)
-        }
-      }, 0)
+    if (!onSendMessageReadyRef.current || !sendMessage) {
+      return
     }
-  }, [sendMessageWrapper])
+    // Use requestAnimationFrame to defer the state update to avoid setState during render
+    requestAnimationFrame(() => {
+      if (onSendMessageReadyRef.current && sendMessage) {
+        onSendMessageReadyRef.current(sendMessageWrapper)
+      }
+    })
+  }, [sendMessageWrapper, sendMessage])
 
   const handleSubmit = (message: { text: string }) => {
     if (!message.text.trim() || isLoading) return

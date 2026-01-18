@@ -123,8 +123,8 @@ export function UnifiedAssistantPopup({
     recognitionRef.current.onresult = (event) => {
       const transcript = event.results[0][0].transcript
       // Send transcript as message using the sendMessageFn callback
-      if (sendMessageFn && transcript.trim()) {
-        sendMessageFn({ text: transcript })
+      if (sendMessageFnRef.current && transcript.trim()) {
+        sendMessageFnRef.current({ text: transcript })
       }
       setIsRecording(false)
     }
@@ -341,7 +341,10 @@ export function UnifiedAssistantPopup({
               label: action.label,
               prompt: action.prompt,
             }))}
-            onSendMessageReady={setSendMessageFn}
+            onSendMessageReady={(fn) => {
+              // Use ref callback to avoid setState during render
+              sendMessageFnRef.current = fn
+            }}
           />
         </div>
       )}
