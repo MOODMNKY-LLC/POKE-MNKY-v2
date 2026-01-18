@@ -88,14 +88,24 @@ export function BaseChatInterface({
     body,
   })
 
+  const [input, setInput] = useState("")
   const isLoading = status === "streaming" || status === "submitted"
 
   // Expose sendMessage to parent component (for voice input, etc.)
   useEffect(() => {
     if (onSendMessageReady) {
-      onSendMessageReady(sendMessage)
+      onSendMessageReady((message: { text: string }) => {
+        sendMessage(message)
+        setInput("") // Clear input after sending
+      })
     }
   }, [onSendMessageReady, sendMessage])
+
+  const handleSubmit = (message: { text: string }) => {
+    if (!message.text.trim() || isLoading) return
+    sendMessage({ text: message.text })
+    setInput("")
+  }
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text)
