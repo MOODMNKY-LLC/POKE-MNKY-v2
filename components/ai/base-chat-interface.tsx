@@ -97,33 +97,6 @@ export function BaseChatInterface({
     console.log("[BaseChatInterface] resolvedEndpoint type:", typeof resolvedEndpoint)
   }, [resolvedEndpoint, apiEndpoint])
 
-  // Callbacks for useChat - memoized to prevent unnecessary re-renders
-  const handleError = useCallback((error: any) => {
-    console.error("[BaseChatInterface] Chat error:", error)
-    console.error("[BaseChatInterface] Error details:", {
-      message: error?.message || String(error),
-      stack: error?.stack,
-      errorType: typeof error,
-      errorConstructor: error?.constructor?.name,
-    })
-  }, [])
-
-  const handleResponse = useCallback((response: Response) => {
-    console.log("[BaseChatInterface] API response received:", {
-      url: response.url,
-      status: response.status,
-      statusText: response.statusText,
-      ok: response.ok,
-    })
-    if (!response.ok) {
-      console.error("[BaseChatInterface] API error:", response.status, response.statusText, "URL:", response.url)
-      // Log the actual URL being called
-      console.error("[BaseChatInterface] Expected endpoint:", resolvedEndpoint, "Actual URL:", response.url)
-    } else {
-      console.log("[BaseChatInterface] API response OK:", response.url)
-    }
-  }, [resolvedEndpoint])
-
   // CRITICAL FIX: Ensure api is passed as a stable string literal
   // useChat might be caching the endpoint, so we need to ensure it's always the correct value
   const stableApiEndpoint = useMemo(() => {
@@ -135,15 +108,73 @@ export function BaseChatInterface({
     return endpoint
   }, [resolvedEndpoint])
 
+  // Callbacks for useChat - memoized to prevent unnecessary re-renders
+  // NOTE: These depend on stableApiEndpoint, so they're defined after it
+  const handleError = useCallback((error: any) => {
+    console.error("[BaseChatInterface] Chat error:", error)
+    
+    // Extract error message - handle both Error objects and HTML responses
+    let errorMessage = error?.message || String(error)
+    
+    // Check if error message is HTML (404 page)
+    if (typeof errorMessage === 'string' && errorMessage.includes('<!DOCTYPE html>')) {
+      console.error("[BaseChatInterface] ERROR: Received HTML 404 page instead of streaming response!")
+      console.error("[BaseChatInterface] This indicates useChat is calling a non-existent endpoint")
+      console.error("[BaseChatInterface] Expected endpoint:", stableApiEndpoint, "(should return streaming data stream)")
+      console.error("[BaseChatInterface] The endpoint likely doesn't exist or useChat is using wrong URL")
+      console.error("[BaseChatInterface] Check network tab to see actual URL being called")
+      errorMessage = "API endpoint returned 404. Check console for details."
+    }
+    
+    console.error("[BaseChatInterface] Error details:", {
+      message: errorMessage,
+      stack: error?.stack,
+      errorType: typeof error,
+      errorConstructor: error?.constructor?.name,
+    })
+  }, [stableApiEndpoint])
+
+  const handleResponse = useCallback((response: Response) => {
+    const actualUrl = response.url
+    const expectedUrl = typeof window !== 'undefined' ? `${window.location.origin}${stableApiEndpoint}` : stableApiEndpoint
+    
+    console.log("[BaseChatInterface] API response received:", {
+      url: actualUrl,
+      expectedUrl,
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok,
+      matchesExpected: actualUrl === expectedUrl,
+    })
+    
+    if (!response.ok) {
+      console.error("[BaseChatInterface] API error:", response.status, response.statusText)
+      console.error("[BaseChatInterface] Expected URL:", expectedUrl)
+      console.error("[BaseChatInterface] Actual URL:", actualUrl)
+      
+      const actualEndpoint = typeof window !== 'undefined' 
+        ? actualUrl.replace(window.location.origin, '')
+        : actualUrl
+      
+      if (!actualUrl.includes(stableApiEndpoint)) {
+        console.error("[BaseChatInterface] ⚠️ CRITICAL: useChat is calling wrong endpoint!")
+        console.error("[BaseChatInterface] Expected:", stableApiEndpoint)
+        console.error("[BaseChatInterface] Actual:", actualEndpoint)
+      }
+    } else {
+      console.log("[BaseChatInterface] API response OK:", actualUrl)
+    }
+  }, [stableApiEndpoint])
+
   // Memoize the useChat config to ensure stability
-  const chatConfig = useMemo(() => {
+  const useChatOptions = useMemo(() => {
     const config: {
       api: string
       body?: Record<string, any>
       onError: (error: any) => void
       onResponse: (response: Response) => void
     } = {
-      api: stableApiEndpoint,
+      api: stableApiEndpoint, // Use memoized stableApiEndpoint directly
       onError: handleError,
       onResponse: handleResponse,
     }
@@ -152,44 +183,26 @@ export function BaseChatInterface({
       config.body = body
     }
     
-    console.log("[BaseChatInterface] useChat config object:", {
-      api: config.api,
-      apiLength: config.api.length,
-      hasBody: !!config.body,
-    })
-    
     return config
   }, [stableApiEndpoint, body, handleError, handleResponse])
-
-  // Debug: Log what we're passing to useChat BEFORE calling it
-  const finalApiEndpoint = String(stableApiEndpoint).trim()
-  console.log("[BaseChatInterface] Calling useChat with api:", finalApiEndpoint, "Type:", typeof finalApiEndpoint, "Length:", finalApiEndpoint.length)
-
-  // CRITICAL FIX: Pass api as the FIRST prop to ensure it's read correctly
-  // Some versions of useChat might read props in order or have issues with object destructuring
-  const useChatOptions = {
-    api: finalApiEndpoint, // MUST be first prop
-    ...(body && { body }),
-    onError: handleError,
-    onResponse: handleResponse,
-  }
-  
-  console.log("[BaseChatInterface] useChat options:", {
-    api: useChatOptions.api,
-    hasBody: !!useChatOptions.body,
-    hasOnError: !!useChatOptions.onError,
-    hasOnResponse: !!useChatOptions.onResponse,
-  })
 
   // IMPORTANT: Pass api prop directly - this is the correct way per Vercel AI SDK docs
   const { messages, sendMessage, status, regenerate, error } = useChat(useChatOptions)
   
-  // Debug: Log AFTER useChat is called to see if it's using the correct endpoint
+  // Debug: Log useChat configuration and initialization
+  // FIXED: Moved console.log statements into useEffect to prevent console spam on every render
   useEffect(() => {
+    console.log("[BaseChatInterface] Calling useChat with api:", stableApiEndpoint, "Type:", typeof stableApiEndpoint, "Length:", stableApiEndpoint.length)
+    console.log("[BaseChatInterface] useChat options:", {
+      api: useChatOptions.api,
+      hasBody: !!useChatOptions.body,
+      hasOnError: !!useChatOptions.onError,
+      hasOnResponse: !!useChatOptions.onResponse,
+    })
     console.log("[BaseChatInterface] useChat hook initialized")
-    console.log("[BaseChatInterface] Expected endpoint:", finalApiEndpoint)
+    console.log("[BaseChatInterface] Expected endpoint:", stableApiEndpoint)
     // The actual endpoint used will be logged in handleResponse
-  }, [finalApiEndpoint])
+  }, [stableApiEndpoint, useChatOptions])
 
   const [input, setInput] = useState("")
   const isLoading = status === "streaming" || status === "submitted"

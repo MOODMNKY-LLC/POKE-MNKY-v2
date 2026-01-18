@@ -328,7 +328,10 @@ export function UnifiedAssistantPopup({
       {/* Chat Interface */}
       {!isMinimized && (
         <div className="flex-1 overflow-hidden">
+          {/* CRITICAL FIX: Use key prop to force remount when apiEndpoint changes */}
+          {/* This fixes the @ai-sdk/react v3.0.41 bug where useChat ignores api prop changes */}
           <BaseChatInterface
+            key={agentContext.apiEndpoint || "/api/ai/assistant"}
             apiEndpoint={agentContext.apiEndpoint || "/api/ai/assistant"}
             title=""
             description=""
