@@ -86,6 +86,7 @@ export function UnifiedAssistantPopup({
   const [isRecording, setIsRecording] = useState(false)
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
   const [selectedAgent, setSelectedAgent] = useState<AgentType | null>(null)
+  const [sendMessageFn, setSendMessageFn] = useState<((message: { text: string }) => void) | null>(null)
   
   const recognitionRef = useRef<SpeechRecognition | null>(null)
   const synthRef = useRef<SpeechSynthesis | null>(null)
@@ -121,8 +122,10 @@ export function UnifiedAssistantPopup({
     setIsRecording(true)
     recognitionRef.current.onresult = (event) => {
       const transcript = event.results[0][0].transcript
-      // Send transcript as message (would need to integrate with chat)
-      console.log("Voice input:", transcript)
+      // Send transcript as message using the sendMessageFn callback
+      if (sendMessageFn && transcript.trim()) {
+        sendMessageFn({ text: transcript })
+      }
       setIsRecording(false)
     }
     recognitionRef.current.onerror = () => {
