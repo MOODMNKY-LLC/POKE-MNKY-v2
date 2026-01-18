@@ -64,7 +64,19 @@ export async function POST(
         break
       }
       case "/api/get_smogon_meta": {
-        result = await mcpClient.getSmogonMeta(body)
+        // Validate required parameters
+        if (!body.pokemon_name) {
+          return NextResponse.json(
+            { error: "pokemon_name is required" },
+            { status: 400 }
+          )
+        }
+        // Filter out empty format strings
+        const params: any = { pokemon_name: body.pokemon_name }
+        if (body.format && body.format.trim()) {
+          params.format = body.format.trim()
+        }
+        result = await mcpClient.getSmogonMeta(params)
         rateLimit = result.rateLimit
         result = result.data
         break
@@ -99,15 +111,27 @@ export async function POST(
       rateLimit,
     })
   } catch (error: any) {
-    console.error("[MCP Proxy] Error:", error)
+    console.error("[MCP Proxy] Error:", {
+      endpoint,
+      error: error.message,
+      status: error.status,
+      statusText: error.statusText,
+      stack: error.stack,
+    })
+    
+    // Extract more detailed error information if available
+    const errorMessage = error.message || "Internal server error"
+    const errorStatus = error.status || 500
+    const errorStatusText = error.statusText || "Internal Server Error"
     
     return NextResponse.json(
       {
-        error: error.message || "Internal server error",
-        status: error.status || 500,
-        statusText: error.statusText || "Internal Server Error",
+        error: errorMessage,
+        status: errorStatus,
+        statusText: errorStatusText,
+        details: error.details || undefined,
       },
-      { status: error.status || 500 }
+      { status: errorStatus }
     )
   }
 }
