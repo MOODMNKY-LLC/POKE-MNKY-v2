@@ -242,6 +242,10 @@ export function BaseChatInterface({
                     case "tool-call":
                       // ToolUIPart from AI SDK
                       const toolPart = part as ToolUIPart
+                      // Guard against undefined toolPart or missing properties
+                      if (!toolPart || !toolPart.type) {
+                        return null
+                      }
                       return (
                         <BlurFade key={`${message.id}-tool-${i}`} direction="up" delay={i * 0.1}>
                           <Tool>
