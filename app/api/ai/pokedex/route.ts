@@ -18,8 +18,9 @@ export async function POST(request: Request) {
     if (isUseChatRequest) {
       const { messages, selectedPokemon, mcpEnabled = true, model } = body
 
-      // Get MCP server URL from environment
+      // Get MCP server URL and API key from environment
       const mcpServerUrl = process.env.MCP_DRAFT_POOL_SERVER_URL || 'https://mcp-draft-pool.moodmnky.com/mcp'
+      const mcpApiKey = process.env.MCP_API_KEY
 
       // Build system message
       const systemMessage = `You are a knowledgeable Pokédex assistant for the Average at Best Battle League.
@@ -75,6 +76,10 @@ When asked about 'points', refer to draft point costs in the league draft pool. 
           serverUrl: mcpServerUrl,
           serverDescription: 'Access to POKE MNKY draft pool and team data. Provides tools for querying available Pokémon, draft costs, and team information.',
           requireApproval: 'never',
+          // Configure authentication: Bearer token in authorization field
+          ...(mcpApiKey && {
+            authorization: `Bearer ${mcpApiKey}`,
+          }),
         })
       }
 
@@ -101,6 +106,7 @@ When asked about 'points', refer to draft point costs in the league draft pool. 
     // Try Responses API with MCP if enabled
     if (useResponsesAPI || process.env.ENABLE_RESPONSES_API === 'true') {
       const mcpServerUrl = process.env.MCP_DRAFT_POOL_SERVER_URL || 'https://mcp-draft-pool.moodmnky.com/mcp'
+      const mcpApiKey = process.env.MCP_API_KEY
 
       try {
         const response = await createResponseWithMCP({
@@ -132,6 +138,10 @@ When asked about 'points', refer to draft point costs in the league draft pool. 
               server_url: mcpServerUrl,
               server_description: 'Access to POKE MNKY draft pool and team data',
               require_approval: 'never',
+              // Configure authentication: Bearer token in authorization field
+              ...(mcpApiKey && {
+                authorization: `Bearer ${mcpApiKey}`,
+              }),
             },
             {
               type: 'function',

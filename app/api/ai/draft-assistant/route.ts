@@ -23,8 +23,9 @@ export async function POST(request: Request) {
       return new Response('teamId is required', { status: 400 })
     }
 
-    // Get MCP server URL from environment
+    // Get MCP server URL and API key from environment
     const mcpServerUrl = process.env.MCP_DRAFT_POOL_SERVER_URL || 'https://mcp-draft-pool.moodmnky.com/mcp'
+    const mcpApiKey = process.env.MCP_API_KEY
 
     // Build system message with context
     const systemMessage = `You are an expert Pokémon draft league assistant for the Average at Best Battle League.
@@ -56,6 +57,10 @@ Always use the available MCP tools to get real-time draft pool data, team budget
             serverUrl: mcpServerUrl,
             serverDescription: 'Access to POKE MNKY draft pool and team data. Provides tools for querying available Pokémon, team budgets, picks, and draft status.',
             requireApproval: 'never', // Auto-approve for seamless experience
+            // Configure authentication: Bearer token in authorization field
+            ...(mcpApiKey && {
+              authorization: `Bearer ${mcpApiKey}`,
+            }),
           }),
         }
       : undefined
