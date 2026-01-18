@@ -86,7 +86,7 @@ export function UnifiedAssistantPopup({
   const [isRecording, setIsRecording] = useState(false)
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
   const [selectedAgent, setSelectedAgent] = useState<AgentType | null>(null)
-  const [sendMessageFn, setSendMessageFn] = useState<((message: { text: string }) => void) | null>(null)
+  const sendMessageFnRef = useRef<((message: { text: string }) => void) | null>(null)
   
   const recognitionRef = useRef<SpeechRecognition | null>(null)
   const synthRef = useRef<SpeechSynthesis | null>(null)
