@@ -73,46 +73,30 @@ Be friendly, helpful, and knowledgeable about Pokémon competitive play. Always 
         }
       : undefined
 
-    // Preprocess messages: convert parts array to content string if needed
-    // useChat sends messages with 'parts' array, but convertToModelMessages might expect 'content'
-    const preprocessedMessages = rawMessages.map((msg: any) => {
-      // If message has parts array but no content, extract content from parts
-      if (msg.parts && Array.isArray(msg.parts) && !msg.content) {
-        const content = msg.parts
-          .filter((p: any) => p.type === 'text')
-          .map((p: any) => p.text)
-          .join('')
-        return {
-          ...msg,
-          content,
-        }
-      }
-      return msg
-    })
-
-    // Convert UI messages to model format (matching pokedex route pattern)
-    // Note: We skip validateUIMessages as it may cause schema mismatches
-    // The pokedex route works correctly without it
+    // Convert UI messages to model format
+    // convertToModelMessages handles UIMessage[] with 'parts' arrays directly
+    // It converts them to ModelMessage[] format for the LLM
+    // Note: In AI SDK v6, convertToModelMessages may be async in some cases
     let modelMessages
     try {
-      // Check if convertToModelMessages is async (might be in newer SDK versions)
-      const conversionResult = convertToModelMessages(preprocessedMessages)
-      
-      // Handle both sync and async cases
-      if (conversionResult instanceof Promise) {
-        modelMessages = await conversionResult
-      } else {
-        modelMessages = conversionResult
+      // Always await to handle both sync and async cases
+      // Awaiting a non-Promise just returns the value
+      const conversionResult = convertToModelMessages(rawMessages)
+      modelMessages = await Promise.resolve(conversionResult)
+
+      // Validate result is an array
+      if (!Array.isArray(modelMessages)) {
+        throw new Error(`convertToModelMessages returned non-array: ${typeof modelMessages}`)
       }
 
       console.log('[General Assistant] Successfully converted messages:', {
         inputCount: rawMessages.length,
-        preprocessedCount: preprocessedMessages.length,
-        outputCount: modelMessages?.length || 0,
-        firstOutput: modelMessages?.[0] ? {
+        outputCount: modelMessages.length,
+        firstOutput: modelMessages[0] ? {
           role: modelMessages[0].role,
           hasContent: !!modelMessages[0].content,
           contentType: typeof modelMessages[0].content,
+          isArray: Array.isArray(modelMessages[0].content),
         } : null,
       })
     } catch (conversionError: any) {
@@ -120,7 +104,6 @@ Be friendly, helpful, and knowledgeable about Pokémon competitive play. Always 
         error: conversionError.message,
         stack: conversionError.stack,
         rawMessages: JSON.stringify(rawMessages, null, 2),
-        preprocessedMessages: JSON.stringify(preprocessedMessages, null, 2),
       })
       return NextResponse.json(
         { 
