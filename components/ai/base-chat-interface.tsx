@@ -15,7 +15,7 @@
  * This is the foundation for all agent-specific chat interfaces.
  */
 
-import { useState, Fragment, useEffect, useCallback, useRef } from "react"
+import { useState, Fragment, useEffect, useCallback, useRef, useMemo } from "react"
 import { useChat } from "@ai-sdk/react"
 import { CopyIcon, RefreshCcwIcon } from "lucide-react"
 import { PromptInputWrapper, type PromptInputMessage } from "./prompt-input-wrapper"
@@ -89,21 +89,48 @@ export function BaseChatInterface({
   // Debug: Log the API endpoint being used
   useEffect(() => {
     console.log("[BaseChatInterface] Using API endpoint:", resolvedEndpoint)
-  }, [resolvedEndpoint])
+    console.log("[BaseChatInterface] apiEndpoint prop:", apiEndpoint)
+    console.log("[BaseChatInterface] resolvedEndpoint type:", typeof resolvedEndpoint)
+  }, [resolvedEndpoint, apiEndpoint])
 
+  // Callbacks for useChat - memoized to prevent unnecessary re-renders
+  const handleError = useCallback((error: Error) => {
+    console.error("[BaseChatInterface] Chat error:", error)
+    console.error("[BaseChatInterface] Error details:", {
+      message: error.message,
+      stack: error.stack,
+    })
+  }, [])
+
+  const handleResponse = useCallback((response: Response) => {
+    console.log("[BaseChatInterface] API response received:", {
+      url: response.url,
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok,
+    })
+    if (!response.ok) {
+      console.error("[BaseChatInterface] API error:", response.status, response.statusText, "URL:", response.url)
+    } else {
+      console.log("[BaseChatInterface] API response OK:", response.url)
+    }
+  }, [])
+
+  // Debug: Log what we're passing to useChat
+  useEffect(() => {
+    console.log("[BaseChatInterface] About to call useChat with:", {
+      api: resolvedEndpoint,
+      apiType: typeof resolvedEndpoint,
+      hasBody: !!body,
+    })
+  }, [resolvedEndpoint, body])
+
+  // IMPORTANT: Pass api prop directly - this is the correct way per Vercel AI SDK docs
   const { messages, sendMessage, status, regenerate, error } = useChat({
-    api: resolvedEndpoint,
+    api: resolvedEndpoint, // This MUST be the api prop, not apiEndpoint
     body,
-    onError: (error) => {
-      console.error("[BaseChatInterface] Chat error:", error)
-    },
-    onResponse: (response) => {
-      if (!response.ok) {
-        console.error("[BaseChatInterface] API error:", response.status, response.statusText, "URL:", response.url)
-      } else {
-        console.log("[BaseChatInterface] API response OK:", response.url)
-      }
-    },
+    onError: handleError,
+    onResponse: handleResponse,
   })
 
   const [input, setInput] = useState("")
