@@ -83,9 +83,17 @@ export function BaseChatInterface({
   quickActions,
   onSendMessageReady,
 }: BaseChatInterfaceProps) {
-  const { messages, sendMessage, status, regenerate } = useChat({
+  const { messages, sendMessage, status, regenerate, error } = useChat({
     api: apiEndpoint,
     body,
+    onError: (error) => {
+      console.error("[BaseChatInterface] Chat error:", error)
+    },
+    onResponse: (response) => {
+      if (!response.ok) {
+        console.error("[BaseChatInterface] API error:", response.status, response.statusText)
+      }
+    },
   })
 
   const [input, setInput] = useState("")
@@ -165,6 +173,11 @@ export function BaseChatInterface({
         "overscroll-contain"
       )}>
         <ConversationContent className="pb-safe">
+          {error && (
+            <div className="p-4 m-4 rounded-md bg-destructive/10 text-destructive text-sm">
+              Error: {error.message || "Failed to get response"}
+            </div>
+          )}
           {messages.length === 0 ? (
             <ConversationEmptyState
               title={emptyStateTitle}
