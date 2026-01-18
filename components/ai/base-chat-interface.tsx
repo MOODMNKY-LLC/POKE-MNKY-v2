@@ -123,8 +123,14 @@ export function BaseChatInterface({
       )}
 
       {/* Conversation Area */}
-      <Conversation className="flex-1">
-        <ConversationContent>
+      <Conversation className={cn(
+        "flex-1",
+        // Mobile optimization
+        "overflow-y-auto smooth-scroll",
+        // PWA safe scrolling
+        "overscroll-contain"
+      )}>
+        <ConversationContent className="pb-safe">
           {messages.length === 0 ? (
             <ConversationEmptyState
               title={emptyStateTitle}

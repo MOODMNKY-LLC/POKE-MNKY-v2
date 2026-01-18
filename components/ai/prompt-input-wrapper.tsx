@@ -99,14 +99,23 @@ export function PromptInputWrapper({
           placeholder={placeholder}
           disabled={disabled}
           rows={1}
-          className="resize-none min-h-[44px] max-h-[200px] pr-12"
+          className={cn(
+            "resize-none min-h-[44px] max-h-[200px] pr-12",
+            // Mobile optimization - prevent zoom on iOS
+            "text-base",
+            // Touch optimization
+            "touch-manipulation"
+          )}
         />
         {showSubmit && (
           <Button
             type="submit"
             disabled={disabled || !value.trim()}
             size="icon"
-            className="absolute right-2 bottom-2 h-8 w-8 shrink-0"
+            className={cn(
+              "absolute right-2 bottom-2 h-10 w-10 min-h-[44px] min-w-[44px] shrink-0",
+              "touch-manipulation active:scale-95"
+            )}
           >
             {disabled ? (
               <Loader2 className="h-4 w-4 animate-spin" />

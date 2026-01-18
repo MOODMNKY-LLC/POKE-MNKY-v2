@@ -53,7 +53,16 @@ export function FloatingAssistantButton({
             <Button
               onClick={() => setIsOpen(true)}
               size="lg"
-              className="h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 bg-primary hover:bg-primary/90"
+              className={cn(
+                "h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200",
+                "bg-primary hover:bg-primary/90",
+                // Ensure minimum touch target size (44x44px for accessibility)
+                "min-h-[44px] min-w-[44px]",
+                // Better touch feedback
+                "active:scale-95 touch-manipulation",
+                // PWA safe area handling - already handled by parent
+              )}
+              aria-label="Open AI Assistant"
             >
               <div className="relative">
                 <PokeMnkyAssistant size={32} />

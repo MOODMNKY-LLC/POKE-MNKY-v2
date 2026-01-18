@@ -94,6 +94,8 @@ export const viewport: Viewport = {
     { media: "(prefers-color-scheme: dark)", color: "#1a1a1a" },
   ],
   viewportFit: "cover", // Support for devices with notches
+  // PWA optimizations
+  interactiveWidget: "resizes-content", // Handle virtual keyboard properly
 }
 
 export default function RootLayout({

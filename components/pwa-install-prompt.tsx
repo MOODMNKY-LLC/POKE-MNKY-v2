@@ -58,10 +58,10 @@ export function PWAInstallPrompt() {
         }
       }
       
-      // Only show after user has interacted with the page (better UX)
-      // Wait for user interaction before showing prompt
+      // Show prompt after user interaction (better UX)
+      // Reduced delay for better visibility
       const handleUserInteraction = () => {
-        // Show prompt after a longer delay (better UX)
+        // Show prompt after a short delay
         setTimeout(() => {
           // Double-check dismissal status before showing
           const dismissedCheck = localStorage.getItem('pwa-install-dismissed')
@@ -72,8 +72,11 @@ export function PWAInstallPrompt() {
               return
             }
           }
-          setShowPrompt(true)
-        }, 10000) // Increased to 10 seconds - only after user interaction
+          // Only show if deferredPrompt still exists
+          if (deferredPrompt) {
+            setShowPrompt(true)
+          }
+        }, 3000) // Reduced to 3 seconds for better visibility
         
         // Remove listener after first interaction
         document.removeEventListener('click', handleUserInteraction)
@@ -85,6 +88,24 @@ export function PWAInstallPrompt() {
       document.addEventListener('click', handleUserInteraction, { once: true })
       document.addEventListener('keydown', handleUserInteraction, { once: true })
       document.addEventListener('touchstart', handleUserInteraction, { once: true })
+      
+      // Also show on mobile after a delay (better PWA experience)
+      if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+        setTimeout(() => {
+          const dismissedCheck = localStorage.getItem('pwa-install-dismissed')
+          if (dismissedCheck) {
+            const dismissedTime = parseInt(dismissedCheck, 10)
+            const thirtyDays = 30 * 24 * 60 * 60 * 1000
+            if (Date.now() - dismissedTime < thirtyDays) {
+              return // Don't show if dismissed recently
+            }
+          }
+          // Show if deferredPrompt exists and not dismissed
+          if (deferredPrompt && !showPrompt) {
+            setShowPrompt(true)
+          }
+        }, 5000) // Show after 5 seconds on mobile
+      }
     }
 
     // Listen for app installed event
@@ -182,14 +203,22 @@ export function PWAInstallPrompt() {
           <Button 
             variant="outline" 
             onClick={handleDismiss} 
-            className="w-full sm:w-auto"
+            className={cn(
+              "w-full sm:w-auto",
+              // Mobile touch optimization
+              "min-h-[44px] touch-manipulation active:scale-95"
+            )}
           >
             <X className="h-4 w-4 mr-2" />
             Maybe Later
           </Button>
           <Button 
             onClick={handleInstall} 
-            className="w-full sm:w-auto bg-gradient-to-r from-primary to-accent"
+            className={cn(
+              "w-full sm:w-auto bg-gradient-to-r from-primary to-accent",
+              // Mobile touch optimization
+              "min-h-[44px] touch-manipulation active:scale-95"
+            )}
           >
             <Download className="h-4 w-4 mr-2" />
             Install App
