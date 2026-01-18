@@ -62,14 +62,15 @@ export const AI_MODELS = {
   BATTLE_CHOICE: "gpt-4.1", // Per-turn battle decisions
   RESULT_PARSER: "gpt-4.1", // Parse match results from Discord
 
-  // GPT-5.x for strategic reasoning and content generation
-  STRATEGY_COACH: "gpt-5.2", // Deep strategic analysis
-  WEEKLY_RECAP: "gpt-5.2", // Commissioner-style recaps
-  DISPUTE_RESOLUTION: "gpt-5.2", // Complex rule interpretation
+  // GPT-4o for strategic reasoning and content generation
+  // Temporarily using gpt-4o until gpt-5.2 is fully supported by @ai-sdk/openai
+  STRATEGY_COACH: "gpt-4o", // Deep strategic analysis (was gpt-5.2)
+  WEEKLY_RECAP: "gpt-4o", // Commissioner-style recaps (was gpt-5.2)
+  DISPUTE_RESOLUTION: "gpt-4o", // Complex rule interpretation (was gpt-5.2)
 
-  // GPT-5 mini for routine tasks
-  QUICK_SUMMARY: "gpt-5-mini", // Daily digests
-  DISCORD_REPLY: "gpt-5-mini", // Simple bot responses
+  // GPT-4o-mini for routine tasks (was gpt-5-mini)
+  QUICK_SUMMARY: "gpt-4o-mini", // Daily digests
+  DISCORD_REPLY: "gpt-4o-mini", // Simple bot responses
 } as const
 
 export interface PokedexQuery {
