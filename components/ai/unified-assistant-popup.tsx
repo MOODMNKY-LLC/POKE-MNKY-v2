@@ -16,7 +16,7 @@
 import { useState, useEffect, useRef } from "react"
 import { usePathname } from "next/navigation"
 import { useIsMobile } from "@/hooks/use-mobile"
-import { Dialog, DialogContent } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -494,6 +494,9 @@ export function UnifiedAssistantPopup({
           "pb-safe"
         )}
       >
+        <DialogTitle className="sr-only">
+          {agentContext.title || "AI Assistant"}
+        </DialogTitle>
         {popupContent}
       </DialogContent>
     </Dialog>

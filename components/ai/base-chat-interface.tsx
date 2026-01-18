@@ -15,7 +15,7 @@
  * This is the foundation for all agent-specific chat interfaces.
  */
 
-import { useState, Fragment, useEffect } from "react"
+import { useState, Fragment, useEffect, useCallback, useRef } from "react"
 import { useChat } from "@ai-sdk/react"
 import { CopyIcon, RefreshCcwIcon } from "lucide-react"
 import { PromptInputWrapper, type PromptInputMessage } from "./prompt-input-wrapper"
@@ -90,16 +90,32 @@ export function BaseChatInterface({
 
   const [input, setInput] = useState("")
   const isLoading = status === "streaming" || status === "submitted"
+  const onSendMessageReadyRef = useRef(onSendMessageReady)
+
+  // Keep ref in sync with prop
+  useEffect(() => {
+    onSendMessageReadyRef.current = onSendMessageReady
+  }, [onSendMessageReady])
 
   // Expose sendMessage to parent component (for voice input, etc.)
+  // Use useCallback to create a stable reference
+  const sendMessageWrapper = useCallback((message: { text: string }) => {
+    sendMessage(message)
+    // Clear input after sending
+    setInput("")
+  }, [sendMessage])
+
+  // Expose sendMessage function to parent - defer to avoid setState during render
   useEffect(() => {
-    if (onSendMessageReady) {
-      onSendMessageReady((message: { text: string }) => {
-        sendMessage(message)
-        setInput("") // Clear input after sending
-      })
+    if (onSendMessageReadyRef.current) {
+      // Use setTimeout to defer the state update to avoid setState during render
+      setTimeout(() => {
+        if (onSendMessageReadyRef.current) {
+          onSendMessageReadyRef.current(sendMessageWrapper)
+        }
+      }, 0)
     }
-  }, [onSendMessageReady, sendMessage])
+  }, [sendMessageWrapper])
 
   const handleSubmit = (message: { text: string }) => {
     if (!message.text.trim() || isLoading) return
