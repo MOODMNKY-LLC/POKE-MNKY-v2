@@ -62,29 +62,22 @@ Be friendly, helpful, and knowledgeable about Pokémon competitive play. Always 
     const mcpServerUrl = process.env.MCP_DRAFT_POOL_SERVER_URL || 'https://mcp-draft-pool.moodmnky.com/mcp'
     const mcpApiKey = process.env.MCP_API_KEY
 
-    // Build MCP server URL with authentication if API key is available
-    // OpenAI SDK's MCP tool might support auth via URL or we may need to configure it differently
-    // For now, try including API key in URL if needed, or configure auth headers if SDK supports it
-    let authenticatedMcpUrl = mcpServerUrl
-    if (mcpApiKey) {
-      // Try adding API key as query parameter (some MCP servers support this)
-      // Or use basic auth format: https://api_key@server.com/mcp
-      // Note: This depends on MCP server implementation
-      const url = new URL(mcpServerUrl)
-      url.searchParams.set('api_key', mcpApiKey)
-      authenticatedMcpUrl = url.toString()
-    }
-
     // Build tools object - conditionally include MCP tools
+    // OpenAI SDK's mcp() function supports authorization and headers parameters
     const tools = mcpEnabled
       ? {
           mcp: openai.tools.mcp({
             serverLabel: 'poke-mnky-draft-pool',
-            serverUrl: authenticatedMcpUrl,
+            serverUrl: mcpServerUrl,
             serverDescription: 'Access to POKE MNKY draft pool and team data. Provides 9 tools: get_available_pokemon, get_draft_status, get_team_budget, get_team_picks, get_pokemon_types, get_smogon_meta, get_ability_mechanics, get_move_mechanics, analyze_pick_value.',
             requireApproval: 'never',
-            // Note: OpenAI SDK MCP tool might not support custom headers directly
-            // If query param doesn't work, we may need to use REST API approach instead
+            // Configure authentication: Bearer token in authorization field
+            // This becomes the Authorization header when OpenAI SDK calls the MCP server
+            ...(mcpApiKey && {
+              authorization: `Bearer ${mcpApiKey}`,
+            }),
+            // Alternative: Use headers if authorization doesn't work
+            // headers: mcpApiKey ? { 'Authorization': `Bearer ${mcpApiKey}` } : undefined,
           }),
         }
       : undefined
@@ -93,7 +86,7 @@ Be friendly, helpful, and knowledgeable about Pokémon competitive play. Always 
     console.log('[General Assistant] MCP configuration:', {
       serverUrl: mcpServerUrl,
       hasApiKey: !!mcpApiKey,
-      authenticatedUrl: authenticatedMcpUrl,
+      hasAuthorization: !!tools?.mcp && 'authorization' in (tools.mcp as any),
     })
 
     // Convert UI messages to model format
