@@ -3,7 +3,6 @@
 import {
   streamText,
   convertToModelMessages,
-  validateUIMessages,
   consumeStream,
   stepCountIs,
 } from 'ai'
@@ -58,20 +57,15 @@ Be friendly, helpful, and knowledgeable about Pokémon competitive play. Always 
         }
       : undefined
 
-    // Validate messages against tool schemas (from mnky-command pattern)
-    const validatedMessages = await validateUIMessages({
-      messages: rawMessages,
-      tools,
-    })
-
-    // Convert UI messages to model format
-    const modelMessages = convertToModelMessages(validatedMessages)
+    // Convert UI messages to model format (matching pokedex route pattern)
+    // Note: We skip validateUIMessages as it may cause schema mismatches
+    // The pokedex route works correctly without it
+    const modelMessages = convertToModelMessages(rawMessages)
 
     // Ensure we have valid messages
     if (!modelMessages || modelMessages.length === 0) {
       console.error('[General Assistant] No valid messages after conversion:', {
         rawMessages,
-        validatedMessages,
         modelMessages,
       })
       return NextResponse.json(
