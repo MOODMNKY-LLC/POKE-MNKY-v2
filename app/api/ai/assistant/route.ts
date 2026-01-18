@@ -1,6 +1,7 @@
 // General Assistant API Route - Unified assistant endpoint
-import { streamText, convertToModelMessages } from 'ai'
-import { openai } from '@ai-sdk/openai'
+// Using OpenAI SDK directly instead of Vercel AI SDK for better compatibility with GPT-5 models
+import { createTextStreamResponse } from 'ai'
+import { getOpenAI } from '@/lib/openai-client'
 import { createServerClient } from '@/lib/supabase/server'
 import { AI_MODELS } from '@/lib/openai-client'
 import { NextResponse } from 'next/server'
@@ -26,8 +27,6 @@ export async function POST(request: Request) {
       )
     }
 
-    const mcpServerUrl = process.env.MCP_DRAFT_POOL_SERVER_URL || 'https://mcp-draft-pool.moodmnky.com/mcp'
-
     const systemMessage = `You are POKE MNKY, an expert AI assistant for the Average at Best Battle League, a competitive Pokémon draft league platform.
 
 You help coaches with:
@@ -39,75 +38,65 @@ You help coaches with:
 
 Be friendly, helpful, and knowledgeable about Pokémon competitive play. Always use available tools when appropriate to get real-time data.`
 
-    let modelMessages
-    try {
-      modelMessages = convertToModelMessages(messages || [])
-    } catch (error) {
-      console.error('[General Assistant] Error converting messages:', error)
-      return NextResponse.json(
-        { error: 'Invalid message format' },
-        { status: 400 }
-      )
-    }
+    // Convert messages format for OpenAI API
+    // OpenAI expects: { role: 'user'|'assistant'|'system', content: string }
+    const openaiMessages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
+      { role: 'system', content: systemMessage },
+    ]
 
-    const tools = mcpEnabled
-      ? {
-          mcp: openai.tools.mcp({
-            serverLabel: 'poke-mnky-draft-pool',
-            serverUrl: mcpServerUrl,
-            serverDescription: 'Access to POKE MNKY draft pool and team data. Provides tools for querying available Pokémon, team budgets, picks, and draft status.',
-            requireApproval: 'never',
-          }),
+    // Convert useChat messages format to OpenAI format
+    for (const msg of messages) {
+      if (msg.role === 'user' || msg.role === 'assistant') {
+        // Extract text content from message parts
+        let content = ''
+        if (msg.parts && Array.isArray(msg.parts)) {
+          content = msg.parts
+            .filter((part: any) => part.type === 'text')
+            .map((part: any) => part.text)
+            .join('')
+        } else if (typeof msg.content === 'string') {
+          content = msg.content
+        } else if (Array.isArray(msg.content)) {
+          content = msg.content
+            .filter((part: any) => part.type === 'text')
+            .map((part: any) => part.text)
+            .join('')
         }
-      : undefined
 
-    let result
-    try {
-      result = await streamText({
-        model: openai(model),
-        system: systemMessage,
-        messages: modelMessages,
-        tools,
-        maxSteps: mcpEnabled ? 5 : 1,
-      })
-    } catch (streamError) {
-      console.error('[General Assistant] streamText error:', streamError)
-      console.error('[General Assistant] streamText error details:', {
-        error: streamError,
-        errorType: typeof streamError,
-        errorMessage: streamError instanceof Error ? streamError.message : String(streamError),
-        errorStack: streamError instanceof Error ? streamError.stack : undefined,
-      })
-      return NextResponse.json(
-        { error: `Streaming error: ${streamError instanceof Error ? streamError.message : 'Unknown error'}` },
-        { status: 500 }
-      )
+        if (content) {
+          openaiMessages.push({
+            role: msg.role as 'user' | 'assistant',
+            content,
+          })
+        }
+      }
     }
 
-    // Verify result has toDataStreamResponse method
-    if (!result || typeof result.toDataStreamResponse !== 'function') {
-      console.error('[General Assistant] Invalid streamText result:', {
-        result,
-        resultType: typeof result,
-        hasMethod: result && typeof result.toDataStreamResponse === 'function',
-        resultKeys: result ? Object.keys(result) : null,
-        resultConstructor: result?.constructor?.name,
-      })
-      return NextResponse.json(
-        { error: 'Invalid streaming response from AI SDK' },
-        { status: 500 }
-      )
+    // Use OpenAI SDK directly for streaming
+    const openai = getOpenAI()
+
+    // Note: MCP tools are not directly supported with OpenAI SDK streaming
+    // For now, we'll stream without MCP tools. MCP integration would require
+    // using Vercel AI SDK or implementing custom tool calling logic.
+    const stream = await openai.chat.completions.create({
+      model: model,
+      messages: openaiMessages,
+      stream: true,
+    })
+
+    // Convert OpenAI stream to useChat-compatible text stream format
+    // Create an async generator that yields text deltas
+    const textStream = async function* () {
+      for await (const chunk of stream) {
+        const delta = chunk.choices[0]?.delta?.content
+        if (delta) {
+          yield delta
+        }
+      }
     }
 
-    try {
-      return result.toDataStreamResponse()
-    } catch (responseError) {
-      console.error('[General Assistant] Error calling toDataStreamResponse:', responseError)
-      return NextResponse.json(
-        { error: `Response conversion error: ${responseError instanceof Error ? responseError.message : 'Unknown error'}` },
-        { status: 500 }
-      )
-    }
+    // Return streaming response compatible with useChat
+    return createTextStreamResponse(textStream())
   } catch (error) {
     console.error('[General Assistant] Error:', error)
     console.error('[General Assistant] Error stack:', error instanceof Error ? error.stack : 'No stack')
