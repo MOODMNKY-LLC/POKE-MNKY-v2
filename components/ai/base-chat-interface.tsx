@@ -83,8 +83,12 @@ export function BaseChatInterface({
   quickActions,
   onSendMessageReady,
 }: BaseChatInterfaceProps) {
-  // Ensure apiEndpoint is always a valid string
-  const resolvedEndpoint = apiEndpoint || "/api/ai/assistant"
+  // Ensure apiEndpoint is always a valid string - use useMemo to ensure stability
+  const resolvedEndpoint = useMemo(() => {
+    const endpoint = apiEndpoint || "/api/ai/assistant"
+    console.log("[BaseChatInterface] Resolving endpoint:", { apiEndpoint, resolved: endpoint })
+    return endpoint
+  }, [apiEndpoint])
   
   // Debug: Log the API endpoint being used
   useEffect(() => {
@@ -94,11 +98,13 @@ export function BaseChatInterface({
   }, [resolvedEndpoint, apiEndpoint])
 
   // Callbacks for useChat - memoized to prevent unnecessary re-renders
-  const handleError = useCallback((error: Error) => {
+  const handleError = useCallback((error: any) => {
     console.error("[BaseChatInterface] Chat error:", error)
     console.error("[BaseChatInterface] Error details:", {
-      message: error.message,
-      stack: error.stack,
+      message: error?.message || String(error),
+      stack: error?.stack,
+      errorType: typeof error,
+      errorConstructor: error?.constructor?.name,
     })
   }, [])
 
@@ -111,27 +117,79 @@ export function BaseChatInterface({
     })
     if (!response.ok) {
       console.error("[BaseChatInterface] API error:", response.status, response.statusText, "URL:", response.url)
+      // Log the actual URL being called
+      console.error("[BaseChatInterface] Expected endpoint:", resolvedEndpoint, "Actual URL:", response.url)
     } else {
       console.log("[BaseChatInterface] API response OK:", response.url)
     }
-  }, [])
+  }, [resolvedEndpoint])
 
-  // Debug: Log what we're passing to useChat
-  useEffect(() => {
-    console.log("[BaseChatInterface] About to call useChat with:", {
-      api: resolvedEndpoint,
-      apiType: typeof resolvedEndpoint,
-      hasBody: !!body,
+  // CRITICAL FIX: Ensure api is passed as a stable string literal
+  // useChat might be caching the endpoint, so we need to ensure it's always the correct value
+  const stableApiEndpoint = useMemo(() => {
+    const endpoint = String(resolvedEndpoint).trim()
+    if (!endpoint.startsWith('/')) {
+      console.warn("[BaseChatInterface] Endpoint should start with /:", endpoint)
+      return '/api/ai/assistant'
+    }
+    return endpoint
+  }, [resolvedEndpoint])
+
+  // Memoize the useChat config to ensure stability
+  const chatConfig = useMemo(() => {
+    const config: {
+      api: string
+      body?: Record<string, any>
+      onError: (error: any) => void
+      onResponse: (response: Response) => void
+    } = {
+      api: stableApiEndpoint,
+      onError: handleError,
+      onResponse: handleResponse,
+    }
+    
+    if (body) {
+      config.body = body
+    }
+    
+    console.log("[BaseChatInterface] useChat config object:", {
+      api: config.api,
+      apiLength: config.api.length,
+      hasBody: !!config.body,
     })
-  }, [resolvedEndpoint, body])
+    
+    return config
+  }, [stableApiEndpoint, body, handleError, handleResponse])
 
-  // IMPORTANT: Pass api prop directly - this is the correct way per Vercel AI SDK docs
-  const { messages, sendMessage, status, regenerate, error } = useChat({
-    api: resolvedEndpoint, // This MUST be the api prop, not apiEndpoint
-    body,
+  // Debug: Log what we're passing to useChat BEFORE calling it
+  const finalApiEndpoint = String(stableApiEndpoint).trim()
+  console.log("[BaseChatInterface] Calling useChat with api:", finalApiEndpoint, "Type:", typeof finalApiEndpoint, "Length:", finalApiEndpoint.length)
+
+  // CRITICAL FIX: Pass api as the FIRST prop to ensure it's read correctly
+  // Some versions of useChat might read props in order or have issues with object destructuring
+  const useChatOptions = {
+    api: finalApiEndpoint, // MUST be first prop
+    ...(body && { body }),
     onError: handleError,
     onResponse: handleResponse,
+  }
+  
+  console.log("[BaseChatInterface] useChat options:", {
+    api: useChatOptions.api,
+    hasBody: !!useChatOptions.body,
+    hasOnError: !!useChatOptions.onError,
+    hasOnResponse: !!useChatOptions.onResponse,
   })
+
+  // IMPORTANT: Pass api prop directly - this is the correct way per Vercel AI SDK docs
+  const { messages, sendMessage, status, regenerate, error } = useChat(useChatOptions)
+  
+  // Debug: Log AFTER useChat is called to see if it's using the correct endpoint
+  useEffect(() => {
+    console.log("[BaseChatInterface] useChat hook initialized")
+    console.log("[BaseChatInterface] Expected endpoint:", finalApiEndpoint)
+    // The actual endpoint used will be logged in handleResponse
+  }, [finalApiEndpoint])
 
   const [input, setInput] = useState("")
   const isLoading = status === "streaming" || status === "submitted"
