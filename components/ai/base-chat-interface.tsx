@@ -186,6 +186,37 @@ export function BaseChatInterface({
     return config
   }, [stableApiEndpoint, body, handleError, handleResponse])
 
+  // CRITICAL FIX: Intercept fetch calls and rewrite /api/chat to the correct endpoint
+  // This fixes the @ai-sdk/react v3.0.41 bug where useChat ignores the api prop and defaults to /api/chat
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    
+    const originalFetch = window.fetch
+    window.fetch = async function(...args) {
+      const url = args[0]
+      
+      // If useChat is calling /api/chat (default), rewrite it to our actual endpoint
+      if (typeof url === 'string' && url === '/api/chat') {
+        console.warn("[BaseChatInterface] ⚠️ useChat is calling /api/chat (default), rewriting to:", stableApiEndpoint)
+        args[0] = stableApiEndpoint
+      }
+      
+      // Debug logging for all API calls
+      if (typeof url === 'string' && (url.includes('/api/') || url.includes('api'))) {
+        console.log("[BaseChatInterface] 🔍 FETCH INTERCEPTOR: URL being called:", url)
+        if (url === '/api/chat') {
+          console.log("[BaseChatInterface] 🔍 FETCH INTERCEPTOR: Rewriting to:", stableApiEndpoint)
+        }
+      }
+      
+      return originalFetch.apply(this, args)
+    }
+    
+    return () => {
+      window.fetch = originalFetch
+    }
+  }, [stableApiEndpoint])
+
   // IMPORTANT: Pass api prop directly - this is the correct way per Vercel AI SDK docs
   const { messages, sendMessage, status, regenerate, error } = useChat(useChatOptions)
   
