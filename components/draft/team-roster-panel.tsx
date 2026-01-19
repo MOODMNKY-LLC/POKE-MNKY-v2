@@ -31,7 +31,10 @@ export function TeamRosterPanel({ teamId, seasonId }: TeamRosterPanelProps) {
   const supabase = createClient()
 
   useEffect(() => {
-    if (!teamId) return
+    if (!teamId) {
+      setLoading(false)
+      return
+    }
 
     async function fetchRoster() {
       try {
@@ -40,7 +43,7 @@ export function TeamRosterPanel({ teamId, seasonId }: TeamRosterPanelProps) {
         // Fetch team roster
         // Note: team_rosters doesn't have season_id, but teams do
         // We filter by team_id which is already scoped to the season
-        const { data: rosterData } = await supabase
+        const { data: rosterData, error: rosterError } = await supabase
           .from("team_rosters")
           .select(`
             id,
@@ -56,12 +59,18 @@ export function TeamRosterPanel({ teamId, seasonId }: TeamRosterPanelProps) {
           .order("draft_round", { ascending: true })
           .order("draft_order", { ascending: true })
 
+        if (rosterError) {
+          console.error("Error fetching roster:", rosterError)
+          setLoading(false)
+          return
+        }
+
         if (rosterData) {
           const picks: RosterPick[] = rosterData
             .filter(r => r.pokemon)
             .map(r => ({
               id: r.id,
-              pokemon_name: (r.pokemon as any).name,
+              pokemon_name: (r.pokemon as any)?.name || "Unknown",
               pokemon_id: r.pokemon_id,
               point_value: r.draft_points || 0,
               draft_round: r.draft_round || 0,
@@ -115,6 +124,21 @@ export function TeamRosterPanel({ teamId, seasonId }: TeamRosterPanelProps) {
         </CardHeader>
         <CardContent>
           <Skeleton className="h-24 w-full" />
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (!teamId) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Your Team</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground text-center py-4">
+            Please log in to view your team roster
+          </p>
         </CardContent>
       </Card>
     )

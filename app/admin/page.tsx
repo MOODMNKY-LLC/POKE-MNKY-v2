@@ -5,9 +5,11 @@ import { createBrowserClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { Database, Calendar, Trophy, Users, RefreshCw, Settings, MessageSquare } from "lucide-react"
+import { Database, Calendar, Trophy, Users, RefreshCw, Settings, MessageSquare, ClipboardList } from "lucide-react"
 import { SupabaseManager } from "@/components/platform/supabase-manager"
-import { PokepediaSyncStatus } from "@/components/admin/pokepedia-sync-status"
+// PokepediaSyncStatusNew removed - sync system deleted
+import { ShowdownPokedexSync } from "@/components/admin/showdown-pokedex-sync"
+import { PokemonSyncControl } from "@/components/admin/pokemon-sync-control"
 import { PokeMnkyPremium } from "@/components/ui/poke-mnky-avatar"
 import { useRouter } from "next/navigation"
 
@@ -195,6 +197,19 @@ export default function AdminPage() {
 
           <Card>
             <CardHeader>
+              <ClipboardList className="mb-2 h-8 w-8 text-primary" />
+              <CardTitle>Draft Sessions</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-4 text-sm text-muted-foreground">Create and manage draft sessions for your league.</p>
+              <Button asChild variant="outline" className="w-full bg-transparent">
+                <Link href="/admin/draft/sessions">Manage Draft Sessions</Link>
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
               <Trophy className="mb-2 h-8 w-8 text-accent" />
               <CardTitle>Playoff Bracket</CardTitle>
             </CardHeader>
@@ -292,40 +307,15 @@ export default function AdminPage() {
           </Card>
         </div>
 
-        {/* Poképedia Sync Status */}
-        <div className="mt-8">
-          <PokepediaSyncStatus />
+        {/* Pokemon Data Sync Control */}
+        <div id="pokemon-sync" className="mt-8 scroll-mt-8">
+          <PokemonSyncControl />
         </div>
 
-        {/* Recent Sync Log */}
-        {lastSync && (
-          <Card className="mt-8">
-            <CardHeader>
-              <CardTitle>Latest Sync</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Status:</span>
-                  <span className="font-medium capitalize">{lastSync.status}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Records Processed:</span>
-                  <span className="font-medium">{lastSync.records_processed}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Synced At:</span>
-                  <span className="font-medium">{new Date(lastSync.synced_at).toLocaleString()}</span>
-                </div>
-                {lastSync.error_message && (
-                  <div className="mt-2 rounded-md bg-destructive/10 p-2 text-destructive">
-                    <strong>Error:</strong> {lastSync.error_message}
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        {/* Showdown Pokedex Sync */}
+        <div id="showdown-sync" className="mt-8 scroll-mt-8">
+          <ShowdownPokedexSync />
+        </div>
       </main>
 
       <SupabaseManager projectRef={projectRef} open={platformOpen} onOpenChange={setPlatformOpen} />

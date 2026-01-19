@@ -23,9 +23,14 @@ const nextConfig = {
     return config
   },
   // Turbopack configuration
-  // Empty config silences the warning about webpack config when using Turbopack
   // Turbopack is the default bundler in Next.js 16
   turbopack: {},
+  // Experimental features to help with module resolution
+  experimental: {
+    // Optimize package imports to reduce bundle size and HMR issues
+    // This helps Next.js only load the modules we actually use from streamdown
+    optimizePackageImports: ['streamdown'],
+  },
 }
 
 export default nextConfig

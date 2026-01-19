@@ -13,11 +13,13 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { createClient } from "@/lib/supabase/server"
 import { getCurrentUserProfile } from "@/lib/rbac"
 import { redirect } from "next/navigation"
 import Link from "next/link"
-import { Trophy, Users, Calendar, BarChart3, Sword, BookOpen } from "lucide-react"
+import { Trophy, Users, Calendar, BarChart3, Sword, BookOpen, ClipboardList } from "lucide-react"
+import { DraftTabsSection } from "@/components/dashboard/draft-tabs-section"
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -82,18 +84,35 @@ export default async function DashboardPage() {
 
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Draft</CardTitle>
+                  <ClipboardList className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <Link
+                      href="/dashboard/draft"
+                      className="text-sm text-primary hover:underline"
+                    >
+                      Draft Planning
+                    </Link>
+                    <br />
+                    <Link
+                      href="/draft/board"
+                      className="text-sm text-primary hover:underline"
+                    >
+                      Draft Board
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Quick Actions</CardTitle>
                   <Sword className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    <Link
-                      href="/draft"
-                      className="text-sm text-primary hover:underline"
-                    >
-                      Draft Room
-                    </Link>
-                    <br />
                     <Link
                       href="/matches/submit"
                       className="text-sm text-primary hover:underline"
@@ -159,6 +178,9 @@ export default async function DashboardPage() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Draft Section - Tabs for Planning, Board, and Roster */}
+            <DraftTabsSection />
 
             <div className="grid gap-4 md:grid-cols-2">
               <Card>

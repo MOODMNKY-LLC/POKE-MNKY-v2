@@ -14,6 +14,7 @@ import {
   Sword,
   BookOpen,
   Sparkles,
+  ClipboardList,
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { getCurrentUserProfile, type UserProfile } from "@/lib/rbac"
@@ -85,6 +86,27 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       ],
     },
   ]
+
+  // Add Draft section (available to all users)
+  navItems.push({
+    title: "Draft",
+    url: "/dashboard/draft",
+    icon: ClipboardList,
+    items: [
+      {
+        title: "Draft Planning",
+        url: "/dashboard/draft",
+      },
+      {
+        title: "Draft Board",
+        url: "/dashboard/draft/board",
+      },
+      {
+        title: "My Roster",
+        url: "/dashboard/draft/roster",
+      },
+    ],
+  })
 
   // Add team-related items if user is a coach (dashboard routes only)
   if (userProfile?.role === "coach" && userProfile?.team_id) {

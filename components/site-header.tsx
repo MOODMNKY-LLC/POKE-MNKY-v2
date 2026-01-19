@@ -36,7 +36,7 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
   const [user, setUser] = useState<SupabaseUser | null>(initialUser ?? null)
   const [userProfile, setUserProfile] = useState<UserProfile | null>(initialProfile ?? null)
   const [isLoading, setIsLoading] = useState(!hasServerData) // Start as false if we have server data
-  const [syncState, setSyncState] = useState<any>(null)
+  // syncState removed - PokepediaSyncProvider deleted
   const [mounted, setMounted] = useState(false)
   const router = useRouter()
 
@@ -147,27 +147,7 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
     }
   }, [mounted, hasServerData])
 
-  // Get sync state from window (exposed by PokepediaSyncProvider)
-  useEffect(() => {
-    const checkSyncState = () => {
-      if (typeof window !== 'undefined' && (window as any).__syncState) {
-        setSyncState((window as any).__syncState)
-      }
-    }
-    
-    checkSyncState()
-    const interval = setInterval(checkSyncState, 1000) // Update every second
-    return () => clearInterval(interval)
-  }, [])
-
-  const handleOpenSyncStatus = () => {
-    // Call function exposed by PokepediaSyncProvider
-    if (typeof window !== 'undefined' && typeof (window as any).__openSyncStatus === 'function') {
-      (window as any).__openSyncStatus()
-    } else {
-      console.warn('[Header] Sync status function not available yet')
-    }
-  }
+  // Sync state functionality removed - PokepediaSyncProvider deleted
 
   const handleSignOut = async () => {
     if (!mounted) return
@@ -319,37 +299,6 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
             </DropdownMenu>
           </div>
           <div className="flex items-center gap-2">
-            {/* Sync Status Indicator - Always visible */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleOpenSyncStatus}
-              className="relative gap-1.5"
-              title="Sync Status"
-            >
-              {syncState?.status === "syncing" && !syncState?.isStale ? (
-                <>
-                  <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-500" />
-                  <span className="hidden xl:inline text-xs">Syncing</span>
-                  {syncState.progress > 0 && (
-                    <Badge variant="outline" className="ml-1 h-4 px-1 text-[10px]">
-                      {syncState.progress.toFixed(0)}%
-                    </Badge>
-                  )}
-                </>
-              ) : syncState?.status === "completed" ? (
-                <>
-                  <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
-                  <span className="hidden xl:inline text-xs">Synced</span>
-                </>
-              ) : (
-                <Info className="h-3.5 w-3.5 text-muted-foreground" />
-              )}
-            </Button>
-            
-            {/* Divider */}
-            <div className="h-6 w-px bg-border" />
-            
             <ThemeSwitcher />
             {isLoading ? (
               // Loading skeleton to prevent layout shift
@@ -402,22 +351,7 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
 
         {/* Mobile Navigation */}
         <div className="flex flex-1 items-center justify-end lg:hidden gap-2">
-          {/* Sync Status Indicator - Mobile - Always visible */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleOpenSyncStatus}
-            className="p-1.5"
-            title="Sync Status"
-          >
-            {syncState?.status === "syncing" && !syncState?.isStale ? (
-              <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
-            ) : syncState?.status === "completed" ? (
-              <CheckCircle2 className="h-4 w-4 text-green-500" />
-            ) : (
-              <Info className="h-4 w-4 text-muted-foreground" />
-            )}
-          </Button>
+          {/* Sync Status Indicator removed - PokepediaSyncProvider deleted */}
           <ThemeSwitcher />
           {isLoading ? (
             // Loading skeleton to prevent layout shift

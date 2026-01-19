@@ -37,7 +37,7 @@ export function PickHistory({ sessionId, limit = 10 }: PickHistoryProps) {
       try {
         setLoading(true)
         
-        const { data } = await supabase
+        const { data, error: picksError } = await supabase
           .from("team_rosters")
           .select(`
             id,
@@ -51,6 +51,12 @@ export function PickHistory({ sessionId, limit = 10 }: PickHistoryProps) {
           .not("draft_round", "is", null)
           .order("created_at", { ascending: false })
           .limit(limit)
+
+        if (picksError) {
+          console.error("Error fetching pick history:", picksError)
+          setLoading(false)
+          return
+        }
 
         if (data) {
           const formattedPicks: Pick[] = data

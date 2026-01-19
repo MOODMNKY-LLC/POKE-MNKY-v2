@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { DraftHeader } from "@/components/draft/draft-header"
-import { DraftBoard } from "@/components/draft/draft-board"
+import { DraftBoardServer } from "@/components/draft/draft-board-server"
 import { TeamRosterPanel } from "@/components/draft/team-roster-panel"
 import { PickHistory } from "@/components/draft/pick-history"
 import { DraftChat } from "@/components/draft/draft-chat"
@@ -204,10 +204,11 @@ export default function DraftBoardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left: Draft Board (2 columns) */}
         <div className="lg:col-span-2">
-          <DraftBoard 
+          <DraftBoardServer 
             sessionId={session.id}
             currentTeamId={currentTeam?.id}
             seasonId={session.season_id}
+            isYourTurn={currentTeam?.id === session.current_team_id}
           />
         </div>
         
