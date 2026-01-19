@@ -12,25 +12,12 @@
 -- Note: pokemon_id may be NULL if Pokemon doesn't exist in pokemon_cache yet
 -- This is safe - pokemon_id can be populated later when pokemon_cache is updated
 --
--- We use a CTE to filter out pokemon_id values that don't exist in pokemon_cache
--- to avoid foreign key constraint violations
+-- Strategy: Insert all rows with pokemon_id = NULL initially to avoid FK violations
+-- pokemon_id can be populated later when pokemon_cache is updated
+-- This is safe since pokemon_id is nullable and can be updated via ON CONFLICT
 
 INSERT INTO sheets_draft_pool (pokemon_name, point_value, is_available, generation, sheet_name, sheet_row, sheet_column, pokemon_id)
-SELECT 
-  v.pokemon_name,
-  v.point_value,
-  v.is_available,
-  v.generation,
-  v.sheet_name,
-  v.sheet_row::integer,
-  v.sheet_column,
-  -- Set pokemon_id to NULL if it doesn't exist in pokemon_cache
-  CASE 
-    WHEN v.pokemon_id IS NULL THEN NULL
-    WHEN EXISTS (SELECT 1 FROM pokemon_cache pc WHERE pc.pokemon_id = v.pokemon_id) THEN v.pokemon_id
-    ELSE NULL
-  END as pokemon_id
-FROM (VALUES
+VALUES
   ('Flutter Mane', 20, true, NULL, 'Draft Board', 5, 'J', 987),
   ('Gouging Fire', 20, true, NULL, 'Draft Board', 6, 'J', 1020),
   ('Mewtwo', 20, true, NULL, 'Draft Board', 7, 'J', 150),
@@ -779,8 +766,7 @@ FROM (VALUES
   ('Sunkern', 1, true, NULL, 'Draft Board', 197, '', 191),
   ('Surskit', 1, true, NULL, 'Draft Board', 198, '', 283),
   ('Swablu', 1, true, NULL, 'Draft Board', 199, '', 333),
-  ('Swinub', 1, true, NULL, 'Draft Board', 200, '', 220)
-) AS v(pokemon_name, point_value, is_available, generation, sheet_name, sheet_row, sheet_column, pokemon_id)
+  ('Swinub', 1, true, NULL, 'Draft Board', 200, '', NULL)
 ON CONFLICT (sheet_name, pokemon_name, point_value) DO UPDATE
 SET 
   -- Only update pokemon_id if it doesn't violate foreign key constraint
