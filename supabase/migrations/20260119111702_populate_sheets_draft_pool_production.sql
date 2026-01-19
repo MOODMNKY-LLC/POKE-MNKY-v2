@@ -17,13 +17,13 @@
 
 INSERT INTO sheets_draft_pool (pokemon_name, point_value, is_available, generation, sheet_name, sheet_row, sheet_column, pokemon_id)
 SELECT 
-  pokemon_name,
-  point_value,
-  is_available,
-  generation,
-  sheet_name,
-  sheet_row::integer,
-  sheet_column,
+  v.pokemon_name,
+  v.point_value,
+  v.is_available,
+  v.generation,
+  v.sheet_name,
+  v.sheet_row::integer,
+  v.sheet_column,
   -- Set pokemon_id to NULL if it doesn't exist in pokemon_cache
   CASE 
     WHEN v.pokemon_id IS NULL THEN NULL
