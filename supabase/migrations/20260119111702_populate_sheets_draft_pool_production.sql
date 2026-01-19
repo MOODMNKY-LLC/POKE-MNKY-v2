@@ -11,9 +11,12 @@
 --
 -- Note: pokemon_id may be NULL if Pokemon doesn't exist in pokemon_cache yet
 -- This is safe - pokemon_id can be populated later when pokemon_cache is updated
+--
+-- We use a CTE to filter out pokemon_id values that don't exist in pokemon_cache
+-- to avoid foreign key constraint violations
 
-INSERT INTO sheets_draft_pool (pokemon_name, point_value, is_available, generation, sheet_name, sheet_row, sheet_column, pokemon_id)
-VALUES
+WITH pokemon_data AS (
+  SELECT * FROM (VALUES
   ('Flutter Mane', 20, true, NULL, 'Draft Board', 5, 'J', 987),
   ('Gouging Fire', 20, true, NULL, 'Draft Board', 6, 'J', 1020),
   ('Mewtwo', 20, true, NULL, 'Draft Board', 7, 'J', 150),
@@ -763,6 +766,24 @@ VALUES
   ('Surskit', 1, true, NULL, 'Draft Board', 198, '', 283),
   ('Swablu', 1, true, NULL, 'Draft Board', 199, '', 333),
   ('Swinub', 1, true, NULL, 'Draft Board', 200, '', 220)
+  ) AS t(pokemon_name, point_value, is_available, generation, sheet_name, sheet_row, sheet_column, pokemon_id)
+)
+INSERT INTO sheets_draft_pool (pokemon_name, point_value, is_available, generation, sheet_name, sheet_row, sheet_column, pokemon_id)
+SELECT 
+  pokemon_name,
+  point_value,
+  is_available,
+  generation,
+  sheet_name,
+  sheet_row::integer,
+  sheet_column,
+  -- Set pokemon_id to NULL if it doesn't exist in pokemon_cache
+  CASE 
+    WHEN pokemon_id IS NULL THEN NULL
+    WHEN EXISTS (SELECT 1 FROM pokemon_cache WHERE pokemon_cache.pokemon_id = pokemon_data.pokemon_id) THEN pokemon_id
+    ELSE NULL
+  END as pokemon_id
+FROM pokemon_data
 ON CONFLICT (sheet_name, pokemon_name, point_value) DO UPDATE
 SET 
   -- Only update pokemon_id if it doesn't violate foreign key constraint
