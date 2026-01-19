@@ -780,7 +780,7 @@ FROM (VALUES
   ('Surskit', 1, true, NULL, 'Draft Board', 198, '', 283),
   ('Swablu', 1, true, NULL, 'Draft Board', 199, '', 333),
   ('Swinub', 1, true, NULL, 'Draft Board', 200, '', 220)
-) AS data(pokemon_name, point_value, is_available, generation, sheet_name, sheet_row, sheet_column, pokemon_id)
+) AS v(pokemon_name, point_value, is_available, generation, sheet_name, sheet_row, sheet_column, pokemon_id)
 ON CONFLICT (sheet_name, pokemon_name, point_value) DO UPDATE
 SET 
   -- Only update pokemon_id if it doesn't violate foreign key constraint
