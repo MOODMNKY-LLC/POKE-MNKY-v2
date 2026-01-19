@@ -26,8 +26,8 @@ SELECT
   sheet_column,
   -- Set pokemon_id to NULL if it doesn't exist in pokemon_cache
   CASE 
-    WHEN pokemon_id IS NULL THEN NULL
-    WHEN EXISTS (SELECT 1 FROM pokemon_cache WHERE pokemon_cache.pokemon_id = data.pokemon_id) THEN pokemon_id
+    WHEN v.pokemon_id IS NULL THEN NULL
+    WHEN EXISTS (SELECT 1 FROM pokemon_cache pc WHERE pc.pokemon_id = v.pokemon_id) THEN v.pokemon_id
     ELSE NULL
   END as pokemon_id
 FROM (VALUES
