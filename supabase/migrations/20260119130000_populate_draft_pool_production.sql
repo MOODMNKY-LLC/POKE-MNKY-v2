@@ -15,7 +15,7 @@ INSERT INTO draft_pool (
     created_at,
     updated_at
 )
-SELECT 
+SELECT DISTINCT ON (sdp.pokemon_name)
     sdp.pokemon_name,
     sdp.point_value,
     sdp.pokemon_id,  -- May be NULL, which is fine
@@ -31,6 +31,7 @@ CROSS JOIN (
     SELECT id FROM seasons WHERE is_current = true LIMIT 1
 ) s
 WHERE sdp.is_available = true  -- Only populate available Pokemon initially
+ORDER BY sdp.pokemon_name, sdp.point_value DESC  -- Take highest point_value if duplicates
 ON CONFLICT (season_id, pokemon_name) 
 WHERE season_id IS NOT NULL
 DO UPDATE SET
