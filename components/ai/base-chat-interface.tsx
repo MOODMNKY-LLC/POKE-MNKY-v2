@@ -17,10 +17,13 @@
 
 import { useState, Fragment, useEffect, useCallback, useRef, useMemo } from "react"
 import { useChat } from "@ai-sdk/react"
-import { CopyIcon, RefreshCcwIcon } from "lucide-react"
+import { CopyIcon, RefreshCcwIcon, RotateCcw, SendIcon, Loader2 } from "lucide-react"
 import { PromptInputWrapper, type PromptInputMessage } from "./prompt-input-wrapper"
 import { PokeMnkyAssistant, PokeMnkyPremium } from "@/components/ui/poke-mnky-avatar"
 import { BlurFade } from "@/components/ui/blur-fade"
+import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
+import { Badge } from "@/components/ui/badge"
 import {
   Conversation,
   ConversationContent,
@@ -67,6 +70,10 @@ export interface BaseChatInterfaceProps {
   quickActions?: Array<{ label: string; prompt: string; icon?: React.ReactNode }>
   /** Callback ref to expose sendMessage function */
   onSendMessageReady?: (sendMessage: (message: { text: string }) => void) => void
+  /** Footer action buttons (upload, mic, volume, etc.) */
+  footerActions?: React.ReactNode
+  /** Uploaded files display */
+  uploadedFilesDisplay?: React.ReactNode
 }
 
 export function BaseChatInterface({
@@ -82,6 +89,8 @@ export function BaseChatInterface({
   className,
   quickActions,
   onSendMessageReady,
+  footerActions,
+  uploadedFilesDisplay,
 }: BaseChatInterfaceProps) {
   // Ensure apiEndpoint is always a valid string - use useMemo to ensure stability
   const resolvedEndpoint = useMemo(() => {
@@ -218,7 +227,7 @@ export function BaseChatInterface({
   }, [stableApiEndpoint])
 
   // IMPORTANT: Pass api prop directly - this is the correct way per Vercel AI SDK docs
-  const { messages, sendMessage, status, regenerate, error } = useChat(useChatOptions)
+  const { messages, sendMessage, status, regenerate, error, setMessages } = useChat(useChatOptions)
   
   // Debug: Log useChat configuration and initialization
   // FIXED: Moved console.log statements into useEffect to prevent console spam on every render
@@ -238,11 +247,29 @@ export function BaseChatInterface({
   const [input, setInput] = useState("")
   const isLoading = status === "streaming" || status === "submitted"
   const onSendMessageReadyRef = useRef(onSendMessageReady)
+  const inputRef = useRef<{ focus: () => void } | null>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const previousStatusRef = useRef(status)
 
   // Keep ref in sync with prop
   useEffect(() => {
     onSendMessageReadyRef.current = onSendMessageReady
   }, [onSendMessageReady])
+
+  // Focus input when status changes from submitted/streaming back to idle (backup focus)
+  useEffect(() => {
+    // If we were loading and now we're not, focus the input as backup
+    // Primary focus happens immediately after send, this is just a safety net
+    if ((previousStatusRef.current === "submitted" || previousStatusRef.current === "streaming") && 
+        status === "idle" && 
+        inputRef.current &&
+        document.activeElement !== inputRef.current) {
+      requestAnimationFrame(() => {
+        inputRef.current?.focus()
+      })
+    }
+    previousStatusRef.current = status
+  }, [status])
 
   // Expose sendMessage to parent component (for voice input, etc.)
   // Use useCallback to create a stable reference
@@ -255,7 +282,37 @@ export function BaseChatInterface({
     sendMessage(message)
     // Clear input after sending
     setInput("")
+    // Focus input immediately - textarea is no longer disabled so this will work
+    requestAnimationFrame(() => {
+      inputRef.current?.focus()
+    })
   }, [sendMessage])
+
+  // Handle copying text to clipboard
+  const handleCopy = useCallback(async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      // Optional: Show toast notification (if you have a toast system)
+      console.log("[BaseChatInterface] Copied to clipboard")
+    } catch (error) {
+      console.error("[BaseChatInterface] Failed to copy to clipboard:", error)
+      // Fallback for older browsers
+      try {
+        const textArea = document.createElement("textarea")
+        textArea.value = text
+        textArea.style.position = "fixed"
+        textArea.style.left = "-999999px"
+        document.body.appendChild(textArea)
+        textArea.focus()
+        textArea.select()
+        document.execCommand("copy")
+        textArea.remove()
+        console.log("[BaseChatInterface] Copied to clipboard (fallback)")
+      } catch (fallbackError) {
+        console.error("[BaseChatInterface] Fallback copy failed:", fallbackError)
+      }
+    }
+  }, [])
 
   // Expose sendMessage function to parent - defer to avoid setState during render
   useEffect(() => {
@@ -270,26 +327,87 @@ export function BaseChatInterface({
     })
   }, [sendMessageWrapper, sendMessage])
 
-  const handleSubmit = (message: { text: string }) => {
-    if (!message.text.trim() || isLoading) return
-    sendMessage({ text: message.text })
-    setInput("")
-  }
+  // Update inputRef to use textareaRef
+  useEffect(() => {
+    inputRef.current = {
+      focus: () => {
+        textareaRef.current?.focus()
+      }
+    }
+  }, [])
 
-  const handleCopy = (text: string) => {
-    navigator.clipboard.writeText(text)
+  const handleSubmit = (message?: { text: string }) => {
+    const messageText = message?.text || input.trim()
+    if (!messageText || isLoading) return
+    sendMessage({ text: messageText })
+    setInput("")
+    // Reset textarea height and focus immediately
+    requestAnimationFrame(() => {
+      if (textareaRef.current) {
+        textareaRef.current.style.height = "auto"
+        textareaRef.current.focus()
+      }
+      inputRef.current?.focus()
+    })
   }
 
   const CharacterAvatar = characterPalette === "gold-black" ? PokeMnkyPremium : PokeMnkyAssistant
+  const conversationRef = useRef<HTMLDivElement>(null)
+
+  // Force hide scrollbar on conversation area
+  useEffect(() => {
+    const hideScrollbar = () => {
+      if (conversationRef.current) {
+        const element = conversationRef.current
+        // Find the actual scrollable element (might be inside StickToBottom)
+        const scrollableElement = element.querySelector('[role="log"]') || element
+        
+        if (scrollableElement instanceof HTMLElement) {
+          scrollableElement.style.setProperty('-ms-overflow-style', 'none', 'important')
+          scrollableElement.style.setProperty('scrollbar-width', 'none', 'important')
+          
+          // Inject webkit scrollbar hiding
+          const styleId = 'hide-conversation-scrollbar-style'
+          if (!document.getElementById(styleId)) {
+            const style = document.createElement('style')
+            style.id = styleId
+            style.textContent = `
+              [role="log"]::-webkit-scrollbar,
+              .scrollbar-hide::-webkit-scrollbar {
+                display: none !important;
+                width: 0 !important;
+                height: 0 !important;
+                background: transparent !important;
+              }
+            `
+            document.head.appendChild(style)
+          }
+        }
+      }
+    }
+    
+    hideScrollbar()
+    // Re-run after a short delay to catch dynamically rendered elements
+    const timeout = setTimeout(hideScrollbar, 100)
+    return () => clearTimeout(timeout)
+  }, [])
 
   return (
-    <div className={cn("flex flex-col h-full", className)}>
+    <div className={cn("flex flex-col h-full relative", className)}>
+      {/* Assistant Avatar Background - Prominent watermark (gold-black palette) */}
+      <div className="absolute inset-0 opacity-[0.08] dark:opacity-[0.12] pointer-events-none z-0 overflow-hidden">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+          <PokeMnkyPremium size={700} className="text-muted-foreground drop-shadow-2xl" />
+        </div>
+      </div>
+      {/* Content overlay */}
+      <div className="relative z-10 flex flex-col h-full">
       {/* Header */}
-      {(title || description || showCharacter) && (
+      {(title || description || showCharacter || messages.length > 0) && (
         <BlurFade direction="down" delay={0}>
-          <div className="flex items-center gap-3 px-4 py-3 border-b bg-card">
+          <div className="flex items-center gap-3 px-4 py-3 border-b bg-card flex-shrink-0">
             {showCharacter && (
-              <CharacterAvatar size={characterSize} className="shrink-0" />
+              <PokeMnkyPremium size={Math.max(characterSize || 48, 48)} className="shrink-0" />
             )}
             <div className="flex-1 min-w-0">
               {title && (
@@ -299,18 +417,41 @@ export function BaseChatInterface({
                 <p className="text-sm text-muted-foreground truncate">{description}</p>
               )}
             </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                setMessages([])
+                setInput("")
+              }}
+              disabled={messages.length === 0}
+              className="h-8 w-8 shrink-0"
+              aria-label="Clear chat"
+              title="Clear chat"
+            >
+              <RotateCcw className="h-4 w-4" />
+            </Button>
           </div>
         </BlurFade>
       )}
 
       {/* Conversation Area */}
-      <Conversation className={cn(
-        "flex-1",
-        // Mobile optimization
-        "overflow-y-auto smooth-scroll",
-        // PWA safe scrolling
-        "overscroll-contain"
-      )}>
+      <div ref={conversationRef} className="flex-1 min-h-0 overflow-hidden">
+        <Conversation 
+          className={cn(
+            "h-full",
+            // Mobile optimization
+            "overflow-y-auto smooth-scroll",
+            // PWA safe scrolling
+            "overscroll-contain",
+            // Hide scrollbar but keep scrolling functional
+            "scrollbar-hide"
+          )}
+          style={{
+            msOverflowStyle: 'none',
+            scrollbarWidth: 'none',
+          } as React.CSSProperties}
+        >
         <ConversationContent className="pb-safe">
           {error && (
             <div className="p-4 m-4 rounded-md bg-destructive/10 text-destructive text-sm">
@@ -328,26 +469,55 @@ export function BaseChatInterface({
               }
             />
           ) : (
-            messages.map((message) => (
+            messages.map((message) => {
+              // Check if any tools were used in this message
+              const toolCalls = message.parts?.filter((part) => part.type === "tool-call") || []
+              const sources = message.parts?.filter((part) => part.type === "source-url") || []
+              const hasTools = toolCalls.length > 0
+              const hasSources = sources.length > 0
+              
+              return (
               <Fragment key={message.id}>
+                {/* Tool Usage Badge - Show if tools were used */}
+                {message.role === "assistant" && hasTools && (
+                  <div className="mb-2 px-4">
+                    <Badge 
+                      variant="secondary" 
+                      className="gap-1.5 text-xs bg-primary/10 text-primary border-primary/20"
+                    >
+                      <Sparkles className="h-3 w-3" />
+                      Used {toolCalls.length} tool{toolCalls.length > 1 ? 's' : ''}: {toolCalls.map((tc: any) => tc.toolName).join(', ')}
+                    </Badge>
+                  </div>
+                )}
+                
                 {/* Sources (if any) */}
-                {message.role === "assistant" &&
-                  message.parts.filter((part) => part.type === "source-url").length > 0 && (
-                    <Sources>
-                      <SourcesTrigger
-                        count={
-                          message.parts.filter((part) => part.type === "source-url").length
-                        }
-                      />
-                      {message.parts
-                        .filter((part) => part.type === "source-url")
-                        .map((part, i) => (
-                          <SourcesContent key={`${message.id}-source-${i}`}>
-                            <Source href={part.url} title={part.url} />
-                          </SourcesContent>
-                        ))}
-                    </Sources>
-                  )}
+                {message.role === "assistant" && hasSources && (
+                  <Sources>
+                    <SourcesTrigger
+                      count={sources.length}
+                    />
+                    <SourcesContent>
+                      {sources.map((part, i) => (
+                        <Source 
+                          key={`${message.id}-source-${i}`}
+                          href={part.url} 
+                          title={part.title || part.url}
+                        >
+                          <div className="flex items-center gap-2 w-full">
+                            <BookIcon className="h-4 w-4 shrink-0" />
+                            <span className="font-medium flex-1">{part.title || part.url}</span>
+                            {part.tool && (
+                              <Badge variant="outline" className="text-xs shrink-0">
+                                {part.tool}
+                              </Badge>
+                            )}
+                          </div>
+                        </Source>
+                      ))}
+                    </SourcesContent>
+                  </Sources>
+                )}
 
                 {/* Message Content */}
                 {message.parts.map((part, i) => {
@@ -433,7 +603,8 @@ export function BaseChatInterface({
                   }
                 })}
               </Fragment>
-            ))
+              )
+            })
           )}
 
           {/* Loading Indicator */}
@@ -449,29 +620,96 @@ export function BaseChatInterface({
         </ConversationContent>
         <ConversationScrollButton />
       </Conversation>
+      </div>
 
       {/* Quick Actions */}
       {quickActions && quickActions.length > 0 && (
-        <div className="border-t px-4 pt-3 pb-2 bg-card">
+        <div className="border-t px-4 pt-3 pb-2 bg-card/20 backdrop-blur-sm flex-shrink-0">
           <QuickActions
             actions={quickActions}
             onAction={(prompt) => {
               sendMessage({ text: prompt })
+              // Focus input immediately after quick action
+              requestAnimationFrame(() => {
+                inputRef.current?.focus()
+              })
             }}
             disabled={isLoading}
           />
         </div>
       )}
 
-      {/* Input Area */}
-      <div className="border-t p-4 bg-card">
-        <PromptInputWrapper
-          value={input}
-          onChange={setInput}
-          onSubmit={handleSubmit}
-          disabled={isLoading}
-          placeholder="Ask me anything..."
-        />
+      {/* Footer - Input Area with Actions */}
+      <div className="border-t bg-card/20 backdrop-blur-sm flex-shrink-0">
+        {/* Uploaded files display */}
+        {uploadedFilesDisplay && (
+          <div className="px-4 pt-2 pb-1">
+            {uploadedFilesDisplay}
+          </div>
+        )}
+        {/* Input and actions in single line */}
+        <div className="px-4 pb-3 pt-2 flex items-end gap-2">
+          {/* Action buttons on left */}
+          {footerActions && (
+            <div className="flex items-center gap-1 shrink-0">
+              {footerActions}
+            </div>
+          )}
+          {/* Input field */}
+          <div className="flex-1 relative min-w-0">
+            <Textarea
+              ref={textareaRef}
+              value={input}
+              onChange={(e) => {
+                setInput(e.target.value)
+                // Auto-resize
+                const textarea = e.target
+                textarea.style.height = "auto"
+                textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`
+              }}
+              onKeyDown={(e) => {
+                // Submit on Enter (but not Shift+Enter)
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault()
+                  handleSubmit()
+                }
+              }}
+              placeholder="Ask me anything..."
+              disabled={false}
+              rows={1}
+              className={cn(
+                "resize-none min-h-[44px] max-h-[200px] pr-12",
+                "text-base",
+                "touch-manipulation",
+                "overflow-y-auto",
+                "hide-textarea-scrollbar"
+              )}
+            />
+            {/* Send button */}
+            <Button
+              type="button"
+              onClick={handleSubmit}
+              disabled={isLoading || !input.trim()}
+              size="icon"
+              className={cn(
+                "absolute right-2 bottom-2 h-10 w-10 min-h-[44px] min-w-[44px] shrink-0",
+                "touch-manipulation active:scale-95"
+              )}
+            >
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <SendIcon className="h-4 w-4" />
+              )}
+              <span className="sr-only">Send message</span>
+            </Button>
+          </div>
+        </div>
+        {/* Helper text */}
+        <div className="px-5 pb-2 text-xs text-muted-foreground">
+          Press Enter to send, Shift+Enter for new line
+        </div>
+      </div>
       </div>
     </div>
   )

@@ -14,6 +14,7 @@ import { FloatingAssistantButton } from "./floating-assistant-button"
 
 export function AssistantProvider() {
   const [mounted, setMounted] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const pathname = usePathname()
   const [context, setContext] = useState<{
     teamId?: string | null
@@ -35,6 +36,8 @@ export function AssistantProvider() {
     async function fetchContext() {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
+
+      setIsAuthenticated(!!user)
 
       if (!user) {
         setContext({})
@@ -75,5 +78,5 @@ export function AssistantProvider() {
 
   if (!mounted) return null
 
-  return <FloatingAssistantButton context={context} />
+  return <FloatingAssistantButton context={context} isAuthenticated={isAuthenticated} />
 }

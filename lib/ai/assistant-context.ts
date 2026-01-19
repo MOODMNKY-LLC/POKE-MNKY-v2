@@ -104,7 +104,7 @@ export function detectAssistantContext(
     agentType: "general",
     apiEndpoint: "/api/ai/assistant",
     context: {},
-    title: "POKE MNKY Assistant",
+    title: "POKE MNKY",
     description: "Your AI companion for all things Pokémon Battle League",
     characterPalette: "red-blue",
   }
