@@ -514,6 +514,48 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none; /* Chrome, Safari, Opera */
   }
+
+  /* Force hide scrollbar for textareas - multiple selectors for maximum coverage */
+  textarea[data-slot="textarea"]::-webkit-scrollbar,
+  textarea::-webkit-scrollbar,
+  .hide-textarea-scrollbar::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    background: transparent !important;
+  }
+  
+  textarea[data-slot="textarea"],
+  textarea,
+  .hide-textarea-scrollbar {
+    -ms-overflow-style: none !important;
+    scrollbar-width: none !important;
+  }
+  
+  /* Also target by class if needed */
+  textarea.overflow-y-auto::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    background: transparent !important;
+  }
+
+  /* Force hide scrollbar for Conversation/StickToBottom components */
+  [role="log"]::-webkit-scrollbar,
+  .scrollbar-hide::-webkit-scrollbar,
+  [class*="overflow-y-auto"]::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    background: transparent !important;
+  }
+  
+  [role="log"],
+  .scrollbar-hide,
+  [class*="overflow-y-auto"] {
+    -ms-overflow-style: none !important;
+    scrollbar-width: none !important;
+  }
 }
 
 /* Hide scrollbars for Pokédex and other specific components */

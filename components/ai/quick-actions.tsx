@@ -34,7 +34,7 @@ export function QuickActions({
 
   return (
     <BlurFade direction="down" delay={0.1}>
-      <div className={cn("flex flex-wrap gap-2 mb-4", className)}>
+      <div className={cn("flex flex-nowrap gap-1.5 overflow-x-auto scrollbar-hide pb-1", className)}>
         {actions.map((action, index) => (
           <Button
             key={action.label}
@@ -42,9 +42,9 @@ export function QuickActions({
             size="sm"
             onClick={() => onAction(action.prompt)}
             disabled={disabled}
-            className="text-xs"
+            className="text-xs whitespace-nowrap shrink-0"
           >
-            {action.icon && <span className="mr-1.5">{action.icon}</span>}
+            {action.icon && <span className="mr-1">{action.icon}</span>}
             {action.label}
           </Button>
         ))}

@@ -15,7 +15,7 @@
  * - Model selector (future)
  */
 
-import { useState, useRef, KeyboardEvent, FormEvent } from "react"
+import { useState, useRef, KeyboardEvent, FormEvent, forwardRef, useImperativeHandle, useEffect } from "react"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { SendIcon, Loader2 } from "lucide-react"
@@ -43,7 +43,11 @@ export interface PromptInputWrapperProps {
   showSubmit?: boolean
 }
 
-export function PromptInputWrapper({
+export interface PromptInputWrapperRef {
+  focus: () => void
+}
+
+export const PromptInputWrapper = forwardRef<PromptInputWrapperRef, PromptInputWrapperProps>(({
   value,
   onChange,
   onSubmit,
@@ -51,21 +55,64 @@ export function PromptInputWrapper({
   placeholder = "Type your message...",
   className,
   showSubmit = true,
-}: PromptInputWrapperProps) {
+}, ref) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  // Expose focus method to parent
+  useImperativeHandle(ref, () => ({
+    focus: () => {
+      textareaRef.current?.focus()
+    }
+  }))
   const [isComposing, setIsComposing] = useState(false)
+
+  // Force hide scrollbar via DOM manipulation
+  useEffect(() => {
+    if (textareaRef.current) {
+      const textarea = textareaRef.current
+      // Apply styles directly to the element
+      textarea.style.setProperty('-ms-overflow-style', 'none', 'important')
+      textarea.style.setProperty('scrollbar-width', 'none', 'important')
+      
+      // For webkit browsers, inject style tag
+      const styleId = 'hide-textarea-scrollbar-style'
+      if (!document.getElementById(styleId)) {
+        const style = document.createElement('style')
+        style.id = styleId
+        style.textContent = `
+          textarea.hide-textarea-scrollbar::-webkit-scrollbar {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+            background: transparent !important;
+          }
+        `
+        document.head.appendChild(style)
+      }
+    }
+  }, [])
 
   const handleSubmit = (e?: FormEvent) => {
     e?.preventDefault()
-    if (disabled || !value.trim() || isComposing) return
+    // Don't prevent submission if disabled - let parent handle it
+    // But prevent if composing or empty
+    if (!value.trim() || isComposing) return
+    // Check disabled state for submit prevention
+    if (disabled) return
 
-    onSubmit({ text: value.trim() })
+    const messageText = value.trim()
+    onSubmit({ text: messageText })
     onChange("")
     
-    // Reset textarea height
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto"
-    }
+    // Reset textarea height and focus immediately after submission
+    // Since textarea is no longer disabled, focus will work
+    requestAnimationFrame(() => {
+      if (textareaRef.current) {
+        textareaRef.current.style.height = "auto"
+        textareaRef.current.focus()
+        console.log("[PromptInputWrapper] Focused input after submit")
+      }
+    })
   }
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -97,14 +144,18 @@ export function PromptInputWrapper({
           onCompositionStart={() => setIsComposing(true)}
           onCompositionEnd={() => setIsComposing(false)}
           placeholder={placeholder}
-          disabled={disabled}
+          disabled={false}
           rows={1}
           className={cn(
             "resize-none min-h-[44px] max-h-[200px] pr-12",
             // Mobile optimization - prevent zoom on iOS
             "text-base",
             // Touch optimization
-            "touch-manipulation"
+            "touch-manipulation",
+            // Overflow for scrolling
+            "overflow-y-auto",
+            // Hide scrollbar class
+            "hide-textarea-scrollbar"
           )}
         />
         {showSubmit && (
@@ -131,4 +182,6 @@ export function PromptInputWrapper({
       </div>
     </form>
   )
-}
+})
+
+PromptInputWrapper.displayName = "PromptInputWrapper"

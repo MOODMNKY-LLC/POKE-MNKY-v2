@@ -52,7 +52,7 @@ import {
 } from "lucide-react"
 import { BaseChatInterface } from "./base-chat-interface"
 import { detectAssistantContext, type AgentType, getQuickActionsForAgent } from "@/lib/ai/assistant-context"
-import { PokeMnkyAssistant } from "@/components/ui/poke-mnky-avatar"
+import { PokeMnkyAssistant, PokeMnkyPremium } from "@/components/ui/poke-mnky-avatar"
 import { cn } from "@/lib/utils"
 import { AI_MODELS } from "@/lib/openai-client"
 
@@ -70,23 +70,39 @@ interface UnifiedAssistantPopupProps {
     team2Id?: string | null
     matchId?: string | null
   }
+  /** Whether user is authenticated */
+  isAuthenticated?: boolean
 }
 
 export function UnifiedAssistantPopup({
   open,
   onOpenChange,
   context = {},
+  isAuthenticated = false,
 }: UnifiedAssistantPopupProps) {
   const pathname = usePathname()
   const isMobile = useIsMobile()
   const [isMinimized, setIsMinimized] = useState(false)
-  const [mcpEnabled, setMcpEnabled] = useState(true)
+  // MCP tools only available for authenticated users
+  const [mcpEnabled, setMcpEnabled] = useState(isAuthenticated)
   const [ttsEnabled, setTtsEnabled] = useState(false)
   const [selectedModel, setSelectedModel] = useState<string>("gpt-5.2")
   const [isRecording, setIsRecording] = useState(false)
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
   const [selectedAgent, setSelectedAgent] = useState<AgentType | null>(null)
   const sendMessageFnRef = useRef<((message: { text: string }) => void) | null>(null)
+
+  // Update MCP enabled state when authentication status changes
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setMcpEnabled(false)
+    }
+  }, [isAuthenticated])
+
+  // Debug: Log minimize state changes
+  useEffect(() => {
+    console.log("[UnifiedAssistantPopup] isMinimized state changed:", isMinimized)
+  }, [isMinimized])
   
   const recognitionRef = useRef<SpeechRecognition | null>(null)
   const synthRef = useRef<SpeechSynthesis | null>(null)
@@ -187,13 +203,13 @@ export function UnifiedAssistantPopup({
     <div className="flex flex-col h-full">
       {/* Header - Only show in desktop Dialog */}
       {!isMobile && (
-        <div className="border-b pb-3 px-6 pt-6">
+        <div className="border-b pb-3 px-6 pt-6 flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <PokeMnkyAssistant size={32} />
+              <PokeMnkyPremium size={48} />
               <div>
                 <h2 className="text-lg font-semibold">
-                  {agentContext.title}
+                  POKE MNKY
                 </h2>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {agentContext.description}
@@ -205,26 +221,30 @@ export function UnifiedAssistantPopup({
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setIsMinimized(!isMinimized)}
+              onClick={() => {
+                console.log("[UnifiedAssistantPopup] Expand/Minimize button clicked, current state:", isMinimized)
+                setIsMinimized(!isMinimized)
+              }}
               className={cn(
                 "h-10 w-10 min-h-[44px] min-w-[44px]",
                 "touch-manipulation active:scale-95"
               )}
-              aria-label={isMinimized ? "Expand assistant" : "Minimize assistant"}
+              aria-label={!isMinimized ? "Expand to fullscreen" : "Minimize to normal size"}
             >
-              {isMinimized ? (
+              {!isMinimized ? (
                 <Maximize2 className="h-4 w-4" />
               ) : (
                 <Minimize2 className="h-4 w-4" />
               )}
             </Button>
-            {/* Settings popover */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <Settings className="h-4 w-4" />
-                </Button>
-              </PopoverTrigger>
+            {/* Settings popover - Only show for authenticated users */}
+            {isAuthenticated && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <Settings className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
               <PopoverContent 
                 className={cn(
                   "w-[calc(100vw-2rem)] max-w-80",
@@ -275,13 +295,16 @@ export function UnifiedAssistantPopup({
                         MCP Tools
                       </Label>
                       <p className="text-xs text-muted-foreground">
-                        Enable tool calling
+                        {isAuthenticated 
+                          ? "Enable tool calling" 
+                          : "Requires authentication"}
                       </p>
                     </div>
                     <Switch
                       id="mcp-toggle"
                       checked={mcpEnabled}
                       onCheckedChange={setMcpEnabled}
+                      disabled={!isAuthenticated}
                     />
                   </div>
                   <div className="flex items-center justify-between">
@@ -302,17 +325,24 @@ export function UnifiedAssistantPopup({
                 </div>
               </PopoverContent>
             </Popover>
+            )}
           </div>
         </div>
         {/* Status badges */}
         <div className="flex items-center gap-2 mt-2">
-          <Badge variant="outline" className="text-xs">
-            {currentAgent === "general" ? "General" : currentAgent.replace("-", " ")}
+          <Badge 
+            variant="outline" 
+            className="text-xs bg-background text-foreground border-border"
+          >
+            Assistant
           </Badge>
-          {mcpEnabled && (
-            <Badge variant="outline" className="text-xs">
+          {isAuthenticated && mcpEnabled && (
+            <Badge 
+              variant="outline" 
+              className="text-xs bg-primary/10 text-primary border-primary/20 dark:bg-primary/20 dark:text-primary dark:border-primary/30"
+            >
               <Zap className="h-3 w-3 mr-1" />
-              MCP Enabled
+              League Mode
             </Badge>
           )}
           {uploadedFiles.length > 0 && (
@@ -325,131 +355,129 @@ export function UnifiedAssistantPopup({
         </div>
       )}
 
-      {/* Chat Interface */}
-      {!isMinimized && (
-        <div className="flex-1 overflow-hidden">
-          {/* CRITICAL FIX: Use key prop to force remount when apiEndpoint changes */}
-          {/* This fixes the @ai-sdk/react v3.0.41 bug where useChat ignores api prop changes */}
-          <BaseChatInterface
-            key={agentContext.apiEndpoint || "/api/ai/assistant"}
-            apiEndpoint={agentContext.apiEndpoint || "/api/ai/assistant"}
-            title=""
-            description=""
-            characterPalette={agentContext.characterPalette}
-            showCharacter={false}
-            body={{
-              ...agentContext.context,
-              model: selectedModel,
-              mcpEnabled,
-              files: uploadedFiles.map((f) => ({
-                name: f.name,
-                type: f.type,
-                size: f.size,
-              })),
-            }}
-            emptyStateTitle={`Welcome to ${agentContext.title}`}
-            emptyStateDescription={agentContext.description}
-            className="h-full"
-            quickActions={quickActions.map((action) => ({
-              label: action.label,
-              prompt: action.prompt,
-            }))}
-            onSendMessageReady={(fn) => {
-              // Use ref callback to avoid setState during render
-              sendMessageFnRef.current = fn
-            }}
-          />
-        </div>
-      )}
-
-      {/* Input Area with Controls */}
-      {!isMinimized && (
-        <div className="border-t p-3 space-y-2">
-          {/* File uploads display */}
-          {uploadedFiles.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-2">
-              {uploadedFiles.map((file, index) => (
-                <Badge key={index} variant="secondary" className="text-xs">
-                  {file.type.startsWith("image/") ? (
-                    <ImageIcon className="h-3 w-3 mr-1" />
-                  ) : (
-                    <FileText className="h-3 w-3 mr-1" />
+      {/* Chat Interface - Always visible */}
+      <div className="flex-1 overflow-hidden min-h-0 flex flex-col">
+        {/* CRITICAL FIX: Use key prop to force remount when apiEndpoint changes */}
+        {/* This fixes the @ai-sdk/react v3.0.41 bug where useChat ignores api prop changes */}
+        <BaseChatInterface
+          key={agentContext.apiEndpoint || "/api/ai/assistant"}
+          apiEndpoint={agentContext.apiEndpoint || "/api/ai/assistant"}
+          title=""
+          description=""
+          characterPalette={agentContext.characterPalette}
+          showCharacter={false}
+          body={{
+            ...agentContext.context,
+            model: selectedModel,
+            mcpEnabled,
+            files: uploadedFiles.map((f) => ({
+              name: f.name,
+              type: f.type,
+              size: f.size,
+            })),
+          }}
+          emptyStateTitle="Welcome to POKE MNKY"
+          emptyStateDescription={
+            isAuthenticated 
+              ? agentContext.description
+              : `${agentContext.description} Sign in to access advanced features like draft assistance and team management.`
+          }
+          className="h-full"
+          quickActions={quickActions.map((action) => ({
+            label: action.label,
+            prompt: action.prompt,
+          }))}
+          onSendMessageReady={(fn) => {
+            // Use ref callback to avoid setState during render
+            sendMessageFnRef.current = fn
+          }}
+          uploadedFilesDisplay={
+            uploadedFiles.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {uploadedFiles.map((file, index) => (
+                  <Badge key={index} variant="secondary" className="text-xs">
+                    {file.type.startsWith("image/") ? (
+                      <ImageIcon className="h-3 w-3 mr-1" />
+                    ) : (
+                      <FileText className="h-3 w-3 mr-1" />
+                    )}
+                    {file.name}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-4 w-4 ml-1 -mr-1"
+                      onClick={() =>
+                        setUploadedFiles((prev) => prev.filter((_, i) => i !== index))
+                      }
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </Badge>
+                ))}
+              </div>
+            ) : undefined
+          }
+          footerActions={
+            <>
+              <input
+                type="file"
+                id="file-upload"
+                className="hidden"
+                multiple
+                onChange={handleFileUpload}
+                accept="image/*,application/pdf,.txt,.doc,.docx"
+              />
+              <label htmlFor="file-upload" className="touch-manipulation">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className={cn(
+                    "h-10 w-10 min-h-[44px] min-w-[44px]",
+                    "touch-manipulation active:scale-95"
                   )}
-                  {file.name}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-4 w-4 ml-1 -mr-1"
-                    onClick={() =>
-                      setUploadedFiles((prev) => prev.filter((_, i) => i !== index))
-                    }
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                </Badge>
-              ))}
-            </div>
-          )}
-          {/* Control buttons */}
-          <div className="flex items-center gap-2">
-            <input
-              type="file"
-              id="file-upload"
-              className="hidden"
-              multiple
-              onChange={handleFileUpload}
-              accept="image/*,application/pdf,.txt,.doc,.docx"
-            />
-            <label htmlFor="file-upload" className="touch-manipulation">
-              <Button 
-                variant="ghost" 
-                size="icon" 
+                  aria-label="Upload file"
+                >
+                  <Upload className="h-5 w-5" />
+                </Button>
+              </label>
+              <Button
+                variant="ghost"
+                size="icon"
                 className={cn(
                   "h-10 w-10 min-h-[44px] min-w-[44px]",
-                  "touch-manipulation active:scale-95"
+                  "touch-manipulation active:scale-95",
+                  isRecording && "text-destructive"
                 )}
-                aria-label="Upload file"
+                onClick={isRecording ? handleStopRecording : handleStartRecording}
+                aria-label={isRecording ? "Stop recording" : "Start voice input"}
               >
-                <Upload className="h-5 w-5" />
+                {isRecording ? (
+                  <MicOff className="h-5 w-5" />
+                ) : (
+                  <Mic className="h-5 w-5" />
+                )}
               </Button>
-            </label>
-            <Button
-              variant="ghost"
-              size="icon"
-              className={cn(
-                "h-10 w-10 min-h-[44px] min-w-[44px]",
-                "touch-manipulation active:scale-95",
-                isRecording && "text-destructive"
-              )}
-              onClick={isRecording ? handleStopRecording : handleStartRecording}
-              aria-label={isRecording ? "Stop recording" : "Start voice input"}
-            >
-              {isRecording ? (
-                <MicOff className="h-5 w-5" />
-              ) : (
-                <Mic className="h-5 w-5" />
-              )}
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className={cn(
-                "h-10 w-10 min-h-[44px] min-w-[44px]",
-                "touch-manipulation active:scale-95",
-                ttsEnabled && "text-primary"
-              )}
-              onClick={() => setTtsEnabled(!ttsEnabled)}
-              aria-label={ttsEnabled ? "Disable text-to-speech" : "Enable text-to-speech"}
-            >
-              {ttsEnabled ? (
-                <Volume2 className="h-5 w-5" />
-              ) : (
-                <VolumeX className="h-5 w-5" />
-              )}
-            </Button>
-          </div>
-        </div>
-      )}
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  "h-10 w-10 min-h-[44px] min-w-[44px]",
+                  "touch-manipulation active:scale-95",
+                  ttsEnabled && "text-primary"
+                )}
+                onClick={() => setTtsEnabled(!ttsEnabled)}
+                aria-label={ttsEnabled ? "Disable text-to-speech" : "Enable text-to-speech"}
+              >
+                {ttsEnabled ? (
+                  <Volume2 className="h-5 w-5" />
+                ) : (
+                  <VolumeX className="h-5 w-5" />
+                )}
+              </Button>
+            </>
+          }
+        />
+      </div>
     </div>
   )
 
@@ -469,10 +497,10 @@ export function UnifiedAssistantPopup({
           <SheetHeader className="border-b pb-3 px-4 pt-safe">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <PokeMnkyAssistant size={32} />
+                <PokeMnkyPremium size={48} />
                 <div>
                   <SheetTitle className="text-lg font-semibold">
-                    {agentContext.title}
+                    POKE MNKY
                   </SheetTitle>
                   <SheetDescription className="sr-only">
                     {agentContext.description || "AI-powered assistant for POKE MNKY"}
@@ -485,13 +513,19 @@ export function UnifiedAssistantPopup({
             </div>
             {/* Status badges */}
             <div className="flex items-center gap-2 mt-2">
-              <Badge variant="outline" className="text-xs">
-                {currentAgent === "general" ? "General" : currentAgent.replace("-", " ")}
+              <Badge 
+                variant="outline" 
+                className="text-xs bg-background text-foreground border-border"
+              >
+                Assistant
               </Badge>
-              {mcpEnabled && (
-                <Badge variant="outline" className="text-xs">
+              {isAuthenticated && mcpEnabled && (
+                <Badge 
+                  variant="outline" 
+                  className="text-xs bg-primary/10 text-primary border-primary/20 dark:bg-primary/20 dark:text-primary dark:border-primary/30"
+                >
                   <Zap className="h-3 w-3 mr-1" />
-                  MCP Enabled
+                  League Mode
                 </Badge>
               )}
             </div>
@@ -506,15 +540,18 @@ export function UnifiedAssistantPopup({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
         className={cn(
-          "max-w-4xl h-[85vh] p-0 flex flex-col",
-          // Desktop optimization
-          "max-h-[calc(100vh-4rem)]",
+          "p-0 flex flex-col",
+          // Toggle between normal and fullscreen sizes
+          // isMinimized = false means normal size, true means fullscreen
+          !isMinimized 
+            ? "max-w-4xl h-[85vh] max-h-[calc(100vh-4rem)]" 
+            : "!w-[calc(100vw-1.5rem)] !h-[calc(100vh-1.5rem)] !max-w-[calc(100vw-1.5rem)] !max-h-[calc(100vh-1.5rem)] sm:!max-w-[calc(100vw-1.5rem)] md:!max-w-[calc(100vw-1.5rem)] lg:!max-w-[calc(100vw-1.5rem)]",
           // PWA safe area
           "pb-safe"
         )}
       >
             <DialogTitle className="sr-only">
-              {agentContext.title || "AI Assistant"}
+              POKE MNKY
             </DialogTitle>
             <DialogDescription className="sr-only">
               {agentContext.description || "AI-powered assistant for POKE MNKY"}

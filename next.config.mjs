@@ -12,11 +12,20 @@ const nextConfig = {
   // Source map warnings are harmless but clutter the console
   // Production builds still generate source maps for debugging
   productionBrowserSourceMaps: false,
-  // Turbopack config
-  turbopack: {
-    // Disable source maps in development to avoid Windows path parsing issues
-    // This eliminates "Invalid source map" warnings without affecting functionality
+  // Disable source maps in development (Webpack compatibility)
+  // This fixes "Invalid source map" errors on Windows when using Webpack
+  // Note: This only applies when using Webpack (--webpack flag or dev:webpack script)
+  // Turbopack source maps are handled differently and may show harmless warnings
+  webpack: (config, { dev }) => {
+    if (dev) {
+      config.devtool = false
+    }
+    return config
   },
+  // Turbopack configuration
+  // Empty config silences the warning about webpack config when using Turbopack
+  // Turbopack is the default bundler in Next.js 16
+  turbopack: {},
 }
 
 export default nextConfig

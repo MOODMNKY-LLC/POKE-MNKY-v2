@@ -1,5 +1,6 @@
 // General Assistant API Route - Unified assistant endpoint
 // Updated to use Vercel AI SDK with toUIMessageStreamResponse pattern (from mnky-command analysis)
+// Now supports Responses API with public tools (web_search, file_search) for all users
 import {
   streamText,
   convertToModelMessages,
@@ -9,18 +10,43 @@ import {
 import { openai } from '@ai-sdk/openai'
 import { createServerClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { 
+  getOpenAI, 
+  convertUIMessagesToResponsesAPIFormat, 
+  convertResponsesAPIToUIMessage 
+} from '@/lib/openai-client'
 
 export async function POST(request: Request) {
   try {
     const supabase = await createServerClient()
     const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    
+    // Authentication is optional - unauthenticated users get basic assistant
+    const isAuthenticated = !!user
 
     const body = await request.json()
-    const { messages: rawMessages, model = 'gpt-4o', mcpEnabled = true, files } = body
+    const { 
+      messages: rawMessages, 
+      model = 'gpt-4o', 
+      mcpEnabled = true, 
+      files,
+      useResponsesAPI = false, // New: Enable Responses API (default: false for backward compatibility)
+    } = body
+    
+    // Disable MCP tools for unauthenticated users
+    const effectiveMcpEnabled = isAuthenticated && mcpEnabled
+    
+    // Check if Responses API should be used
+    // Enable Responses API if:
+    // 1. Explicitly requested via useResponsesAPI parameter
+    // 2. ENABLE_RESPONSES_API env var is set (all users)
+    // 3. ENABLE_RESPONSES_API_PUBLIC env var is set (public users only)
+    // 4. Vector store is configured (file_search needs Responses API)
+    const vectorStoreId = process.env.OPENAI_VECTOR_STORE_ID
+    const shouldUseResponsesAPI = useResponsesAPI || 
+      process.env.ENABLE_RESPONSES_API === 'true' ||
+      (!isAuthenticated && process.env.ENABLE_RESPONSES_API_PUBLIC === 'true') ||
+      !!vectorStoreId // Enable Responses API if vector store is configured (needed for file_search)
 
     // Validate messages array exists
     if (!rawMessages || !Array.isArray(rawMessages)) {
@@ -47,7 +73,9 @@ export async function POST(request: Request) {
       })),
     })
 
-    const systemMessage = `You are POKE MNKY, an expert AI assistant for the Average at Best Battle League, a competitive Pokémon draft league platform.
+    // System message varies based on authentication status
+    const systemMessage = isAuthenticated
+      ? `You are POKE MNKY, an expert AI assistant for the Average at Best Battle League, a competitive Pokémon draft league platform.
 
 You help coaches with:
 - Draft strategy and pick recommendations
@@ -55,10 +83,29 @@ You help coaches with:
 - Free agency and trade evaluations
 - Pokémon information and competitive insights
 - General league questions and guidance
+- Technical documentation and configuration (use file_search for documentation questions)
 
 CRITICAL: You have access to MCP tools via the 'poke-mnky-draft-pool' server that provide real-time draft pool data. 
 
-When users ask about:
+AVAILABLE TOOLS:
+- file_search: Search documentation and files in vector store (use for MCP server questions, configuration, setup)
+- web_search: Search the web for current information
+- MCP tools: Access to draft pool data (when authenticated)
+
+WHEN TO USE FILE_SEARCH:
+- Questions about MCP server URL, endpoints, configuration, setup → ALWAYS use file_search FIRST
+- Questions about tools, authentication, API details → Use file_search
+- Questions about technical documentation → Use file_search
+- Never provide generic responses if file_search is available - USE IT
+
+IMPORTANT: MCP Server URL Verification
+- The correct MCP server URL is: https://mcp-draft-pool.moodmnky.com/mcp
+- If file_search returns a different URL, verify against the correct URL above
+- Always use the correct URL: https://mcp-draft-pool.moodmnky.com/mcp
+- Do NOT use incorrect URLs like https://mcp.averageatbestbattleleague.com
+- When providing MCP server URL, always verify it matches: https://mcp-draft-pool.moodmnky.com/mcp
+
+WHEN TO USE MCP TOOLS:
 - Available Pokémon or point values → ALWAYS use mcp.get_available_pokemon tool first
 - Draft status or whose turn → Use mcp.get_draft_status tool
 - Team budgets or remaining points → Use mcp.get_team_budget tool (requires team_id)
@@ -70,14 +117,208 @@ When users ask about:
 
 IMPORTANT RULES:
 1. ALWAYS use tools to get current, accurate data - never guess or make up information
-2. When listing Pokémon, use mcp.get_available_pokemon to get the actual draft pool data
-3. Include point values when discussing Pokémon availability
-4. If a tool requires team_id and user hasn't provided it, ask for clarification
-5. Present tool results clearly and format lists nicely for readability
+2. For documentation questions (MCP server, configuration, setup) → Use file_search FIRST
+3. When listing Pokémon, use mcp.get_available_pokemon to get the actual draft pool data
+4. Include point values when discussing Pokémon availability
+5. If a tool requires team_id and user hasn't provided it, ask for clarification
+6. Present tool results clearly and format lists nicely for readability
+7. Never say "I can't provide" or "check the website" if file_search tool is available - USE IT
 
 Be friendly, helpful, and knowledgeable. Always cite your sources when using tool data.`
+      : `You are POKE MNKY, a friendly AI assistant for the Average at Best Battle League, a competitive Pokémon draft league platform.
 
-    // Get MCP server URL and API key from environment
+You help visitors with:
+- General Pokémon information and competitive insights
+- League rules and format explanations
+- Basic strategy tips and guidance
+- Answering questions about the platform
+- Web search for current information (use web_search tool when needed)
+- File search for documentation (use file_search tool for documentation questions)
+
+AVAILABLE TOOLS:
+- web_search: Search the web for current information, recent events, or up-to-date data
+- file_search: Search through documentation and files in the vector store
+
+CRITICAL INSTRUCTIONS FOR FILE_SEARCH:
+- When users ask about MCP server, configuration, setup, tools, endpoints, or any technical documentation → ALWAYS use file_search tool FIRST
+- When users ask "What is the MCP server URL?" → Use file_search to find the answer
+- When users ask about tools, endpoints, authentication, or configuration → Use file_search to find the answer
+- The file_search tool searches a vector store containing MCP server documentation and other technical docs
+- ALWAYS use file_search before providing generic responses about technical topics
+- If file_search returns results, use that information to answer the question accurately
+- Never say "I can't provide" or "check the website" if file_search tool is available - USE IT
+
+IMPORTANT: MCP Server URL Verification
+- The correct MCP server URL is: https://mcp-draft-pool.moodmnky.com/mcp
+- If file_search returns a different URL, verify against the correct URL above
+- Always use the correct URL: https://mcp-draft-pool.moodmnky.com/mcp
+- Do NOT use incorrect URLs like https://mcp.averageatbestbattleleague.com
+
+EXAMPLES OF WHEN TO USE FILE_SEARCH:
+- "What is the MCP server URL?" → Use file_search
+- "What tools are available?" → Use file_search
+- "How do I configure X?" → Use file_search
+- "What are the endpoints?" → Use file_search
+- "How do I authenticate?" → Use file_search
+- Any question about MCP server, configuration, or technical setup → Use file_search
+
+Note: Some advanced features like draft pool data, team-specific information, and real-time draft status require authentication. You can still provide general information and answer questions about Pokémon, competitive play, and the league format.
+
+Be friendly, helpful, and knowledgeable. Always use available tools (file_search, web_search) to provide accurate, specific information rather than generic responses.`
+
+    // Try Responses API first if enabled
+    if (shouldUseResponsesAPI) {
+      try {
+        const openaiClient = getOpenAI()
+        
+        // Convert messages to Responses API format
+        const responsesInput = convertUIMessagesToResponsesAPIFormat(
+          rawMessages,
+          systemMessage
+        )
+
+        // Build tools array for Responses API
+        const tools: Array<{
+          type: "mcp" | "function" | "web_search" | "file_search" | "code_interpreter"
+          server_label?: string
+          server_url?: string
+          server_description?: string
+          require_approval?: "always" | "never" | object
+          allowed_tools?: string[]
+          authorization?: string
+          [key: string]: any
+        }> = []
+
+        // Public tools (available to all users)
+        tools.push({
+          type: "web_search",
+          require_approval: "never",
+        })
+
+        // File search - use vector store if configured
+        const vectorStoreId = process.env.OPENAI_VECTOR_STORE_ID
+        if (vectorStoreId) {
+          tools.push({
+            type: "file_search",
+            require_approval: "never",
+            vector_store_ids: [vectorStoreId],
+          })
+        } else if (files && Array.isArray(files) && files.length > 0) {
+          // Fallback: use file_search without vector store if files uploaded
+          tools.push({
+            type: "file_search",
+            require_approval: "never",
+          })
+        }
+
+        // MCP tools (only for authenticated users)
+        if (effectiveMcpEnabled) {
+          const mcpServerUrl = process.env.MCP_DRAFT_POOL_SERVER_URL || 'https://mcp-draft-pool.moodmnky.com/mcp'
+          const mcpApiKey = process.env.MCP_API_KEY
+
+          tools.push({
+            type: "mcp",
+            server_label: "poke-mnky-draft-pool",
+            server_url: mcpServerUrl,
+            server_description: "Access to POKE MNKY draft pool and team data. Provides 9 tools: get_available_pokemon, get_draft_status, get_team_budget, get_team_picks, get_pokemon_types, get_smogon_meta, get_ability_mechanics, get_move_mechanics, analyze_pick_value.",
+            require_approval: "never",
+            ...(mcpApiKey && {
+              authorization: `Bearer ${mcpApiKey}`,
+            }),
+          })
+        }
+
+        console.log('[General Assistant] Using Responses API:', {
+          isAuthenticated,
+          toolCount: tools.length,
+          hasWebSearch: tools.some(t => t.type === 'web_search'),
+          hasFileSearch: tools.some(t => t.type === 'file_search'),
+          hasMCP: tools.some(t => t.type === 'mcp'),
+          vectorStoreId: process.env.OPENAI_VECTOR_STORE_ID ? 'configured' : 'not configured',
+        })
+
+        // Call Responses API
+        const response = await openaiClient.responses.create({
+          model,
+          input: responsesInput,
+          tools: tools.length > 0 ? tools : undefined,
+          stream: false, // Start with non-streaming, can enable later
+        })
+
+        // Log tool usage for debugging
+        if (response.output) {
+          const toolCalls = response.output.filter((o: any) => 
+            o.type === 'function_call' || 
+            o.type === 'tool_call' || 
+            o.type === 'file_search' ||
+            o.name === 'file_search'
+          )
+          
+          console.log('[General Assistant] Responses API output:', {
+            hasOutput: !!response.output,
+            outputLength: response.output.length,
+            toolCallsFound: toolCalls.length,
+            toolCalls: toolCalls.map((tc: any) => ({
+              type: tc.type,
+              name: tc.name,
+              function: tc.function?.name,
+              input: tc.input,
+              output: tc.output ? (typeof tc.output === 'string' ? tc.output.substring(0, 200) : 'object') : null,
+            })),
+          })
+
+          // Specifically log file_search usage
+          const fileSearchCalls = toolCalls.filter((tc: any) => 
+            tc.type === 'file_search' || 
+            tc.name === 'file_search' ||
+            tc.function?.name === 'file_search'
+          )
+          
+          if (fileSearchCalls.length > 0) {
+            console.log('[General Assistant] ✅ FILE_SEARCH TOOL WAS CALLED:', {
+              count: fileSearchCalls.length,
+              calls: fileSearchCalls.map((tc: any) => ({
+                type: tc.type,
+                name: tc.name,
+                input: tc.input,
+                outputPreview: tc.output ? (typeof tc.output === 'string' ? tc.output.substring(0, 500) : JSON.stringify(tc.output).substring(0, 500)) : null,
+              })),
+            })
+          } else {
+            console.log('[General Assistant] ⚠️ FILE_SEARCH TOOL WAS NOT CALLED - Response may be from system prompt only')
+          }
+        }
+
+        // Convert response to useChat format (includes tool calls)
+        const assistantMessage = convertResponsesAPIToUIMessage(response)
+
+        // Log final message for debugging
+        console.log('[General Assistant] Final assistant message:', {
+          hasContent: !!assistantMessage.content,
+          contentLength: assistantMessage.content?.length || 0,
+          hasParts: !!assistantMessage.parts,
+          partsCount: assistantMessage.parts?.length || 0,
+          toolCallsInParts: assistantMessage.parts?.filter((p: any) => p.type === 'tool-call').length || 0,
+          fileSearchInParts: assistantMessage.parts?.some((p: any) => p.toolName === 'file_search') || false,
+        })
+
+        // Return as JSON (useChat can handle this)
+        // Format: { messages: [{ role: "assistant", content: "...", parts: [...] }] }
+        return NextResponse.json({
+          messages: [assistantMessage],
+          output_text: assistantMessage.content,
+        })
+      } catch (responsesError: any) {
+        console.error('[General Assistant] Responses API error:', {
+          error: responsesError.message,
+          stack: responsesError.stack,
+        })
+        // Fall through to Chat Completions API
+        console.log('[General Assistant] Falling back to Chat Completions API')
+      }
+    }
+
+    // Fallback to Chat Completions API (current implementation)
     const mcpServerUrl = process.env.MCP_DRAFT_POOL_SERVER_URL || 'https://mcp-draft-pool.moodmnky.com/mcp'
     const mcpApiKey = process.env.MCP_API_KEY
 
@@ -99,14 +340,18 @@ Be friendly, helpful, and knowledgeable. Always cite your sources when using too
       }
     }
 
-    const tools = mcpEnabled
+    // Only enable MCP tools for authenticated users
+    const tools = effectiveMcpEnabled
       ? {
           mcp: openai.tools.mcp(mcpConfig),
         }
       : undefined
 
     // Log MCP configuration for debugging
-    console.log('[General Assistant] MCP configuration:', {
+    console.log('[General Assistant] Request details:', {
+      isAuthenticated,
+      mcpEnabled,
+      effectiveMcpEnabled,
       serverUrl: mcpServerUrl,
       hasApiKey: !!mcpApiKey,
       apiKeyPrefix: mcpApiKey ? mcpApiKey.substring(0, 10) + '...' : 'none',
@@ -188,6 +433,7 @@ Be friendly, helpful, and knowledgeable. Always cite your sources when using too
       tools,
       toolChoice: tools ? 'auto' : undefined, // Explicitly enable tool usage when tools are available
       maxSteps: tools ? 5 : 1, // Allow multi-step tool calls when MCP enabled (matches other routes)
+      // Note: Unauthenticated users get maxSteps: 1 (no tool calls)
       onStepFinish: (step) => {
         // Log step information for debugging
         console.log('[General Assistant] Step finished:', {
