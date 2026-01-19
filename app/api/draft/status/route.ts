@@ -6,8 +6,9 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const seasonId = searchParams.get("season_id")
+    let resolvedSeasonId = seasonId
 
-    if (!seasonId) {
+    if (!resolvedSeasonId) {
       // Get current season
       const supabase = createServiceRoleClient()
       const { data: season } = await supabase
@@ -20,14 +21,17 @@ export async function GET(request: Request) {
         return NextResponse.json({ success: false, error: "No active season found" }, { status: 404 })
       }
 
-      return NextResponse.redirect(new URL(`/api/draft/status?season_id=${season.id}`, request.url))
+      resolvedSeasonId = season.id
     }
 
     const draftSystem = new DraftSystem()
-    const session = await draftSystem.getActiveSession(seasonId)
+    const session = await draftSystem.getActiveSession(resolvedSeasonId)
 
     if (!session) {
-      return NextResponse.json({ success: false, error: "No active draft session" }, { status: 404 })
+      return NextResponse.json({ 
+        success: false, 
+        error: "No active draft session found. Use POST /api/draft/create-session to create one." 
+      }, { status: 404 })
     }
 
     // Get current turn info

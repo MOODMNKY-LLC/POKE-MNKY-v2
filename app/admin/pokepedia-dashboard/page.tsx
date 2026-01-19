@@ -15,7 +15,7 @@ import { StorageTab } from "@/components/platform/storage-tab"
 import { SecretsTab } from "@/components/platform/secrets-tab"
 import { LogsTab } from "@/components/platform/logs-tab"
 import { UsersTab } from "@/components/platform/users-tab"
-import { PokepediaSyncStatus } from "@/components/admin/pokepedia-sync-status"
+// PokepediaSyncStatus removed - sync system deleted
 import { AdminLayout } from "@/components/admin/admin-layout"
 import { useRouter } from "next/navigation"
 
@@ -208,7 +208,9 @@ export default function PokepediaDashboardPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <PokepediaSyncStatus />
+                  <div className="text-sm text-muted-foreground">
+                    Pokepedia sync system has been removed. New implementation pending.
+                  </div>
                 </CardContent>
               </Card>
 

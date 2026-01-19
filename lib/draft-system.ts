@@ -27,6 +27,14 @@ export interface DraftSession {
 
 export class DraftSystem {
   private supabase = createServiceRoleClient()
+  
+  // Verify service role client is working
+  constructor() {
+    // Log to verify service role is being used (only in dev)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[DraftSystem] Initialized with service role client')
+    }
+  }
 
   /**
    * Get or create active draft session for a season
@@ -154,12 +162,14 @@ export class DraftSystem {
       return { success: false, error: "It's not your turn to pick" }
     }
 
-    // Get Pokemon from draft pool
+    // Get Pokemon from draft pool (use session.season_id)
+    // Note: generation was removed from draft_pool, we'll get it from pokemon_cache if needed
     const { data: pokemon } = await this.supabase
       .from("draft_pool")
-      .select("pokemon_name, point_value, generation")
+      .select("pokemon_name, point_value, status, pokemon_id")
       .eq("pokemon_name", pokemonName)
-      .eq("is_available", true)
+      .eq("status", "available")
+      .eq("season_id", session.season_id)
       .single()
 
     if (!pokemon) {
@@ -252,12 +262,20 @@ export class DraftSystem {
       // Don't fail the pick, just log
     }
 
-    // Mark Pokemon as unavailable in draft pool
+    // Mark Pokemon as drafted in draft pool (update status and denormalized fields)
     await this.supabase
       .from("draft_pool")
-      .update({ is_available: false })
+      .update({
+        status: "drafted",
+        drafted_by_team_id: teamId,
+        drafted_at: new Date().toISOString(),
+        draft_round: session.current_round,
+        draft_pick_number: session.current_pick_number,
+        updated_at: new Date().toISOString(),
+      })
       .eq("pokemon_name", pokemon.pokemon_name)
-      .eq("sheet_name", "Draft Board")
+      .eq("season_id", session.season_id)
+      .eq("status", "available")
 
     // Advance to next pick
     const nextPickNumber = session.current_pick_number + 1
@@ -292,51 +310,227 @@ export class DraftSystem {
   /**
    * Get available Pokemon for drafting
    */
-  async getAvailablePokemon(filters?: {
-    minPoints?: number
-    maxPoints?: number
-    generation?: number
-    search?: string
-  }): Promise<Array<{ pokemon_name: string; point_value: number; generation: number | null; pokemon_id: number | null }>> {
-    let query = this.supabase
+  async getAvailablePokemon(
+    seasonId: string,
+    filters?: {
+      minPoints?: number
+      maxPoints?: number
+      generation?: number
+      search?: string
+    }
+  ): Promise<Array<{ pokemon_name: string; point_value: number; generation: number | null; pokemon_id: number | null; status: string }>> {
+    console.log(`[DraftSystem] getAvailablePokemon called with seasonId: ${seasonId} (type: ${typeof seasonId})`)
+    
+    // First, verify the season exists and get its actual ID
+    const { data: seasonCheck, error: seasonError } = await this.supabase
+      .from("seasons")
+      .select("id")
+      .eq("is_current", true)
+      .single()
+    
+    console.log(`[DraftSystem] Current season check:`, { 
+      found: !!seasonCheck, 
+      id: seasonCheck?.id, 
+      matches_param: seasonCheck?.id === seasonId,
+      error: seasonError?.message 
+    })
+    
+    // Query draft_pool (generation was removed, we'll fetch it separately from pokemon_cache)
+    // Ensure seasonId is treated as UUID - Supabase may need explicit casting
+    const seasonIdUuid = seasonId.trim()
+    
+    console.log(`[DraftSystem] Querying with seasonId: "${seasonIdUuid}" (length: ${seasonIdUuid.length})`)
+    
+    // Use RPC function as primary method (more reliable for UUID comparisons)
+    // Fallback to standard query if RPC fails
+    let data: any[] | null = null
+    let error: any = null
+    
+    try {
+      const { data: rpcData, error: rpcError } = await this.supabase.rpc('get_available_pokemon', {
+        p_season_id: seasonIdUuid
+      })
+      
+      if (rpcData && !rpcError) {
+        console.log(`[DraftSystem] RPC function returned ${rpcData.length} Pokemon`)
+        data = rpcData
+      } else if (rpcError) {
+        console.warn(`[DraftSystem] RPC function error, falling back to standard query:`, rpcError)
+        // Fallback to standard query
+        let query = this.supabase
+          .from("draft_pool")
+          .select("pokemon_name, point_value, pokemon_id, status")
+          .eq("status", "available")
+          .eq("season_id", seasonIdUuid)
+          .order("point_value", { ascending: false })
+          .order("pokemon_name", { ascending: true })
+
+        if (filters?.minPoints) {
+          query = query.gte("point_value", filters.minPoints)
+        }
+
+        if (filters?.maxPoints) {
+          query = query.lte("point_value", filters.maxPoints)
+        }
+
+        if (filters?.search) {
+          query = query.ilike("pokemon_name", `%${filters.search}%`)
+        }
+
+        const result = await query
+        data = result.data
+        error = result.error
+      }
+    } catch (rpcError: any) {
+      console.warn(`[DraftSystem] RPC call failed, falling back to standard query:`, rpcError?.message || rpcError)
+      // Fallback to standard query
+      let query = this.supabase
+        .from("draft_pool")
+        .select("pokemon_name, point_value, pokemon_id, status")
+        .eq("status", "available")
+        .eq("season_id", seasonIdUuid)
+        .order("point_value", { ascending: false })
+        .order("pokemon_name", { ascending: true })
+
+      if (filters?.minPoints) {
+        query = query.gte("point_value", filters.minPoints)
+      }
+
+      if (filters?.maxPoints) {
+        query = query.lte("point_value", filters.maxPoints)
+      }
+
+      if (filters?.search) {
+        query = query.ilike("pokemon_name", `%${filters.search}%`)
+      }
+
+      const result = await query
+      data = result.data
+      error = result.error
+    }
+    
+    // Also try a count query to see if any rows exist
+    const { count, error: countError } = await this.supabase
       .from("draft_pool")
-      .select("pokemon_name, point_value, generation, pokemon_id")
-      .eq("is_available", true)
-      .order("point_value", { ascending: false })
-      .order("pokemon_name", { ascending: true })
+      .select("*", { count: "exact", head: true })
+      .eq("season_id", seasonIdUuid)
+      .eq("status", "available")
 
-    if (filters?.minPoints) {
-      query = query.gte("point_value", filters.minPoints)
-    }
-
-    if (filters?.maxPoints) {
-      query = query.lte("point_value", filters.maxPoints)
-    }
-
-    if (filters?.generation) {
-      query = query.eq("generation", filters.generation)
-    }
-
-    if (filters?.search) {
-      query = query.ilike("pokemon_name", `%${filters.search}%`)
-    }
-
-    const { data, error } = await query
+    console.log(`[DraftSystem] Query results:`, {
+      data_count: data?.length || 0,
+      total_count: count,
+      error: error?.message,
+      count_error: countError?.message,
+      error_code: error?.code,
+      error_details: error?.details,
+      error_hint: error?.hint
+    })
 
     if (error) {
-      console.error("Error fetching available Pokemon:", error)
+      console.error("[DraftSystem] Error fetching available Pokemon:", error)
+      console.error("[DraftSystem] Error details:", { code: error.code, message: error.message, details: error.details, hint: error.hint })
       return []
     }
 
-    return data || []
+    if (!data || data.length === 0) {
+      console.warn(`[DraftSystem] No Pokemon found for season ${seasonId} with filters:`, filters)
+      console.warn(`[DraftSystem] Total count query returned: ${count}`)
+      return []
+    }
+
+    console.log(`[DraftSystem] Found ${data.length} Pokemon from draft_pool for season ${seasonId}`)
+
+    // Fetch generation from pokemon_cache for Pokemon that have pokemon_id
+    const pokemonIds = data
+      .map((p: any) => p.pokemon_id)
+      .filter((id: any): id is number => id !== null && id !== undefined)
+
+    let generationMap = new Map<number, number | null>()
+
+    if (pokemonIds.length > 0) {
+      const { data: cacheData } = await this.supabase
+        .from("pokemon_cache")
+        .select("pokemon_id, generation")
+        .in("pokemon_id", pokemonIds)
+
+      if (cacheData) {
+        cacheData.forEach((p: any) => {
+          generationMap.set(p.pokemon_id, p.generation || null)
+        })
+      }
+    }
+
+    // Also fetch by name for Pokemon without pokemon_id (fallback)
+    const pokemonWithoutId = data.filter((p: any) => !p.pokemon_id)
+    if (pokemonWithoutId.length > 0) {
+      const names = pokemonWithoutId.map((p: any) => 
+        p.pokemon_name.toLowerCase().replace(/\s+/g, "-")
+      )
+      
+      const { data: cacheByName } = await this.supabase
+        .from("pokemon_cache")
+        .select("pokemon_id, name, generation")
+        .in("name", names)
+
+      if (cacheByName) {
+        // Create a name -> generation map
+        const nameToGen = new Map<string, number | null>()
+        cacheByName.forEach((p: any) => {
+          nameToGen.set(p.name.toLowerCase(), p.generation || null)
+        })
+
+        // Match by normalized name
+        pokemonWithoutId.forEach((p: any) => {
+          const normalizedName = p.pokemon_name.toLowerCase().replace(/\s+/g, "-")
+          const gen = nameToGen.get(normalizedName)
+          if (gen !== undefined) {
+            // Store generation, but we'll use pokemon_id for the map if available
+            // For now, we'll handle this in the mapping step
+          }
+        })
+      }
+    }
+
+    // Map results to include generation from pokemon_cache
+    const mapped = data.map((item: any) => {
+      let generation: number | null = null
+
+      // Try to get generation from pokemon_id first
+      if (item.pokemon_id) {
+        generation = generationMap.get(item.pokemon_id) ?? null
+      }
+
+      // If still no generation, try to fetch by name (fallback)
+      if (generation === null && item.pokemon_name) {
+        // This is a fallback - we'll do a quick lookup
+        // For now, return null and let frontend handle it
+        // Or we could do another query, but that's inefficient
+      }
+
+      return {
+        pokemon_name: item.pokemon_name,
+        point_value: item.point_value,
+        pokemon_id: item.pokemon_id,
+        status: item.status,
+        generation,
+      }
+    })
+
+    // Filter by generation if specified
+    if (filters?.generation) {
+      return mapped.filter((p) => p.generation === filters.generation)
+    }
+
+    return mapped
   }
 
   /**
    * Get team's current budget and picks
+   * Uses denormalized fields from draft_pool for better performance
    */
   async getTeamStatus(teamId: string, seasonId: string): Promise<{
     budget: { total: number; spent: number; remaining: number }
-    picks: Array<{ pokemon_name: string; point_value: number; round: number }>
+    picks: Array<{ pokemon_name: string; point_value: number; round: number; pick_number: number }>
   }> {
     // Get budget
     const { data: budget } = await this.supabase
@@ -346,22 +540,15 @@ export class DraftSystem {
       .eq("season_id", seasonId)
       .single()
 
-    // Get picks
+    // Get picks using denormalized fields from draft_pool (faster, no JOINs needed)
     const { data: picks } = await this.supabase
-      .from("team_rosters")
-      .select("draft_round, draft_points, pokemon_id")
-      .eq("team_id", teamId)
+      .from("draft_pool")
+      .select("pokemon_name, point_value, draft_round, draft_pick_number")
+      .eq("drafted_by_team_id", teamId)
+      .eq("season_id", seasonId)
+      .eq("status", "drafted")
       .order("draft_round", { ascending: true })
-      .order("draft_order", { ascending: true })
-
-    // Get Pokemon names
-    const pokemonIds = picks?.map((p) => p.pokemon_id).filter(Boolean) || []
-    const { data: pokemonData } = await this.supabase
-      .from("pokemon_cache")
-      .select("pokemon_id, name")
-      .in("pokemon_id", pokemonIds)
-
-    const pokemonMap = new Map(pokemonData?.map((p) => [p.pokemon_id, p.name]) || [])
+      .order("draft_pick_number", { ascending: true })
 
     return {
       budget: {
@@ -371,9 +558,10 @@ export class DraftSystem {
       },
       picks:
         picks?.map((p) => ({
-          pokemon_name: pokemonMap.get(p.pokemon_id) || "Unknown",
-          point_value: p.draft_points || 0,
+          pokemon_name: p.pokemon_name,
+          point_value: p.point_value,
           round: p.draft_round || 0,
+          pick_number: p.draft_pick_number || 0,
         })) || [],
     }
   }

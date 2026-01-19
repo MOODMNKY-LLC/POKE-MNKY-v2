@@ -8,7 +8,8 @@ interface Pokemon {
   name: string
   point_value: number
   generation: number
-  pokemon_id?: string
+  pokemon_id?: string | number | null
+  status?: "available" | "drafted" | "banned" | "unavailable"
 }
 
 interface PointTierSectionProps {
@@ -46,8 +47,9 @@ export function PointTierSection({
                 point_value: p.point_value,
                 generation: p.generation || 1,
                 pokemon_id: p.pokemon_id ?? null,
+                status: p.status || "available",
               }}
-              isDrafted={draftedPokemon.includes(p.name.toLowerCase())}
+              isDrafted={p.status === "drafted" || draftedPokemon.includes(p.name.toLowerCase())}
               isYourTurn={isYourTurn}
               onPick={() => onPick(p.name)}
             />

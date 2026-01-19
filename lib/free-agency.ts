@@ -66,20 +66,19 @@ export class FreeAgencySystem {
     point_value: number
     generation: number | null
   }>> {
-    // Get all Pokemon from draft pool
+    // Get all Pokemon from draft pool (available or drafted but not on rosters)
+    // Note: generation was removed from draft_pool, fetch it separately from pokemon_cache
     let poolQuery = this.supabase
       .from("draft_pool")
-      .select("pokemon_id, pokemon_name, point_value, generation")
-      .eq("is_available", true)
+      .select("pokemon_id, pokemon_name, point_value, status")
+      .eq("season_id", seasonId)
+      .in("status", ["available", "drafted"]) // Include both available and drafted (drafted ones might be free agency eligible)
 
     if (filters?.minPoints) {
       poolQuery = poolQuery.gte("point_value", filters.minPoints)
     }
     if (filters?.maxPoints) {
       poolQuery = poolQuery.lte("point_value", filters.maxPoints)
-    }
-    if (filters?.generation) {
-      poolQuery = poolQuery.eq("generation", filters.generation)
     }
     if (filters?.search) {
       poolQuery = poolQuery.ilike("pokemon_name", `%${filters.search}%`)
@@ -90,6 +89,47 @@ export class FreeAgencySystem {
     if (poolError || !poolData) {
       console.error("Error fetching draft pool:", poolError)
       return []
+    }
+
+    // Fetch generation from pokemon_cache
+    const pokemonIds = poolData
+      .map((p: any) => p.pokemon_id)
+      .filter((id: any): id is number => id !== null && id !== undefined)
+
+    let generationMap = new Map<number, number | null>()
+
+    if (pokemonIds.length > 0) {
+      const { data: cacheData } = await this.supabase
+        .from("pokemon_cache")
+        .select("pokemon_id, generation")
+        .in("pokemon_id", pokemonIds)
+
+      if (cacheData) {
+        cacheData.forEach((p: any) => {
+          generationMap.set(p.pokemon_id, p.generation || null)
+        })
+      }
+    }
+
+    // Also fetch by name for Pokemon without pokemon_id (fallback)
+    const pokemonWithoutId = poolData.filter((p: any) => !p.pokemon_id)
+    const nameToGenMap = new Map<string, number | null>()
+
+    if (pokemonWithoutId.length > 0) {
+      const normalizedNames = pokemonWithoutId.map((p: any) => 
+        p.pokemon_name.toLowerCase().replace(/\s+/g, "-")
+      )
+      
+      const { data: cacheByName } = await this.supabase
+        .from("pokemon_cache")
+        .select("name, generation")
+        .in("name", normalizedNames)
+
+      if (cacheByName) {
+        cacheByName.forEach((p: any) => {
+          nameToGenMap.set(p.name.toLowerCase(), p.generation || null)
+        })
+      }
     }
 
     // Get all teams for this season
@@ -117,18 +157,33 @@ export class FreeAgencySystem {
       (rosterData || []).map((r: any) => r.pokemon_id)
     )
 
-    // Filter out Pokemon that are on rosters
-    const available = poolData
+    // Filter out Pokemon that are on rosters and map generation
+    let available = poolData
       .filter((p: any) => {
         // Check if Pokemon ID exists in pokemon table and is not rostered
         return p.pokemon_id && !rosteredPokemonIds.has(p.pokemon_id)
       })
-      .map((p: any) => ({
-        pokemon_id: p.pokemon_id,
-        pokemon_name: p.pokemon_name,
-        point_value: p.point_value,
-        generation: p.generation,
-      }))
+      .map((p: any) => {
+        let generation: number | null = null
+
+        // Try to get generation from pokemon_id first
+        if (p.pokemon_id) {
+          generation = generationMap.get(p.pokemon_id) ?? null
+        }
+
+        // If still no generation, try by normalized name (fallback)
+        if (generation === null && p.pokemon_name) {
+          const normalizedName = p.pokemon_name.toLowerCase().replace(/\s+/g, "-")
+          generation = nameToGenMap.get(normalizedName) ?? null
+        }
+
+        return {
+          pokemon_id: p.pokemon_id,
+          pokemon_name: p.pokemon_name,
+          point_value: p.point_value,
+          generation,
+        }
+      })
       .sort((a, b) => {
         // Sort by point value descending, then name ascending
         if (b.point_value !== a.point_value) {
@@ -136,6 +191,11 @@ export class FreeAgencySystem {
         }
         return a.pokemon_name.localeCompare(b.pokemon_name)
       })
+
+    // Filter by generation if specified
+    if (filters?.generation) {
+      available = available.filter((p) => p.generation === filters.generation)
+    }
 
     return available
   }

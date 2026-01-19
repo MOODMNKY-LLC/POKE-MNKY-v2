@@ -63,7 +63,18 @@ alter table "public"."draft_pool" add column "status" public.draft_pool_status d
 
 alter table "public"."draft_pool" alter column "created_at" set not null;
 
-alter table "public"."draft_pool" alter column "is_available" set not null;
+-- Conditionally alter is_available column (may not exist if migrations ran in different order)
+DO $$ 
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_schema = 'public' 
+      AND table_name = 'draft_pool' 
+      AND column_name = 'is_available'
+  ) THEN
+    ALTER TABLE "public"."draft_pool" ALTER COLUMN "is_available" SET NOT NULL;
+  END IF;
+END $$;
 
 alter table "public"."draft_pool" alter column "updated_at" set not null;
 
@@ -77,7 +88,18 @@ CREATE INDEX idx_draft_pool_draft_round ON public.draft_pool USING btree (draft_
 
 CREATE INDEX idx_draft_pool_drafted_by ON public.draft_pool USING btree (drafted_by_team_id) WHERE (drafted_by_team_id IS NOT NULL);
 
-CREATE INDEX idx_draft_pool_is_available ON public.draft_pool USING btree (is_available) WHERE (is_available = true);
+-- Conditionally create index on is_available (may not exist)
+DO $$ 
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_schema = 'public' 
+      AND table_name = 'draft_pool' 
+      AND column_name = 'is_available'
+  ) THEN
+    CREATE INDEX IF NOT EXISTS idx_draft_pool_is_available ON public.draft_pool USING btree (is_available) WHERE (is_available = true);
+  END IF;
+END $$;
 
 CREATE INDEX idx_draft_pool_season ON public.draft_pool USING btree (season_id);
 

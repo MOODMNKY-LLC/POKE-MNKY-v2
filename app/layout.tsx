@@ -3,8 +3,7 @@ import type { Metadata, Viewport } from "next"
 import { Fredoka, Permanent_Marker, Geist_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { ThemeProvider } from "@/components/theme-provider"
-import { PokepediaSyncProvider } from "@/components/pokepedia-sync-provider"
-// Disable auto-start - sync should only be triggered manually by admins
+// PokepediaSyncProvider removed - sync system deleted
 import { ServiceWorkerRegistration } from "@/components/service-worker-registration"
 import { PWAInstallPrompt } from "@/components/pwa-install-prompt"
 import { ConditionalHeader } from "@/components/conditional-header"
@@ -119,12 +118,10 @@ export default function RootLayout({
         </div>
         
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <PokepediaSyncProvider autoStart={false}>
-            <div className="flex min-h-screen flex-col relative">
-              <ConditionalHeader />
-              <main className="flex-1 w-full">{children}</main>
-            </div>
-          </PokepediaSyncProvider>
+          <div className="flex min-h-screen flex-col relative">
+            <ConditionalHeader />
+            <main className="flex-1 w-full">{children}</main>
+          </div>
         </ThemeProvider>
         <Analytics />
         <ServiceWorkerRegistration />
