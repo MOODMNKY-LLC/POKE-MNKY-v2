@@ -1,0 +1,1 @@
+-- Migration synced from production (applied directly via Supabase)
