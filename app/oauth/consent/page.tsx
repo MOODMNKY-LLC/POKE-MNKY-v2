@@ -361,9 +361,24 @@ function ConsentScreenContent() {
       // The SDK method returns { data: { redirect_to: string } }
       // We must redirect the user to this URL to complete the OAuth flow
       if (data?.redirect_to && typeof window !== 'undefined') {
+        // Log the redirect URL for debugging
+        console.log("[OAuth Consent] Redirecting to:", data.redirect_to)
+        console.log("[OAuth Consent] Redirect URL breakdown:", {
+          fullUrl: data.redirect_to,
+          url: new URL(data.redirect_to).href,
+          origin: new URL(data.redirect_to).origin,
+          pathname: new URL(data.redirect_to).pathname,
+          search: new URL(data.redirect_to).search,
+          hasCode: new URL(data.redirect_to).searchParams.has('code'),
+          hasState: new URL(data.redirect_to).searchParams.has('state'),
+          code: new URL(data.redirect_to).searchParams.get('code')?.substring(0, 20) + '...',
+          state: new URL(data.redirect_to).searchParams.get('state'),
+        })
+        
         window.location.href = data.redirect_to
       } else {
         // Fallback: if no redirect_to, show error
+        console.error("[OAuth Consent] No redirect_to in response:", data)
         setError("Authorization approved but no redirect URL received. Please contact support.")
         setProcessing(false)
         setApproved(false) // Re-enable on error
