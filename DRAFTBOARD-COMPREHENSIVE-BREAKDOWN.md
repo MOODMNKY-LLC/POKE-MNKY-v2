@@ -1,8 +1,9 @@
 # Draftboard System - Comprehensive Technical Breakdown
 
 **Date**: January 19, 2026  
-**Version**: Complete Analysis  
-**Status**: Production System - Season 5
+**Version**: 2.0.0 (Draft Pool Migration Complete)  
+**Status**: Production System - Season 5  
+**Migration**: Draft Pool Migration Complete (2026-01-19)
 
 ---
 
@@ -11,12 +12,14 @@
 The **Draftboard** is the central reference system for all available Pokémon during the POKE MNKY Battle League draft process. It serves as both a **visual reference** (Google Sheets) and a **structured database** (PostgreSQL), providing real-time availability tracking, point value organization, and draft progress monitoring. The system enables teams to make informed draft decisions within their 120-point budget constraint through a snake draft format.
 
 **Key Characteristics**:
-- **409+ Pokémon** organized by point values (1-20)
+- **778 Pokémon** organized by point values (1-20) (Season 5)
 - **120-point budget** per team (Season 5)
 - **Snake draft format** with 45-second pick timers
 - **Real-time synchronization** between Google Sheets and database
 - **MCP server integration** for programmatic access
-- **Availability tracking** via `is_available` boolean flag
+- **Availability tracking** via `status` enum (`available`, `drafted`, `banned`, `unavailable`)
+- **Multi-season support** via `season_id` foreign key
+- **Draft metadata** tracking (team, round, pick number) denormalized for performance
 
 ---
 
@@ -75,8 +78,16 @@ interface DraftPoolPokemon {
   id: string;
   pokemon_name: string;
   point_value: number; // 1-20
-  is_available: boolean;
-  generation?: number;
+  status: 'available' | 'drafted' | 'banned' | 'unavailable'; // Replaces is_available
+  season_id: string; // Links to seasons table
+  generation?: number; // Fetched from pokepedia_pokemon
+  pokemon_id?: number; // Links to pokemon_cache
+  // Draft metadata (when status = 'drafted')
+  drafted_by_team_id?: string;
+  drafted_at?: string;
+  draft_round?: number;
+  draft_pick_number?: number;
+  banned_reason?: string; // When status = 'banned'
 }
 
 interface DraftBudget {
@@ -90,7 +101,9 @@ interface DraftBudget {
 
 - **Real-time Updates**: Use Supabase Realtime to listen for draft picks
 - **Budget Validation**: Check `remaining_points >= point_value` before allowing picks
-- **Availability Check**: Only show Pokémon where `is_available = true`
+- **Availability Check**: Only show Pokémon where `status = 'available'` and `season_id` matches current season
+- **Season Filtering**: Automatically filter by current season (defaults to `is_current = true`)
+- **Status Display**: Show different UI states for `available`, `drafted`, `banned`, `unavailable`
 - **Responsive Design**: Horizontal scroll on mobile, grid on desktop
 - **Loading States**: Show skeletons while fetching data
 - **Error Handling**: Display errors gracefully with retry options
@@ -171,12 +184,16 @@ Column C: Pokemon (19 pts) | Column H: Header "18"
 
 ## 2. Database Schema
 
-### Draft Pool Table (`draft_pool`)
+### Draft Pool Tables
 
-The `draft_pool` table is the database representation of the Draft Board:
+The draft pool system uses **two tables** to manage draft availability:
+
+#### `sheets_draft_pool` (Raw Data Source)
+
+**Purpose**: Raw Google Sheets data extracted from Draft Board
 
 ```sql
-CREATE TABLE draft_pool (
+CREATE TABLE sheets_draft_pool (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     pokemon_name TEXT NOT NULL,
     point_value INTEGER NOT NULL CHECK (point_value >= 1 AND point_value <= 20),
@@ -195,8 +212,7 @@ CREATE TABLE draft_pool (
 );
 ```
 
-**Key Fields Explained**:
-
+**Key Fields**:
 - **`pokemon_name`**: Species name (e.g., "Charizard", "Pikachu")
 - **`point_value`**: Draft cost (1-20 points)
 - **`is_available`**: `true` = available for drafting, `false` = already drafted
@@ -206,12 +222,84 @@ CREATE TABLE draft_pool (
 - **`sheet_row`**: Exact row number in Google Sheets (enables bidirectional sync)
 - **`sheet_column`**: Exact column letter (enables bidirectional sync)
 
+**Status**: ✅ Populated with 778 Pokemon (Season 5), used as source for `draft_pool`
+
+---
+
+#### `draft_pool` (Application Table) ✅ **UPDATED 2026-01-19**
+
+**Purpose**: Application table for draft operations with enhanced features
+
+```sql
+CREATE TABLE draft_pool (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    pokemon_name TEXT NOT NULL,
+    point_value INTEGER NOT NULL CHECK (point_value >= 1 AND point_value <= 20),
+    pokemon_id INTEGER REFERENCES pokemon_cache(pokemon_id) ON DELETE SET NULL,
+    
+    -- Season support (multi-season capability)
+    season_id UUID NOT NULL REFERENCES seasons(id) ON DELETE CASCADE,
+    
+    -- Status enum (replaces is_available boolean)
+    status draft_pool_status NOT NULL DEFAULT 'available',
+    
+    -- Draft tracking (denormalized for performance)
+    drafted_by_team_id UUID REFERENCES teams(id) ON DELETE SET NULL,
+    drafted_at TIMESTAMP WITH TIME ZONE,
+    draft_round INTEGER CHECK (draft_round >= 1),
+    draft_pick_number INTEGER CHECK (draft_pick_number >= 1),
+    
+    -- Banned tracking
+    banned_reason TEXT,
+    
+    -- Timestamps
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+    
+    -- Unique constraint: One Pokemon per season
+    UNIQUE (season_id, pokemon_name)
+);
+
+CREATE TYPE draft_pool_status AS ENUM (
+    'available',      -- Available to be drafted
+    'drafted',        -- Has been drafted
+    'banned',         -- Banned from draft (Pokemon of Ruin, etc.)
+    'unavailable'     -- Unavailable for other reasons
+);
+```
+
+**Key Fields Explained**:
+
+- **`pokemon_name`**: Species name (e.g., "Charizard", "Pikachu")
+- **`point_value`**: Draft cost (1-20 points)
+- **`season_id`**: **NEW** - Links to `seasons` table (enables multi-season support)
+- **`status`**: **NEW** - Enum replacing `is_available` boolean (`available`, `drafted`, `banned`, `unavailable`)
+- **`drafted_by_team_id`**: **NEW** - Team that drafted this Pokemon (denormalized for fast queries)
+- **`drafted_at`**: **NEW** - Timestamp when Pokemon was drafted
+- **`draft_round`**: **NEW** - Round number when drafted (1-11)
+- **`draft_pick_number`**: **NEW** - Overall pick number (1-220)
+- **`banned_reason`**: **NEW** - Reason if Pokemon is banned
+- **`pokemon_id`**: Foreign key to `pokemon_cache` for sprite URLs and enhanced data
+
+**Status Enum Values**:
+- **`available`**: Available to be drafted
+- **`drafted`**: Has been drafted (replaces `is_available = false`)
+- **`banned`**: Banned from draft (Pokemon of Ruin, etc.)
+- **`unavailable`**: Unavailable for other reasons
+
 **Indexes**:
-- `idx_draft_pool_available`: Partial index on `is_available = true` (optimizes available queries)
+- `idx_draft_pool_season`: B-tree index on `season_id` (optimizes season filtering)
+- `idx_draft_pool_status`: Partial index on `status = 'available'` (optimizes available queries)
+- `idx_draft_pool_drafted_by`: Partial index on `drafted_by_team_id` (optimizes team draft queries)
+- `idx_draft_pool_draft_round`: Partial index on `draft_round` (optimizes round queries)
+- `idx_draft_pool_draft_pick`: Partial index on `draft_pick_number` (optimizes pick queries)
 - `idx_draft_pool_point_value`: Index on `point_value` (optimizes tier queries)
 - `idx_draft_pool_pokemon_name`: Index on `pokemon_name` (optimizes name lookups)
-- `idx_draft_pool_generation`: Index on `generation` (optimizes generation filters)
-- `idx_draft_pool_pokemon_id`: Partial index on `pokemon_id IS NOT NULL` (optimizes joins)
+- `draft_pool_season_pokemon_unique`: Unique constraint on `(season_id, pokemon_name)`
+
+**Status**: ✅ Populated with 778 Pokemon for Season 5, ready for production use
+
+**Migration Date**: 2026-01-19
 
 ### Related Tables
 
@@ -508,28 +596,38 @@ When a Pokémon is drafted:
 
 ## 7. Availability Tracking
 
-### The `is_available` Flag
+### The `status` Enum ✅ **UPDATED 2026-01-19**
 
-**Purpose**: Tracks whether a Pokémon is available for drafting
+**Purpose**: Tracks Pokémon availability and draft state with more granular control than boolean
 
-**Values**:
-- **`true`**: Available for drafting
-- **`false`**: Already drafted (removed from pool)
+**Status Values**:
+- **`available`**: Available for drafting (replaces `is_available = true`)
+- **`drafted`**: Already drafted (replaces `is_available = false`)
+- **`banned`**: Banned from draft (Pokemon of Ruin, etc.)
+- **`unavailable`**: Unavailable for other reasons
+
+**Status Transitions**:
+- **`available`** → **`drafted`**: When Pokémon is selected during draft
+- **`available`** → **`banned`**: When Pokémon is banned (set `banned_reason`)
+- **`available`** → **`unavailable`**: For other reasons
+- **`drafted`** → **`available`**: If pick is reversed (rare)
 
 ### Availability Lifecycle
 
 **Pre-Draft**:
-- All Pokémon: `is_available = true`
-- Total available: ~400+ Pokémon
+- All Pokémon: `status = 'available'`
+- Total available: 778 Pokémon (Season 5)
+- Season filtering: `season_id = current_season_id`
 
 **During Draft**:
-- When Pokémon is drafted: `is_available = false`
+- When Pokémon is drafted: `status = 'drafted'` + draft metadata populated
 - Available count decreases with each pick
-- Query: `SELECT COUNT(*) FROM draft_pool WHERE is_available = true`
+- Query: `SELECT COUNT(*) FROM draft_pool WHERE status = 'available' AND season_id = ?`
 
 **Post-Draft**:
-- Drafted Pokémon: `is_available = false`
-- Undrafted Pokémon: `is_available = true`
+- Drafted Pokémon: `status = 'drafted'` with `drafted_by_team_id`, `draft_round`, `draft_pick_number`
+- Undrafted Pokémon: `status = 'available'`
+- Banned Pokémon: `status = 'banned'` with `banned_reason`
 - Final pool: Remaining undrafted Pokémon
 
 ### Availability Updates
@@ -541,13 +639,18 @@ When a Pokémon is drafted:
 INSERT INTO team_rosters (team_id, pokemon_id, draft_round, draft_order, draft_points, source)
 VALUES (?, ?, ?, ?, ?, 'draft');
 
--- Step 2: Update draft_pool.is_available
+-- Step 2: Update draft_pool.status and draft metadata
 UPDATE draft_pool
-SET is_available = false,
+SET 
+    status = 'drafted',
+    drafted_by_team_id = ?,
+    drafted_at = now(),
+    draft_round = ?,
+    draft_pick_number = ?,
     updated_at = now()
 WHERE pokemon_name = ? 
-  AND point_value = ?
-  AND sheet_name = 'Draft Board';
+  AND season_id = ?
+  AND status = 'available';
 
 -- Step 3: Update draft_budgets
 UPDATE draft_budgets
@@ -556,25 +659,44 @@ SET spent_points = spent_points + ?,
 WHERE team_id = ? AND season_id = ?;
 ```
 
+**When Pokémon is Banned**:
+
+```sql
+UPDATE draft_pool
+SET 
+    status = 'banned',
+    banned_reason = 'Pokemon of Ruin - banned for Season 5',
+    updated_at = now()
+WHERE pokemon_name = ? 
+  AND season_id = ?
+  AND status = 'available';
+```
+
 **Note**: In practice, this may be handled by database triggers or application logic.
 
 ### Querying Available Pokémon
 
-**MCP Server Query**:
+**MCP Server Query** (Updated 2026-01-19):
 ```typescript
+// Get current season
+const seasonId = await getCurrentSeasonId();
+
+// Query draft_pool with season and status filtering
 const { data } = await supabase
   .from('draft_pool')
-  .select('pokemon_name, point_value, generation, is_available')
-  .eq('is_available', true)
+  .select('pokemon_name, point_value, pokemon_id, status, season_id')
+  .eq('status', 'available')  // Changed from is_available = true
+  .eq('season_id', seasonId)  // NEW: Season filtering
   .gte('point_value', minPoints)
   .lte('point_value', maxPoints)
   .order('point_value', { ascending: false });
 ```
 
 **Optimization**:
-- Partial index: `idx_draft_pool_available` on `is_available = true`
+- Partial index: `idx_draft_pool_status` on `status = 'available'`
+- Season index: `idx_draft_pool_season` on `season_id`
 - Only indexes available Pokémon (reduces index size)
-- Faster queries for available Pokémon
+- Faster queries for available Pokémon per season
 
 ---
 
@@ -599,6 +721,7 @@ const { data } = await supabase
   point_range?: [min, max],  // Optional point range filter
   generation?: number,       // Optional generation filter
   type?: string,            // Optional type filter
+  season_id?: string,       // Optional season filter (defaults to current season)
   limit?: number            // Max results (default: 100)
 }
 ```
@@ -611,19 +734,24 @@ const { data } = await supabase
       "pokemon_name": "Charizard",
       "point_value": 15,
       "generation": 1,
-      "available": true
+      "status": "available",
+      "season_id": "uuid"
     }
   ],
   "count": 1
 }
 ```
 
-**Implementation**:
+**Implementation** (Updated 2026-01-19):
 ```typescript
+// Get current season (if not provided)
+const seasonId = season_id || await getCurrentSeasonId();
+
 let query = supabase
   .from('draft_pool')
-  .select('pokemon_name, point_value, generation, is_available')
-  .eq('is_available', true)
+  .select('pokemon_name, point_value, pokemon_id, status, season_id')
+  .eq('status', 'available')  // Changed from is_available = true
+  .eq('season_id', seasonId)   // NEW: Season filtering
   .limit(limit);
 
 if (point_range && point_range.length === 2) {
@@ -631,8 +759,16 @@ if (point_range && point_range.length === 2) {
                 .lte('point_value', point_range[1]);
 }
 
+// Generation lookup via batch fetch from pokepedia_pokemon
 if (generation) {
-  query = query.eq('generation', generation);
+  // Batch fetch generations after initial query
+  const pokemonNames = filteredData.map(p => p.pokemon_name);
+  const { data: pokemonData } = await supabase
+    .from('pokepedia_pokemon')
+    .select('name, generation')
+    .in('name', pokemonNames)
+    .eq('generation', generation);
+  // Filter results...
 }
 ```
 
@@ -733,12 +869,16 @@ if (generation) {
 }
 ```
 
-**Implementation**:
+**Implementation** (Updated 2026-01-19):
 ```typescript
+// Get current season
+const seasonId = await getCurrentSeasonId();
+
 const { data } = await supabase
   .from('draft_pool')
-  .select('pokemon_name, point_value, generation, is_available')
-  .eq('is_available', true)
+  .select('pokemon_name, point_value, pokemon_id, status, season_id')
+  .eq('status', 'available')  // Changed from is_available = true
+  .eq('season_id', seasonId)   // NEW: Season filtering
   .order('point_value', { ascending: false });
 ```
 
@@ -789,10 +929,18 @@ const { data } = await supabase
    INSERT INTO team_rosters (team_id, pokemon_id, draft_round, draft_order, draft_points, source)
    VALUES (current_team_id, pokemon_id, current_round, current_pick, point_value, 'draft');
    
-   -- Mark as unavailable
+   -- Update draft_pool status and draft metadata (NEW: denormalized fields)
    UPDATE draft_pool
-   SET is_available = false
-   WHERE pokemon_name = ? AND point_value = ?;
+   SET 
+       status = 'drafted',  -- Changed from is_available = false
+       drafted_by_team_id = current_team_id,
+       drafted_at = now(),
+       draft_round = current_round,
+       draft_pick_number = current_pick,
+       updated_at = now()
+   WHERE pokemon_name = ? 
+     AND season_id = ?  -- NEW: Season filtering
+     AND status = 'available';  -- Changed from is_available = true
    
    -- Update budget
    UPDATE draft_budgets
@@ -815,7 +963,10 @@ const { data } = await supabase
 **State Transitions**:
 - `current_pick`: 1 → 2 → ... → 220
 - `current_round`: 1 → 2 → ... → 11
-- `is_available`: `true` → `false` (for drafted Pokémon)
+- `status`: `'available'` → `'drafted'` (for drafted Pokémon) ✅ **UPDATED**
+- `drafted_by_team_id`: NULL → team UUID (when drafted) ✅ **NEW**
+- `draft_round`: NULL → round number (when drafted) ✅ **NEW**
+- `draft_pick_number`: NULL → pick number (when drafted) ✅ **NEW**
 - `spent_points`: Increments with each pick
 - `remaining_points`: Decrements with each pick
 
@@ -828,14 +979,16 @@ const { data } = await supabase
 4. **Calculate Final Budgets**: All `draft_budgets` finalized
 
 **Final State**:
-- Drafted Pokémon: `is_available = false`
-- Undrafted Pokémon: `is_available = true`
+- Drafted Pokémon: `status = 'drafted'` with `drafted_by_team_id`, `draft_round`, `draft_pick_number`
+- Undrafted Pokémon: `status = 'available'`
+- Banned Pokémon: `status = 'banned'` with `banned_reason`
 - All teams: `spent_points` = sum of drafted Pokémon
 - Draft session: `status = 'completed'`
 
 **Post-Draft Queries**:
-- Available for free agency: `SELECT * FROM draft_pool WHERE is_available = true`
+- Available for free agency: `SELECT * FROM draft_pool WHERE status = 'available' AND season_id = ?`
 - Team rosters: `SELECT * FROM team_rosters WHERE team_id = ? AND source = 'draft'`
+- Team draft picks (denormalized): `SELECT * FROM draft_pool WHERE drafted_by_team_id = ? AND season_id = ? ORDER BY draft_round, draft_pick_number`
 - Budget analysis: `SELECT * FROM draft_budgets WHERE season_id = ?`
 
 ---
@@ -920,15 +1073,19 @@ PERFORM realtime.broadcast_changes(
 - `idx_draft_pool_point_value`: Filters point ranges
 - `idx_draft_pool_generation`: Filters by generation
 
-**Query Pattern**:
+**Query Pattern** (Updated 2026-01-19):
 ```typescript
+// Get current season
+const seasonId = await getCurrentSeasonId();
+
 // Optimized query using indexes
 const query = supabase
   .from('draft_pool')
-  .select('pokemon_name, point_value, generation, is_available')
-  .eq('is_available', true)  // Uses idx_draft_pool_available
-  .gte('point_value', min)   // Uses idx_draft_pool_point_value
-  .lte('point_value', max)   // Uses idx_draft_pool_point_value
+  .select('pokemon_name, point_value, pokemon_id, status, season_id')
+  .eq('status', 'available')      // Uses idx_draft_pool_status (partial index)
+  .eq('season_id', seasonId)       // Uses idx_draft_pool_season ✅ NEW
+  .gte('point_value', min)         // Uses idx_draft_pool_point_value
+  .lte('point_value', max)         // Uses idx_draft_pool_point_value
   .order('point_value', { ascending: false });
 ```
 
@@ -954,10 +1111,11 @@ const query = supabase
 
 ### Performance Considerations
 
-**Indexes**:
-- Partial index on `is_available = true` (smaller, faster)
+**Indexes** (Updated 2026-01-19):
+- Partial index on `status = 'available'` (smaller, faster) ✅ **UPDATED**
+- Season index on `season_id` (enables season filtering) ✅ **NEW**
 - Point value index (enables range queries)
-- Generation index (enables generation filters)
+- Partial indexes on `drafted_by_team_id`, `draft_round`, `draft_pick_number` ✅ **NEW**
 
 **Caching**:
 - MCP server caches available Pokémon queries
@@ -986,11 +1144,12 @@ const query = supabase
 }
 ```
 
-**Database Query**:
+**Database Query** (Updated 2026-01-19):
 ```sql
-SELECT pokemon_name, point_value, generation, is_available
+SELECT pokemon_name, point_value, pokemon_id, status, season_id
 FROM draft_pool
-WHERE is_available = true
+WHERE status = 'available'      -- Changed from is_available = true
+  AND season_id = ?              -- NEW: Season filtering
   AND point_value >= 15
   AND point_value <= 20
 ORDER BY point_value DESC, pokemon_name ASC
@@ -1014,17 +1173,25 @@ LIMIT 50;
 **Flow**:
 1. Team 1 selects "Charizard" (15 points) in Round 1, Pick 1
 2. System validates: `remaining_points (120) >= point_value (15)` ✅
-3. System checks: `is_available = true` ✅
+3. System checks: `status = 'available'` AND `season_id = current_season_id` ✅ **UPDATED**
 4. Insert into `team_rosters`:
    ```sql
    INSERT INTO team_rosters (team_id, pokemon_id, draft_round, draft_order, draft_points, source)
    VALUES ('team-1-uuid', 'charizard-uuid', 1, 1, 15, 'draft');
    ```
-5. Update `draft_pool`:
+5. Update `draft_pool` (Updated 2026-01-19):
    ```sql
    UPDATE draft_pool
-   SET is_available = false
-   WHERE pokemon_name = 'Charizard' AND point_value = 15;
+   SET 
+       status = 'drafted',
+       drafted_by_team_id = 'team-1-uuid',
+       drafted_at = now(),
+       draft_round = 1,
+       draft_pick_number = 1,
+       updated_at = now()
+   WHERE pokemon_name = 'Charizard' 
+     AND season_id = 'season-5-uuid'
+     AND status = 'available';
    ```
 6. Update `draft_budgets`:
    ```sql
@@ -1040,8 +1207,8 @@ LIMIT 50;
    ```
 8. Broadcast via Realtime: All clients notified
 
-**Result**:
-- Charizard: `is_available = false`
+**Result** (Updated 2026-01-19):
+- Charizard: `status = 'drafted'`, `drafted_by_team_id = team-1-uuid`, `draft_round = 1`, `draft_pick_number = 1`
 - Team 1: `spent_points = 15`, `remaining_points = 105`
 - Draft: `current_pick = 2`, `current_team_id = team-2-uuid`
 
@@ -1087,16 +1254,16 @@ WHERE team_id = 'team-1-uuid' AND season_id = (
 **Example**: "Charizard" at 15 points AND 20 points
 
 **Handling**:
-- Unique constraint: `(sheet_name, pokemon_name, point_value)`
-- Both entries can exist
-- Each has separate `is_available` flag
-- Teams can draft either version
+- Unique constraint: `(season_id, pokemon_name)` ✅ **UPDATED**
+- Only one entry per Pokemon per season (point value is not part of unique constraint)
+- Status enum tracks availability: `status = 'available'` or `status = 'drafted'`
+- Teams can draft the Pokemon (regardless of point value)
 
-**Query**:
+**Query** (Updated 2026-01-19):
 ```sql
 SELECT * FROM draft_pool
-WHERE pokemon_name = 'Charizard';
--- Returns: 15 points (available), 20 points (drafted)
+WHERE pokemon_name = 'Charizard' AND season_id = ?;
+-- Returns: Single entry with point_value = 15 (or 20), status = 'available' or 'drafted'
 ```
 
 ### Sheet Position Tracking
@@ -1130,10 +1297,11 @@ WHERE pokemon_name = 'Charizard' AND point_value = 15;
 
 ### Free Agency
 
-**Post-Draft Availability**:
-- Undrafted Pokémon: `is_available = true`
+**Post-Draft Availability** (Updated 2026-01-19):
+- Undrafted Pokémon: `status = 'available'` AND `season_id = ?`
 - Available for free agency pickups
 - Query: `get_available_pokemon_for_free_agency(season_id)`
+- Excludes: `status = 'drafted'` AND `status = 'banned'`
 
 **Free Agency Additions**:
 - Insert into `team_rosters` with `source = 'free_agency'`
@@ -1151,13 +1319,15 @@ WHERE pokemon_name = 'Charizard' AND point_value = 15;
 - Check team budget: `get_team_budget`
 - Get draft status: `get_draft_status`
 
-**Example**:
+**Example** (Updated 2026-01-19):
 ```typescript
 // Discord command: !draftboard 15-20
 const available = await mcpClient.callTool('get_available_pokemon', {
   point_range: [15, 20],
+  season_id: currentSeasonId,  // NEW: Season filtering
   limit: 20
 });
+// Returns Pokemon with status = 'available' for current season
 ```
 
 ### Next.js App Integration
@@ -1232,7 +1402,10 @@ When Pokémon is Drafted:
 └────────┬─────────┘
          │
          ├─► INSERT team_rosters
-         ├─► UPDATE draft_pool.is_available = false
+         ├─► UPDATE draft_pool.status = 'drafted' ✅ UPDATED
+         ├─► UPDATE draft_pool.drafted_by_team_id ✅ NEW
+         ├─► UPDATE draft_pool.draft_round ✅ NEW
+         ├─► UPDATE draft_pool.draft_pick_number ✅ NEW
          ├─► UPDATE draft_budgets.spent_points
          ├─► UPDATE draft_sessions.current_pick
          └─► BROADCAST (Realtime)
@@ -1245,30 +1418,37 @@ When Pokémon is Drafted:
 ### Core Concepts
 
 1. **Dual Representation**: Google Sheets (visual) + Database (structured)
-2. **Point-Based System**: 1-20 points reflect competitive value
-3. **Budget Constraint**: 120 points per team (Season 5)
-4. **Availability Flag**: `is_available` tracks draft status
-5. **Snake Draft**: Alternating forward/reverse rounds
+2. **Dual Table System**: `sheets_draft_pool` (raw data) + `draft_pool` (application table)
+3. **Point-Based System**: 1-20 points reflect competitive value
+4. **Budget Constraint**: 120 points per team (Season 5)
+5. **Status Enum**: `status` tracks draft state (`available`, `drafted`, `banned`, `unavailable`) ✅ **UPDATED**
+6. **Multi-Season Support**: `season_id` enables concurrent/historical seasons ✅ **NEW**
+7. **Snake Draft**: Alternating forward/reverse rounds
 
 ### Technical Highlights
 
-1. **Position Tracking**: `sheet_row` and `sheet_column` enable sync
-2. **Unique Constraint**: `(sheet_name, pokemon_name, point_value)` prevents duplicates
+1. **Position Tracking**: `sheet_row` and `sheet_column` enable sync (in `sheets_draft_pool`)
+2. **Unique Constraint**: `(season_id, pokemon_name)` prevents duplicates per season ✅ **UPDATED**
 3. **Generated Columns**: `remaining_points` automatically calculated
-4. **Partial Indexes**: Optimize `is_available = true` queries
-5. **Real-Time Updates**: Supabase Realtime broadcasts draft picks
+4. **Partial Indexes**: Optimize `status = 'available'` queries ✅ **UPDATED**
+5. **Denormalized Draft Metadata**: `drafted_by_team_id`, `draft_round`, `draft_pick_number` for fast queries ✅ **NEW**
+6. **Real-Time Updates**: Supabase Realtime broadcasts draft picks
+7. **Season-Aware Queries**: All queries filter by `season_id` ✅ **NEW**
 
 ### Query Patterns
 
-**Available Pokémon**:
-```sql
-SELECT * FROM draft_pool WHERE is_available = true;
-```
-
-**By Point Range**:
+**Available Pokémon** (Updated 2026-01-19):
 ```sql
 SELECT * FROM draft_pool 
-WHERE is_available = true 
+WHERE status = 'available' 
+  AND season_id = ?;
+```
+
+**By Point Range** (Updated 2026-01-19):
+```sql
+SELECT * FROM draft_pool 
+WHERE status = 'available' 
+  AND season_id = ?
   AND point_value BETWEEN 15 AND 20;
 ```
 
@@ -2646,6 +2826,57 @@ export function Providers({ children }: { children: React.ReactNode }) {
 ---
 
 **Last Updated**: January 19, 2026  
-**Version**: 1.0.0 (Frontend Implementation Guide Added)  
+**Version**: 2.0.0 (Draft Pool Migration Complete)  
 **Status**: Production System - Season 5  
+**Migration**: Draft Pool Migration Complete (2026-01-19)  
 **Maintained By**: POKE MNKY Development Team
+
+---
+
+## Recent Updates (2026-01-19)
+
+### Draft Pool Migration ✅
+
+**Status**: ✅ **COMPLETE**
+
+**Migration Summary**:
+- ✅ Migrated from `sheets_draft_pool` (raw data) to `draft_pool` (application table)
+- ✅ Added `season_id` for multi-season support
+- ✅ Replaced `is_available` boolean with `status` enum (`available`, `drafted`, `banned`, `unavailable`)
+- ✅ Added draft metadata fields (`drafted_by_team_id`, `drafted_at`, `draft_round`, `draft_pick_number`)
+- ✅ Added `banned_reason` field for banned Pokemon tracking
+- ✅ Updated all MCP server queries to use new structure
+- ✅ Updated indexes for optimal performance
+
+**Key Changes**:
+- All queries now filter by `season_id` (defaults to current season)
+- Status filtering: `.eq('status', 'available')` instead of `.eq('is_available', true)`
+- Draft metadata available directly in `draft_pool` (no JOINs needed)
+- Generation lookup via batch fetch from `pokepedia_pokemon`
+
+**See**: `knowledge-base/aab-battle-league/CHECKPOINT-2026-01-19-DRAFT-POOL-MIGRATION.md` for complete migration details.
+
+---
+
+## Recent Updates (2026-01-19)
+
+### Draft Pool Migration ✅
+
+**Status**: ✅ **COMPLETE**
+
+**Migration Summary**:
+- ✅ Migrated from `sheets_draft_pool` (raw data) to `draft_pool` (application table)
+- ✅ Added `season_id` for multi-season support
+- ✅ Replaced `is_available` boolean with `status` enum (`available`, `drafted`, `banned`, `unavailable`)
+- ✅ Added draft metadata fields (`drafted_by_team_id`, `drafted_at`, `draft_round`, `draft_pick_number`)
+- ✅ Added `banned_reason` field for banned Pokemon tracking
+- ✅ Updated all MCP server queries to use new structure
+- ✅ Updated indexes for optimal performance
+
+**Key Changes**:
+- All queries now filter by `season_id` (defaults to current season)
+- Status filtering: `.eq('status', 'available')` instead of `.eq('is_available', true)`
+- Draft metadata available directly in `draft_pool` (no JOINs needed)
+- Generation lookup via batch fetch from `pokepedia_pokemon`
+
+**See**: `knowledge-base/aab-battle-league/CHECKPOINT-2026-01-19-DRAFT-POOL-MIGRATION.md` for complete migration details.
