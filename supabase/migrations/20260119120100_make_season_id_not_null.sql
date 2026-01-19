@@ -26,10 +26,19 @@ ALTER COLUMN season_id SET NOT NULL;
 -- Drop the partial index
 DROP INDEX IF EXISTS draft_pool_season_pokemon_unique_partial;
 
--- Create full unique constraint
-ALTER TABLE draft_pool
-ADD CONSTRAINT IF NOT EXISTS draft_pool_season_pokemon_unique
-UNIQUE (season_id, pokemon_name);
+-- Create full unique constraint (only if it doesn't exist)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint 
+        WHERE conname = 'draft_pool_season_pokemon_unique'
+        AND conrelid = 'draft_pool'::regclass
+    ) THEN
+        ALTER TABLE draft_pool
+        ADD CONSTRAINT draft_pool_season_pokemon_unique 
+        UNIQUE (season_id, pokemon_name);
+    END IF;
+END $$;
 
 -- Step 4: Add comment
 COMMENT ON CONSTRAINT draft_pool_season_pokemon_unique ON draft_pool IS 
