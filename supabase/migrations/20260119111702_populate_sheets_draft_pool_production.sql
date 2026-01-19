@@ -8,6 +8,9 @@
 -- Idempotent: Uses ON CONFLICT DO UPDATE to handle re-runs safely
 -- Total Pokemon: 778
 -- Generated: 2026-01-19T11:17:02.000Z
+--
+-- Note: pokemon_id may be NULL if Pokemon doesn't exist in pokemon_cache yet
+-- This is safe - pokemon_id can be populated later when pokemon_cache is updated
 
 INSERT INTO sheets_draft_pool (pokemon_name, point_value, is_available, generation, sheet_name, sheet_row, sheet_column, pokemon_id)
 VALUES
@@ -762,7 +765,12 @@ VALUES
   ('Swinub', 1, true, NULL, 'Draft Board', 200, '', 220)
 ON CONFLICT (sheet_name, pokemon_name, point_value) DO UPDATE
 SET 
-  pokemon_id = EXCLUDED.pokemon_id,
+  -- Only update pokemon_id if it doesn't violate foreign key constraint
+  pokemon_id = CASE 
+    WHEN EXCLUDED.pokemon_id IS NULL THEN EXCLUDED.pokemon_id
+    WHEN EXISTS (SELECT 1 FROM pokemon_cache WHERE pokemon_id = EXCLUDED.pokemon_id) THEN EXCLUDED.pokemon_id
+    ELSE sheets_draft_pool.pokemon_id  -- Keep existing value if new one violates FK
+  END,
   sheet_row = EXCLUDED.sheet_row,
   sheet_column = EXCLUDED.sheet_column,
   is_available = EXCLUDED.is_available;
