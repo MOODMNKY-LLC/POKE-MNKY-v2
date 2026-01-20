@@ -1,0 +1,797 @@
+# Draft Pool Pokémon List
+
+**Total Available Pokémon:** 749
+
+**Last Updated:** Generated from Supabase `draft_pool` table
+
+---
+
+## Summary by Point Value
+
+All Pokémon listed below have `status = 'available'` and are eligible for drafting. Point values range from 1 (lowest) to 20 (highest).
+
+---
+
+## Pokémon by Point Value
+
+### 20 Points (Highest Tier)
+- Flutter Mane
+- Gouging Fire
+- Mewtwo
+- Raging Bolt
+- Roaring Moon
+- Urshifu Rapid Strike
+- Urshifu Single Strike
+
+### 19 Points
+- Archaludon
+- Chi-Yu
+- Chien-Pao
+- Deoxys Attack
+- Dragapult
+- Iron Bundle
+- Iron Valiant
+- Palafin
+- Pecharunt
+- Ursaluna Bloodmoon
+
+### 18 Points
+- Deoxys
+- Deoxys Defense
+- Enamorus Incarnate
+- Garchomp
+- Kommo-o
+- Landorus Therian
+- Ting-Lu
+- Walking Wake
+
+### 17 Points
+- Annihilape
+- Basculegion Female
+- Basculegion Male
+- Cinderace
+- Darkrai
+- Deoxys Speed
+- Dragonite
+- Garganacl
+- Gholdengo
+- Ho-Oh
+- Infernape
+- Kingambit
+- Meowscarada
+- Ogerpon Cornerstone
+- Ogerpon Hearthflame
+- Ogerpon Wellspring
+- Rotom Wash
+- Sneasler
+
+### 16 Points
+- Baxcalibur
+- Heatran
+- Hoopa Unbound
+- Hydreigon
+- Iron Boulder
+- Iron Crown
+- Iron Hands
+- Iron Moth
+- Iron Treads
+- Keldeo
+- Kyurem
+- Mamoswine
+- Mew
+- Ogerpon
+- Samurott Hisuian
+- Slowking Galarian
+- Tornadus Therian
+- Tyranitar
+- Ursaluna
+- Volcanion
+- Weavile
+
+### 15 Points
+- Articuno Galarian
+- Azumarill
+- Clefable
+- Entei
+- Gliscor
+- Greninja
+- Haxorus
+- Iron Crown
+- Jirachi
+- Latias
+- Latios
+- Lilligant Hisuian
+- Lycanroc Dusk
+- Mandibuzz
+- Meloetta
+- Metagross
+- Munkidori
+- Necrozma
+- Quaquaval
+- Raikou
+- Regice
+- Regirock
+- Registeel
+- Skeledirge
+- Slowking
+- Suicune
+- Terapagos
+- Thundurus Incarnate
+- Thundurus Therian
+- Zapdos
+- Zapdos Galarian
+- Zarude
+
+### 14 Points
+- Corviknight
+- Diancie
+- Iron Hands
+- Krookodile
+- Lucario
+- Lugia
+- Manaphy
+- Moltres
+- Ninetales Alolan
+- Okidogi
+- Regidrago
+- Regieleki
+- Rotom Heat
+- Scizor
+- Slowbro
+- Terrakion
+- Toxapex
+
+### 13 Points
+- Amoonguss
+- Arcanine Hisuian
+- Ceruledge
+- Cloyster
+- Crawdaunt
+- Exeggutor Alolan
+- Glastrier
+- Gothitelle
+- Hawlucha
+- Iron Jugulis
+- Iron Leaves
+- Kleavor
+- Lokix
+- Mienshao
+- Moltres Galarian
+- Porygon2
+- Rillaboom
+- Scream Tail
+- Slither Wing
+- Tornadus Incarnate
+
+### 12 Points
+- Arcanine
+- Armarouge
+- Articuno
+- Azelf
+- Barraskewda
+- Breloom
+- Cobalion
+- Clodsire
+- Cresselia
+- Espathra
+- Fezandipiti
+- Flygon
+- Gengar
+- Glimmora
+- Gyarados
+- Hippowdon
+- Mesprit
+- Overqwil
+- Porygon-Z
+- Ribombee
+- Sandy Shocks
+- Shaymin
+- Sylveon
+- Uxie
+- Virizion
+- Whimsicott
+- Zoroark Hisuian
+
+### 11 Points
+- Blaziken
+- Brute Bonnet
+- Dondozo
+- Donphan
+- Dudunsparce
+- Dugtrio
+- Duraludon
+- Empoleon
+- Florges
+- Gallade
+- Gardevoir
+- Goodra Hisuian
+- Hoopa
+- Hydrapple
+- Incineroar
+- Inteleon
+- Iron Thorns
+- Maushold
+- Meowstic Male
+- Milotic
+- Pawmot
+- Pelipper
+- Primarina
+- Rhydon
+- Sinistcha
+- Slowbro Galarian
+- Torkoal
+- Toucannon
+- Toxtricity Amped
+- Toxtricity Low Key
+- Venusaur
+- Weezing Galarian
+
+### 10 Points
+- Decidueye
+- Delphox
+- Espeon
+- Gastrodon
+- Heracross
+- Hitmonlee
+- Jolteon
+- Kilowattrel
+- Klefki
+- Magnezone
+- Mimikyu
+- Ninetales
+- Noivern
+- Politoed
+- Slaking
+- Staraptor
+- Talonflame
+- Vaporeon
+- Yanmega
+- Zoroark
+
+### 9 Points
+- Bisharp
+- Bronzong
+- Chandelure
+- Cyclizar
+- Dragalge
+- Drednaw
+- Dusknoir
+- Flamigo
+- Flapple
+- Hitmontop
+- Honchkrow
+- Indeedee Female
+- Indeedee Male
+- Kingdra
+- Mismagius
+- Primeape
+- Revavroom
+- Rhyperior
+- Serperior
+- Skarmory
+- Swampert
+- Tinkaton
+- Torterra
+- Typhlosion Hisuian
+
+### 8 Points
+- Abomasnow
+- Alomomola
+- Ampharos
+- Bellibolt
+- Blissey
+- Braviary Hisuian
+- Comfey
+- Copperajah
+- Eelektross
+- Electivire
+- Emboar
+- Excadrill
+- Farigiraf
+- Gogoat
+- Granbull
+- Hariyama
+- Illumise
+- Lycanroc
+- Magmortar
+- Murkrow
+- Orthworm
+- Polteageist
+- Piloswine
+- Reuniclus
+- Sableye
+- Tauros
+- Tauros Paldean Aqua
+- Tauros Paldean Blaze
+- Toedscruel
+- Tsareena
+- Umbreon
+- Venomoth
+- Vikavolt
+- Vivillon
+- Volbeat
+- Wyrdeer
+
+### 7 Points
+- Altaria
+- Arboliva
+- Avalugg
+- Avalugg Hisuian
+- Bastiodon
+- Beartic
+- Chansey
+- Clawitzer
+- Flareon
+- Forretress
+- Galvantula
+- Gligar
+- Gloom
+- Lanturn
+- Lapras
+- Leafeon
+- Minior
+- Passimian
+- Perrserker
+- Poliwrath
+- Rampardos
+- Raichu Alolan
+- Sceptile
+- Scovillain
+- Scrafty
+- Tentacruel
+- Toxicroak
+- Ursaring
+- Vigoroth
+- Weezing
+- Wigglytuff
+
+### 6 Points
+- Araquanid
+- Ariados
+- Braviary
+- Coalossal
+- Decidueye Hisuian
+- Dugtrio Alolan
+- Drifblim
+- Eiscue
+- Electrode
+- Feraligatr
+- Golem Alolan
+- Grafaiai
+- Hypno
+- Jumpluff
+- Kricketune
+- Leafeon
+- Lilligant
+- Ludicolo
+- Luxray
+- Lycanroc Midnight
+- Malamar
+- Meganium
+- Morpeko
+- Mudsdale
+- Naclstack
+- Oricorio
+- Palossand
+- Persian Alolan
+- Pincurchin
+- Pyroar
+- Qwilfish
+- Sandaconda
+- Samurott
+- Scizor
+- Shiftry
+- Sneasel
+- Spidops
+- Trumbeak
+- Typhlosion
+- Vileplume
+- Veluza
+- Vespiquen
+- Wugtrio
+- Zebstrika
+
+### 5 Points
+- Alcremie
+- Ambipom
+- Appletun
+- Banette
+- Bellossom
+- Blastoise
+- Cacturne
+- Cinccino
+- Combusken
+- Cottonee
+- Crabominable
+- Cryogonal
+- Dachsbun
+- Dedenne
+- Dewgong
+- Dodrio
+- Dragonair
+- Exeggutor
+- Glaceon
+- Golurk
+- Gothorita
+- Greedent
+- Grumpig
+- Gurdurr
+- Gumshoos
+- Hakamo-o
+- Lurantis
+- Magcargo
+- Magmar
+- Masquerain
+- Metang
+- Muk
+- Oinkologne
+- Oranguru
+- Porygon
+- Quagsire
+- Rabsca
+- Seadra
+- Seviper
+- Shelgon
+- Skuntank
+- Smeargle
+- Spiritomb
+- Swalot
+- Swanna
+- Sawsbuck
+- Trevenant
+- Victreebel
+- Vibrava
+- Zangoose
+- Zweilous
+
+### 4 Points
+- Bruxish
+- Clefairy
+- Cramorant
+- Drakloak
+- Dunsparce
+- Falinks
+- Floragato
+- Fraxure
+- Frogadier
+- Gabite
+- Girafarig
+- Golduck
+- Haunter
+- Klawf
+- Komala
+- Leavanny
+- Lumineon
+- Mabosstiff
+- Mightyena
+- Misdreavus
+- Morgrem
+- Noctowl
+- Oinkologne Female
+- Pachirisu
+- Pawmo
+- Pupitar
+- Quaxwell
+- Sandslash
+- Skiploom
+- Squawkabilly
+- Stonjourner
+- Sudowoodo
+- Sunflora
+- Tatsugiri
+- Thwackey
+- Toedscool
+- Tropius
+
+### 3 Points
+- Arctibax
+- Axew
+- Bayleef
+- Braixen
+- Brionne
+- Charmeleon
+- Corvisquire
+- Crocalor
+- Croconaw
+- Dartrix
+- Dewott
+- Dipplin
+- Dolliv
+- Duosion
+- Drizzile
+- Eelektrik
+- Fletchinder
+- Flaaffy
+- Graveler
+- Grovyle
+- Grotle
+- Hattrem
+- Ivysaur
+- Kirlia
+- Krokorok
+- Lampent
+- Lombre
+- Luxio
+- Marill
+- Marshtomp
+- Monferno
+- Nuzleaf
+- Poliwhirl
+- Prinplup
+- Quilava
+- Quilladin
+- Raboot
+- Rhyhorn
+- Servine
+- Sliggoo
+- Sliggoo Hisuian
+- Snubbull
+- Staravia
+- Swadloon
+- Tinkatuff
+- Torracat
+- Vullaby
+- Wartortle
+- Weepinbell
+
+### 2 Points
+- Aipom
+- Basculin Blue Stripe
+- Basculin Red Stripe
+- Carbink
+- Cetoddle
+- Delibird
+- Eevee
+- Furret
+- Graveler Alolan
+- Impidimp
+- Mareanie
+- Munchlax
+- Plusle
+- Minun
+- Riolu
+- Shroodle
+- Stantler
+- Steenee
+- Voltorb Hisuian
+- Yanma
+
+### 1 Point (Lowest Tier)
+- Applin
+- Arrokuda
+- Azurill
+- Bagon
+- Barboach
+- Beldum
+- Bellsprout
+- Bergmite
+- Blitzle
+- Bonsly
+- Bounsweet
+- Bronzor
+- Buizel
+- Bulbasaur
+- Cacnea
+- Capsakid
+- Carkol
+- Charcadet
+- Charjabug
+- Charmander
+- Chespin
+- Chewtle
+- Chikorita
+- Chimchar
+- Chimecho
+- Chinchou
+- Chingling
+- Clauncher
+- Cleffa
+- Corphish
+- Crabrawler
+- Croagunk
+- Cubchoo
+- Cufant
+- Cutiefly
+- Cyndaquil
+- Deerling
+- Deino
+- Dewpider
+- Diglett
+- Diglett Alolan
+- Doduo
+- Dreepy
+- Drifloon
+- Drilbur
+- Drowzee
+- Ducklett
+- Duskull
+- Ekans
+- Elekid
+- Exeggcute
+- Feebas
+- Fennekin
+- Fidough
+- Finizen
+- Finneon
+- Flabébé
+- Fletchling
+- Flittle
+- Floette
+- Fomantis
+- Foongus
+- Frigibax
+- Froakie
+- Fuecoco
+- Gastly
+- Geodude
+- Geodude Alolan
+- Gible
+- Gimmighoul
+- Glimmet
+- Goomy
+- Gothita
+- Greavard
+- Grimer
+- Grimer Alolan
+- Grookey
+- Growlithe
+- Growlithe Hisuian
+- Grubbin
+- Gulpin
+- Happiny
+- Hatenna
+- Hippopotas
+- Hoothoot
+- Hoppip
+- Horsea
+- Houndour
+- Igglybuff
+- Inkay
+- Jangmo-o
+- Jigglypuff
+- Joltik
+- Koffing
+- Kricketot
+- Kubfu
+- Larvesta
+- Larvitar
+- Lechonk
+- Litten
+- Litwick
+- Lotad
+- Magby
+- Magikarp
+- Magnemite
+- Makuhita
+- Mareep
+- Maschiff
+- Meditite
+- Meowth
+- Meowth Alolan
+- Meowth Galarian
+- Mudbray
+- Mudkip
+- Nacli
+- Noibat
+- Nosepass
+- Numel
+- Nymble
+- Oddish
+- Oshawott
+- Pachirisu
+- Pawniard
+- Petilil
+- Phanpy
+- Phantump
+- Pichu
+- Pignite
+- Pikipek
+- Pineco
+- Piplup
+- Poliwag
+- Poltchageist
+- Poochyena
+- Popplio
+- Psyduck
+- Quaxly
+- Ralts
+- Rellor
+- Rockruff
+- Rolycoly
+- Rookidee
+- Rowlet
+- Rufflet
+- Salandit
+- Sandile
+- Sandshrew
+- Sandshrew Alolan
+- Sandygast
+- Scatterbug
+- Scorbunny
+- Scraggy
+- Seedot
+- Seel
+- Sentret
+- Sewaddle
+- Shellder
+- Shellos
+- Shieldon
+- Shinx
+- Shroomish
+- Shuppet
+- Silicobra
+- Sinistea
+- Skiddo
+- Skrelp
+- Skwovet
+- Slakoth
+- Slowpoke
+- Slowpoke Galarian
+- Slugma
+- Smoliv
+- Snivy
+- Snom
+- Snorunt
+- Snover
+- Sobble
+- Solosis
+- Spewpa
+- Spinarak
+- Spoink
+- Sprigatito
+- Squirtle
+- Starly
+- Stunky
+- Sunkern
+- Surskit
+- Swablu
+- Swinub
+- Tauros Paldean
+- Tinkatink
+- Togepi
+- Torchic
+- Totodile
+- Treecko
+- Turtwig
+- Tympole
+- Tyrogue
+- Tyrunt
+- Vanillite
+- Venipede
+- Venonat
+- Vullaby
+- Vulpix
+- Vulpix Alolan
+- Wailmer
+- Wailord
+- Watchog
+- Weedle
+- Whismur
+- Wingull
+- Woobat
+- Wooper
+- Wooper Paldean
+- Wurmple
+- Wynaut
+- Yamask
+- Yamask Galarian
+- Yungoos
+- Zorua
+- Zorua Hisuian
+- Zubat
+
+---
+
+## Notes
+
+- All Pokémon listed have `status = 'available'` in the database
+- All Pokémon are marked as `tera_captain_eligible = true`
+- Point values determine draft cost (teams have 120 points total budget)
+- This list includes all forms and regional variants
+- Gender-specific forms (e.g., Basculegion Male/Female) are listed separately
+
+---
+
+**Generated from:** `draft_pool` table in Supabase
+**Query Date:** Current
+**Total Records:** 749 Pokémon

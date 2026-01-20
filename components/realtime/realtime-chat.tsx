@@ -20,9 +20,23 @@ export function RealtimeChat({ channel }: { channel: string }) {
   const [newMessage, setNewMessage] = useState("")
   const [user, setUser] = useState<any>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
-  const supabase = createBrowserClient()
+  const [supabase, setSupabase] = useState<ReturnType<typeof createBrowserClient> | null>(null)
+
+  // Initialize Supabase client on mount (client-side only)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const client = createBrowserClient()
+        setSupabase(client)
+      } catch (error) {
+        console.error("Failed to create Supabase client:", error)
+      }
+    }
+  }, [])
 
   useEffect(() => {
+    if (!supabase) return
+
     supabase.auth.getUser().then(({ data }) => setUser(data.user))
 
     const chatChannel = supabase
@@ -35,14 +49,14 @@ export function RealtimeChat({ channel }: { channel: string }) {
     return () => {
       chatChannel.unsubscribe()
     }
-  }, [channel])
+  }, [channel, supabase])
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
 
   const sendMessage = () => {
-    if (!newMessage.trim() || !user) return
+    if (!newMessage.trim() || !user || !supabase) return
 
     const message: Message = {
       id: Math.random().toString(36),

@@ -10,6 +10,7 @@ import { BlurFade } from "@/components/ui/blur-fade"
 import { cn } from "@/lib/utils"
 import { CheckCircle2 } from "lucide-react"
 import { usePokemonId } from "@/hooks/use-pokemon-id"
+import { getPokemonTypeColors } from "@/lib/pokemon-type-colors"
 
 interface DraftPokemonCardProps {
   pokemon: {
@@ -18,6 +19,7 @@ interface DraftPokemonCardProps {
     generation: number
     pokemon_id?: number | null
     status?: "available" | "drafted" | "banned" | "unavailable"
+    types?: string[]
   }
   isDrafted: boolean
   isYourTurn: boolean
@@ -49,11 +51,11 @@ export function DraftPokemonCard({
         isYourTurn && isAvailable && "ring-2 ring-primary ring-offset-2"
       )}>
         <Card className="p-4 flex flex-col items-center gap-3 h-full">
-          <div className="h-24 w-24 flex items-center justify-center">
+          <div className="h-32 w-32 flex items-center justify-center">
             <PokemonSprite 
               name={pokemon.name}
               pokemonId={pokemonId || undefined}
-              size="lg"
+              size="xl"
               mode="artwork"
             />
           </div>

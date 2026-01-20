@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -33,52 +33,35 @@ export function PokemonSyncControl() {
   const [rateLimitMs, setRateLimitMs] = useState(100)
   const { toast } = useToast()
 
-  // Poll for sync status
+  // Track previous status to detect changes
+  const previousStatusRef = useRef<string>('idle')
+  const intervalRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Cleanup polling on unmount and ensure no polling happens on mount
   useEffect(() => {
-    let previousStatus = syncStatus.status
+    // Ensure no interval exists on mount
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current)
+      intervalRef.current = null
+    }
     
-    // Always poll when component mounts to get current status
-    const pollStatus = async () => {
-      try {
-        const response = await fetch('/api/admin/sync')
-        if (response.ok) {
-          const data = await response.json()
-          const statusChanged = previousStatus !== data.status
-          previousStatus = data.status
-          setSyncStatus(data)
-          
-          // Show notifications on status changes
-          if (statusChanged) {
-            if (data.status === 'completed') {
-              toast({
-                title: "Sync Completed",
-                description: data.progress 
-                  ? `Successfully synced ${data.progress.synced} Pokemon${data.progress.skipped > 0 ? ` (${data.progress.skipped} skipped)` : ''}.`
-                  : "Pokemon data sync completed successfully.",
-              })
-            } else if (data.status === 'failed') {
-              toast({
-                title: "Sync Failed",
-                description: data.error || "Sync failed with an unknown error.",
-                variant: "destructive",
-              })
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Error polling sync status:', error)
+    return () => {
+      // Cleanup on unmount
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
       }
     }
-
-    // Initial poll
-    pollStatus()
-
-    // Poll every 1 second when running (faster updates for progress bar), every 5 seconds when idle
-    const pollInterval = syncStatus.status === 'running' ? 1000 : 5000
-    const interval = setInterval(pollStatus, pollInterval)
-
-    return () => clearInterval(interval)
-  }, [syncStatus.status, toast])
+  }, [])
+  
+  // Effect to stop polling when sync status changes to non-running
+  useEffect(() => {
+    // If sync status is not running, ensure polling stops
+    if (syncStatus.status !== 'running' && intervalRef.current) {
+      clearInterval(intervalRef.current)
+      intervalRef.current = null
+    }
+  }, [syncStatus.status])
 
   const handleStartSync = async () => {
     if (startId < 1 || endId > 1025 || startId > endId) {
@@ -109,6 +92,83 @@ export function PokemonSyncControl() {
 
       if (response.ok) {
         setSyncStatus({ status: 'running', startTime: Date.now() })
+        previousStatusRef.current = 'running'
+        
+        // Clear any existing interval first
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current)
+          intervalRef.current = null
+        }
+        
+        // Poll function for active sync - checks state BEFORE making API call
+        const pollSyncStatus = async () => {
+          // CRITICAL: Check if interval still exists and sync should still be running
+          if (!intervalRef.current) {
+            return // Stop if interval was cleared
+          }
+
+          // Check current state BEFORE making API call
+          // Use a ref to track if we should continue polling
+          let shouldContinue = true
+
+          try {
+            const statusResponse = await fetch('/api/admin/sync')
+            if (statusResponse.ok) {
+              const statusData = await statusResponse.json()
+              const statusChanged = previousStatusRef.current !== statusData.status
+              previousStatusRef.current = statusData.status
+              setSyncStatus(statusData)
+              
+              // Show notifications on status changes
+              if (statusChanged) {
+                if (statusData.status === 'completed') {
+                  toast({
+                    title: "Sync Completed",
+                    description: statusData.progress 
+                      ? `Successfully synced ${statusData.progress.synced} Pokemon${statusData.progress.skipped > 0 ? ` (${statusData.progress.skipped} skipped)` : ''}.`
+                      : "Pokemon data sync completed successfully.",
+                  })
+                  shouldContinue = false
+                } else if (statusData.status === 'failed') {
+                  toast({
+                    title: "Sync Failed",
+                    description: statusData.error || "Sync failed with an unknown error.",
+                    variant: "destructive",
+                  })
+                  shouldContinue = false
+                } else if (statusData.status === 'idle') {
+                  shouldContinue = false
+                }
+              }
+              
+              // Stop polling if sync is no longer running
+              if (!shouldContinue || statusData.status !== 'running') {
+                if (intervalRef.current) {
+                  clearInterval(intervalRef.current)
+                  intervalRef.current = null
+                }
+                return
+              }
+            } else {
+              // API error - stop polling
+              shouldContinue = false
+            }
+          } catch (error) {
+            // Stop polling on connection errors
+            console.error('Error polling sync status:', error)
+            shouldContinue = false
+          }
+          
+          // Clear interval if we shouldn't continue
+          if (!shouldContinue && intervalRef.current) {
+            clearInterval(intervalRef.current)
+            intervalRef.current = null
+          }
+        }
+        
+        // Start polling every 1 second ONLY if sync started successfully
+        intervalRef.current = setInterval(pollSyncStatus, 1000)
+        
         toast({
           title: "Sync Started",
           description: `Syncing Pokemon ${startId}-${endId}...`,
@@ -140,6 +200,14 @@ export function PokemonSyncControl() {
 
       if (response.ok) {
         setSyncStatus({ status: 'idle' })
+        previousStatusRef.current = 'idle'
+        
+        // Stop polling when sync is stopped
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current)
+          intervalRef.current = null
+        }
+        
         toast({
           title: "Sync Cancelled",
           description: "Sync has been cancelled.",

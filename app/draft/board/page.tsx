@@ -1,236 +1,106 @@
-"use client"
-
-import { useEffect, useState } from "react"
-import { createClient } from "@/lib/supabase/client"
-import { DraftHeader } from "@/components/draft/draft-header"
-import { DraftBoardServer } from "@/components/draft/draft-board-server"
-import { TeamRosterPanel } from "@/components/draft/team-roster-panel"
-import { PickHistory } from "@/components/draft/pick-history"
-import { DraftChat } from "@/components/draft/draft-chat"
-import { DraftAssistantChat } from "@/components/ai/draft-assistant-chat"
-import { Card } from "@/components/ui/card"
-import { Skeleton } from "@/components/ui/skeleton"
+import { createClient } from "@/lib/supabase/server"
+import { DraftSystem } from "@/lib/draft-system"
+import { createServiceRoleClient } from "@/lib/supabase/service"
+import { DraftBoardPageClient } from "@/components/draft/draft-board-page-client"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
 
-interface DraftSession {
-  id: string
-  season_id: string
-  status: string
-  current_team_id: string | null
-  current_round: number
-  current_pick_number: number
-}
+export default async function DraftBoardPage() {
+  const supabase = await createClient()
+  const draftSystem = new DraftSystem()
 
-export default function DraftBoardPage() {
-  const [session, setSession] = useState<DraftSession | null>(null)
-  const [currentTeam, setCurrentTeam] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [supabase, setSupabase] = useState<any>(null)
+  // Get current season
+  const { data: season } = await supabase
+    .from("seasons")
+    .select("id")
+    .eq("is_current", true)
+    .single()
 
-  // Initialize Supabase client on mount
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        console.log("[Draft] Initializing Supabase client...")
-        const client = createClient()
-        console.log("[Draft] Supabase client created:", !!client)
-        setSupabase(client)
-      } catch (err) {
-        console.error("[Draft] Failed to create Supabase client:", err)
-        setLoading(false)
-        setError("Unable to connect to database")
-      }
-    } else {
-      // SSR - set loading to false immediately
-      setLoading(false)
-      setError("This page requires client-side rendering")
-    }
-  }, [])
-
-  useEffect(() => {
-    // Set up timeout for when supabase is null
-    let timeoutId: NodeJS.Timeout | null = null
-    
-    if (!supabase && typeof window !== 'undefined') {
-      timeoutId = setTimeout(() => {
-        console.error("[Draft] Supabase client initialization timeout")
-        setLoading(false)
-        setError("Unable to connect to database. Please refresh the page.")
-      }, 2000)
-    }
-
-    async function fetchActiveSession() {
-      // Don't run if supabase client isn't ready
-      if (!supabase) {
-        console.log("[Draft] Waiting for Supabase client...")
-        return
-      }
-
-      // Clear timeout since we have supabase now
-      if (timeoutId) {
-        clearTimeout(timeoutId)
-        timeoutId = null
-      }
-
-      try {
-        setLoading(true)
-        console.log("[Draft] Fetching active session via API...")
-        
-        // Use API route instead of direct Supabase query for better reliability
-        const response = await fetch("/api/draft/status")
-        const apiData = await response.json()
-        
-        console.log("[Draft] API response:", apiData)
-        
-        if (!apiData.success || !apiData.session) {
-          setError("No active draft session found")
-          setLoading(false)
-          return
-        }
-        
-        const sessionData = apiData.session
-        setSession(sessionData)
-
-        // Fetch current user's team (optional - user might not be logged in)
-        const { data: { user }, error: userError } = await supabase.auth.getUser().catch(() => ({ data: { user: null }, error: null }))
-        
-        if (userError) {
-          console.warn("Error fetching user:", userError)
-        }
-        
-        if (user) {
-          const { data: teamData, error: teamError } = await supabase
-            .from("teams")
-            .select("*")
-            .eq("coach_id", user.id)
-            .eq("season_id", sessionData.season_id)
-            .maybeSingle()
-
-          if (teamError) {
-            console.warn("Error fetching team:", teamError)
-            // Don't set error state - user might not have a team yet
-          } else if (teamData) {
-            setCurrentTeam(teamData)
-          }
-          // If teamData is null, user doesn't have a team - that's okay
-        }
-
-        // Set up real-time subscriptions
-        const picksChannel = supabase
-          .channel(`draft:${sessionData.id}:picks`)
-          .on(
-            "broadcast",
-            { event: "INSERT" },
-            (payload) => {
-              // Refresh available Pokemon
-              // This will be handled by DraftBoard component
-              console.log("Pick made:", payload)
-            }
-          )
-          .subscribe()
-
-        const turnChannel = supabase
-          .channel(`draft:${sessionData.id}:turn`)
-          .on(
-            "broadcast",
-            { event: "UPDATE" },
-            (payload) => {
-              // Update session state
-              setSession((prev) => prev ? { ...prev, ...payload.new } : null)
-            }
-          )
-          .subscribe()
-
-        // Always set loading to false after setup
-        console.log("[Draft] Setup complete, setting loading to false")
-        setLoading(false)
-
-        return () => {
-          picksChannel.unsubscribe()
-          turnChannel.unsubscribe()
-        }
-      } catch (err: any) {
-        console.error("[Draft] Error fetching draft session:", err)
-        setError(err.message || "Failed to load draft room")
-        setLoading(false)
-      }
-    }
-
-    fetchActiveSession()
-
-    return () => {
-      if (timeoutId) {
-        clearTimeout(timeoutId)
-      }
-    }
-  }, [supabase])
-
-  if (loading) {
+  if (!season) {
     return (
-      <div className="container mx-auto p-6 space-y-6">
-        <Skeleton className="h-16 w-full" />
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-4">
-            <Skeleton className="h-96 w-full" />
-          </div>
-          <div className="lg:col-span-1 space-y-4">
-            <Skeleton className="h-64 w-full" />
-            <Skeleton className="h-64 w-full" />
-          </div>
-        </div>
+      <div className="container mx-auto p-6">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>No active season found</AlertDescription>
+        </Alert>
       </div>
     )
   }
 
-  if (error || !session) {
+  // Get active draft session
+  const session = await draftSystem.getActiveSession(season.id)
+
+  if (!session) {
     return (
       <div className="container mx-auto p-6">
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            {error || "No active draft session found"}
+            No active draft session found. Please create a draft session first.
           </AlertDescription>
         </Alert>
       </div>
     )
   }
 
+  // Get current user's team (optional - user might not be logged in)
+  const { data: { user } } = await supabase.auth.getUser()
+  let currentTeam = null
+
+  if (user) {
+    const { data: teamData } = await supabase
+      .from("teams")
+      .select("*")
+      .eq("coach_id", user.id)
+      .eq("season_id", session.season_id)
+      .maybeSingle()
+
+    if (teamData) {
+      currentTeam = teamData
+    }
+  }
+
+  // Fetch initial data server-side
+  const serviceSupabase = createServiceRoleClient()
+  
+  // Fetch available Pokemon
+  const pokemon = await draftSystem.getAvailablePokemon(session.season_id, {})
+
+  // Fetch drafted Pokemon
+  const { data: draftedData } = await serviceSupabase
+    .from("draft_pool")
+    .select("pokemon_name")
+    .eq("season_id", session.season_id)
+    .eq("status", "drafted")
+
+  const draftedPokemon = draftedData?.map(p => p.pokemon_name.toLowerCase()) || []
+
+  // Fetch budget
+  let budget: { total: number; spent: number; remaining: number } | null = null
+  if (currentTeam) {
+    const { data: budgetData } = await serviceSupabase
+      .from("draft_budgets")
+      .select("total_points, spent_points, remaining_points")
+      .eq("team_id", currentTeam.id)
+      .eq("season_id", session.season_id)
+      .single()
+
+    if (budgetData) {
+      budget = {
+        total: budgetData.total_points,
+        spent: budgetData.spent_points,
+        remaining: budgetData.remaining_points,
+      }
+    }
+  }
+
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <DraftHeader session={session} currentTeam={currentTeam} />
-      
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: Draft Board (2 columns) */}
-        <div className="lg:col-span-2">
-          <DraftBoardServer 
-            sessionId={session.id}
-            currentTeamId={currentTeam?.id}
-            seasonId={session.season_id}
-            isYourTurn={currentTeam?.id === session.current_team_id}
-          />
-        </div>
-        
-        {/* Right: Team Info (1 column) */}
-        <div className="lg:col-span-1 space-y-6">
-          <TeamRosterPanel 
-            teamId={currentTeam?.id}
-            seasonId={session.season_id}
-          />
-          <PickHistory sessionId={session.id} />
-          {/* Draft Assistant Chat - New AI-powered assistant */}
-          <div className="h-[600px] border rounded-lg overflow-hidden">
-            <DraftAssistantChat
-              teamId={currentTeam?.id}
-              seasonId={session.season_id}
-              className="h-full"
-            />
-          </div>
-          {/* Legacy Draft Chat - Keep for now */}
-          <DraftChat sessionId={session.id} />
-        </div>
-      </div>
-    </div>
+    <DraftBoardPageClient
+      initialSession={session}
+      initialCurrentTeam={currentTeam}
+      initialPokemon={pokemon}
+      initialDraftedPokemon={draftedPokemon}
+      initialBudget={budget}
+    />
   )
 }

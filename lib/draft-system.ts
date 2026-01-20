@@ -26,14 +26,25 @@ export interface DraftSession {
 }
 
 export class DraftSystem {
-  private supabase = createServiceRoleClient()
+  private _supabase: ReturnType<typeof createServiceRoleClient> | null = null
+  
+  // Lazy-load Supabase client to ensure environment variables are available
+  private get supabase() {
+    if (!this._supabase) {
+      try {
+        this._supabase = createServiceRoleClient()
+      } catch (error) {
+        console.error('[DraftSystem] Failed to create service role client:', error)
+        throw error
+      }
+    }
+    return this._supabase
+  }
   
   // Verify service role client is working
   constructor() {
-    // Log to verify service role is being used (only in dev)
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[DraftSystem] Initialized with service role client')
-    }
+    // Don't initialize client here - wait until first use
+    // This ensures environment variables are loaded
   }
 
   /**
@@ -318,7 +329,7 @@ export class DraftSystem {
       generation?: number
       search?: string
     }
-  ): Promise<Array<{ pokemon_name: string; point_value: number; generation: number | null; pokemon_id: number | null; status: string }>> {
+  ): Promise<Array<{ pokemon_name: string; point_value: number; generation: number | null; pokemon_id: number | null; status: string; types?: string[] }>> {
     console.log(`[DraftSystem] getAvailablePokemon called with seasonId: ${seasonId} (type: ${typeof seasonId})`)
     
     // First, verify the season exists and get its actual ID
@@ -356,57 +367,104 @@ export class DraftSystem {
         data = rpcData
       } else if (rpcError) {
         console.warn(`[DraftSystem] RPC function error, falling back to standard query:`, rpcError)
-        // Fallback to standard query
-        let query = this.supabase
+        // Fallback: Fetch all available Pokémon first (workaround for UUID comparison issue)
+        // Similar to API route workaround
+        const { data: allAvailableData, error: allError } = await this.supabase
           .from("draft_pool")
-          .select("pokemon_name, point_value, pokemon_id, status")
+          .select("pokemon_name, point_value, pokemon_id, status, season_id")
           .eq("status", "available")
-          .eq("season_id", seasonIdUuid)
           .order("point_value", { ascending: false })
           .order("pokemon_name", { ascending: true })
+          .limit(1000)
 
-        if (filters?.minPoints) {
-          query = query.gte("point_value", filters.minPoints)
+        if (allError) {
+          console.error("[DraftSystem] Error fetching all available:", allError)
+          data = null
+          error = allError
+        } else {
+          // Filter by season_id in JavaScript (workaround for UUID comparison issue)
+          const seasonIdStr = String(seasonIdUuid).trim()
+          const filteredData = allAvailableData?.filter((p: any) => {
+            const pSeasonId = String(p.season_id || '').trim()
+            return pSeasonId === seasonIdStr
+          }) || []
+
+          console.log(`[DraftSystem] JavaScript filter: ${filteredData.length} rows match season_id out of ${allAvailableData?.length || 0} total`)
+
+          // Apply additional filters
+          let filtered = filteredData
+          if (filters?.minPoints) {
+            filtered = filtered.filter((p: any) => p.point_value >= filters.minPoints!)
+          }
+          if (filters?.maxPoints) {
+            filtered = filtered.filter((p: any) => p.point_value <= filters.maxPoints!)
+          }
+          if (filters?.search) {
+            const searchLower = filters.search.toLowerCase()
+            filtered = filtered.filter((p: any) => 
+              p.pokemon_name.toLowerCase().includes(searchLower)
+            )
+          }
+
+          // Remove season_id from results
+          data = filtered.map((p: any) => ({
+            pokemon_name: p.pokemon_name,
+            point_value: p.point_value,
+            pokemon_id: p.pokemon_id,
+            status: p.status,
+          }))
+          error = null
         }
-
-        if (filters?.maxPoints) {
-          query = query.lte("point_value", filters.maxPoints)
-        }
-
-        if (filters?.search) {
-          query = query.ilike("pokemon_name", `%${filters.search}%`)
-        }
-
-        const result = await query
-        data = result.data
-        error = result.error
       }
     } catch (rpcError: any) {
       console.warn(`[DraftSystem] RPC call failed, falling back to standard query:`, rpcError?.message || rpcError)
-      // Fallback to standard query
-      let query = this.supabase
+      // Fallback: Fetch all available Pokémon first (workaround for UUID comparison issue)
+      const { data: allAvailableData, error: allError } = await this.supabase
         .from("draft_pool")
-        .select("pokemon_name, point_value, pokemon_id, status")
+        .select("pokemon_name, point_value, pokemon_id, status, season_id")
         .eq("status", "available")
-        .eq("season_id", seasonIdUuid)
         .order("point_value", { ascending: false })
         .order("pokemon_name", { ascending: true })
+        .limit(1000)
 
-      if (filters?.minPoints) {
-        query = query.gte("point_value", filters.minPoints)
+      if (allError) {
+        console.error("[DraftSystem] Error fetching all available:", allError)
+        data = null
+        error = allError
+      } else {
+        // Filter by season_id in JavaScript (workaround for UUID comparison issue)
+        const seasonIdStr = String(seasonIdUuid).trim()
+        const filteredData = allAvailableData?.filter((p: any) => {
+          const pSeasonId = String(p.season_id || '').trim()
+          return pSeasonId === seasonIdStr
+        }) || []
+
+        console.log(`[DraftSystem] JavaScript filter: ${filteredData.length} rows match season_id out of ${allAvailableData?.length || 0} total`)
+
+        // Apply additional filters
+        let filtered = filteredData
+        if (filters?.minPoints) {
+          filtered = filtered.filter((p: any) => p.point_value >= filters.minPoints!)
+        }
+        if (filters?.maxPoints) {
+          filtered = filtered.filter((p: any) => p.point_value <= filters.maxPoints!)
+        }
+        if (filters?.search) {
+          const searchLower = filters.search.toLowerCase()
+          filtered = filtered.filter((p: any) => 
+            p.pokemon_name.toLowerCase().includes(searchLower)
+          )
+        }
+
+        // Remove season_id from results
+        data = filtered.map((p: any) => ({
+          pokemon_name: p.pokemon_name,
+          point_value: p.point_value,
+          pokemon_id: p.pokemon_id,
+          status: p.status,
+        }))
+        error = null
       }
-
-      if (filters?.maxPoints) {
-        query = query.lte("point_value", filters.maxPoints)
-      }
-
-      if (filters?.search) {
-        query = query.ilike("pokemon_name", `%${filters.search}%`)
-      }
-
-      const result = await query
-      data = result.data
-      error = result.error
     }
     
     // Also try a count query to see if any rows exist
@@ -491,13 +549,43 @@ export class DraftSystem {
       }
     }
 
-    // Map results to include generation from pokemon_cache
+    // Fetch types for Pokémon that have pokemon_id
+    const typesMap = new Map<number, string[]>()
+    if (pokemonIds.length > 0) {
+      // Try pokemon_cache first
+      const { data: cacheTypesData } = await this.supabase
+        .from("pokemon_cache")
+        .select("pokemon_id, types")
+        .in("pokemon_id", pokemonIds)
+
+      cacheTypesData?.forEach((entry: any) => {
+        if (entry.types && Array.isArray(entry.types)) {
+          typesMap.set(entry.pokemon_id, entry.types)
+        }
+      })
+
+      // Also try pokepedia_pokemon as fallback
+      const { data: pokepediaTypesData } = await this.supabase
+        .from("pokepedia_pokemon")
+        .select("id, types")
+        .in("id", pokemonIds)
+
+      pokepediaTypesData?.forEach((entry: any) => {
+        if (entry.types && Array.isArray(entry.types) && !typesMap.has(entry.id)) {
+          typesMap.set(entry.id, entry.types)
+        }
+      })
+    }
+
+    // Map results to include generation and types from pokemon_cache
     const mapped = data.map((item: any) => {
       let generation: number | null = null
+      let types: string[] = []
 
       // Try to get generation from pokemon_id first
       if (item.pokemon_id) {
         generation = generationMap.get(item.pokemon_id) ?? null
+        types = typesMap.get(item.pokemon_id) || []
       }
 
       // If still no generation, try to fetch by name (fallback)
@@ -513,6 +601,7 @@ export class DraftSystem {
         pokemon_id: item.pokemon_id,
         status: item.status,
         generation,
+        types: types.length > 0 ? types : undefined, // Only include if we have types
       }
     })
 

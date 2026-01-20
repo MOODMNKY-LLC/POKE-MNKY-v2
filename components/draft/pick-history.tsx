@@ -27,12 +27,27 @@ interface Pick {
 export function PickHistory({ sessionId, limit = 10 }: PickHistoryProps) {
   const [picks, setPicks] = useState<Pick[]>([])
   const [loading, setLoading] = useState(true)
-  const [supabase] = useState(() => {
-    if (typeof window === 'undefined') return null as any
-    return createClient()
-  })
+  const [supabase, setSupabase] = useState<ReturnType<typeof createClient> | null>(null)
+
+  // Initialize Supabase client on mount (client-side only)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const client = createClient()
+        setSupabase(client)
+      } catch (error) {
+        console.error("Failed to create Supabase client:", error)
+        setLoading(false)
+      }
+    }
+  }, [])
 
   useEffect(() => {
+    if (!supabase) {
+      // Still waiting for Supabase client
+      return
+    }
+
     async function fetchRecentPicks() {
       try {
         setLoading(true)
@@ -99,7 +114,8 @@ export function PickHistory({ sessionId, limit = 10 }: PickHistoryProps) {
     }
   }, [sessionId, limit, supabase])
 
-  if (loading) {
+  // Show loading state while Supabase client initializes
+  if (!supabase || loading) {
     return (
       <Card>
         <CardHeader>
