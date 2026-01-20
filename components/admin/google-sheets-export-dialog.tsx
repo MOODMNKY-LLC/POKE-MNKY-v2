@@ -48,6 +48,7 @@ const formSchema = z.object({
   sheet_name: z.string().min(1, "Sheet name is required"),
   season_id: z.string().min(1, "Season is required"),
   action: z.enum(["create", "add"]),
+  format: z.enum(["draft-board", "table"]).default("draft-board"),
 })
 
 type FormValues = z.infer<typeof formSchema>
@@ -62,6 +63,10 @@ export function GoogleSheetsExportDialog({ onExportComplete }: GoogleSheetsExpor
   const [seasons, setSeasons] = useState<Season[]>([])
   const [currentUser, setCurrentUser] = useState<{ id: string; email: string; name?: string } | null>(null)
   const [seasonsLoading, setSeasonsLoading] = useState(true)
+  const [showOverwriteConfirm, setShowOverwriteConfirm] = useState(false)
+  const [pendingExport, setPendingExport] = useState<FormValues | null>(null)
+  const [existingSheetInfo, setExistingSheetInfo] = useState<{ exists: boolean; rowCount?: number; lastModified?: string } | null>(null)
+  const [checkingSheet, setCheckingSheet] = useState(false)
   const { toast } = useToast()
 
   // Get default spreadsheet ID from environment variable
@@ -124,10 +129,80 @@ export function GoogleSheetsExportDialog({ onExportComplete }: GoogleSheetsExpor
       sheet_name: "Draft Board",
       season_id: defaultSeasonId,
       action: "create",
+      format: "draft-board",
     },
   })
 
   async function onSubmit(values: FormValues) {
+    // If action is "add" (overwrite), check if sheet exists and show confirmation dialog
+    if (values.action === "add") {
+      setCheckingSheet(true)
+      try {
+        // Extract spreadsheet ID from URL if needed
+        const spreadsheetId = extractSpreadsheetId(values.spreadsheet_id)
+        if (!spreadsheetId) {
+          toast({
+            title: "Invalid Spreadsheet ID",
+            description: "Please provide a valid Google Sheets URL or ID",
+            variant: "destructive",
+          })
+          setCheckingSheet(false)
+          return
+        }
+
+        // Check if sheet exists and get info about it
+        const sheetInfo = await checkSheetExists(spreadsheetId, values.sheet_name)
+        setExistingSheetInfo(sheetInfo)
+        setPendingExport(values)
+        setShowOverwriteConfirm(true)
+      } catch (error: any) {
+        toast({
+          title: "Error Checking Sheet",
+          description: error.message || "Could not check if sheet exists",
+          variant: "destructive",
+        })
+      } finally {
+        setCheckingSheet(false)
+      }
+      return
+    }
+
+    // Proceed with export (create action - safe)
+    await performExport(values)
+  }
+
+  async function checkSheetExists(spreadsheetIdOrUrl: string, sheetName: string): Promise<{ exists: boolean; row_count?: number; last_modified?: string; approximate_data_rows?: number }> {
+    try {
+      const spreadsheetId = extractSpreadsheetId(spreadsheetIdOrUrl)
+      if (!spreadsheetId) {
+        return { exists: false }
+      }
+
+      // Call an API endpoint to check sheet info
+      const response = await fetch("/api/admin/pokemon/export-sheets/check", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          spreadsheet_id: spreadsheetId,
+          sheet_name: sheetName,
+        }),
+      })
+
+      if (!response.ok) {
+        return { exists: false }
+      }
+
+      const data = await response.json()
+      return data
+    } catch (error) {
+      console.error("[GoogleSheetsExportDialog] Error checking sheet:", error)
+      return { exists: false }
+    }
+  }
+
+  async function performExport(values: FormValues) {
     setLoading(true)
     try {
       // Extract spreadsheet ID from URL if needed
@@ -142,7 +217,21 @@ export function GoogleSheetsExportDialog({ onExportComplete }: GoogleSheetsExpor
         return
       }
 
-      const response = await fetch("/api/admin/pokemon/export-sheets", {
+      // Choose endpoint based on format
+      const endpoint = values.format === "table" 
+        ? "/api/admin/pokemon/export-sheets-table"
+        : "/api/admin/pokemon/export-sheets"
+      
+      console.log("[GoogleSheetsExportDialog] Exporting with:", {
+        endpoint,
+        spreadsheet_id: spreadsheetId,
+        sheet_name: values.sheet_name,
+        season_id: values.season_id,
+        action: values.action,
+        format: values.format,
+      })
+
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -172,12 +261,16 @@ export function GoogleSheetsExportDialog({ onExportComplete }: GoogleSheetsExpor
       }
 
       setOpen(false)
+      setShowOverwriteConfirm(false)
+      setPendingExport(null)
+      setExistingSheetInfo(null)
       const currentDefaultSeasonId = seasons.find((s) => s.is_current)?.id || seasons[0]?.id || ""
       form.reset({
         spreadsheet_id: defaultSpreadsheetId,
         sheet_name: "Draft Board",
         season_id: currentDefaultSeasonId,
         action: "create",
+        format: "draft-board",
       })
       onExportComplete?.()
     } catch (error: any) {
@@ -189,6 +282,21 @@ export function GoogleSheetsExportDialog({ onExportComplete }: GoogleSheetsExpor
     } finally {
       setLoading(false)
     }
+  }
+
+  function handleConfirmOverwrite() {
+    if (pendingExport) {
+      setShowOverwriteConfirm(false)
+      performExport(pendingExport)
+      setPendingExport(null)
+      setExistingSheetInfo(null)
+    }
+  }
+
+  function handleCancelOverwrite() {
+    setShowOverwriteConfirm(false)
+    setPendingExport(null)
+    setExistingSheetInfo(null)
   }
 
   // Reset form with default values when dialog opens
@@ -296,6 +404,35 @@ export function GoogleSheetsExportDialog({ onExportComplete }: GoogleSheetsExpor
 
             <FormField
               control={form.control}
+              name="format"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Export Format</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value || "draft-board"}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select format" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="draft-board">
+                        📋 Draft Board Format (point value columns)
+                      </SelectItem>
+                      <SelectItem value="table">
+                        📊 Table Format (like admin panel)
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>
+                    Draft Board: Organized by point values. Table: Traditional spreadsheet with all columns.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
               name="action"
               render={({ field }) => (
                 <FormItem>
@@ -308,10 +445,10 @@ export function GoogleSheetsExportDialog({ onExportComplete }: GoogleSheetsExpor
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="create">
-                        Create new sheet (will create if doesn't exist)
+                        ✅ Create new sheet (recommended - safe)
                       </SelectItem>
                       <SelectItem value="add">
-                        Add to existing sheet (will fail if sheet doesn't exist)
+                        ⚠️ Overwrite existing sheet (will clear all data)
                       </SelectItem>
                     </SelectContent>
                   </Select>
@@ -363,6 +500,105 @@ export function GoogleSheetsExportDialog({ onExportComplete }: GoogleSheetsExpor
           </form>
         </Form>
       </DialogContent>
+
+      {/* Overwrite Confirmation Dialog */}
+      <Dialog open={showOverwriteConfirm} onOpenChange={setShowOverwriteConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-orange-600 dark:text-orange-400">
+              <span>⚠️</span> Confirm Overwrite
+            </DialogTitle>
+            <DialogDescription>
+              You are about to <strong>completely overwrite</strong> the sheet "{pendingExport?.sheet_name}" in the spreadsheet.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            {/* Existing Sheet Info */}
+            {existingSheetInfo?.exists && (
+              <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md p-4">
+                <p className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">
+                  📊 Current Sheet Information (Will Be Deleted):
+                </p>
+                <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
+                  <li><strong>Sheet Name:</strong> "{pendingExport?.sheet_name}"</li>
+                  {existingSheetInfo.row_count !== undefined && (
+                    <li><strong>Total Rows:</strong> {existingSheetInfo.row_count.toLocaleString()} rows</li>
+                  )}
+                  {existingSheetInfo.approximate_data_rows !== undefined && (
+                    <li><strong>Rows with Data:</strong> ~{existingSheetInfo.approximate_data_rows.toLocaleString()} rows</li>
+                  )}
+                  {existingSheetInfo.last_modified && (
+                    <li><strong>Last Modified:</strong> {existingSheetInfo.last_modified}</li>
+                  )}
+                  <li className="mt-2 pt-2 border-t border-blue-300 dark:border-blue-700 text-orange-700 dark:text-orange-300 font-medium">
+                    ⚠️ <strong>ALL of this data ({existingSheetInfo.row_count?.toLocaleString() || 'all'} rows) will be PERMANENTLY DELETED</strong> and replaced with the new draft pool export
+                  </li>
+                </ul>
+              </div>
+            )}
+
+            {existingSheetInfo && !existingSheetInfo.exists && (
+              <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-md p-4">
+                <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                  ℹ️ Sheet "{pendingExport?.sheet_name}" does not exist. It will be created.
+                </p>
+              </div>
+            )}
+
+            {/* Warning Box */}
+            <div className="bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-800 rounded-md p-4">
+              <p className="text-sm text-orange-800 dark:text-orange-200 font-medium mb-2">
+                ⚠️ Warning: This action cannot be undone automatically
+              </p>
+              <ul className="text-sm text-orange-700 dark:text-orange-300 space-y-1 list-disc list-inside">
+                <li>All existing data in "{pendingExport?.sheet_name}" will be permanently deleted</li>
+                <li>You can recover it from Google Sheets version history (File → Version history → See version history)</li>
+                <li>Consider using "Create new sheet" instead to preserve existing data</li>
+              </ul>
+            </div>
+
+            {/* What Will Be Created */}
+            <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-md p-4">
+              <p className="text-sm font-medium text-green-900 dark:text-green-100 mb-2">
+                ✅ What will be created:
+              </p>
+              <ul className="text-sm text-green-800 dark:text-green-200 space-y-1 list-disc list-inside">
+                <li>Draft Board format with point value columns (20-1 points)</li>
+                <li>Banned Pokémon list</li>
+                <li>Tera Banned Pokémon list</li>
+                <li>All available Pokémon organized by point value</li>
+              </ul>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleCancelOverwrite}
+              disabled={loading}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleConfirmOverwrite}
+              disabled={loading || checkingSheet}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Exporting...
+                </>
+              ) : (
+                <>
+                  Yes, Overwrite Sheet
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   )
 }
