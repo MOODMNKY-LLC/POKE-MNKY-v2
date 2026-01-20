@@ -12,13 +12,33 @@ drop index if exists "public"."idx_draft_pool_tera_eligible";
 
 drop index if exists "public"."idx_sheets_draft_pool_tera_banned";
 
-alter table "public"."draft_pool" drop column "tera_captain_eligible";
+-- Drop tera_captain_eligible column if it exists (will be re-added in later migration)
+DO $$ 
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_schema = 'public' 
+    AND table_name = 'draft_pool' 
+    AND column_name = 'tera_captain_eligible'
+  ) THEN
+    ALTER TABLE "public"."draft_pool" DROP COLUMN "tera_captain_eligible";
+  END IF;
+END $$;
 
-alter table "public"."sheets_draft_pool" alter column "is_tera_banned" drop default;
-
-alter table "public"."sheets_draft_pool" alter column "is_tera_banned" drop not null;
-
-alter table "public"."sheets_draft_pool" alter column "is_tera_banned" set data type text using "is_tera_banned"::text;
+-- Alter is_tera_banned column if it exists (will be added in later migration)
+DO $$ 
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_schema = 'public' 
+    AND table_name = 'sheets_draft_pool' 
+    AND column_name = 'is_tera_banned'
+  ) THEN
+    ALTER TABLE "public"."sheets_draft_pool" ALTER COLUMN "is_tera_banned" DROP DEFAULT;
+    ALTER TABLE "public"."sheets_draft_pool" ALTER COLUMN "is_tera_banned" DROP NOT NULL;
+    ALTER TABLE "public"."sheets_draft_pool" ALTER COLUMN "is_tera_banned" SET DATA TYPE text USING "is_tera_banned"::text;
+  END IF;
+END $$;
 
 alter table "public"."binary_data" add constraint "CHK_binary_data_sourceType" CHECK ((("sourceType")::text = ANY ((ARRAY['execution'::character varying, 'chat_message_attachment'::character varying])::text[]))) not valid;
 
@@ -171,74 +191,98 @@ END;
 $function$
 ;
 
-create or replace view "public"."draft_pool_comprehensive" as  SELECT dp.id,
-    dp.pokemon_name,
-    dp.point_value,
-    dp.pokemon_id,
-    dp.created_at,
-    dp.updated_at,
-    dp.season_id,
-    dp.status,
-    dp.drafted_by_team_id,
-    dp.drafted_at,
-    dp.draft_round,
-    dp.draft_pick_number,
-    dp.banned_reason,
-    pu.sprite_front_default_path,
-    pu.sprite_official_artwork_path,
-    pu.pokeapi_types,
-    pu.pokeapi_abilities,
-    pu.generation,
-    pu.base_experience,
-    pu.height,
-    pu.weight,
-    pu.types,
-    pu.abilities,
-    pu.hp,
-    pu.atk,
-    pu.def,
-    pu.spa,
-    pu.spd,
-    pu.spe,
-    pu.showdown_tier,
-    pu.base_species,
-    pu.forme
-   FROM (public.draft_pool dp
-     LEFT JOIN public.pokemon_unified pu ON (((lower(dp.pokemon_name) = lower(pu.name)) OR (lower(replace(dp.pokemon_name, ' '::text, '-'::text)) = lower(pu.showdown_id)))));
+-- Create draft_pool_comprehensive view only if pokemon_unified exists
+-- This view will be properly created in migration 20260120000019_create_unified_pokemon_views.sql
+DO $$ 
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.views 
+    WHERE table_schema = 'public' 
+    AND table_name = 'pokemon_unified'
+  ) THEN
+    CREATE OR REPLACE VIEW "public"."draft_pool_comprehensive" AS  
+    SELECT dp.id,
+      dp.pokemon_name,
+      dp.point_value,
+      dp.pokemon_id,
+      dp.created_at,
+      dp.updated_at,
+      dp.season_id,
+      dp.status,
+      dp.drafted_by_team_id,
+      dp.drafted_at,
+      dp.draft_round,
+      dp.draft_pick_number,
+      dp.banned_reason,
+      pu.sprite_front_default_path,
+      pu.sprite_official_artwork_path,
+      pu.pokeapi_types,
+      pu.pokeapi_abilities,
+      pu.generation,
+      pu.base_experience,
+      pu.height,
+      pu.weight,
+      pu.types,
+      pu.abilities,
+      pu.hp,
+      pu.atk,
+      pu.def,
+      pu.spa,
+      pu.spd,
+      pu.spe,
+      pu.showdown_tier,
+      pu.base_species,
+      pu.forme
+     FROM (public.draft_pool dp
+       LEFT JOIN public.pokemon_unified pu ON (((lower(dp.pokemon_name) = lower(pu.name)) OR (lower(replace(dp.pokemon_name, ' '::text, '-'::text)) = lower(pu.showdown_id)))));
+  END IF;
+END $$;
 
 
-create or replace view "public"."draft_pool_with_showdown" as  SELECT dp.id,
-    dp.pokemon_name,
-    dp.point_value,
-    dp.season_id,
-    dp.status,
-    dp.pokemon_id,
-    ps.showdown_id,
-    ps.dex_num,
-    ps.tier AS showdown_tier,
-    ps.hp,
-    ps.atk,
-    ps.def,
-    ps.spa,
-    ps.spd,
-    ps.spe,
-    ps.base_species,
-    ps.forme,
-    ( SELECT json_agg(pt2.type ORDER BY pt2.slot) AS json_agg
-           FROM public.pokemon_showdown_types pt2
-          WHERE (pt2.showdown_id = ps.showdown_id)) AS types,
-    ( SELECT json_agg(pa2.ability ORDER BY
-                CASE pa2.slot
-                    WHEN '0'::text THEN 1
-                    WHEN '1'::text THEN 2
-                    WHEN 'H'::text THEN 3
-                    ELSE 4
-                END) AS json_agg
-           FROM public.pokemon_showdown_abilities pa2
-          WHERE (pa2.showdown_id = ps.showdown_id)) AS abilities
-   FROM (public.draft_pool dp
-     LEFT JOIN public.pokemon_showdown ps ON (((lower(ps.name) = lower(dp.pokemon_name)) OR (lower(ps.name) = lower(replace(dp.pokemon_name, ' '::text, '-'::text))) OR (lower(ps.name) = lower(replace(dp.pokemon_name, ' '::text, ''::text))))))
-  GROUP BY dp.id, dp.pokemon_name, dp.point_value, dp.season_id, dp.status, dp.pokemon_id, ps.showdown_id, ps.dex_num, ps.tier, ps.hp, ps.atk, ps.def, ps.spa, ps.spd, ps.spe, ps.base_species, ps.forme;
+-- Create draft_pool_with_showdown view only if pokemon_showdown exists
+-- This view will be properly created in migration 20260120000003_create_showdown_pokedex_tables.sql
+DO $$ 
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.tables 
+    WHERE table_schema = 'public' 
+    AND table_name = 'pokemon_showdown'
+  ) THEN
+    CREATE OR REPLACE VIEW "public"."draft_pool_with_showdown" AS  
+    SELECT dp.id,
+      dp.pokemon_name,
+      dp.point_value,
+      dp.season_id,
+      dp.status,
+      dp.pokemon_id,
+      ps.showdown_id,
+      ps.dex_num,
+      ps.tier AS showdown_tier,
+      ps.hp,
+      ps.atk,
+      ps.def,
+      ps.spa,
+      ps.spd,
+      ps.spe,
+      ps.base_species,
+      ps.forme,
+      ( SELECT json_agg(pt2.type ORDER BY pt2.slot) AS json_agg
+             FROM public.pokemon_showdown_types pt2
+            WHERE (pt2.showdown_id = ps.showdown_id)) AS types,
+      ( SELECT json_agg(pa2.ability ORDER BY
+                  CASE pa2.slot
+                      WHEN '0'::text THEN 1
+                      WHEN '1'::text THEN 2
+                      WHEN 'H'::text THEN 3
+                      ELSE 4
+                  END) AS json_agg
+             FROM public.pokemon_showdown_abilities pa2
+            WHERE (pa2.showdown_id = ps.showdown_id)) AS abilities
+     FROM (public.draft_pool dp
+       LEFT JOIN public.pokemon_showdown ps ON (((lower(ps.name) = lower(dp.pokemon_name)) OR (lower(ps.name) = lower(replace(dp.pokemon_name, ' '::text, '-'::text))) OR (lower(ps.name) = lower(replace(dp.pokemon_name, ' '::text, ''::text))))))
+    GROUP BY dp.id, dp.pokemon_name, dp.point_value, dp.season_id, dp.status, dp.pokemon_id, ps.showdown_id, ps.dex_num, ps.tier, ps.hp, ps.atk, ps.def, ps.spa, ps.spd, ps.spe, ps.base_species, ps.forme;
+  END IF;
+END $$;
 
 
 CREATE OR REPLACE FUNCTION public.extract_id_from_pokeapi_url(url text)
@@ -309,78 +353,61 @@ END;
 $function$
 ;
 
-CREATE OR REPLACE FUNCTION public.get_pokemon_by_id(pokemon_id_param integer)
- RETURNS TABLE(pokemon_id integer, name text, sprite_front_default_path text, sprite_official_artwork_path text, types jsonb, abilities jsonb, hp integer, atk integer, def integer, spa integer, spd integer, spe integer, showdown_tier text, generation integer, base_experience integer)
- LANGUAGE plpgsql
- STABLE
-AS $function$
-BEGIN
-  RETURN QUERY
-  SELECT 
-    pu.pokemon_id,
-    pu.name,
-    pu.sprite_front_default_path,
-    pu.sprite_official_artwork_path,
-    pu.types,
-    pu.abilities,
-    pu.hp,
-    pu.atk,
-    pu.def,
-    pu.spa,
-    pu.spd,
-    pu.spe,
-    pu.showdown_tier,
-    pu.generation,
-    pu.base_experience
-  FROM public.pokemon_unified pu
-  WHERE pu.pokemon_id = pokemon_id_param
-  LIMIT 1;
-END;
-$function$
-;
+-- Skip creating get_pokemon_by_id function here - it will be created in migration 20260120000019_create_unified_pokemon_views.sql
+-- This function depends on pokemon_unified which doesn't exist yet at this migration point
 
-CREATE OR REPLACE FUNCTION public.get_pokemon_by_name(pokemon_name_param text)
- RETURNS TABLE(pokemon_id integer, name text, sprite_front_default_path text, sprite_official_artwork_path text, types jsonb, abilities jsonb, hp integer, atk integer, def integer, spa integer, spd integer, spe integer, showdown_tier text, generation integer, base_experience integer)
- LANGUAGE plpgsql
- STABLE
-AS $function$
-DECLARE
-  normalized_name TEXT;
+-- Create get_pokemon_by_name function only if pokemon_unified exists
+-- This function will be properly created in migration 20260120000019_create_unified_pokemon_views.sql
+DO $$ 
 BEGIN
-  normalized_name := lower(trim(pokemon_name_param));
-  
-  RETURN QUERY
-  SELECT 
-    pu.pokemon_id,
-    pu.name,
-    pu.sprite_front_default_path,
-    pu.sprite_official_artwork_path,
-    pu.types,
-    pu.abilities,
-    pu.hp,
-    pu.atk,
-    pu.def,
-    pu.spa,
-    pu.spd,
-    pu.spe,
-    pu.showdown_tier,
-    pu.generation,
-    pu.base_experience
-  FROM public.pokemon_unified pu
-  WHERE 
-    lower(pu.name) = normalized_name
-    OR lower(replace(pu.name, ' ', '-')) = normalized_name
-    OR lower(pu.showdown_id) = normalized_name
-  ORDER BY 
-    CASE 
-      WHEN lower(pu.name) = normalized_name THEN 1
-      WHEN lower(replace(pu.name, ' ', '-')) = normalized_name THEN 2
-      ELSE 3
-    END
-  LIMIT 1;
-END;
-$function$
-;
+  IF EXISTS (
+    SELECT 1 FROM information_schema.views 
+    WHERE table_schema = 'public' 
+    AND table_name = 'pokemon_unified'
+  ) THEN
+    CREATE OR REPLACE FUNCTION public.get_pokemon_by_name(pokemon_name_param text)
+     RETURNS TABLE(pokemon_id integer, name text, sprite_front_default_path text, sprite_official_artwork_path text, types jsonb, abilities jsonb, hp integer, atk integer, def integer, spa integer, spd integer, spe integer, showdown_tier text, generation integer, base_experience integer)
+     LANGUAGE plpgsql
+     STABLE
+    AS $function$
+    DECLARE
+      normalized_name TEXT;
+    BEGIN
+      normalized_name := lower(trim(pokemon_name_param));
+      
+      RETURN QUERY
+      SELECT 
+        pu.pokemon_id,
+        pu.name,
+        pu.sprite_front_default_path,
+        pu.sprite_official_artwork_path,
+        pu.types,
+        pu.abilities,
+        pu.hp,
+        pu.atk,
+        pu.def,
+        pu.spa,
+        pu.spd,
+        pu.spe,
+        pu.showdown_tier,
+        pu.generation,
+        pu.base_experience
+      FROM public.pokemon_unified pu
+      WHERE 
+        lower(pu.name) = normalized_name
+        OR lower(replace(pu.name, ' ', '-')) = normalized_name
+        OR lower(pu.showdown_id) = normalized_name
+      ORDER BY 
+        CASE 
+          WHEN lower(pu.name) = normalized_name THEN 1
+          WHEN lower(replace(pu.name, ' ', '-')) = normalized_name THEN 2
+          ELSE 3
+        END
+      LIMIT 1;
+    END;
+    $function$;
+  END IF;
+END $$;
 
 CREATE OR REPLACE FUNCTION public.get_pokemon_by_tier(tier_points integer)
  RETURNS TABLE(pokemon_name text, point_value integer, generation integer, pokemon_cache_id integer)
@@ -754,72 +781,8 @@ END;
 $function$
 ;
 
-create or replace view "public"."pokemon_with_all_data" as  SELECT pu.pokemon_id,
-    pu.name,
-    pu.showdown_id,
-    pu.dex_num,
-    pu.species_name,
-    pu.height,
-    pu.weight,
-    pu.base_experience,
-    pu.is_default,
-    pu.sprite_front_default_path,
-    pu.sprite_official_artwork_path,
-    pu.pokeapi_types,
-    pu.type_primary,
-    pu.type_secondary,
-    pu.pokeapi_base_stats,
-    pu.total_base_stat,
-    pu.pokeapi_abilities,
-    pu.ability_primary,
-    pu.ability_hidden,
-    pu."order",
-    pu.generation,
-    pu.cry_latest_path,
-    pu.cry_legacy_path,
-    pu.moves_count,
-    pu.forms_count,
-    pu.showdown_tier,
-    pu.base_species,
-    pu.forme,
-    pu.is_nonstandard,
-    pu.showdown_hp,
-    pu.showdown_atk,
-    pu.showdown_def,
-    pu.showdown_spa,
-    pu.showdown_spd,
-    pu.showdown_spe,
-    pu.evolution_data,
-    pu.hp,
-    pu.atk,
-    pu.def,
-    pu.spa,
-    pu.spd,
-    pu.spe,
-    pu.types,
-    pu.abilities,
-    pu.pokeapi_updated_at,
-    pu.showdown_updated_at,
-    pu.last_updated,
-    ( SELECT json_agg(jsonb_build_object('type_id', pt.type_id, 'name', t.name, 'slot', pt.slot) ORDER BY pt.slot) AS json_agg
-           FROM (public.pokemon_types pt
-             JOIN public.types t ON ((pt.type_id = t.type_id)))
-          WHERE (pt.pokemon_id = pu.pokemon_id)) AS normalized_types,
-    ( SELECT json_agg(jsonb_build_object('ability_id', pa.ability_id, 'name', a.name, 'is_hidden', pa.is_hidden, 'slot', pa.slot) ORDER BY pa.slot) AS json_agg
-           FROM (public.pokemon_abilities pa
-             JOIN public.abilities a ON ((pa.ability_id = a.ability_id)))
-          WHERE (pa.pokemon_id = pu.pokemon_id)) AS normalized_abilities,
-    ( SELECT count(DISTINCT pm.move_id) AS count
-           FROM public.pokemon_moves pm
-          WHERE (pm.pokemon_id = pu.pokemon_id)) AS normalized_moves_count,
-    ps_species.species_id,
-    ps_species.name AS species_name_full,
-    ps_species.generation_id AS species_generation_id,
-    ps_species.is_legendary,
-    ps_species.is_mythical,
-    ps_species.is_baby
-   FROM (public.pokemon_unified pu
-     LEFT JOIN public.pokemon_species ps_species ON ((pu.species_name = ps_species.name)));
+-- Skip creating pokemon_with_all_data view here - it will be created in migration 20260120000019_create_unified_pokemon_views.sql
+-- This view depends on pokemon_unified which doesn't exist yet at this migration point
 
 
 CREATE OR REPLACE FUNCTION public.populate_abilities_from_pokeapi()
@@ -1363,47 +1326,8 @@ END;
 $function$
 ;
 
-CREATE OR REPLACE FUNCTION public.search_pokemon(search_query text DEFAULT NULL::text, type_filter text DEFAULT NULL::text, ability_filter text DEFAULT NULL::text, tier_filter text DEFAULT NULL::text, generation_filter integer DEFAULT NULL::integer, limit_count integer DEFAULT 50)
- RETURNS TABLE(pokemon_id integer, name text, sprite_official_artwork_path text, types jsonb, abilities jsonb, hp integer, atk integer, def integer, spa integer, spd integer, spe integer, showdown_tier text, generation integer)
- LANGUAGE plpgsql
- STABLE
-AS $function$
-BEGIN
-  RETURN QUERY
-  SELECT 
-    pu.pokemon_id,
-    pu.name,
-    pu.sprite_official_artwork_path,
-    pu.types,
-    pu.abilities,
-    pu.hp,
-    pu.atk,
-    pu.def,
-    pu.spa,
-    pu.spd,
-    pu.spe,
-    pu.showdown_tier,
-    pu.generation
-  FROM public.pokemon_unified pu
-  WHERE 
-    (search_query IS NULL OR 
-     lower(pu.name) LIKE '%' || lower(search_query) || '%' OR
-     lower(pu.showdown_id) LIKE '%' || lower(search_query) || '%')
-    AND (type_filter IS NULL OR 
-         pu.type_primary = type_filter OR 
-         pu.type_secondary = type_filter OR
-         pu.types::TEXT LIKE '%' || type_filter || '%')
-    AND (ability_filter IS NULL OR
-         pu.ability_primary = ability_filter OR
-         pu.ability_hidden = ability_filter OR
-         pu.abilities::TEXT LIKE '%' || ability_filter || '%')
-    AND (tier_filter IS NULL OR pu.showdown_tier = tier_filter)
-    AND (generation_filter IS NULL OR pu.generation = generation_filter)
-  ORDER BY pu.pokemon_id
-  LIMIT limit_count;
-END;
-$function$
-;
+-- Skip creating search_pokemon function here - it will be created in migration 20260120000019_create_unified_pokemon_views.sql
+-- This function depends on pokemon_unified which doesn't exist yet at this migration point
 
 CREATE OR REPLACE FUNCTION public.unschedule_showdown_pokedex_cron()
  RETURNS void
