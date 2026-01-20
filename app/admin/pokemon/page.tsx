@@ -161,6 +161,12 @@ export default function AdminPokemonPage() {
   const [selectedTier, setSelectedTier] = useState<string | "all">("all")
   const [pooledOnly, setPooledOnly] = useState(false)
   const [seasonId, setSeasonId] = useState<string | null>(null)
+  const [seasonName, setSeasonName] = useState<string | null>(null)
+  const [seasonIdentifier, setSeasonIdentifier] = useState<string | null>(null) // AABPBL-Season-6-2026 format
+  const [seasons, setSeasons] = useState<Array<{ id: string; name: string; season_id: string | null }>>([])
+  const [editingSeason, setEditingSeason] = useState(false)
+  const [newSeasonName, setNewSeasonName] = useState("")
+  const [newSeasonId, setNewSeasonId] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(30) // Default: 30 Pokémon per page
   const router = useRouter()
@@ -179,15 +185,41 @@ export default function AdminPokemonPage() {
 
       setUser(user)
 
-      // Fetch current season
-      const { data: season } = await supabase
+      // Fetch all seasons (season_id may not exist yet, so handle gracefully)
+      const { data: seasonsData, error: seasonsError } = await supabase
         .from("seasons")
-        .select("id")
-        .eq("is_current", true)
-        .single()
-
-      if (season) {
-        setSeasonId(season.id)
+        .select("id, name, season_id")
+        .order("start_date", { ascending: false })
+      
+      if (seasonsError) {
+        console.warn("[Admin Pokemon Page] Error fetching seasons (season_id may not exist):", seasonsError)
+        // Fallback: fetch without season_id
+        const { data: fallbackData } = await supabase
+          .from("seasons")
+          .select("id, name")
+          .order("start_date", { ascending: false })
+        
+        if (fallbackData) {
+          setSeasons(fallbackData.map((s: any) => ({ ...s, season_id: null })))
+          
+          // Set current season as default
+          const currentSeason = fallbackData.find((s: any) => s.is_current) || fallbackData[0]
+          if (currentSeason) {
+            setSeasonId(currentSeason.id)
+            setSeasonName(currentSeason.name)
+            setSeasonIdentifier(null)
+          }
+        }
+      } else if (seasonsData) {
+        setSeasons(seasonsData)
+        
+        // Set current season as default
+        const currentSeason = seasonsData.find((s: any) => s.is_current) || seasonsData[0]
+        if (currentSeason) {
+          setSeasonId(currentSeason.id)
+          setSeasonName(currentSeason.name)
+          setSeasonIdentifier(currentSeason.season_id || null)
+        }
       }
 
       // Fetch Pokémon data
@@ -200,7 +232,14 @@ export default function AdminPokemonPage() {
   async function loadPokemon() {
     setLoading(true)
     try {
-      const response = await fetch("/api/admin/pokemon")
+      const url = seasonId ? `/api/admin/pokemon?season_id=${encodeURIComponent(seasonId)}` : "/api/admin/pokemon"
+      console.log("[Admin Pokemon Page] Fetching from:", url)
+      const response = await fetch(url)
+      
+      if (!response.ok) {
+        throw new Error(`Failed to load Pokémon: ${response.status} ${response.statusText}`)
+      }
+      
       const data = await response.json()
 
       if (!response.ok) {
@@ -230,7 +269,11 @@ export default function AdminPokemonPage() {
           }))
         })
         setPokemon(pokemonWithEdits)
-        setSeasonId(data.season_id)
+        if (data.season_id) {
+          setSeasonId(data.season_id)
+          setSeasonName(data.season_name || null)
+          setSeasonIdentifier(data.season_identifier || null)
+        }
       }
     } catch (error: any) {
       console.error("Error loading Pokémon:", error)
@@ -534,6 +577,116 @@ export default function AdminPokemonPage() {
                   className="pl-9"
                 />
               </div>
+              {/* Season Selector */}
+              {editingSeason ? (
+                <div className="flex items-center gap-2 border rounded-md p-1 bg-background">
+                  <Input
+                    placeholder="Season Name"
+                    value={newSeasonName}
+                    onChange={(e) => setNewSeasonName(e.target.value)}
+                    className="h-9 w-32 text-sm"
+                  />
+                  <Input
+                    placeholder="AABPBL-Season-6-2026"
+                    value={newSeasonId}
+                    onChange={(e) => setNewSeasonId(e.target.value)}
+                    className="h-9 w-48 text-sm font-mono"
+                  />
+                  <Button
+                    size="sm"
+                    onClick={async () => {
+                      if (!newSeasonName || !newSeasonId) {
+                        toast({
+                          title: "Error",
+                          description: "Both season name and ID are required",
+                          variant: "destructive",
+                        })
+                        return
+                      }
+                      try {
+                        const supabase = createBrowserClient()
+                        const { data, error } = await supabase
+                          .from("seasons")
+                          .insert({
+                            name: newSeasonName,
+                            season_id: newSeasonId,
+                            start_date: new Date().toISOString().split('T')[0],
+                            is_current: false,
+                          })
+                          .select()
+                          .single()
+
+                        if (error) throw error
+
+                        if (data) {
+                          setSeasons([...seasons, data])
+                          setSeasonId(data.id)
+                          setSeasonName(data.name)
+                          setSeasonIdentifier(data.season_id)
+                          setEditingSeason(false)
+                          setNewSeasonName("")
+                          setNewSeasonId("")
+                          toast({
+                            title: "Success",
+                            description: "Season created successfully",
+                          })
+                          await loadPokemon()
+                        }
+                      } catch (error: any) {
+                        toast({
+                          title: "Error",
+                          description: error.message || "Failed to create season",
+                          variant: "destructive",
+                        })
+                      }
+                    }}
+                  >
+                    Save
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      setEditingSeason(false)
+                      setNewSeasonName("")
+                      setNewSeasonId("")
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              ) : (
+                <Select
+                  value={seasonId || ""}
+                  onValueChange={async (value) => {
+                    if (value === "__create__") {
+                      setEditingSeason(true)
+                      return
+                    }
+                    const selectedSeason = seasons.find((s) => s.id === value)
+                    if (selectedSeason) {
+                      setSeasonId(selectedSeason.id)
+                      setSeasonName(selectedSeason.name)
+                      setSeasonIdentifier(selectedSeason.season_id)
+                      await loadPokemon()
+                    }
+                  }}
+                >
+                  <SelectTrigger className="w-[280px]">
+                    <SelectValue placeholder="Select Season" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {seasons.map((season) => (
+                      <SelectItem key={season.id} value={season.id}>
+                        {season.name} {season.season_id && `(${season.season_id})`}
+                      </SelectItem>
+                    ))}
+                    <SelectItem value="__create__">
+                      + Create New Season
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
               <Select
                 value={selectedGeneration.toString()}
                 onValueChange={(v) => setSelectedGeneration(v === "all" ? "all" : parseInt(v))}

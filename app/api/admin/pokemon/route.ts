@@ -88,24 +88,74 @@ function mapTierToPointValue(tier: string | null): number {
  */
 export async function GET(request: NextRequest) {
   try {
+    console.log("[Admin Pokemon API] GET request received at:", request.url)
     const supabase = await createServerClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
 
-    if (!user) {
+    if (authError) {
+      console.error("[Admin Pokemon API] Auth error:", authError)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Get current season
+    if (!user) {
+      console.log("[Admin Pokemon API] Unauthorized - no user")
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    console.log("[Admin Pokemon API] User authenticated:", user.id)
+
+    // Get season_id from query params, or use current season
     const serviceSupabase = createServiceRoleClient()
-    const { data: season } = await serviceSupabase
-      .from("seasons")
-      .select("id")
-      .eq("is_current", true)
-      .single()
+    const { searchParams } = new URL(request.url)
+    const requestedSeasonId = searchParams.get("season_id")
+
+    let season
+    if (requestedSeasonId) {
+      // Use requested season (season_id column may not exist yet)
+      const { data: seasonData, error: seasonError } = await serviceSupabase
+        .from("seasons")
+        .select("id, name, season_id")
+        .eq("id", requestedSeasonId)
+        .single()
+      
+      if (seasonError && seasonError.code === '42703') {
+        // Column doesn't exist, fallback to basic query
+        const { data: fallbackData } = await serviceSupabase
+          .from("seasons")
+          .select("id, name")
+          .eq("id", requestedSeasonId)
+          .single()
+        season = fallbackData ? { ...fallbackData, season_id: null } : null
+      } else {
+        season = seasonData
+      }
+    } else {
+      // Get current season as fallback (season_id column may not exist yet)
+      const { data: seasonData, error: seasonError } = await serviceSupabase
+        .from("seasons")
+        .select("id, name, season_id")
+        .eq("is_current", true)
+        .single()
+      
+      if (seasonError && seasonError.code === '42703') {
+        // Column doesn't exist, fallback to basic query
+        const { data: fallbackData } = await serviceSupabase
+          .from("seasons")
+          .select("id, name")
+          .eq("is_current", true)
+          .single()
+        season = fallbackData ? { ...fallbackData, season_id: null } : null
+      } else {
+        season = seasonData
+      }
+    }
 
     if (!season) {
-      return NextResponse.json({ error: "No active season found" }, { status: 404 })
+      console.error("[Admin Pokemon API] No season found")
+      return NextResponse.json({ error: "No season found" }, { status: 404 })
     }
+
+    console.log("[Admin Pokemon API] Using season:", season.id, season.name)
 
     // Fetch all Pokémon from PokeAPI using PokemonClient (just names/IDs)
     console.log("[Admin Pokemon API] Fetching Pokémon list from PokeAPI...")
@@ -456,6 +506,8 @@ export async function GET(request: NextRequest) {
         pokemon: validPokemon,
         total: validPokemon.length,
         season_id: season.id,
+        season_name: season.name,
+        season_identifier: season.season_id,
       },
       {
         headers: {
@@ -465,8 +517,12 @@ export async function GET(request: NextRequest) {
     )
   } catch (error: any) {
     console.error("[Admin Pokemon API] Error:", error)
+    console.error("[Admin Pokemon API] Error stack:", error.stack)
     return NextResponse.json(
-      { error: error.message || "Failed to fetch Pokémon data" },
+      { 
+        error: error.message || "Failed to fetch Pokémon data",
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      },
       { status: 500 }
     )
   }
@@ -499,6 +555,8 @@ export async function POST(request: NextRequest) {
     const serviceSupabase = createServiceRoleClient()
 
     // Batch upsert updates to draft_pool
+    // Note: The unique constraint is on (pokemon_name, point_value), but we want to update by (season_id, pokemon_name)
+    // So we need to first check for existing entries and update/insert accordingly
     const upsertData = updates.map((update: any) => ({
       pokemon_name: update.name,
       pokemon_id: update.pokemon_id,
@@ -511,11 +569,52 @@ export async function POST(request: NextRequest) {
 
     console.log(`[Admin Pokemon API] Upserting ${upsertData.length} Pokémon to draft_pool`)
 
+    // There's a unique INDEX on (pokemon_name, point_value) that doesn't include season_id
+    // This means the same Pokemon with the same point value can't exist across different seasons
+    // We need to:
+    // 1. Delete all entries for this season and these pokemon names (to handle point value changes)
+    // 2. Delete any entries across ALL seasons that match the (pokemon_name, point_value) we're inserting
+    // 3. Then insert the new entries
+    
+    const pokemonNames = [...new Set(upsertData.map((u: any) => u.pokemon_name))]
+    
+    // Step 1: Delete all entries for this season and these pokemon names
+    console.log(`[Admin Pokemon API] Step 1: Deleting all entries for ${pokemonNames.length} Pokémon in season ${season_id}`)
+    const { error: seasonDeleteError } = await serviceSupabase
+      .from("draft_pool")
+      .delete()
+      .eq("season_id", season_id)
+      .in("pokemon_name", pokemonNames)
+
+    if (seasonDeleteError) {
+      console.error("[Admin Pokemon API] Season delete error:", seasonDeleteError)
+      return NextResponse.json(
+        { error: `Failed to clear existing entries: ${seasonDeleteError.message}` },
+        { status: 500 }
+      )
+    }
+
+    // Step 2: Delete entries across ALL seasons that match the (pokemon_name, point_value) combinations
+    // This handles the unique index constraint
+    console.log(`[Admin Pokemon API] Step 2: Deleting conflicting (pokemon_name, point_value) entries across all seasons`)
+    for (const entry of upsertData) {
+      const { error: conflictDeleteError } = await serviceSupabase
+        .from("draft_pool")
+        .delete()
+        .eq("pokemon_name", entry.pokemon_name)
+        .eq("point_value", entry.point_value)
+
+      if (conflictDeleteError) {
+        console.warn(`[Admin Pokemon API] Warning: Could not delete conflict for ${entry.pokemon_name} (${entry.point_value} pts):`, conflictDeleteError)
+        // Continue - we'll try to insert anyway and handle the error
+      }
+    }
+
+    // Step 3: Insert the new entries
+    console.log(`[Admin Pokemon API] Step 3: Inserting ${upsertData.length} new entries`)
     const { data, error } = await serviceSupabase
       .from("draft_pool")
-      .upsert(upsertData, {
-        onConflict: "season_id,pokemon_name",
-      })
+      .insert(upsertData)
       .select()
 
     if (error) {
