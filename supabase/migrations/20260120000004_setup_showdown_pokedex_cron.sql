@@ -33,7 +33,7 @@ BEGIN
     'ingest-showdown-pokedex-weekly',
     '0 2 * * 0', -- Every Sunday at 2 AM UTC
     $cron_job$
-    DO $$
+    DO $inner$
     DECLARE
       supabase_url TEXT;
       service_role_key TEXT;
@@ -63,7 +63,7 @@ BEGIN
       ELSE
         RAISE WARNING 'Showdown cron job skipped: Missing app.settings.supabase_url or app.settings.service_role_key';
       END IF;
-    END $$;
+    END $inner$;
     $cron_job$
   );
   

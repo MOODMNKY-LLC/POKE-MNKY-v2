@@ -17,6 +17,7 @@ interface Pokemon {
   generation: number | null
   pokemon_id: number | null
   status?: "available" | "drafted" | "banned" | "unavailable"
+  types?: string[]
 }
 
 interface DraftBoardProps {
@@ -66,6 +67,15 @@ export function DraftBoard({ sessionId, currentTeamId, seasonId, isYourTurn = fa
         if (data.success) {
           const pokemonList = data.pokemon || []
           console.log("[DraftBoard] Setting Pokemon:", pokemonList.length, "Sample:", pokemonList.slice(0, 3))
+          // Debug: Check if types are included
+          if (pokemonList.length > 0) {
+            const sampleWithTypes = pokemonList.slice(0, 3).map(p => ({
+              name: p.pokemon_name,
+              types: p.types,
+              hasTypes: !!p.types && p.types.length > 0
+            }))
+            console.log("[DraftBoard] Types check:", sampleWithTypes)
+          }
           setPokemon(pokemonList)
           
           if (pokemonList.length === 0) {
@@ -351,6 +361,7 @@ export function DraftBoard({ sessionId, currentTeamId, seasonId, isYourTurn = fa
                   generation: p.generation || 1,
                   pokemon_id: p.pokemon_id ?? null,
                   status: p.status || "available", // Include status field
+                  types: p.types, // Include types
                 }))}
                 draftedPokemon={draftedPokemon}
                 isYourTurn={!!currentTeamId}

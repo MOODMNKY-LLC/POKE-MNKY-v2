@@ -28,10 +28,27 @@ export function TeamRosterPanel({ teamId, seasonId }: TeamRosterPanelProps) {
   const [roster, setRoster] = useState<RosterPick[]>([])
   const [budget, setBudget] = useState({ total: 120, spent: 0, remaining: 120 })
   const [loading, setLoading] = useState(true)
-  const supabase = createClient()
+  const [supabase, setSupabase] = useState<ReturnType<typeof createClient> | null>(null)
+
+  // Initialize Supabase client on mount (client-side only)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const client = createClient()
+        setSupabase(client)
+      } catch (error) {
+        console.error("Failed to create Supabase client:", error)
+        setLoading(false)
+      }
+    }
+  }, [])
 
   useEffect(() => {
-    if (!teamId) {
+    if (!teamId || !supabase) {
+      if (!supabase) {
+        // Still waiting for Supabase client
+        return
+      }
       setLoading(false)
       return
     }
@@ -115,6 +132,20 @@ export function TeamRosterPanel({ teamId, seasonId }: TeamRosterPanelProps) {
       channel.unsubscribe()
     }
   }, [teamId, seasonId, supabase])
+
+  // Show loading state while Supabase client initializes
+  if (!supabase) {
+    return (
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-6 w-32" />
+        </CardHeader>
+        <CardContent>
+          <Skeleton className="h-24 w-full" />
+        </CardContent>
+      </Card>
+    )
+  }
 
   if (loading) {
     return (

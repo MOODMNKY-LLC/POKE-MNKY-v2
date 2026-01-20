@@ -10,6 +10,7 @@ interface Pokemon {
   generation: number
   pokemon_id?: string | number | null
   status?: "available" | "drafted" | "banned" | "unavailable"
+  types?: string[]
 }
 
 interface PointTierSectionProps {
@@ -48,6 +49,7 @@ export function PointTierSection({
                 generation: p.generation || 1,
                 pokemon_id: p.pokemon_id ?? null,
                 status: p.status || "available",
+                types: p.types,
               }}
               isDrafted={p.status === "drafted" || draftedPokemon.includes(p.name.toLowerCase())}
               isYourTurn={isYourTurn}

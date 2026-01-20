@@ -77,16 +77,50 @@ export async function GET(request: Request) {
       // Workaround: Fetch all available Pokemon and filter by season_id in JavaScript
       // This bypasses the Supabase JS client UUID comparison issue
       console.log(`[API /draft/available] Fetching all available Pokemon (workaround for UUID issue)...`)
-      const { data: allAvailableData, error: allAvailableError } = await supabase
+      
+      // Try with tera_captain_eligible first, fallback if column doesn't exist
+      let allAvailableData: any[] | null = null
+      let allAvailableError: any = null
+      
+      // First attempt: Include tera_captain_eligible
+      const { data: dataWithTera, error: errorWithTera } = await supabase
         .from("draft_pool")
-        .select("pokemon_name, point_value, pokemon_id, status, season_id")
+        .select("pokemon_name, point_value, pokemon_id, status, season_id, tera_captain_eligible")
         .eq("status", "available")
         .order("point_value", { ascending: false })
         .order("pokemon_name", { ascending: true })
-        .limit(1000) // Get more than we need to filter
+        .limit(1000)
+      
+      // Check if error is due to missing column
+      if (errorWithTera && errorWithTera.code === '42703' && errorWithTera.message?.includes('tera_captain_eligible')) {
+        console.log(`[API /draft/available] tera_captain_eligible column not found, retrying without it...`)
+        // Retry without tera_captain_eligible (backward compatibility)
+        const { data: dataWithoutTera, error: errorWithoutTera } = await supabase
+          .from("draft_pool")
+          .select("pokemon_name, point_value, pokemon_id, status, season_id")
+          .eq("status", "available")
+          .order("point_value", { ascending: false })
+          .order("pokemon_name", { ascending: true })
+          .limit(1000)
+        
+        allAvailableData = dataWithoutTera
+        allAvailableError = errorWithoutTera
+      } else {
+        allAvailableData = dataWithTera
+        allAvailableError = errorWithTera
+      }
       
       if (allAvailableError) {
         console.error(`[API /draft/available] Error fetching all available:`, allAvailableError)
+        // Don't return 500 if it's just that the table is empty - return empty array instead
+        if (allAvailableError.code === 'PGRST116' || allAvailableError.message?.includes('No rows')) {
+          console.log(`[API /draft/available] Draft pool is empty - returning empty array`)
+          return NextResponse.json({
+            success: true,
+            pokemon: [],
+            total: 0,
+          })
+        }
         return NextResponse.json({ 
           success: false, 
           error: `Failed to fetch Pokemon: ${allAvailableError.message}` 
@@ -110,11 +144,15 @@ export async function GET(request: Request) {
       console.log(`[API /draft/available] JavaScript filter: ${directData.length} rows match season_id out of ${allAvailableData?.length || 0} total`)
       
       // Remove season_id from results (not needed in response)
+      // Include tera_captain_eligible if available (backward compatible)
       const directDataClean = directData.map((p: any) => ({
         pokemon_name: p.pokemon_name,
         point_value: p.point_value,
         pokemon_id: p.pokemon_id,
         status: p.status,
+        ...(p.tera_captain_eligible !== undefined && {
+          tera_captain_eligible: p.tera_captain_eligible,
+        }),
       }))
       
       const directError = null // No error if we got here
@@ -143,12 +181,48 @@ export async function GET(request: Request) {
         }
       }
       
+      // Fetch types for Pokémon that have pokemon_id
+      const pokemonIdsForTypes = directDataClean
+        ?.map((p: any) => p.pokemon_id)
+        .filter((id: any): id is number => id !== null && id !== undefined) || []
+      
+      const typesMap = new Map<number, string[]>()
+      if (pokemonIdsForTypes.length > 0) {
+        // Try pokemon_cache first
+        const { data: cacheTypesData } = await supabase
+          .from("pokemon_cache")
+          .select("pokemon_id, types")
+          .in("pokemon_id", pokemonIdsForTypes)
+
+        cacheTypesData?.forEach((entry: any) => {
+          if (entry.types && Array.isArray(entry.types)) {
+            typesMap.set(entry.pokemon_id, entry.types)
+          }
+        })
+
+        // Also try pokepedia_pokemon as fallback
+        const { data: pokepediaTypesData } = await supabase
+          .from("pokepedia_pokemon")
+          .select("id, types")
+          .in("id", pokemonIdsForTypes)
+
+        pokepediaTypesData?.forEach((entry: any) => {
+          if (entry.types && Array.isArray(entry.types) && !typesMap.has(entry.id)) {
+            typesMap.set(entry.id, entry.types)
+          }
+        })
+      }
+
       const pokemonWithGen = directDataClean?.map((p: any) => ({
         pokemon_name: p.pokemon_name,
         point_value: p.point_value,
         pokemon_id: p.pokemon_id,
         status: p.status || 'available',
         generation: genMap.get(p.pokemon_name.toLowerCase()) || null,
+        types: p.pokemon_id ? (typesMap.get(p.pokemon_id) || undefined) : undefined,
+        ...(p.tera_captain_eligible !== undefined && {
+          tera_captain_eligible: p.tera_captain_eligible,
+        }),
       })) || []
       
       // Apply filters
@@ -212,6 +286,9 @@ export async function GET(request: Request) {
         pokemon_id: p.pokemon_id || null,
         generation: genMap.get(p.pokemon_name.toLowerCase()) || null,
         status: p.status || "available",
+        ...(p.tera_captain_eligible !== undefined && {
+          tera_captain_eligible: p.tera_captain_eligible,
+        }),
       }))
     }
 

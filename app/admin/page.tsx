@@ -10,6 +10,7 @@ import { SupabaseManager } from "@/components/platform/supabase-manager"
 // PokepediaSyncStatusNew removed - sync system deleted
 import { ShowdownPokedexSync } from "@/components/admin/showdown-pokedex-sync"
 import { PokemonSyncControl } from "@/components/admin/pokemon-sync-control"
+import { DraftPoolImport } from "@/components/admin/draft-pool-import"
 import { PokeMnkyPremium } from "@/components/ui/poke-mnky-avatar"
 import { useRouter } from "next/navigation"
 
@@ -42,14 +43,22 @@ export default function AdminPage() {
         pokemon: pokemonCount || 0,
       })
 
-      const { data: sync } = await supabase
-        .from("sync_log")
-        .select("*")
-        .order("synced_at", { ascending: false })
-        .limit(1)
-        .single()
+      // Try to fetch sync log, but handle gracefully if table doesn't exist or RLS blocks access
+      try {
+        const { data: sync, error: syncError } = await supabase
+          .from("sync_log")
+          .select("*")
+          .order("synced_at", { ascending: false })
+          .limit(1)
+          .maybeSingle()
 
-      setLastSync(sync)
+        if (!syncError && sync) {
+          setLastSync(sync)
+        }
+      } catch (error) {
+        // Silently ignore sync_log errors (table might not exist or RLS might block access)
+        console.debug("Could not fetch sync_log:", error)
+      }
     }
 
     fetchStats()
@@ -305,6 +314,22 @@ export default function AdminPage() {
               </Button>
             </CardContent>
           </Card>
+
+          {/* Pokémon Draft Pool Management */}
+          <Card>
+            <CardHeader>
+              <ClipboardList className="mb-2 h-8 w-8 text-primary" />
+              <CardTitle>Pokémon Draft Pool</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-4 text-sm text-muted-foreground">
+                Manage which Pokémon are available for the draft pool. Edit tier and availability for all Pokémon.
+              </p>
+              <Button asChild variant="outline" className="w-full bg-transparent">
+                <Link href="/admin/pokemon">Manage Pokémon</Link>
+              </Button>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Pokemon Data Sync Control */}
@@ -315,6 +340,11 @@ export default function AdminPage() {
         {/* Showdown Pokedex Sync */}
         <div id="showdown-sync" className="mt-8 scroll-mt-8">
           <ShowdownPokedexSync />
+        </div>
+
+        {/* Draft Pool Import & Sync */}
+        <div id="draft-pool-import" className="mt-8 scroll-mt-8">
+          <DraftPoolImport />
         </div>
       </main>
 

@@ -38,6 +38,32 @@ interface ExtendedPokemonData extends PokemonDisplayData {
   weight?: number // in hectograms
 }
 
+/**
+ * Calculate generation from pokemon_id
+ * Gen 1: 1-151, Gen 2: 152-251, Gen 3: 252-386, Gen 4: 387-493,
+ * Gen 5: 494-649, Gen 6: 650-721, Gen 7: 722-809, Gen 8: 810-905, Gen 9: 906+
+ */
+function getGenerationFromId(pokemonId: number): number {
+  if (pokemonId <= 151) return 1
+  if (pokemonId <= 251) return 2
+  if (pokemonId <= 386) return 3
+  if (pokemonId <= 493) return 4
+  if (pokemonId <= 649) return 5
+  if (pokemonId <= 721) return 6
+  if (pokemonId <= 809) return 7
+  if (pokemonId <= 905) return 8
+  return 9
+}
+
+/**
+ * Get generation for a Pokemon (from data or calculated from ID)
+ */
+function getPokemonGeneration(pokemon: PokemonDisplayData): number {
+  return pokemon.generation || getGenerationFromId(pokemon.pokemon_id)
+}
+
+type SortOption = "id" | "name" | "generation"
+
 export default function PokedexPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedPokemon, setSelectedPokemon] = useState<ExtendedPokemonData | null>(null)
@@ -45,6 +71,8 @@ export default function PokedexPage() {
   const [loading, setLoading] = useState(true)
   const [loadingDetails, setLoadingDetails] = useState(false)
   const [spriteMode, setSpriteMode] = useState<"front" | "back" | "shiny" | "artwork">("front")
+  const [selectedGeneration, setSelectedGeneration] = useState<number | "all">("all")
+  const [sortBy, setSortBy] = useState<SortOption>("id")
 
   useEffect(() => {
     async function loadPokemon() {
@@ -123,9 +151,44 @@ export default function PokedexPage() {
     loadComprehensiveDetails()
   }, [selectedPokemon?.pokemon_id])
 
-  const filteredPokemon = searchQuery.trim()
-    ? pokemonList
-    : pokemonList.filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
+  // Filter and sort Pokemon with useMemo for performance
+  const { filteredPokemon, totalCount } = useMemo(() => {
+    let filtered = pokemonList
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      filtered = filtered.filter((p) => 
+        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.pokemon_id.toString().includes(searchQuery)
+      )
+    }
+
+    // Apply generation filter
+    if (selectedGeneration !== "all") {
+      filtered = filtered.filter((p) => getPokemonGeneration(p) === selectedGeneration)
+    }
+
+    // Apply sorting
+    const sorted = [...filtered].sort((a, b) => {
+      switch (sortBy) {
+        case "name":
+          return a.name.localeCompare(b.name)
+        case "generation":
+          const genA = getPokemonGeneration(a)
+          const genB = getPokemonGeneration(b)
+          if (genA !== genB) return genA - genB
+          return a.pokemon_id - b.pokemon_id // Secondary sort by ID
+        case "id":
+        default:
+          return a.pokemon_id - b.pokemon_id
+      }
+    })
+
+    return {
+      filteredPokemon: sorted,
+      totalCount: pokemonList.length,
+    }
+  }, [pokemonList, searchQuery, selectedGeneration, sortBy])
 
   const getTierColor = (tier: string | null) => {
     if (!tier) return "bg-muted text-muted-foreground"
@@ -194,28 +257,70 @@ export default function PokedexPage() {
       </div>
 
       {/* Search and Filters */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search Pokémon..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
+      <div className="space-y-4 mb-6">
+        {/* Top row: Search and Sprite Mode */}
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search Pokémon..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <Select value={spriteMode} onValueChange={(v: any) => setSpriteMode(v)}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <ImageIcon className="h-4 w-4 mr-2" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="front">Front Sprite</SelectItem>
+              <SelectItem value="back">Back Sprite</SelectItem>
+              <SelectItem value="shiny">Shiny</SelectItem>
+              <SelectItem value="artwork">Official Art</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-        <Select value={spriteMode} onValueChange={(v: any) => setSpriteMode(v)}>
-          <SelectTrigger className="w-full sm:w-[180px]">
-            <ImageIcon className="h-4 w-4 mr-2" />
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="front">Front Sprite</SelectItem>
-            <SelectItem value="back">Back Sprite</SelectItem>
-            <SelectItem value="shiny">Shiny</SelectItem>
-            <SelectItem value="artwork">Official Art</SelectItem>
-          </SelectContent>
-        </Select>
+
+        {/* Bottom row: Generation Filter, Sort, and Count */}
+        <div className="flex flex-col sm:flex-row gap-4 items-center">
+          <Select value={selectedGeneration.toString()} onValueChange={(v) => setSelectedGeneration(v === "all" ? "all" : parseInt(v))}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="Generation" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Generations</SelectItem>
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(gen => (
+                <SelectItem key={gen} value={gen.toString()}>
+                  Generation {gen}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={sortBy} onValueChange={(v: SortOption) => setSortBy(v)}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="id">Sort by ID</SelectItem>
+              <SelectItem value="name">Sort by Name</SelectItem>
+              <SelectItem value="generation">Sort by Generation</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Total Count Display */}
+          <div className="flex-1 text-sm text-muted-foreground">
+            Showing <span className="font-semibold text-foreground">{filteredPokemon.length}</span> of{" "}
+            <span className="font-semibold text-foreground">{totalCount}</span> Pokémon
+            {selectedGeneration !== "all" && (
+              <span className="ml-2">
+                (Gen {selectedGeneration})
+              </span>
+            )}
+          </div>
+        </div>
       </div>
 
       <div className="grid lg:grid-cols-[300px_1fr] gap-6">
@@ -245,7 +350,12 @@ export default function PokedexPage() {
                   />
                   <div className="flex-1">
                     <p className="font-semibold capitalize">{pokemon.name}</p>
-                    <p className="text-xs text-muted-foreground">#{pokemon.pokemon_id}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs text-muted-foreground">#{pokemon.pokemon_id}</p>
+                      <Badge variant="secondary" className="text-xs">
+                        Gen {getPokemonGeneration(pokemon)}
+                      </Badge>
+                    </div>
                   </div>
                   {pokemon.tier && (
                     <Badge className={getTierColor(pokemon.tier)} variant="outline">
