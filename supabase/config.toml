@@ -315,7 +315,7 @@ email_optional = false
 # Discord OAuth provider configuration for local development
 # Get credentials from: https://discord.com/developers/applications
 # IMPORTANT: Add this exact redirect URI in Discord Developer Portal → OAuth2 → Redirects:
-#   http://127.0.0.1:54321/auth/v1/callback
+#   http://127.0.0.1:65432/auth/v1/callback
 [auth.external.discord]
 enabled = true
 client_id = "env(DISCORD_CLIENT_ID)"
@@ -324,7 +324,7 @@ secret = "env(DISCORD_CLIENT_SECRET)"
 # Redirect URI that Discord will redirect to after authorization
 # This must match EXACTLY what's registered in Discord Developer Portal
 # Format: http://127.0.0.1:<api_port>/auth/v1/callback
-redirect_uri = "http://127.0.0.1:54321/auth/v1/callback"
+redirect_uri = "http://127.0.0.1:65432/auth/v1/callback"
 # Overrides the default auth provider URL. Leave empty to use Discord's default endpoints.
 url = ""
 # If enabled, the nonce check will be skipped. Keep false for security.

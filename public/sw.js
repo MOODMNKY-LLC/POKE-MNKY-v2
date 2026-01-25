@@ -4,6 +4,11 @@ const STATIC_CACHE = `${CACHE_VERSION}-static`
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`
 const API_CACHE = `${CACHE_VERSION}-api`
 
+// In local development, caching HTML can cause hydration mismatches because
+// stale cached pages may be served while the client bundle is updated.
+// Disable SW caching behaviors on localhost/127.0.0.1.
+const IS_LOCAL_DEV = self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1'
+
 // Static assets to cache on install
 const STATIC_ASSETS = [
   '/',
@@ -27,6 +32,11 @@ const CACHEABLE_API_ROUTES = [
 // Install event - cache static resources
 self.addEventListener('install', (event) => {
   console.log('[SW] Installing service worker...')
+  if (IS_LOCAL_DEV) {
+    // Don’t pre-cache in local dev
+    self.skipWaiting()
+    return
+  }
   event.waitUntil(
     caches.open(STATIC_CACHE).then((cache) => {
       console.log('[SW] Caching static assets')
@@ -57,11 +67,27 @@ self.addEventListener('activate', (event) => {
       )
     })
   )
+  if (IS_LOCAL_DEV) {
+    // Aggressively clear caches in local dev to prevent serving stale HTML.
+    event.waitUntil(
+      caches.keys().then((cacheNames) =>
+        Promise.all(
+          cacheNames
+            .filter((cacheName) => cacheName.startsWith('aab-battle-league-'))
+            .map((cacheName) => caches.delete(cacheName))
+        )
+      )
+    )
+  }
   return self.clients.claim()
 })
 
 // Fetch event - implement caching strategies
 self.addEventListener('fetch', (event) => {
+  if (IS_LOCAL_DEV) {
+    // Bypass SW caching in local dev.
+    return
+  }
   const { request } = event
   const url = new URL(request.url)
 

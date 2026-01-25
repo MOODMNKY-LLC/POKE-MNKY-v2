@@ -145,21 +145,21 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   // Add dashboard-specific items
   navItems.push(
     {
-      title: "My Matches",
-      url: "/dashboard/matches",
+      title: "Weekly Matches",
+      url: "/dashboard/weekly-matches",
       icon: Sword,
       items: [
         {
           title: "All Matches",
-          url: "/dashboard/matches",
+          url: "/dashboard/weekly-matches",
         },
         {
           title: "Submit Result",
-          url: "/dashboard/matches/submit",
+          url: "/dashboard/weekly-matches/submit",
         },
         {
           title: "Match History",
-          url: "/dashboard/matches/history",
+          url: "/dashboard/weekly-matches/history",
         },
       ],
     },

@@ -15,12 +15,13 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ path: string[] }> }
 ) {
+  let endpoint = ""
   try {
     const { path } = await params
     const body = await request.json().catch(() => ({}))
     
     // Reconstruct the API endpoint path
-    const endpoint = `/${path.join("/")}`
+    endpoint = `/${path.join("/")}`
     
     // Route to the appropriate MCP client method based on endpoint
     let result: any

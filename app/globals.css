@@ -155,7 +155,20 @@
   to {
     background-position: var(--bg-size, 300%) 0;
     }
-  }}
+  }
+  --animate-shine: shine var(--duration) infinite linear;
+  @keyframes shine {
+  0% {
+    background-position: 0% 0%;
+    }
+  50% {
+    background-position: 100% 100%;
+    }
+  to {
+    background-position: 0% 0%;
+    }
+  }
+}
 
 @layer base {
   * {
@@ -524,14 +537,14 @@
     height: 0 !important;
     background: transparent !important;
   }
-  
+
   textarea[data-slot="textarea"],
   textarea,
   .hide-textarea-scrollbar {
     -ms-overflow-style: none !important;
     scrollbar-width: none !important;
   }
-  
+
   /* Also target by class if needed */
   textarea.overflow-y-auto::-webkit-scrollbar {
     display: none !important;
@@ -549,7 +562,7 @@
     height: 0 !important;
     background: transparent !important;
   }
-  
+
   [role="log"],
   .scrollbar-hide,
   [class*="overflow-y-auto"] {

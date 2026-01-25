@@ -65,7 +65,7 @@ Discord authorization page
   ↓
 User authorizes app
   ↓
-Discord redirects to: http://127.0.0.1:54321/auth/v1/callback?code=XXX
+Discord redirects to: http://127.0.0.1:65432/auth/v1/callback?code=XXX
   ↓
 Supabase processes callback
   ↓

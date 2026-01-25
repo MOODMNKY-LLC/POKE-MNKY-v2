@@ -46,6 +46,7 @@ export default function DiscordWebhooksPage() {
     }
 
     try {
+      const supabase = createBrowserClient()
       const { error } = await supabase.from("discord_webhooks").insert(newWebhook)
 
       if (error) throw error
