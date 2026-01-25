@@ -273,6 +273,24 @@ Visit [http://localhost:3000](http://localhost:3000)
 
 The app uses **48 SQL migration files** in `supabase/migrations/`. Run them in order:
 
+### Seeding Stock Showdown Teams (optional)
+
+If you'd like new users to see preloaded Showdown teams for a fuller experience, run the seed that inserts five \"stock\" teams into `public.showdown_teams`:
+
+- Using the included npm script (reads `POSTGRES_URL` from your environment):
+
+```bash
+npm run db:seed:showdown
+```
+
+- Or run psql directly:
+
+```bash
+psql "$POSTGRES_URL" -f supabase/seeds/seed_showdown_stock_teams.sql
+```
+
+This seed is idempotent and marks inserted teams with `is_stock = true`. Run it against your development database only.
+
 **Option A: Supabase SQL Editor (Recommended)**
 1. Go to [supabase.com/dashboard](https://supabase.com/dashboard)
 2. Select your project → SQL Editor

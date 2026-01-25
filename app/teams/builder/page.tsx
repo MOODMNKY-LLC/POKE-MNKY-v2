@@ -1,6 +1,7 @@
-"use client"
+ "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
+import { useRouter } from "next/navigation"
 import { Trash2, Save, Sparkles, Loader2, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -9,11 +10,14 @@ import { Badge } from "@/components/ui/badge"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { PokemonSprite } from "@/components/pokemon-sprite"
+import { FixedSizeList as List } from "react-window"
 import { getAllPokemonFromCache, searchPokemon, type PokemonDisplayData } from "@/lib/pokemon-utils"
 import { generateShowdownTeamExport, downloadTeamFile } from "@/lib/team-builder-utils"
 import { toast } from "sonner"
+import { Toggle } from "@/components/ui/toggle"
 
 export default function TeamBuilderPage() {
+  const router = useRouter()
   const [teamName, setTeamName] = useState("")
   const [selectedPokemon, setSelectedPokemon] = useState<PokemonDisplayData[]>([])
   const [availablePokemon, setAvailablePokemon] = useState<PokemonDisplayData[]>([])
@@ -86,11 +90,22 @@ export default function TeamBuilderPage() {
 
   const typeAnalysis = getTypeAnalysis()
 
-  const filteredAvailable = availablePokemon.filter(
-    (p) =>
-      !selectedPokemon.find((sp) => sp.pokemon_id === p.pokemon_id) &&
-      (searchQuery.trim() ? true : p.name.toLowerCase().includes(searchQuery.toLowerCase())),
-  )
+  const [density, setDensity] = useState<"compact" | "comfortable">("compact")
+  const [pointFilter, setPointFilter] = useState<number | null>(null)
+
+  const filteredAvailable = useMemo(() => {
+    return availablePokemon.filter((p) => {
+      if (selectedPokemon.find((sp) => sp.pokemon_id === p.pokemon_id)) return false
+      if (pointFilter !== null && p.draft_cost !== pointFilter) return false
+      if (searchQuery.trim()) return true
+      return p.name.toLowerCase().includes(searchQuery.toLowerCase())
+    })
+  }, [availablePokemon, selectedPokemon, searchQuery, pointFilter])
+
+  const pointValues = useMemo(() => {
+    const vals = Array.from(new Set(availablePokemon.map((p) => p.draft_cost))).sort((a, b) => a - b)
+    return vals
+  }, [availablePokemon])
 
   const handleSaveTeam = async () => {
     if (selectedPokemon.length === 0) {
@@ -131,6 +146,20 @@ export default function TeamBuilderPage() {
 
       if (response.ok) {
         toast.success('Team saved successfully!');
+        // Broadcast the new team so other components can update optimistically
+        try {
+          if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+            const bc = new window.BroadcastChannel('showdown-teams')
+            bc.postMessage({ type: 'team-created', team: data.team })
+            bc.close()
+          } else {
+            localStorage.setItem('showdown_team_created', JSON.stringify({ team: data.team, ts: Date.now() }))
+          }
+        } catch (e) {
+          // ignore broadcast failures
+        }
+        // We broadcast the new team; stay on builder so the user can continue editing
+        // (other components will update via BroadcastChannel / storage)
       } else {
         toast.error(data.error || 'Failed to save team');
       }
@@ -340,9 +369,50 @@ export default function TeamBuilderPage() {
 
         {/* Available Pokemon */}
         <Card>
-          <CardHeader>
-            <CardTitle>Available Pokémon</CardTitle>
-            <Input placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+          <CardHeader className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <CardTitle>Available Pokémon</CardTitle>
+              <Input placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+            </div>
+            <div className="flex flex-col items-end gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground mr-2">Density</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    className={`px-2 py-1 rounded ${density === 'comfortable' ? 'bg-primary text-white' : 'bg-transparent'}`}
+                    onClick={() => setDensity('comfortable')}
+                  >
+                    Comfortable
+                  </button>
+                  <button
+                    className={`px-2 py-1 rounded ${density === 'compact' ? 'bg-primary text-white' : 'bg-transparent'}`}
+                    onClick={() => setDensity('compact')}
+                  >
+                    Compact
+                  </button>
+                </div>
+              </div>
+              <div className="w-full">
+                <div className="flex gap-2 overflow-x-auto py-1">
+                  <button
+                    onClick={() => setPointFilter(null)}
+                    className={`px-2 py-1 rounded ${pointFilter === null ? 'bg-primary text-white' : 'bg-transparent'}`}
+                  >
+                    All
+                  </button>
+                  {pointValues.map((pv) => (
+                    <button
+                      key={pv}
+                      onClick={() => setPointFilter(pv)}
+                      className={`px-2 py-1 rounded ${pointFilter === pv ? 'bg-primary text-white' : 'bg-transparent'}`}
+                      title={`Points: ${pv}`}
+                    >
+                      {pv} ({availablePokemon.filter((p) => p.draft_cost === pv).length})
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             {loading ? (
@@ -358,8 +428,45 @@ export default function TeamBuilderPage() {
                       {searchQuery.trim() ? "Try a different search" : "Loading from cache..."}
                     </p>
                   </div>
-                ) : (
-                  filteredAvailable.map((pokemon) => (
+              ) : density === 'compact' ? (
+                // Virtualized list for dense, performant rendering
+                <div style={{ width: '100%' }}>
+                  <List
+                    height={600}
+                    itemCount={filteredAvailable.length}
+                    itemSize={56}
+                    width="100%"
+                  >
+                    {({ index, style }) => {
+                      const pokemon = filteredAvailable[index]
+                      return (
+                        <div style={style} key={pokemon.pokemon_id} className="px-2">
+                          <button
+                            onClick={() => addPokemon(pokemon)}
+                            className="w-full text-left py-2 px-3 rounded-md border hover:bg-muted transition-colors flex items-center gap-3"
+                          >
+                            <PokemonSprite
+                              name={pokemon.name}
+                              pokemonId={pokemon.pokemon_id}
+                              pokemon={pokemon}
+                              size="xs"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between mb-0.5">
+                                <p className="font-semibold text-sm truncate capitalize">{pokemon.name}</p>
+                                <Badge variant="outline" className="text-xs">{pokemon.draft_cost} pts</Badge>
+                              </div>
+                            </div>
+                          </button>
+                        </div>
+                      )
+                    }}
+                  </List>
+                </div>
+              ) : (
+                // Comfortable card grid view
+                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {filteredAvailable.map((pokemon) => (
                     <button
                       key={pokemon.pokemon_id}
                       onClick={() => addPokemon(pokemon)}
@@ -390,8 +497,9 @@ export default function TeamBuilderPage() {
                         </div>
                       </div>
                     </button>
-                  ))
-                )}
+                  ))}
+                </div>
+              )}
               </div>
             )}
           </CardContent>

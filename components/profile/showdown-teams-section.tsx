@@ -32,6 +32,45 @@ export function ShowdownTeamsSection({ userId }: ShowdownTeamsSectionProps) {
     loadTeams()
   }, [userId])
 
+  // Listen for broadcasted team-created events to update optimistically
+  useEffect(() => {
+    let bc: BroadcastChannel | null = null
+    function handleStorageEvent(e: StorageEvent) {
+      if (e.key === 'showdown_team_created' && e.newValue) {
+        try {
+          const payload = JSON.parse(e.newValue)
+          if (payload?.team) {
+            setTeams((prev) => [payload.team, ...prev])
+          }
+        } catch (err) {
+          // ignore
+        }
+      }
+    }
+
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      // @ts-ignore - BroadcastChannel global
+      bc = new window.BroadcastChannel('showdown-teams')
+      bc.onmessage = (msg: any) => {
+        if (msg?.data?.type === 'team-created' && msg.data.team) {
+          setTeams((prev) => [msg.data.team, ...prev])
+        }
+      }
+      window.addEventListener('storage', handleStorageEvent)
+    } else if (typeof window !== 'undefined') {
+      window.addEventListener('storage', handleStorageEvent)
+    }
+
+    return () => {
+      if (bc) {
+        bc.close()
+      }
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('storage', handleStorageEvent)
+      }
+    }
+  }, [])
+
   async function loadTeams() {
     setLoading(true)
     try {
