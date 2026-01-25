@@ -1,0 +1,84 @@
+{
+  "info": {
+    "name": "Weekly Matches - API Tests",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Collection to test Weekly Matches endpoints and auth flow"
+  },
+  "item": [
+    {
+      "name": "Auth - Sign In (password)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"coach1@example.com\",\n  \"password\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "{{SUPABASE_URL}}/auth/v1/token?grant_type=password",
+          "host": ["{{SUPABASE_URL}}"],
+          "path": ["auth","v1","token"],
+          "query": [{ "key": "grant_type", "value": "password" }]
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "/* Ensure SUPABASE_URL & SUPABASE_ANON_KEY are set in environment */"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const r = pm.response.json();",
+              "if (r.access_token) { pm.environment.set('ACCESS_TOKEN', r.access_token); }",
+              "pm.test('Signed in', ()=> pm.expect(pm.response.code).to.be.oneOf([200,201]));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "GET Weekly Battle Plan (user)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{ACCESS_TOKEN}}" }
+        ],
+        "url": {
+          "raw": "{{APP_URL}}/api/weekly-battle-plans?matchId={{MATCH_ID}}",
+          "host": ["{{APP_URL}}"],
+          "path": ["api","weekly-battle-plans"],
+          "query": [{ "key": "matchId", "value": "{{MATCH_ID}}" }]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "POST Weekly Battle Plan (upsert)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{ACCESS_TOKEN}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"matchId\": \"{{MATCH_ID}}\",\n  \"seasonId\": \"{{SEASON_ID}}\",\n  \"matchweekId\": \"{{MATCHWEEK_ID}}\",\n  \"weekNumber\": {{WEEK_NUMBER}},\n  \"notes\": \"Test plan saved from Postman\",\n  \"payload\": {\"winConditions\":\"KO or stall\"}\n}"
+        },
+        "url": {
+          "raw": "{{APP_URL}}/api/weekly-battle-plans",
+          "host": ["{{APP_URL}}"],
+          "path": ["api","weekly-battle-plans"]
+        }
+      },
+      "response": []
+    }
+  ]
+}

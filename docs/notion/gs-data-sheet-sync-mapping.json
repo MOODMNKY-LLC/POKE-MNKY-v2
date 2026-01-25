@@ -1,0 +1,196 @@
+{
+  "version": 1,
+  "source": {
+    "spreadsheetIdEnv": "GOOGLE_SHEET_ID",
+    "defaultSpreadsheetId": "1sVQD6_CsoYtGmguRhc07IDlnz2V4Q2uWTt8Owpl5JE0",
+    "sheetName": "Data",
+    "ranges": {
+      "teamRows": "Data!A2:BH1000",
+      "pokemonStatsBlock": "Data!CB1:CH1000"
+    }
+  },
+  "notion": {
+    "apiKeyEnv": "NOTION_API_KEY",
+    "apiVersionEnv": "NOTION_API_VERSION",
+    "databases": {
+      "teams": {
+        "databaseId": "0d91c62b-7791-41bc-9620-fb95db8fc973",
+        "dataSourceId": "0dfe4425-0c7c-45ec-b75c-62e71bba726d",
+        "externalKeyProperty": "External Key",
+        "properties": {
+          "title": "Team",
+          "teamId": "Team ID",
+          "coachName": "Coach Name",
+          "division": "Division",
+          "conference": "Conference",
+          "logoUrl": "Logo URL",
+          "sourceSheet": "Source Sheet",
+          "sourceRow": "Source Row",
+          "sheetRow": "Sheet Row",
+          "active": "Active"
+        }
+      },
+      "seasons": {
+        "databaseId": "4ec82219-a416-464e-abef-db63bc68d0f3",
+        "dataSourceId": "45457d4c-8b81-4202-bc00-194745d854fb",
+        "externalKeyProperty": "External Key",
+        "properties": {
+          "title": "Season",
+          "spreadsheetId": "Spreadsheet ID",
+          "isCurrent": "Is Current",
+          "notes": "Notes"
+        }
+      },
+      "matches": {
+        "databaseId": "ca5d213b-0136-451f-9b50-c1b931304434",
+        "dataSourceId": "7585b48c-2acb-4854-b678-b49526675632",
+        "externalKeyProperty": "External Key",
+        "properties": {
+          "title": "Match",
+          "season": "Season",
+          "week": "Week",
+          "battleNumber": "Battle #",
+          "teamA": "Team A",
+          "teamB": "Team B",
+          "coachA": "Coach A",
+          "coachB": "Coach B",
+          "scoreA": "Score A",
+          "scoreB": "Score B",
+          "resultA": "Result A",
+          "resultB": "Result B",
+          "differential": "Differential",
+          "winner": "Winner",
+          "status": "Status",
+          "sourceSheet": "Source Sheet",
+          "sourceRow": "Source Row",
+          "notes": "Notes"
+        }
+      },
+      "teamSeasonStats": {
+        "databaseId": "8aae62c3-5b4e-4de7-9aab-29440a06e6b5",
+        "dataSourceId": "948d91dc-9cae-4d33-8347-cf13ac285db8",
+        "externalKeyProperty": "External Key",
+        "properties": {
+          "title": "Team Season Stat",
+          "season": "Season",
+          "team": "Team",
+          "gp": "GP",
+          "wins": "Wins",
+          "losses": "Losses",
+          "differential": "Differential",
+          "recordText": "Record (Text)",
+          "streak": "Streak",
+          "sosPercent": "SOS (Percent)",
+          "winPct": "Win%",
+          "oppWinPct": "Opponents Win%",
+          "strengthOfSchedule": "Strength of Schedule",
+          "opponentsFacedText": "Opponents Faced (Text)",
+          "sourceSheet": "Source Sheet",
+          "sourceRow": "Source Row"
+        }
+      },
+      "teamWeeklyResults": {
+        "databaseId": "7a0a4095-e1c6-4fd1-aa8f-f21e4ef571b4",
+        "dataSourceId": "0ab1c4cc-7f22-46eb-b3db-2f936d4869d5",
+        "externalKeyProperty": "External Key",
+        "properties": {
+          "title": "Team Week Result",
+          "season": "Season",
+          "team": "Team",
+          "week": "Week",
+          "result": "Result",
+          "opponent": "Opponent",
+          "notes": "Notes",
+          "sourceSheet": "Source Sheet",
+          "sourceColumnWeek": "Source Column (Week #)",
+          "sourceRow": "Source Row"
+        }
+      },
+      "pokemonIndex": {
+        "databaseId": "03735dba-5e35-4515-aefe-6abae760598a",
+        "dataSourceId": "918341fd-3e5c-479f-9926-e501b281beec",
+        "externalKeyProperty": "External Key",
+        "properties": {
+          "title": "Pokémon",
+          "slug": "Slug (Smogon/GitHub)",
+          "dexNumber": "Dex #",
+          "types": "Types",
+          "points": "Points",
+          "sourceSheet": "Source Sheet",
+          "notes": "Notes"
+        }
+      },
+      "teamPokemonSeasonStats": {
+        "databaseId": "ebcf9e30-a073-479a-aeda-0cf27ee07bc8",
+        "dataSourceId": "02bed625-4c95-435c-808a-95320f02df0d",
+        "externalKeyProperty": "External Key",
+        "properties": {
+          "title": "Team Pokémon Stat",
+          "season": "Season",
+          "team": "Team",
+          "pokemon": "Pokémon",
+          "category": "Category",
+          "kills": "Kills",
+          "appearances": "Appearances",
+          "killsPerAppearance": "Kills/Appearance",
+          "rank": "Rank",
+          "sourceSheet": "Source Sheet",
+          "sourceRow": "Source Row",
+          "notes": "Notes"
+        }
+      }
+    }
+  },
+  "externalKeys": {
+    "season": "season:{spreadsheetId}:{seasonName}",
+    "team": "team:{spreadsheetId}:{teamId}",
+    "teamSeasonStat": "teamSeason:{seasonKey}:{teamKey}",
+    "teamWeekResult": "teamWeek:{seasonKey}:{teamKey}:week:{week}",
+    "pokemon": "pokemon:{spreadsheetId}:{pokemonSlug}",
+    "teamPokemonStat": "teamPokemon:{seasonKey}:{teamKey}:{pokemonKey}:{category}:{rank}"
+  },
+  "googleSheetColumns": {
+    "teamId": "B",
+    "coachName": "C",
+    "teamName": "D",
+    "logo": "E",
+    "division": "F",
+    "conference": "G",
+    "gp": "AB",
+    "wins": "AC",
+    "losses": "AD",
+    "differential": "AE",
+    "recordText": "AF",
+    "weekResults": {
+      "week1": "AG",
+      "week2": "AH",
+      "week3": "AI",
+      "week4": "AJ",
+      "week5": "AK",
+      "week6": "AL",
+      "week7": "AM",
+      "week8": "AN",
+      "week9": "AO",
+      "week10": "AP"
+    },
+    "streak": "AQ",
+    "sosPercent": "AT",
+    "winPct": "BC",
+    "oppWinPct": "BD",
+    "strengthOfSchedule": "BE",
+    "opponentsFaced": "BH",
+    "pokemonStatsBlock": {
+      "range": "CB:CH",
+      "fields": [
+        "killsPerAppearanceOrBlank",
+        "topPokemon",
+        "topKills",
+        "topAppearances",
+        "bottomPokemon",
+        "bottomKills",
+        "bottomAppearances"
+      ]
+    }
+  }
+}
+

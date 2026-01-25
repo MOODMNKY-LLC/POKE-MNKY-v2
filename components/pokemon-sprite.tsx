@@ -126,25 +126,31 @@ export function PokemonSprite({
     )
   }
 
+  // For Next/Image with `fill`, the parent must have explicit width/height and position:relative.
+  const containerStyle: React.CSSProperties = {
+    position: "relative",
+    width: pixelSize,
+    height: pixelSize,
+  }
+
+  const imageStyle: React.CSSProperties = {
+    objectFit: mode === "artwork" ? "contain" : "contain",
+    imageRendering: mode === "artwork" ? "auto" : "pixelated",
+  }
+
   return (
-    <div 
-      className={cn("relative", className)} 
-      style={mode === "artwork" ? { width: "auto", height: "auto", maxWidth: pixelSize, maxHeight: pixelSize } : { width: pixelSize, height: pixelSize }}
-    >
+    <div className={cn("relative overflow-hidden", className)} style={containerStyle}>
       <Image
         src={spriteUrl}
         alt={name}
-        width={mode === "artwork" ? 512 : pixelSize}
-        height={mode === "artwork" ? 512 : pixelSize}
-        className={cn(
-          mode === "artwork" ? "w-auto h-auto max-w-full max-h-full object-contain" : "pixelated",
-          "transition-opacity duration-300"
-        )}
+        fill
+        style={imageStyle}
+        className={cn("transition-opacity duration-300")}
         onError={handleImageError}
         unoptimized
         priority={mode === "artwork"}
-        loading={mode === "artwork" ? "eager" : "lazy"} // Lazy load non-artwork images
-        sizes={mode === "artwork" ? "320px" : `${pixelSize}px`} // Proper sizing hints
+        loading={mode === "artwork" ? "eager" : "lazy"}
+        sizes={mode === "artwork" ? "320px" : `${pixelSize}px`}
       />
     </div>
   )

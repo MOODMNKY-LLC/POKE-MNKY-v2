@@ -33,9 +33,13 @@ export async function GET(request: Request) {
     
     console.log(`[API /draft/available] Calling RPC function with seasonId: ${seasonId}`)
     
-    // Call RPC function directly
-    const { data: rpcData, error: rpcError } = await supabase.rpc('get_available_pokemon', {
-      p_season_id: seasonId
+    // Call RPC function directly (use canonical free agency RPC)
+    const { data: rpcData, error: rpcError } = await supabase.rpc('get_available_pokemon_for_free_agency', {
+      p_season_id: seasonId,
+      p_min_points: minPoints ?? null,
+      p_max_points: maxPoints ?? null,
+      p_generation: generation ?? null,
+      p_search: search ?? null
     })
 
     if (rpcError) {
@@ -258,39 +262,15 @@ export async function GET(request: Request) {
       console.log(`[API /draft/available] RPC function returned ${rpcData.length} Pokemon`)
     }
 
-    // Map RPC results to Pokemon format and fetch generation from pokemon_cache
-    const pokemonNames = rpcData?.map((p: any) => p.pokemon_name) || []
-    let pokemonWithGen: any[] = []
-    
-    if (pokemonNames.length > 0) {
-      // Fetch generation data - Supabase supports up to 1000 items in .in()
-      // If we have more, we'll fetch in batches
-      const batchSize = 1000
-      const genMap = new Map<string, number>()
-      
-      for (let i = 0; i < pokemonNames.length; i += batchSize) {
-        const batch = pokemonNames.slice(i, i + batchSize)
-        const { data: genData } = await supabase
-          .from("pokemon_cache")
-          .select("pokemon_name, generation")
-          .in("pokemon_name", batch)
-        
-        genData?.forEach((p: any) => {
-          genMap.set(p.pokemon_name.toLowerCase(), p.generation)
-        })
-      }
-      
-      pokemonWithGen = (rpcData || []).map((p: any) => ({
-        pokemon_name: p.pokemon_name,
-        point_value: p.point_value,
-        pokemon_id: p.pokemon_id || null,
-        generation: genMap.get(p.pokemon_name.toLowerCase()) || null,
-        status: p.status || "available",
-        ...(p.tera_captain_eligible !== undefined && {
-          tera_captain_eligible: p.tera_captain_eligible,
-        }),
-      }))
-    }
+    // RPC returns pokemon_id, pokemon_name, point_value, generation.
+    // Map RPC rows directly to expected format.
+    const pokemonWithGen = (rpcData || []).map((p: any) => ({
+      pokemon_name: p.pokemon_name,
+      point_value: p.point_value,
+      pokemon_id: p.pokemon_id || null,
+      generation: p.generation ?? null,
+      status: 'available'
+    }))
 
     // Apply filters
     let filteredPokemon = pokemonWithGen
