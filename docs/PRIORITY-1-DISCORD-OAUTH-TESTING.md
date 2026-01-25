@@ -136,7 +136,7 @@ This document provides a comprehensive testing plan, troubleshooting guide, and 
 - [ ] Redirect URIs configured correctly:
   - Production: `https://poke-mnky.moodmnky.com/auth/callback`
   - Local: `http://localhost:3000/auth/callback`
-  - Supabase local: `http://localhost:54321/auth/v1/callback`
+  - Supabase local: `http://127.0.0.1:65432/auth/v1/callback`
 
 **Action**: Document current configuration in `docs/DISCORD-OAUTH-CONFIG.md`
 

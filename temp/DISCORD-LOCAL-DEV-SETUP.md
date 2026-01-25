@@ -26,11 +26,11 @@ This guide explains how to configure Discord OAuth authentication for local deve
 
 **Add these redirect URIs:**
 \`\`\`
-http://localhost:54321/auth/v1/callback
+http://127.0.0.1:65432/auth/v1/callback
 http://localhost:3000/auth/callback
 \`\`\`
 
-**Important:** The first URI (`http://localhost:54321/auth/v1/callback`) is Supabase's local auth callback endpoint. The second is your Next.js app callback.
+**Important:** The first URI (`http://127.0.0.1:65432/auth/v1/callback`) is Supabase's local auth callback endpoint (matches your local Supabase API port). The second is your Next.js app callback.
 
 ### 1.3 Get OAuth2 Credentials
 
@@ -70,7 +70,7 @@ DISCORD_GUILD_ID=your-discord-server-id-here
 DISCORD_PUBLIC_KEY=your-discord-public-key-here
 
 # Supabase Configuration
-NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:65432
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-local-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-local-service-role-key
 \`\`\`
@@ -96,7 +96,7 @@ The `supabase/config.toml` file has been configured with Discord OAuth settings:
 enabled = true
 client_id = "env(DISCORD_CLIENT_ID)"
 secret = "env(DISCORD_CLIENT_SECRET)"
-redirect_uri = "http://localhost:54321/auth/v1/callback"
+redirect_uri = "http://127.0.0.1:65432/auth/v1/callback"
 skip_nonce_check = false
 email_optional = false
 \`\`\`
@@ -118,9 +118,9 @@ supabase start
 \`\`\`
 
 This will:
-- Start PostgreSQL database (port 54322)
-- Start Supabase API (port 54321)
-- Start Supabase Studio (port 54323)
+- Start PostgreSQL database (port 65430)
+- Start Supabase API (port 65432)
+- Start Supabase Studio (port 65433)
 - Start Auth service with Discord OAuth enabled
 
 ### 4.2 Verify Configuration
@@ -171,7 +171,7 @@ After successful login:
 
 **Solution:**
 1. Verify redirect URI in Discord Developer Portal exactly matches:
-   - `http://localhost:54321/auth/v1/callback`
+   - `http://127.0.0.1:65432/auth/v1/callback`
 2. Check `supabase/config.toml` has correct `redirect_uri`
 3. Restart Supabase: `supabase stop && supabase start`
 
@@ -209,8 +209,8 @@ After successful login:
 
 ### Local Development URLs
 
-- **Supabase API:** `http://127.0.0.1:54321`
-- **Auth Callback:** `http://localhost:54321/auth/v1/callback`
+- **Supabase API:** `http://127.0.0.1:65432`
+- **Auth Callback:** `http://127.0.0.1:65432/auth/v1/callback`
 - **App URL:** `http://localhost:3000`
 - **App Callback:** `http://localhost:3000/auth/callback`
 

@@ -42,14 +42,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Get Discord webhook configuration
+    // NOTE: `discord_webhooks` schema is: { name, webhook_url, enabled }
+    // We use a fixed name for this event.
     const { data: webhook } = await supabase
       .from('discord_webhooks')
-      .select('webhook_url, channel_name')
-      .eq('event_type', 'video_tag')
-      .eq('is_active', true)
+      .select('webhook_url, enabled')
+      .eq('name', 'video_tag')
       .single();
 
-    if (!webhook?.webhook_url) {
+    if (!webhook?.webhook_url || webhook.enabled === false) {
       // No webhook configured, silently succeed
       return NextResponse.json({ success: true, message: 'No webhook configured' });
     }

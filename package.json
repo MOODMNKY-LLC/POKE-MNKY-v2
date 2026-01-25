@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "build": "next build",
-    "dev": "next dev",
-    "dev:webpack": "next dev --webpack",
+    "dev": "next dev --disable-source-maps",
+    "dev:webpack": "next dev --webpack --disable-source-maps",
     "lint": "eslint .",
     "start": "next start",
     "verify:optimizations": "tsx scripts/verify-homepage-optimizations.ts",

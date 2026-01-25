@@ -14,7 +14,7 @@ Discord OAuth requires the redirect URI to **exactly match** what's registered i
 
 For local Supabase development, the redirect URI is:
 \`\`\`
-http://127.0.0.1:54321/auth/v1/callback
+http://127.0.0.1:65432/auth/v1/callback
 \`\`\`
 
 **Important:** Use `127.0.0.1` (not `localhost`) to match Supabase's default API URL format.
@@ -27,13 +27,13 @@ http://127.0.0.1:54321/auth/v1/callback
 4. Under **Redirects**, click **Add Redirect**
 5. Add this **exact** URL:
    \`\`\`
-   http://127.0.0.1:54321/auth/v1/callback
+   http://127.0.0.1:65432/auth/v1/callback
    \`\`\`
 6. Click **Save Changes**
 
 ### Step 3: Verify Config.toml
 
-The `supabase/config.toml` has been updated to use Supabase's default redirect URI (empty `redirect_uri` field). This ensures consistency.
+Verify `supabase/config.toml` is using the same local API port as `supabase status` (in this repo, `65432`).
 
 ### Step 4: Restart Supabase
 
@@ -59,20 +59,20 @@ supabase start
 
 **Possible causes:**
 1. **Wrong format** - Using `localhost` instead of `127.0.0.1`
-   - ❌ Wrong: `http://localhost:54321/auth/v1/callback`
-   - ✅ Correct: `http://127.0.0.1:54321/auth/v1/callback`
+   - ❌ Wrong: `http://localhost:65432/auth/v1/callback`
+   - ✅ Correct: `http://127.0.0.1:65432/auth/v1/callback`
 
 2. **Wrong port** - Using wrong Supabase API port
    - Check with: `supabase status`
-   - Default is `54321`
+   - In this repo, local API port is `65432`
 
 3. **HTTPS vs HTTP** - Using `https://` instead of `http://`
-   - ❌ Wrong: `https://127.0.0.1:54321/auth/v1/callback`
-   - ✅ Correct: `http://127.0.0.1:54321/auth/v1/callback`
+   - ❌ Wrong: `https://127.0.0.1:65432/auth/v1/callback`
+   - ✅ Correct: `http://127.0.0.1:65432/auth/v1/callback`
 
 4. **Trailing slash** - Extra characters
-   - ❌ Wrong: `http://127.0.0.1:54321/auth/v1/callback/`
-   - ✅ Correct: `http://127.0.0.1:54321/auth/v1/callback`
+   - ❌ Wrong: `http://127.0.0.1:65432/auth/v1/callback/`
+   - ✅ Correct: `http://127.0.0.1:65432/auth/v1/callback`
 
 5. **Not saved** - Changes in Discord Developer Portal not saved
    - Make sure to click **Save Changes** after adding redirect URI
@@ -83,7 +83,7 @@ If you're using the same Discord app for both local dev and production:
 
 **Add both redirect URIs in Discord Developer Portal:**
 \`\`\`
-http://127.0.0.1:54321/auth/v1/callback          (local dev)
+http://127.0.0.1:65432/auth/v1/callback          (local dev)
 https://[your-project-ref].supabase.co/auth/v1/callback  (production)
 \`\`\`
 
@@ -92,11 +92,11 @@ https://[your-project-ref].supabase.co/auth/v1/callback  (production)
 ## Verification Checklist
 
 - [ ] Redirect URI added in Discord Developer Portal
-- [ ] Redirect URI matches exactly: `http://127.0.0.1:54321/auth/v1/callback`
+- [ ] Redirect URI matches exactly: `http://127.0.0.1:65432/auth/v1/callback`
 - [ ] Discord Client ID set in `.env.local` as `DISCORD_CLIENT_ID`
 - [ ] Discord Client Secret set in `.env.local` as `DISCORD_CLIENT_SECRET`
 - [ ] Supabase restarted after config changes
-- [ ] Supabase status shows API running on port 54321
+- [ ] Supabase status shows API running on port 65432
 
 ---
 
