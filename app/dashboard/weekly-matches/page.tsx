@@ -26,6 +26,8 @@ import { WeeklyBattlePlanEditor } from "@/components/dashboard/weekly-matches/ba
 
 const TOTAL_WEEKS = 8
 
+type SearchParams = { [key: string]: string | string[] | undefined }
+
 function parseWeek(input: unknown) {
   if (typeof input !== "string") return 1
   const n = parseInt(input, 10)
@@ -36,7 +38,7 @@ function parseWeek(input: unknown) {
 export default async function WeeklyMatchesPage({
   searchParams,
 }: {
-  searchParams?: { [key: string]: string | string[] | undefined }
+  searchParams?: SearchParams | Promise<SearchParams>
 }) {
   const supabase = await createClient()
   const {
@@ -53,7 +55,8 @@ export default async function WeeklyMatchesPage({
     redirect("/auth/login")
   }
 
-  const selectedWeek = parseWeek(searchParams?.week)
+  const resolvedSearchParams = await Promise.resolve(searchParams)
+  const selectedWeek = parseWeek(resolvedSearchParams?.week)
 
   const isCoach = profile.role === "coach"
   const teamId = isCoach ? profile.team_id : null

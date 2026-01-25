@@ -835,3 +835,4 @@ Just tell me which direction you want to go next.
 
 No file chosenNo file chosen
 ChatGPT can make mistakes. Check important info.
+https://www.notion.so/mood-mnky/Teams-2f2cd2a6542280b9906ff0ae5d489e5a?source=copy_link
