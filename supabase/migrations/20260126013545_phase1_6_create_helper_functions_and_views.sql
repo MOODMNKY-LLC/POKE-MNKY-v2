@@ -2,6 +2,10 @@
 -- Creates security helper functions and computed views for team rosters and budgets
 -- Based on: docs/chatgpt-conversation-average-at-best-zip.md (lines 3846-3875, 2361-2392)
 
+-- Ensure pgcrypto extension is available for digest function
+-- Note: Extension should already exist from phase1_1, but ensure it's enabled
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
+
 -- Helper function: Is coach of team?
 CREATE OR REPLACE FUNCTION public.is_coach_of_team(p_team_id UUID)
 RETURNS BOOLEAN
@@ -31,12 +35,15 @@ AS $$
 $$;
 
 -- Helper function: SHA256 hex hash
+-- Uses pgcrypto extension's digest function
 CREATE OR REPLACE FUNCTION public.sha256_hex(p TEXT)
 RETURNS TEXT
-LANGUAGE SQL
+LANGUAGE plpgsql
 IMMUTABLE
 AS $$
-  SELECT encode(digest(p, 'sha256'), 'hex');
+BEGIN
+  RETURN encode(digest(p, 'sha256'), 'hex');
+END;
 $$;
 
 -- Helper function: Validate API key
