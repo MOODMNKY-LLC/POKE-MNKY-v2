@@ -39,6 +39,13 @@ export function MobileMusicPlayer() {
     if (savedEnabled === 'true') {
       setIsEnabled(true)
     }
+    
+    // Refresh tracks periodically to catch newly enabled tracks
+    const interval = setInterval(() => {
+      fetchPlaylistTracks()
+    }, 30000) // Every 30 seconds
+    
+    return () => clearInterval(interval)
   }, [])
 
   const fetchPlaylistTracks = async () => {
@@ -85,10 +92,7 @@ export function MobileMusicPlayer() {
     localStorage.setItem('music-player-enabled', String(isEnabled))
   }, [isEnabled])
 
-  if (tracks.length === 0) {
-    return null
-  }
-
+  // Always show the button, even if no tracks (so it's visible in production)
   return (
     <>
       {/* Floating Button - Always Visible on Mobile */}
@@ -97,7 +101,7 @@ export function MobileMusicPlayer() {
         size="icon"
         className="fixed bottom-6 left-4 z-[45] h-12 w-12 rounded-full shadow-lg bg-background xl:hidden"
         onClick={() => setIsOpen(true)}
-        title="Music Player"
+        title={tracks.length === 0 ? "Music Player (No tracks available)" : "Music Player"}
       >
         <Music2 className="h-5 w-5" />
       </Button>

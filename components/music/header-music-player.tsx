@@ -43,14 +43,32 @@ export function HeaderMusicPlayer() {
     if (savedEnabled === 'true') {
       setIsEnabled(true)
     }
+    
+    // Refresh tracks periodically to catch newly enabled tracks
+    const interval = setInterval(() => {
+      fetchPlaylistTracks()
+    }, 30000) // Every 30 seconds
+    
+    return () => clearInterval(interval)
   }, [])
 
   const fetchPlaylistTracks = async () => {
     try {
       const response = await fetch('/api/music/music-tracks')
+      if (!response.ok) {
+        console.error('[HeaderMusicPlayer] API error:', response.status, response.statusText)
+        return
+      }
       const data = await response.json()
       
+      if (data.error) {
+        console.error('[HeaderMusicPlayer] API returned error:', data.error)
+        return
+      }
+      
       const enabledTracks = (data.tracks || []).filter((track: any) => track.playlist_enabled === true)
+      console.log('[HeaderMusicPlayer] Found', enabledTracks.length, 'enabled tracks out of', (data.tracks || []).length, 'total')
+      
       const mappedTracks = enabledTracks.map((track: any) => ({
         id: track.id,
         title: track.title,
@@ -65,7 +83,7 @@ export function HeaderMusicPlayer() {
         setCurrentTrackIndex(0)
       }
     } catch (error) {
-      console.error('Failed to fetch playlist tracks:', error)
+      console.error('[HeaderMusicPlayer] Failed to fetch playlist tracks:', error)
     }
   }
 
@@ -171,8 +189,27 @@ export function HeaderMusicPlayer() {
     }
   }, [currentTrackIndex, isEnabled, currentTrack])
 
+  // Always show something - even if no tracks, show the enable button
+  // This ensures the music player is visible in production
   if (tracks.length === 0) {
-    return null
+    return (
+      <div className="hidden xl:flex items-center">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            // Try to fetch tracks again when user clicks
+            fetchPlaylistTracks()
+            setIsEnabled(true)
+          }}
+          className="h-8 gap-1.5 text-xs"
+          title="No tracks available. Click to refresh."
+        >
+          <Music2 className="h-3.5 w-3.5" />
+          <span className="hidden 2xl:inline">Music</span>
+        </Button>
+      </div>
+    )
   }
 
   if (!isEnabled) {
@@ -197,7 +234,25 @@ export function HeaderMusicPlayer() {
   }
 
   if (!currentTrack) {
-    return null
+    // If enabled but no current track, show enable button again
+    return (
+      <div className="hidden xl:flex items-center">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            fetchPlaylistTracks()
+            if (tracks.length > 0) {
+              setCurrentTrackIndex(0)
+            }
+          }}
+          className="h-8 gap-1.5 text-xs"
+        >
+          <Music2 className="h-3.5 w-3.5" />
+          <span className="hidden 2xl:inline">Music</span>
+        </Button>
+      </div>
+    )
   }
 
   const trackInfo = `${currentTrack.title}${currentTrack.artist ? ` • ${currentTrack.artist}` : ''}`
