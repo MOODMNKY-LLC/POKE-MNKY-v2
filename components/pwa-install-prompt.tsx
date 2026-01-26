@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { cn } from "@/lib/utils"
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>
@@ -186,27 +187,39 @@ export function PWAInstallPrompt() {
 
   return (
     <Dialog open={showPrompt} onOpenChange={setShowPrompt}>
-      <DialogContent className="sm:max-w-md" showCloseButton={false}>
+      <DialogContent 
+        className={cn(
+          "sm:max-w-md",
+          // Mobile optimizations: safe area padding and full-width on mobile
+          "max-w-[calc(100vw-2rem)]",
+          "pb-safe pt-safe",
+          // Ensure proper spacing on mobile
+          "mx-4 sm:mx-0"
+        )} 
+        showCloseButton={false}
+      >
         <DialogHeader>
           <div className="flex items-center gap-3 mb-2">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
               <Smartphone className="h-5 w-5 text-primary" />
             </div>
-            <DialogTitle>Install Battle League App</DialogTitle>
+            <DialogTitle className="text-lg sm:text-xl">Install Battle League App</DialogTitle>
           </div>
-          <DialogDescription className="pt-2">
+          <DialogDescription className="pt-2 text-sm sm:text-base">
             Install our app for a faster, more app-like experience. Get quick access to standings, 
             teams, and battles right from your home screen.
           </DialogDescription>
         </DialogHeader>
-        <DialogFooter className="flex-col sm:flex-row gap-2">
+        <DialogFooter className="flex-col sm:flex-row gap-2 pt-4">
           <Button 
             variant="outline" 
             onClick={handleDismiss} 
             className={cn(
               "w-full sm:w-auto",
-              // Mobile touch optimization
-              "min-h-[44px] touch-manipulation active:scale-95"
+              // Mobile touch optimization - WCAG 2.5.5 minimum 44x44px
+              "min-h-[44px] touch-manipulation active:scale-95",
+              // Safe area padding for notched devices
+              "pb-safe sm:pb-0"
             )}
           >
             <X className="h-4 w-4 mr-2" />
@@ -216,8 +229,10 @@ export function PWAInstallPrompt() {
             onClick={handleInstall} 
             className={cn(
               "w-full sm:w-auto bg-gradient-to-r from-primary to-accent",
-              // Mobile touch optimization
-              "min-h-[44px] touch-manipulation active:scale-95"
+              // Mobile touch optimization - WCAG 2.5.5 minimum 44x44px
+              "min-h-[44px] touch-manipulation active:scale-95",
+              // Safe area padding for notched devices
+              "pb-safe sm:pb-0"
             )}
           >
             <Download className="h-4 w-4 mr-2" />
