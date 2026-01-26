@@ -1,0 +1,77 @@
+---
+title: Notion Sync Status
+api: GET /api/sync/notion/status
+---
+
+# Notion Sync Status
+
+Get status of Notion sync jobs.
+
+## Request
+
+<ParamField query="job_id" type="string">
+  Specific job UUID (optional, returns recent jobs if not provided)
+</ParamField>
+
+<ParamField query="limit" type="number">
+  Maximum number of jobs to return (default: 10, max: 100)
+</ParamField>
+
+## Response
+
+### Single Job
+
+<ResponseField name="job" type="object">
+  Job details:
+  - `job_id`: Job UUID
+  - `job_type`: Job type (full, incremental)
+  - `status`: Job status (running, completed, failed)
+  - `started_at`: ISO timestamp when job started
+  - `completed_at`: ISO timestamp when job completed (null if still running)
+  - `pokemon_synced`: Number of Pokémon synced
+  - `pokemon_failed`: Number of Pokémon that failed to sync
+  - `config`: Job configuration
+  - `error_log`: Error details (if failed)
+</ResponseField>
+
+### Multiple Jobs
+
+<ResponseField name="jobs" type="array">
+  Array of recent jobs (same structure as single job)
+</ResponseField>
+
+## Example Requests
+
+### Get Specific Job
+
+```bash
+curl -X GET "https://poke-mnky.moodmnky.com/api/sync/notion/status?job_id=job-uuid-here" \
+  -H "Authorization: Bearer YOUR_NOTION_SYNC_SECRET"
+```
+
+### Get Recent Jobs
+
+```bash
+curl -X GET "https://poke-mnky.moodmnky.com/api/sync/notion/status?limit=5"
+```
+
+## Example Response
+
+```json
+{
+  "job": {
+    "job_id": "job-uuid-here",
+    "job_type": "full",
+    "status": "completed",
+    "started_at": "2026-01-26T08:00:00Z",
+    "completed_at": "2026-01-26T08:05:23Z",
+    "pokemon_synced": 151,
+    "pokemon_failed": 0,
+    "config": {
+      "scope": ["pokemon", "role_tags", "moves"],
+      "dryRun": false
+    },
+    "error_log": null
+  }
+}
+```

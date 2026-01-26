@@ -193,7 +193,7 @@ export default async function WeeklyMatchesPage({
                     <div className="space-y-1">
                       <div className="text-sm text-muted-foreground">Week {selectedWeek}</div>
                       <div className="text-xl font-semibold">
-                        {(yourTeam?.name ?? profile.display_name ?? profile.username ?? "Coach")} vs{" "}
+                        {(yourTeam?.name ?? profile.display_name ?? profile.discord_username ?? "Coach")} vs{" "}
                         {opponentTeam?.name ? (
                           opponentTeam.name
                         ) : (

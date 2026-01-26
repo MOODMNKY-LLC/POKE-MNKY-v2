@@ -15,12 +15,27 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { createClient } from "@/lib/supabase/server"
-import { getCurrentUserProfile } from "@/lib/rbac"
+import { getCurrentUserProfile, type DiscordRole } from "@/lib/rbac"
+import { DISCORD_TO_APP_ROLE_MAP } from "@/lib/discord-role-mappings"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { Trophy, Users, Calendar, BarChart3, Sword, BookOpen, ClipboardList } from "lucide-react"
-import { DraftTabsSection } from "@/components/dashboard/draft-tabs-section"
-import { CoachCard } from "@/components/profile/coach-card"
+import { CoachCard as DefaultCoachCard } from "@/components/draft/coach-card"
+import { CoachCard as ConfigurableCoachCard } from "@/components/profile/coach-card"
+
+// Role priority order: admin > commissioner > coach > spectator
+const ROLE_PRIORITY: Record<string, number> = {
+  admin: 4,
+  commissioner: 3,
+  coach: 2,
+  spectator: 1,
+}
+
+function getDiscordRolePriority(discordRole: DiscordRole): number {
+  // Map Discord role name to app role, then get priority
+  const appRole = DISCORD_TO_APP_ROLE_MAP[discordRole.name] || "spectator"
+  return ROLE_PRIORITY[appRole] || 0
+}
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -78,22 +93,39 @@ export default async function DashboardPage() {
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
           <div className="space-y-4">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">
-                Welcome back, {profile.display_name || profile.username || "Member"}!
-              </h1>
-              <p className="text-muted-foreground">
-                Your personal dashboard for POKE MNKY
-                {season && ` · ${season.name}`}
-              </p>
-            </div>
-
-            {/* Coach Card - Featured prominently for coaches */}
-            {profile.role === "coach" && team && (
-              <div className="w-full">
-                <CoachCard team={team} userId={profile.id} />
+            {/* Welcome Section with Coach Card - Always shown */}
+            <div className="space-y-4">
+              <div className="grid gap-4 lg:grid-cols-2">
+                {/* Welcome Text - Takes 50% width on large screens */}
+                <div className="flex flex-col justify-center">
+                  <h1 className="text-3xl font-bold tracking-tight">
+                    Welcome back, {profile.display_name || profile.discord_username || "Member"}!
+                  </h1>
+                  <p className="text-muted-foreground mt-2">
+                    Your personal dashboard for POKE MNKY
+                    {season && ` · ${season.name}`}
+                  </p>
+                </div>
+                
+                {/* Coach Card - Takes 50% width on large screens, same as draft page */}
+                <div className="w-full flex items-center justify-center flex-shrink-0">
+                  {profile.role === "coach" && team ? (
+                    // Configurable coach card for actual coaches with team data
+                    <ConfigurableCoachCard team={team} userId={profile.id} />
+                  ) : (
+                    // Default coach card for non-coaches or coaches without team
+                    <>
+                      <div className="dark:hidden w-full">
+                        <DefaultCoachCard palette="red-blue" />
+                      </div>
+                      <div className="hidden dark:block w-full">
+                        <DefaultCoachCard palette="gold-black" />
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
-            )}
+            </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               <Card>
@@ -102,10 +134,28 @@ export default async function DashboardPage() {
                   <Users className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{profile.role || "Member"}</div>
-                  <p className="text-xs text-muted-foreground">
+                  <div className="text-2xl font-bold capitalize">{profile.role || "Member"}</div>
+                  <p className="text-xs text-muted-foreground mb-2">
                     {profile.team_id ? "Team Member" : "Individual"}
                   </p>
+                  {profile.discord_roles && profile.discord_roles.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {[...profile.discord_roles]
+                        .sort((a, b) => getDiscordRolePriority(b) - getDiscordRolePriority(a))
+                        .map((discordRole) => (
+                          <span
+                            key={discordRole.id}
+                            className="text-xs px-1.5 py-0.5 rounded border"
+                            style={{
+                              borderColor: discordRole.color !== "#000000" ? discordRole.color : undefined,
+                              color: discordRole.color !== "#000000" ? discordRole.color : undefined,
+                            }}
+                          >
+                            {discordRole.name}
+                          </span>
+                        ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -205,9 +255,6 @@ export default async function DashboardPage() {
                 </CardContent>
               </Card>
             </div>
-
-            {/* Draft Section - Tabs for Planning, Board, and Roster */}
-            <DraftTabsSection />
 
             <div className="grid gap-4 md:grid-cols-2">
               <Card>

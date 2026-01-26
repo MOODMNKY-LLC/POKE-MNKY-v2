@@ -1,0 +1,68 @@
+---
+title: Discord Coverage Notification
+api: POST /api/discord/notify/coverage
+---
+
+# Discord Coverage Notification
+
+Send coverage analysis notifications to Discord channels.
+
+<Info>
+This endpoint triggers coverage analysis and sends notifications to configured Discord channels.
+</Info>
+
+## Request
+
+<ParamField body="team_id" type="string" required>
+  Team UUID
+</ParamField>
+
+<ParamField body="season_id" type="string" required>
+  Season UUID
+</ParamField>
+
+<ParamField body="channel_id" type="string">
+  Discord channel ID to send notification to (optional, uses team's default channel)
+</ParamField>
+
+## Response
+
+<ResponseField name="ok" type="boolean">
+  Success status
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Status message
+</ResponseField>
+
+<ResponseField name="coverage" type="object">
+  Coverage analysis results:
+  - `weaknesses`: Array of type weaknesses
+  - `resists`: Array of type resistances
+  - `immunities`: Array of type immunities
+  - `coverage_score`: Overall coverage score (0-100)
+</ResponseField>
+
+## Example Request
+
+```bash
+curl -X POST https://poke-mnky.moodmnky.com/api/discord/notify/coverage \
+  -H "Authorization: Bearer YOUR_DISCORD_BOT_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{\"team_id\": \"team-uuid-here\", \"season_id\": \"123e4567-e89b-12d3-a456-426614174000\"}"
+```
+
+## Example Response
+
+```json
+{
+  "ok": true,
+  "message": "Coverage notification sent",
+  "coverage": {
+    "weaknesses": ["ground", "rock"],
+    "resists": ["electric", "flying", "steel"],
+    "immunities": ["ground"],
+    "coverage_score": 85
+  }
+}
+```

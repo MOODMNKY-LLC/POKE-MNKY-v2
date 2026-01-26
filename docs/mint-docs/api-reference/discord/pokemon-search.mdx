@@ -1,0 +1,65 @@
+---
+title: Discord Pokemon Search
+api: GET /api/discord/pokemon/search
+---
+
+# Discord Pokemon Search
+
+Search Pokémon for Discord bot commands with filters.
+
+## Request
+
+<ParamField query="query" type="string" required>
+  Search query (Pokémon name or slug)
+</ParamField>
+
+<ParamField query="season_id" type="string" required>
+  Season UUID for filtering eligible Pokémon
+</ParamField>
+
+<ParamField query="limit" type="number">
+  Maximum results (default: 10, max: 50)
+</ParamField>
+
+## Response
+
+<ResponseField name="ok" type="boolean">
+  Success status
+</ResponseField>
+
+<ResponseField name="results" type="array">
+  Array of matching Pokémon, each containing:
+  - `id`: Pokémon UUID
+  - `name`: Pokémon name
+  - `slug`: Pokémon slug
+  - `draft_points`: Draft point value
+  - `type1`: Primary type
+  - `type2`: Secondary type (if applicable)
+  - `eligible`: Whether eligible for this season
+</ResponseField>
+
+## Example Request
+
+```bash
+curl -X GET "https://poke-mnky.moodmnky.com/api/discord/pokemon/search?query=pikachu&season_id=123e4567-e89b-12d3-a456-426614174000" \
+  -H "Authorization: Bearer YOUR_DISCORD_BOT_API_KEY"
+```
+
+## Example Response
+
+```json
+{
+  "ok": true,
+  "results": [
+    {
+      "id": "pokemon-uuid",
+      "name": "Pikachu",
+      "slug": "pikachu",
+      "draft_points": 18,
+      "type1": "electric",
+      "type2": null,
+      "eligible": true
+    }
+  ]
+}
+```

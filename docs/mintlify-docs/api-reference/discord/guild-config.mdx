@@ -1,0 +1,90 @@
+---
+title: Discord Guild Config
+api: GET /api/discord/guild/config
+---
+
+# Discord Guild Configuration
+
+Get or set guild default season configuration.
+
+## Get Configuration
+
+<ParamField query="guild_id" type="string" required>
+  Discord guild/server ID
+</ParamField>
+
+### Response
+
+<ResponseField name="ok" type="boolean">
+  Success status
+</ResponseField>
+
+<ResponseField name="guild_id" type="string">
+  Discord guild ID
+</ResponseField>
+
+<ResponseField name="default_season_id" type="string">
+  Default season UUID (null if not configured)
+</ResponseField>
+
+<ResponseField name="default_season" type="object">
+  Default season details (null if not configured):
+  - `id`: Season UUID
+  - `name`: Season name
+</ResponseField>
+
+<ResponseField name="admin_role_ids" type="array">
+  Array of Discord role IDs with admin permissions
+</ResponseField>
+
+<ResponseField name="configured" type="boolean">
+  Whether guild has a default season configured
+</ResponseField>
+
+## Set Configuration
+
+<ParamField body="guild_id" type="string" required>
+  Discord guild/server ID
+</ParamField>
+
+<ParamField body="default_season_id" type="string" required>
+  Season UUID to set as default
+</ParamField>
+
+<ParamField body="admin_role_ids" type="array">
+  Array of Discord role IDs with admin permissions (optional)
+</ParamField>
+
+## Example Requests
+
+### Get Config
+
+```bash
+curl -X GET "https://poke-mnky.moodmnky.com/api/discord/guild/config?guild_id=123456789012345678" \
+  -H "Authorization: Bearer YOUR_DISCORD_BOT_API_KEY"
+```
+
+### Set Config
+
+```bash
+curl -X POST https://poke-mnky.moodmnky.com/api/discord/guild/config \
+  -H "Authorization: Bearer YOUR_DISCORD_BOT_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{\"guild_id\": \"123456789012345678\", \"default_season_id\": \"123e4567-e89b-12d3-a456-426614174000\", \"admin_role_ids\": [\"987654321098765432\"]}"
+```
+
+## Example Response
+
+```json
+{
+  "ok": true,
+  "guild_id": "123456789012345678",
+  "default_season_id": "123e4567-e89b-12d3-a456-426614174000",
+  "default_season": {
+    "id": "123e4567-e89b-12d3-a456-426614174000",
+    "name": "Season 5"
+  },
+  "admin_role_ids": ["987654321098765432"],
+  "configured": true
+}
+```

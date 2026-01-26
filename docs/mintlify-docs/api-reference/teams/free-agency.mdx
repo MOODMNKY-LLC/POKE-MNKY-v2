@@ -1,0 +1,97 @@
+---
+title: Free Agency Transaction
+api: POST /api/free-agency/transaction
+---
+
+# Free Agency Transaction
+
+Execute an atomic drop+add transaction for free agency moves.
+
+<Info>
+This endpoint uses an RPC function to ensure atomicity - both drop and add must succeed or both fail.
+</Info>
+
+## Request
+
+<ParamField body="season_id" type="string" required>
+  Season UUID
+</ParamField>
+
+<ParamField body="team_id" type="string" required>
+  Team UUID
+</ParamField>
+
+<ParamField body="drop_pokemon_id" type="string" required>
+  UUID of Pokémon to drop from roster
+</ParamField>
+
+<ParamField body="add_pokemon_id" type="string" required>
+  UUID of Pokémon to add to roster
+</ParamField>
+
+<ParamField body="notes" type="string">
+  Optional transaction notes
+</ParamField>
+
+## Response
+
+<ResponseField name="ok" type="boolean">
+  Success status
+</ResponseField>
+
+<ResponseField name="transaction" type="object">
+  Transaction details:
+  - `id`: Transaction UUID
+  - `team_id`: Team UUID
+  - `season_id`: Season UUID
+  - `action`: Transaction type (drop, add)
+  - `pokemon_id`: Pokémon UUID involved
+  - `points_change`: Points change (negative for drop, positive for add)
+</ResponseField>
+
+<ResponseField name="budget" type="object">
+  Updated budget after transaction:
+  - `points_used`: Total points spent
+  - `points_remaining`: Points remaining
+  - `slots_used`: Roster slots used
+  - `slots_remaining`: Roster slots remaining
+</ResponseField>
+
+## Example Request
+
+```bash
+curl -X POST https://poke-mnky.moodmnky.com/api/free-agency/transaction \
+  -H "Content-Type: application/json" \
+  -d "{\"season_id\": \"123e4567-e89b-12d3-a456-426614174000\", \"team_id\": \"team-uuid-here\", \"drop_pokemon_id\": \"pokemon-to-drop-uuid\", \"add_pokemon_id\": \"pokemon-to-add-uuid\", \"notes\": \"Better type coverage\"}"
+```
+
+## Example Response
+
+```json
+{
+  "ok": true,
+  "transaction": {
+    "id": "transaction-uuid",
+    "team_id": "team-uuid-here",
+    "season_id": "123e4567-e89b-12d3-a456-426614174000",
+    "action": "drop",
+    "pokemon_id": "pokemon-to-drop-uuid",
+    "points_change": -15
+  },
+  "budget": {
+    "points_used": 95,
+    "points_remaining": 25,
+    "slots_used": 8,
+    "slots_remaining": 2
+  }
+}
+```
+
+## Error Responses
+
+Common error codes:
+
+- `400` - Validation failed
+- `404` - Season, team, or Pokémon not found
+- `409` - Transaction conflict (Pokémon not on roster, insufficient budget, etc.)
+- `422` - Business logic error

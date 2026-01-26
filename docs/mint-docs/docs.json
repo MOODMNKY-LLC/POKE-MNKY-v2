@@ -1,0 +1,132 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "aspen",
+  "name": "Average At Best: Pokemon Battle League Docs",
+  "colors": {
+    "primary": "#CC0000",
+    "light": "#B3A125",
+    "dark": "#CC0000"
+  },
+  "favicon": "/icon.svg",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Guides",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "index",
+              "introduction",
+              "quickstart",
+              "installation"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "api-reference/overview"
+            ]
+          },
+          {
+            "group": "Discord Bot",
+            "pages": [
+              "api-reference/discord/draft-pick",
+              "api-reference/discord/draft-status",
+              "api-reference/discord/pokemon-search",
+              "api-reference/discord/guild-config",
+              "api-reference/discord/coach-whoami",
+              "api-reference/discord/coverage-notification"
+            ]
+          },
+          {
+            "group": "Team Management",
+            "pages": [
+              "api-reference/teams/free-agency",
+              "api-reference/teams/roster"
+            ]
+          },
+          {
+            "group": "Notion Sync",
+            "pages": [
+              "api-reference/notion/sync-pull",
+              "api-reference/notion/sync-incremental",
+              "api-reference/notion/sync-status"
+            ]
+          }
+        ]
+      }
+    ],
+    "global": {
+      "anchors": [
+        {
+          "anchor": "Documentation",
+          "href": "https://docs.poke-mnky.moodmnky.com",
+          "icon": "book-open-cover"
+        },
+        {
+          "anchor": "API Reference",
+          "href": "https://docs.poke-mnky.moodmnky.com/api-reference",
+          "icon": "code"
+        },
+        {
+          "anchor": "Discord",
+          "href": "https://discord.gg/pokemnky",
+          "icon": "discord"
+        }
+      ]
+    }
+  },
+  "logo": {
+    "light": "/images/poke-mnky/avatars/red-blue.svg",
+    "dark": "/images/poke-mnky/avatars/gold-black.svg"
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "GitHub",
+        "href": "https://github.com/moodmnky/POKE-MNKY-v2"
+      },
+      {
+        "label": "App",
+        "href": "https://poke-mnky.moodmnky.com"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Dashboard",
+      "href": "https://poke-mnky.moodmnky.com"
+    }
+  },
+  "contextual": {
+    "options": [
+      "copy",
+      "view",
+      "chatgpt",
+      "claude",
+      "perplexity",
+      "mcp",
+      "cursor",
+      "vscode"
+    ]
+  },
+  "footer": {
+    "socials": {
+      "x": "https://twitter.com/pokemnky",
+      "github": "https://github.com/moodmnky/POKE-MNKY-v2",
+      "discord": "https://discord.gg/pokemnky"
+    }
+  },
+  "api": {
+    "baseUrl": "https://poke-mnky.moodmnky.com",
+    "auth": {
+      "method": "bearer",
+      "token": "YOUR_API_KEY"
+    }
+  }
+}

@@ -1,0 +1,76 @@
+---
+title: API Overview
+description: Complete API reference for POKE MNKY endpoints
+---
+
+# API Reference
+
+Welcome to the POKE MNKY API documentation. All endpoints are RESTful and return JSON responses.
+
+## Base URL
+
+```
+https://poke-mnky.moodmnky.com
+```
+
+## Authentication
+
+Most endpoints require authentication:
+
+- **Discord Bot Endpoints**: Use `Authorization: Bearer YOUR_DISCORD_BOT_API_KEY` header
+- **Notion Sync Endpoints**: Use `Authorization: Bearer YOUR_NOTION_SYNC_SECRET` header
+- **Public Endpoints**: No authentication required
+
+## Response Format
+
+All endpoints return JSON with the following structure:
+
+**Success Response**:
+- `ok`: true
+- `data`: Response data object
+- `error`: null
+
+**Error Response**:
+- `ok`: false
+- `error`: Error message string
+- `code`: Error code string
+
+## Rate Limits
+
+- **Discord Bot Endpoints**: 100 requests/minute per guild
+- **Notion Sync Endpoints**: 10 requests/minute
+- **Public Endpoints**: 1000 requests/minute
+
+## Endpoints
+
+### Discord Bot Endpoints
+
+- [Draft Pick](/api-reference/discord/draft-pick) - Submit draft picks via Discord
+- [Draft Status](/api-reference/discord/draft-status) - Get current draft status
+- [Pokemon Search](/api-reference/discord/pokemon-search) - Search Pokémon for Discord bot
+- [Guild Config](/api-reference/discord/guild-config) - Get/set guild configuration
+- [Coach Whoami](/api-reference/discord/coach-whoami) - Get coach information
+- [Coverage Notification](/api-reference/discord/coverage-notification) - Send coverage notifications
+
+### Team Management
+
+- [Free Agency Transaction](/api-reference/teams/free-agency) - Drop/add Pokémon transactions
+- [Team Roster](/api-reference/teams/roster) - Get team roster and budget
+
+### Notion Sync
+
+- [Sync Pull](/api-reference/notion/sync-pull) - Trigger full sync from Notion
+- [Sync Incremental](/api-reference/notion/sync-incremental) - Trigger incremental sync
+- [Sync Status](/api-reference/notion/sync-status) - Get sync job status
+
+## Status Codes
+
+- `200` - Success
+- `400` - Bad Request (validation error)
+- `401` - Unauthorized (missing/invalid auth)
+- `404` - Not Found
+- `500` - Internal Server Error
+
+## Support
+
+For API support, join our [Discord server](https://discord.gg/pokemnky) or open an issue on [GitHub](https://github.com/moodmnky/POKE-MNKY-v2).

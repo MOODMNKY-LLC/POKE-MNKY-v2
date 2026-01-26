@@ -6,27 +6,15 @@
 import type { GuildMember } from "discord.js"
 import { createServiceRoleClient } from "@/lib/supabase/service"
 import type { UserRole } from "@/lib/rbac"
+import { APP_TO_DISCORD_ROLE_MAP, DISCORD_TO_APP_ROLE_MAP } from "@/lib/discord-role-mappings"
+
+// Re-export for backward compatibility
+export { APP_TO_DISCORD_ROLE_MAP, DISCORD_TO_APP_ROLE_MAP }
 
 // Dynamic import for discord.js to avoid bundling issues
 async function getDiscordClient() {
   const { Client, GatewayIntentBits } = await import("discord.js")
   return { Client, GatewayIntentBits }
-}
-
-// App role to Discord role mapping (reverse of Discord → App)
-export const APP_TO_DISCORD_ROLE_MAP: Record<UserRole, string[]> = {
-  admin: ["Commissioner", "League Admin"], // Can map to multiple Discord roles
-  commissioner: ["Commissioner"], // If you have a separate Commissioner role
-  coach: ["Coach"],
-  spectator: ["Spectator"], // Updated from viewer to spectator
-}
-
-// Discord role to App role mapping (Discord → App)
-export const DISCORD_TO_APP_ROLE_MAP: Record<string, UserRole> = {
-  Commissioner: "admin",
-  "League Admin": "admin",
-  Coach: "coach",
-  Spectator: "spectator", // Updated from viewer to spectator
 }
 
 /**

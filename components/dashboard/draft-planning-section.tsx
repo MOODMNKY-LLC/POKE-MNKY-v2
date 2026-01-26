@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { createBrowserClient } from "@/lib/supabase/client"
+import { getCurrentSeasonWithFallback } from "@/lib/seasons"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -65,15 +66,11 @@ export function DraftPlanningSection() {
     try {
       setLoading(true)
       
-      // Get current season
-      const { data: seasonData } = await supabase
-        .from("seasons")
-        .select("id, name")
-        .eq("is_current", true)
-        .single()
+      // Get current season with fallback to Season 6
+      const seasonData = await getCurrentSeasonWithFallback(supabase)
 
       if (seasonData) {
-        setSeason(seasonData)
+        setSeason({ id: seasonData.id, name: seasonData.name })
         setSeasonId(seasonData.id)
         
         // Load draft session

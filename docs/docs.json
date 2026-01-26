@@ -1,0 +1,100 @@
+{
+  "$schema": "https://mintlify.com/schema.json",
+  "name": "POKE MNKY Documentation",
+  "theme": "aspen",
+  "logo": {
+    "dark": "/poke-mnky/icons/dark-gold-black.png",
+    "light": "/poke-mnky/icons/light-red-blue.png"
+  },
+  "favicon": "/icon.svg",
+  "colors": {
+    "primary": "#CC0000",
+    "light": "#CC0000",
+    "dark": "#B3A125"
+  },
+  "topbarLinks": [
+    {
+      "name": "GitHub",
+      "url": "https://github.com/moodmnky/POKE-MNKY-v2"
+    },
+    {
+      "name": "App",
+      "url": "https://poke-mnky.moodmnky.com"
+    }
+  ],
+  "topbarCtaButton": {
+    "name": "Dashboard",
+    "url": "https://poke-mnky.moodmnky.com"
+  },
+  "anchors": [
+    {
+      "name": "Documentation",
+      "icon": "book-open-cover",
+      "url": "https://docs.poke-mnky.moodmnky.com"
+    },
+    {
+      "name": "API Reference",
+      "icon": "code",
+      "url": "https://docs.poke-mnky.moodmnky.com/api-reference"
+    },
+    {
+      "name": "Discord",
+      "icon": "discord",
+      "url": "https://discord.gg/pokemnky"
+    }
+  ],
+  "navigation": [
+    {
+      "group": "Get Started",
+      "pages": [
+        "mintlify-docs/introduction",
+        "mintlify-docs/quickstart",
+        "mintlify-docs/installation"
+      ]
+    },
+    {
+      "group": "API Reference",
+      "pages": [
+        "mintlify-docs/api-reference/overview",
+        {
+          "group": "Discord Bot",
+          "pages": [
+            "mintlify-docs/api-reference/discord/draft-pick",
+            "mintlify-docs/api-reference/discord/draft-status",
+            "mintlify-docs/api-reference/discord/pokemon-search",
+            "mintlify-docs/api-reference/discord/guild-config",
+            "mintlify-docs/api-reference/discord/coach-whoami",
+            "mintlify-docs/api-reference/discord/coverage-notification"
+          ]
+        },
+        {
+          "group": "Team Management",
+          "pages": [
+            "mintlify-docs/api-reference/teams/free-agency",
+            "mintlify-docs/api-reference/teams/roster"
+          ]
+        },
+        {
+          "group": "Notion Sync",
+          "pages": [
+            "mintlify-docs/api-reference/notion/sync-pull",
+            "mintlify-docs/api-reference/notion/sync-incremental",
+            "mintlify-docs/api-reference/notion/sync-status"
+          ]
+        }
+      ]
+    }
+  ],
+  "api": {
+    "baseUrl": "https://poke-mnky.moodmnky.com",
+    "auth": {
+      "method": "bearer",
+      "token": "YOUR_API_KEY"
+    }
+  },
+  "footerSocials": {
+    "twitter": "https://twitter.com/pokemnky",
+    "github": "https://github.com/moodmnky/POKE-MNKY-v2",
+    "discord": "https://discord.gg/pokemnky"
+  }
+}

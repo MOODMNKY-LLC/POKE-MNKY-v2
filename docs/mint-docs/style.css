@@ -1,0 +1,36 @@
+/* Custom CSS for Mintlify Documentation - Logo Size Increase */
+
+/* Increase navbar logo size using Mintlify's nav-logo identifier */
+.nav-logo img,
+.nav-logo svg {
+  height: 48px !important;
+  width: auto !important;
+  max-height: 48px !important;
+  min-height: 48px !important;
+}
+
+/* Target logo container in navbar */
+#navbar .nav-logo img,
+#navbar .nav-logo svg,
+nav .nav-logo img,
+nav .nav-logo svg {
+  height: 48px !important;
+  width: auto !important;
+  max-height: 48px !important;
+}
+
+/* Ensure SVG logos scale properly */
+svg.nav-logo,
+img.nav-logo {
+  height: 48px !important;
+  width: auto !important;
+  max-height: 48px !important;
+}
+
+/* Additional selectors for logo elements */
+[class*="logo"] img,
+[class*="logo"] svg {
+  height: 48px !important;
+  width: auto !important;
+  max-height: 48px !important;
+}

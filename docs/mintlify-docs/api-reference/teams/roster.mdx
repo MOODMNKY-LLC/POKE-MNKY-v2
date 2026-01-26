@@ -1,0 +1,104 @@
+---
+title: Team Roster
+api: GET /api/teams/:teamId/roster
+---
+
+# Team Roster
+
+Get a team's roster (active picks) and budget information for a specific season.
+
+## Request
+
+<ParamField path="teamId" type="string" required>
+  Team UUID
+</ParamField>
+
+<ParamField query="seasonId" type="string" required>
+  Season UUID
+</ParamField>
+
+## Response
+
+<ResponseField name="team_id" type="string">
+  Team UUID
+</ResponseField>
+
+<ResponseField name="season_id" type="string">
+  Season UUID
+</ResponseField>
+
+<ResponseField name="team_name" type="string">
+  Team name
+</ResponseField>
+
+<ResponseField name="roster" type="array">
+  Array of active draft picks, each containing:
+  - `draft_pick_id`: Draft pick UUID
+  - `pokemon_id`: Pokémon UUID
+  - `pokemon_name`: Pokémon name
+  - `pokemon`: Full Pokémon object with types, draft points, etc.
+  - `points_snapshot`: Points spent on this pick
+  - `acquisition`: How acquired (draft, free_agency, trade)
+  - `status`: Pick status (active, dropped, traded)
+  - `draft_round`: Round number
+  - `pick_number`: Pick number
+</ResponseField>
+
+<ResponseField name="budget" type="object">
+  Budget information:
+  - `points_used`: Total points spent
+  - `budget_total`: Total budget (from season config)
+  - `budget_remaining`: Points remaining
+  - `slots_used`: Roster slots used
+  - `slots_total`: Maximum roster size
+  - `slots_remaining`: Roster slots remaining
+</ResponseField>
+
+## Example Request
+
+```bash
+curl -X GET "https://poke-mnky.moodmnky.com/api/teams/team-uuid-here/roster?seasonId=123e4567-e89b-12d3-a456-426614174000"
+```
+
+## Example Response
+
+```json
+{
+  "team_id": "team-uuid-here",
+  "season_id": "123e4567-e89b-12d3-a456-426614174000",
+  "team_name": "Team Rocket",
+  "roster": [
+    {
+      "draft_pick_id": "pick-uuid-1",
+      "pokemon_id": "pokemon-uuid-1",
+      "pokemon_name": "Pikachu",
+      "pokemon": {
+        "id": "pokemon-uuid-1",
+        "name": "Pikachu",
+        "slug": "pikachu",
+        "draft_points": 18,
+        "types": ["electric"]
+      },
+      "points_snapshot": 18,
+      "acquisition": "draft",
+      "status": "active",
+      "draft_round": 1,
+      "pick_number": 5
+    }
+  ],
+  "budget": {
+    "points_used": 95,
+    "budget_total": 120,
+    "budget_remaining": 25,
+    "slots_used": 8,
+    "slots_total": 10,
+    "slots_remaining": 2
+  }
+}
+```
+
+## Error Responses
+
+- `400` - Invalid UUID format or missing seasonId
+- `404` - Team or season not found
+- `500` - Server error

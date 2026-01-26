@@ -1,0 +1,119 @@
+---
+title: Discord Draft Pick
+api: POST /api/discord/draft/pick
+---
+
+# Discord Draft Pick
+
+Submit a draft pick via Discord bot.
+
+<Info>
+This endpoint is bot-only and requires Discord bot authentication.
+</Info>
+
+## Request
+
+<ParamField body="season_id" type="string" required>
+  Season UUID
+</ParamField>
+
+<ParamField body="discord_user_id" type="string" required>
+  Discord user ID of the coach making the pick
+</ParamField>
+
+<ParamField body="pokemon_id" type="string" required>
+  Pokémon UUID to draft
+</ParamField>
+
+<ParamField body="draft_round" type="number">
+  Draft round number (optional, auto-calculated if not provided)
+</ParamField>
+
+<ParamField body="pick_number" type="number">
+  Pick number in round (optional, auto-calculated if not provided)
+</ParamField>
+
+<ParamField body="notes" type="string">
+  Optional notes about the pick
+</ParamField>
+
+## Response
+
+<ResponseField name="ok" type="boolean">
+  Success status
+</ResponseField>
+
+<ResponseField name="draft_pick" type="object">
+  Created draft pick object with:
+  - `id`: Draft pick UUID
+  - `pokemon_id`: Pokémon UUID
+  - `team_id`: Team UUID
+  - `season_id`: Season UUID
+  - `points_snapshot`: Points spent
+  - `draft_round`: Round number
+  - `pick_number`: Pick number
+</ResponseField>
+
+<ResponseField name="budget" type="object">
+  Updated budget information:
+  - `points_used`: Total points spent
+  - `points_remaining`: Points remaining
+  - `slots_used`: Roster slots used
+  - `slots_remaining`: Roster slots remaining
+</ResponseField>
+
+## Example Request
+
+```bash
+curl -X POST https://poke-mnky.moodmnky.com/api/discord/draft/pick \
+  -H "Authorization: Bearer YOUR_DISCORD_BOT_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{\"season_id\": \"123e4567-e89b-12d3-a456-426614174000\", \"discord_user_id\": \"123456789012345678\", \"pokemon_id\": \"987fcdeb-51a2-43d7-8f9e-123456789abc\", \"notes\": \"Great coverage pick\"}"
+```
+
+## Example Response
+
+```json
+{
+  "ok": true,
+  "draft_pick": {
+    "id": "abc123-def456-ghi789",
+    "pokemon_id": "987fcdeb-51a2-43d7-8f9e-123456789abc",
+    "team_id": "team-uuid-here",
+    "season_id": "123e4567-e89b-12d3-a456-426614174000",
+    "points_snapshot": 18,
+    "draft_round": 1,
+    "pick_number": 5,
+    "acquisition": "draft",
+    "status": "active"
+  },
+  "budget": {
+    "points_used": 18,
+    "points_remaining": 102,
+    "slots_used": 1,
+    "slots_remaining": 9
+  }
+}
+```
+
+## Error Responses
+
+<ResponseField name="ok" type="boolean">
+  Always `false` on error
+</ResponseField>
+
+<ResponseField name="error" type="string">
+  Error message describing what went wrong
+</ResponseField>
+
+<ResponseField name="code" type="string">
+  Error code (e.g., DRAFT_WINDOW_CLOSED, INSUFFICIENT_BUDGET, POKEMON_NOT_AVAILABLE)
+</ResponseField>
+
+### Common Errors
+
+- `400` - Validation failed (check details field)
+- `401` - Unauthorized (invalid/missing bot key)
+- `404` - Season, team, or Pokémon not found
+- `409` - Draft window closed or Pokémon already drafted
+- `422` - Business logic error (insufficient budget, roster full, etc.)

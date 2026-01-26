@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react"
 import * as React from "react"
 import { createClient } from "@/lib/supabase/client"
+import { getCurrentSeasonIdWithFallback } from "@/lib/seasons"
 import { DraftHeader } from "@/components/draft/draft-header"
 import { DraftBoardClient } from "@/components/draft/draft-board-client"
 import { TeamRosterPanel } from "@/components/draft/team-roster-panel"
@@ -80,22 +81,15 @@ export function DraftBoardSection() {
         setLoading(true)
         
         // Get current season first (needed even without active session)
-        console.log("[DraftBoardSection] Fetching current season...")
-        const { data: seasonData, error: seasonError } = await supabase
-          .from("seasons")
-          .select("id")
-          .eq("is_current", true)
-          .single()
+        // Uses fallback to Season 6 if no current season exists
+        console.log("[DraftBoardSection] Fetching current season with fallback...")
+        const seasonIdValue = await getCurrentSeasonIdWithFallback(supabase)
         
-        if (seasonError) {
-          console.error("[DraftBoardSection] Error fetching season:", seasonError)
-        }
-        
-        if (mounted && seasonData) {
-          console.log("[DraftBoardSection] Current season found:", seasonData.id)
-          setSeasonId(seasonData.id)
+        if (mounted && seasonIdValue) {
+          console.log("[DraftBoardSection] Season found:", seasonIdValue)
+          setSeasonId(seasonIdValue)
         } else if (mounted) {
-          console.warn("[DraftBoardSection] No current season found")
+          console.warn("[DraftBoardSection] No season found (including fallbacks)")
         }
         
         const response = await fetch("/api/draft/status")
@@ -104,9 +98,13 @@ export function DraftBoardSection() {
         if (!mounted) return
         
         if (!apiData.success || !apiData.session) {
-          // No active session, but we can still show the board (view-only)
-          console.log("[DraftBoardSection] No active session, but seasonId is:", seasonData?.id)
-          setError(null) // Clear error so we can show the board
+          // No active session, but we can still show the board (view-only) if we have a season
+          console.log("[DraftBoardSection] No active session, but seasonId is:", seasonIdValue)
+          if (seasonIdValue) {
+            setError(null) // Clear error so we can show the board
+          } else {
+            setError("No active season found. Please ensure Season 6 is set up.")
+          }
           setLoading(false)
           return
         }
@@ -115,7 +113,8 @@ export function DraftBoardSection() {
         if (!mounted) return
         
         setSession(sessionData)
-        setSeasonId(sessionData.season_id) // Use session's season_id if available
+        // Use session's season_id if available, otherwise use the fallback seasonId
+        setSeasonId(sessionData.season_id || seasonIdValue)
 
         const { data: { user }, error: userError } = await supabase.auth.getUser().catch(() => ({ data: { user: null }, error: null }))
         

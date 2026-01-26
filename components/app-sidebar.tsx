@@ -21,6 +21,7 @@ import { getCurrentUserProfile, type UserProfile } from "@/lib/rbac"
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
 import { TeamSwitcher } from "@/components/team-switcher"
+import { ProfileSheet } from "@/components/profile/profile-sheet"
 import {
   Sidebar,
   SidebarContent,
@@ -33,6 +34,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const router = useRouter()
   const [userProfile, setUserProfile] = React.useState<UserProfile | null>(null)
   const [loading, setLoading] = React.useState(true)
+  const [profileSheetOpen, setProfileSheetOpen] = React.useState(false)
 
   React.useEffect(() => {
     async function loadUser() {
@@ -66,26 +68,60 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         },
       ],
     },
-    {
-      title: "My Profile",
-      url: "/dashboard/profile",
-      icon: User,
+  ]
+
+  // Add Teams section (all users - general/showdown teams)
+  navItems.push({
+    title: "Teams",
+    url: "/dashboard/teams",
+    icon: Users,
+    items: [
+      {
+        title: "My Teams",
+        url: "/dashboard/teams",
+      },
+      {
+        title: "Team Library",
+        url: "/dashboard/teams/library",
+      },
+      {
+        title: "Create Team",
+        url: "/dashboard/teams/create",
+      },
+      {
+        title: "Team Builder",
+        url: "/dashboard/teams/builder",
+      },
+    ],
+  })
+
+  // Add League Team section (coach-specific - drafted/league teams)
+  // League teams are bound by rules, draft picks, and official competition
+  if (userProfile?.role === "coach" && userProfile?.team_id) {
+    navItems.push({
+      title: "My League Team",
+      url: "/dashboard/league-team",
+      icon: Trophy,
       items: [
         {
-          title: "View Profile",
-          url: "/dashboard/profile",
+          title: "View Team",
+          url: "/dashboard/league-team",
         },
         {
-          title: "Edit Profile",
-          url: "/dashboard/profile?edit=true",
+          title: "Roster",
+          url: "/dashboard/league-team/roster",
         },
         {
-          title: "Account Settings",
-          url: "/dashboard/settings",
+          title: "Free Agency",
+          url: "/dashboard/free-agency",
+        },
+        {
+          title: "Team Stats",
+          url: "/dashboard/league-team/stats",
         },
       ],
-    },
-  ]
+    })
+  }
 
   // Add Draft section (available to all users)
   navItems.push({
@@ -107,33 +143,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       },
     ],
   })
-
-  // Add team-related items if user is a coach (dashboard routes only)
-  if (userProfile?.role === "coach" && userProfile?.team_id) {
-    navItems.push({
-      title: "My Team",
-      url: "/dashboard/team",
-      icon: Users,
-      items: [
-        {
-          title: "View Team",
-          url: "/dashboard/team",
-        },
-        {
-          title: "Team Builder",
-          url: "/dashboard/team/builder",
-        },
-        {
-          title: "Free Agency",
-          url: "/dashboard/free-agency",
-        },
-        {
-          title: "Team Stats",
-          url: "/dashboard/team/stats",
-        },
-      ],
-    })
-  }
 
   // Add calculator link (available to all users)
   navItems.push({
@@ -187,7 +196,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   // Prepare user data for NavUser
   const userData = userProfile
     ? {
-        name: userProfile.display_name || userProfile.username || "Member",
+        name: userProfile.display_name || userProfile.discord_username || "Member",
         email: userProfile.discord_username || "",
         avatar: userProfile.avatar_url || userProfile.discord_avatar || "",
       }
@@ -224,12 +233,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         )}
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={navItems} />
+        <NavMain items={navItems} onProfileClick={() => setProfileSheetOpen(true)} />
       </SidebarContent>
       <SidebarFooter>
-        {!loading && <NavUser user={userData} />}
+        {!loading && <NavUser user={userData} onProfileClick={() => setProfileSheetOpen(true)} />}
       </SidebarFooter>
       <SidebarRail />
+      <ProfileSheet open={profileSheetOpen} onOpenChange={setProfileSheetOpen} />
     </Sidebar>
   )
 }
