@@ -204,13 +204,13 @@ export const AudioPlayerMuteButton = ({
   className,
   ...props
 }: AudioPlayerMuteButtonProps) => (
-  <ButtonGroupText asChild className="bg-transparent">
+  <Button asChild size="icon-sm" variant="outline">
     <MediaMuteButton
-      className={cn("", className)}
+      className={cn("bg-transparent", className)}
       data-slot="audio-player-mute-button"
       {...props}
     />
-  </ButtonGroupText>
+  </Button>
 );
 
 export type AudioPlayerVolumeRangeProps = ComponentProps<
@@ -221,10 +221,16 @@ export const AudioPlayerVolumeRange = ({
   className,
   ...props
 }: AudioPlayerVolumeRangeProps) => (
-  <ButtonGroupText asChild className="bg-transparent">
+  <ButtonGroupText asChild className="bg-transparent px-2 flex-1">
     <MediaVolumeRange
-      className={cn("", className)}
+      className={cn("w-full min-w-[80px] h-6 cursor-pointer", className)}
       data-slot="audio-player-volume-range"
+      style={{
+        minWidth: "80px",
+        maxWidth: "200px",
+        width: "100%",
+        flex: "1 1 auto",
+      }}
       {...props}
     />
   </ButtonGroupText>
