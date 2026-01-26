@@ -1,0 +1,79 @@
+---
+title: Discord Draft Status
+api: GET /api/discord/draft/status
+---
+
+# Discord Draft Status
+
+Get the current draft status for a guild/season.
+
+## Request
+
+<ParamField query="guild_id" type="string" required>
+  Discord guild/server ID
+</ParamField>
+
+<ParamField query="season_id" type="string">
+  Season UUID (optional, uses guild default if not provided)
+</ParamField>
+
+## Response
+
+<ResponseField name="ok" type="boolean">
+  Success status
+</ResponseField>
+
+<ResponseField name="season" type="object">
+  Season information:
+  - `id`: Season UUID
+  - `name`: Season name
+  - `status`: Draft status (drafting, completed, not_started)
+</ResponseField>
+
+<ResponseField name="current_pick" type="object">
+  Current pick information:
+  - `team_id`: Team UUID whose turn it is
+  - `team_name`: Team name
+  - `coach_name`: Coach name
+  - `pick_number`: Current pick number
+  - `round`: Current round number
+</ResponseField>
+
+<ResponseField name="draft_stats" type="object">
+  Draft statistics:
+  - `total_picks`: Total picks made
+  - `picks_remaining`: Picks remaining
+  - `teams_participating`: Number of teams
+</ResponseField>
+
+## Example Request
+
+```bash
+curl -X GET "https://poke-mnky.moodmnky.com/api/discord/draft/status?guild_id=123456789012345678" \
+  -H "Authorization: Bearer YOUR_DISCORD_BOT_API_KEY"
+```
+
+## Example Response
+
+```json
+{
+  "ok": true,
+  "season": {
+    "id": "123e4567-e89b-12d3-a456-426614174000",
+    "name": "Season 5",
+    "status": "drafting"
+  },
+  "current_pick": {
+    "team_id": "team-uuid-here",
+    "team_name": "Team Rocket",
+    "coach_name": "Jessie",
+    "pick_number": 15,
+    "round": 2
+  },
+  "draft_stats": {
+    "total_picks": 15,
+    "picks_remaining": 185,
+    "teams_participating": 10
+  }
+}
+```

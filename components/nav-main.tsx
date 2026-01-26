@@ -23,6 +23,7 @@ import {
 
 export function NavMain({
   items,
+  onProfileClick,
 }: {
   items: {
     title: string
@@ -34,9 +35,20 @@ export function NavMain({
       url: string
     }[]
   }[]
+  onProfileClick?: () => void
 }) {
   const pathname = usePathname()
   const [mounted, setMounted] = React.useState(false)
+
+  const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>, url: string) => {
+    // Intercept profile links and open sheet instead
+    if (url.startsWith("/dashboard/profile") && onProfileClick) {
+      e.preventDefault()
+      onProfileClick()
+      return
+    }
+    // Otherwise, let the Link component handle navigation normally
+  }
 
   React.useEffect(() => {
     setMounted(true)
@@ -49,10 +61,10 @@ export function NavMain({
       <SidebarGroup>
         <SidebarGroupLabel>Navigation</SidebarGroupLabel>
         <SidebarMenu>
-          {items.map((item) => (
+            {items.map((item) => (
             <SidebarMenuItem key={item.title}>
               <SidebarMenuButton tooltip={item.title} asChild>
-                <Link href={item.url}>
+                <Link href={item.url} onClick={(e) => item.url.startsWith("/dashboard/profile") && onProfileClick ? (e.preventDefault(), onProfileClick()) : undefined}>
                   {item.icon && <item.icon />}
                   <span>{item.title}</span>
                 </Link>
@@ -62,7 +74,7 @@ export function NavMain({
                   {item.items.map((subItem) => (
                     <SidebarMenuSubItem key={subItem.title}>
                       <SidebarMenuSubButton asChild>
-                        <Link href={subItem.url}>
+                        <Link href={subItem.url} onClick={(e) => subItem.url.startsWith("/dashboard/profile") && onProfileClick ? (e.preventDefault(), onProfileClick()) : undefined}>
                           <span>{subItem.title}</span>
                         </Link>
                       </SidebarMenuSubButton>
@@ -91,7 +103,7 @@ export function NavMain({
             return (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton tooltip={item.title} asChild isActive={isActive}>
-                  <Link href={item.url}>
+                  <Link href={item.url} onClick={(e) => handleLinkClick(e, item.url)}>
                     {item.icon && <item.icon />}
                     <span>{item.title}</span>
                   </Link>
@@ -101,6 +113,7 @@ export function NavMain({
           }
 
           // If has sub-items, render as collapsible
+          // Prevent navigation on parent click - just toggle collapsible
           return (
             <Collapsible
               key={item.title}
@@ -110,12 +123,12 @@ export function NavMain({
             >
               <SidebarMenuItem>
                 <CollapsibleTrigger asChild suppressHydrationWarning>
-                  <SidebarMenuButton tooltip={item.title} asChild isActive={isActive}>
-                    <Link href={item.url}>
+                  <SidebarMenuButton tooltip={item.title} isActive={isActive}>
+                    <div className="flex items-center w-full">
                       {item.icon && <item.icon />}
                       <span>{item.title}</span>
                       <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                    </Link>
+                    </div>
                   </SidebarMenuButton>
                 </CollapsibleTrigger>
                 <CollapsibleContent suppressHydrationWarning>
@@ -125,7 +138,7 @@ export function NavMain({
                       return (
                         <SidebarMenuSubItem key={subItem.title}>
                           <SidebarMenuSubButton asChild isActive={isSubActive}>
-                            <Link href={subItem.url}>
+                            <Link href={subItem.url} onClick={(e) => handleLinkClick(e, subItem.url)}>
                               <span>{subItem.title}</span>
                             </Link>
                           </SidebarMenuSubButton>

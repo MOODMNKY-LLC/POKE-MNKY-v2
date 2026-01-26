@@ -60,6 +60,14 @@ export const Permissions = {
 
 export type Permission = (typeof Permissions)[keyof typeof Permissions]
 
+// Discord role type
+export interface DiscordRole {
+  id: string
+  name: string
+  color: string
+  position: number
+}
+
 // Profile type
 export interface UserProfile {
   id: string
@@ -73,6 +81,7 @@ export interface UserProfile {
   discord_id: string | null
   discord_username: string | null
   discord_avatar: string | null
+  discord_roles: DiscordRole[] | null
   is_active: boolean
   email_verified: boolean
   onboarding_completed: boolean
@@ -94,7 +103,12 @@ export async function getCurrentUserProfile(supabase: SupabaseClient): Promise<U
 
   if (!user) return null
 
-  const { data, error } = await supabase.from("profiles").select("*").eq("id", user.id).single()
+  // Explicitly select all fields including discord_username to ensure it's included
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("*, discord_username")
+    .eq("id", user.id)
+    .single()
 
   if (error) {
     console.error("Error fetching user profile:", error)

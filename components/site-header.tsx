@@ -367,9 +367,20 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
                 <DropdownMenuLabel>Developer Resources</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
+                  <a 
+                    href="https://docs.poke-mnky.moodmnky.com" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="cursor-pointer"
+                  >
+                    <BookOpen className="mr-2 h-4 w-4" />
+                    App Documentation
+                  </a>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
                   <Link href="/docs/api" className="cursor-pointer">
                     <FileText className="mr-2 h-4 w-4" />
-                    API Documentation
+                    PokéAPI Documentation
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
@@ -650,12 +661,21 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
                 {/* Resources Section */}
                 <div className="space-y-2">
                   <p className="text-xs font-semibold text-muted-foreground uppercase px-2">Resources</p>
+                  <a
+                    href="https://docs.poke-mnky.moodmnky.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2"
+                  >
+                    <BookOpen className="h-5 w-5" />
+                    App Documentation
+                  </a>
                   <Link
                     href="/docs/api"
                     className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2"
                   >
                     <FileText className="h-5 w-5" />
-                    API Documentation
+                    PokéAPI Documentation
                   </Link>
                   <Link
                     href="/test/mcp-rest-api"

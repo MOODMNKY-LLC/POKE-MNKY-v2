@@ -1,4 +1,9 @@
 import { DashboardDock } from "@/components/dashboard-dock"
+import {
+  SidebarInset,
+  SidebarProvider,
+} from "@/components/ui/sidebar"
+import { AppSidebar } from "@/components/app-sidebar"
 
 export default function DashboardLayout({
   children,
@@ -6,9 +11,12 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   return (
-    <>
-      {children}
+    <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset>
+        {children}
+      </SidebarInset>
       <DashboardDock />
-    </>
+    </SidebarProvider>
   )
 }

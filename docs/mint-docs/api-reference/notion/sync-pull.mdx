@@ -1,0 +1,87 @@
+---
+title: Notion Sync Pull
+api: POST /api/sync/notion/pull
+---
+
+# Notion Sync Pull
+
+Trigger a full or incremental sync job to pull data from Notion and update Supabase.
+
+<Warning>
+This endpoint requires `NOTION_SYNC_SECRET` authentication and `NOTION_API_KEY` environment variable.
+</Warning>
+
+## Request
+
+<ParamField body="scope" type="array">
+  Array of entities to sync: `["pokemon", "role_tags", "moves"]` (optional, defaults to all)
+</ParamField>
+
+<ParamField body="dryRun" type="boolean">
+  If `true`, performs validation without making changes (optional, default: `false`)
+</ParamField>
+
+<ParamField body="incremental" type="boolean">
+  If `true`, only syncs pages modified since `since` timestamp (optional, default: `false`)
+</ParamField>
+
+<ParamField body="since" type="string">
+  ISO timestamp for incremental sync (required if incremental: true)
+</ParamField>
+
+## Response
+
+<ResponseField name="success" type="boolean">
+  Success status
+</ResponseField>
+
+<ResponseField name="job_id" type="string">
+  Sync job UUID for tracking status
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Job status (running, completed, failed)
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Status message
+</ResponseField>
+
+## Example Request
+
+```bash
+curl -X POST https://poke-mnky.moodmnky.com/api/sync/notion/pull \
+  -H "Authorization: Bearer YOUR_NOTION_SYNC_SECRET" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "scope": ["pokemon", "role_tags"],
+    "dryRun": false,
+    "incremental": false
+  }'
+```
+
+## Example Response
+
+```json
+{
+  "success": true,
+  "job_id": "job-uuid-here",
+  "status": "running",
+  "message": "Sync job started"
+}
+```
+
+## Checking Job Status
+
+Use the [Sync Status](/api-reference/notion/sync-status) endpoint to check job progress:
+
+```bash
+curl -X GET "https://poke-mnky.moodmnky.com/api/sync/notion/status?job_id=job-uuid-here" \
+  -H "Authorization: Bearer YOUR_NOTION_SYNC_SECRET"
+```
+
+## Error Responses
+
+- `400` - Invalid request body
+- `401` - Unauthorized (invalid/missing sync secret)
+- `500` - Server error or missing NOTION_API_KEY

@@ -1,0 +1,78 @@
+---
+title: Discord Coach Whoami
+api: GET /api/discord/coach/whoami
+---
+
+# Discord Coach Whoami
+
+Get coach information by Discord user ID.
+
+## Request
+
+<ParamField query="discord_user_id" type="string" required>
+  Discord user ID
+</ParamField>
+
+<ParamField query="season_id" type="string">
+  Season UUID (optional, uses current season if not provided)
+</ParamField>
+
+## Response
+
+<ResponseField name="ok" type="boolean">
+  Success status
+</ResponseField>
+
+<ResponseField name="coach" type="object">
+  Coach information:
+  - `id`: Coach UUID
+  - `discord_user_id`: Discord user ID
+  - `name`: Coach name
+  - `team_id`: Team UUID (if assigned to a team)
+  - `team_name`: Team name (if assigned)
+</ResponseField>
+
+<ResponseField name="team" type="object">
+  Team information (if coach has a team):
+  - `id`: Team UUID
+  - `team_name`: Team name
+  - `season_id`: Season UUID
+  - `roster_count`: Number of Pokémon on roster
+  - `points_used`: Points spent
+  - `points_remaining`: Points remaining
+</ResponseField>
+
+## Example Request
+
+```bash
+curl -X GET "https://poke-mnky.moodmnky.com/api/discord/coach/whoami?discord_user_id=123456789012345678" \
+  -H "Authorization: Bearer YOUR_DISCORD_BOT_API_KEY"
+```
+
+## Example Response
+
+```json
+{
+  "ok": true,
+  "coach": {
+    "id": "coach-uuid",
+    "discord_user_id": "123456789012345678",
+    "name": "Ash Ketchum",
+    "team_id": "team-uuid",
+    "team_name": "Team Rocket"
+  },
+  "team": {
+    "id": "team-uuid",
+    "team_name": "Team Rocket",
+    "season_id": "123e4567-e89b-12d3-a456-426614174000",
+    "roster_count": 8,
+    "points_used": 95,
+    "points_remaining": 25
+  }
+}
+```
+
+## Error Responses
+
+- `404` - Coach not found
+- `401` - Unauthorized (invalid/missing bot key)

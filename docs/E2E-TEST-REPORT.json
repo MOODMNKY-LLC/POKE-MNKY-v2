@@ -1,0 +1,106 @@
+{
+  "date": "2026-01-26T07:23:21.931Z",
+  "summary": {
+    "total": 21,
+    "passed": 10,
+    "failed": 11,
+    "successRate": 47.61904761904761
+  },
+  "results": [
+    {
+      "name": "Get test season",
+      "passed": false,
+      "error": "No current season found - create test data first"
+    },
+    {
+      "name": "Get test team and coach",
+      "passed": false,
+      "error": "No teams found - create test data first"
+    },
+    {
+      "name": "Get available Pokemon for draft",
+      "passed": false,
+      "error": "No Pokemon with draft_points found"
+    },
+    {
+      "name": "Discord bot draft pick API endpoint",
+      "passed": false,
+      "error": "Server error: 500"
+    },
+    {
+      "name": "Database RPC: rpc_discord_submit_draft_pick",
+      "passed": true
+    },
+    {
+      "name": "Notion mappings table accessible",
+      "passed": true
+    },
+    {
+      "name": "Free agency transaction API endpoint",
+      "passed": false,
+      "error": "Server error: 500"
+    },
+    {
+      "name": "Database RPC: rpc_free_agency_transaction",
+      "passed": true
+    },
+    {
+      "name": "Transaction audit table accessible",
+      "passed": true
+    },
+    {
+      "name": "Sync jobs table accessible",
+      "passed": true
+    },
+    {
+      "name": "Notion sync pull endpoint",
+      "passed": true
+    },
+    {
+      "name": "Notion sync incremental endpoint",
+      "passed": true
+    },
+    {
+      "name": "Notion sync status endpoint",
+      "passed": true
+    },
+    {
+      "name": "Discord draft status endpoint",
+      "passed": false,
+      "error": "Server error: 500"
+    },
+    {
+      "name": "Discord Pokemon search endpoint",
+      "passed": false,
+      "error": "Server error: 500"
+    },
+    {
+      "name": "Discord guild config endpoint",
+      "passed": false,
+      "error": "Server error: 500"
+    },
+    {
+      "name": "Discord coach whoami endpoint",
+      "passed": false,
+      "error": "Server error: 500"
+    },
+    {
+      "name": "Discord coverage notification endpoint",
+      "passed": false,
+      "error": "Server error: 500"
+    },
+    {
+      "name": "Team rosters view accessible",
+      "passed": true
+    },
+    {
+      "name": "Team budget view accessible",
+      "passed": true
+    },
+    {
+      "name": "Team roster API endpoint",
+      "passed": false,
+      "error": "Server error: 500"
+    }
+  ]
+}

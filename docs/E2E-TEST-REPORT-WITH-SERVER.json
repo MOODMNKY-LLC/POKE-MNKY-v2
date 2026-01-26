@@ -1,0 +1,55 @@
+{
+  "date": "2026-01-26T07:47:40.920Z",
+  "summary": {
+    "total": 11,
+    "passed": 11,
+    "failed": 0,
+    "successRate": 100
+  },
+  "results": [
+    {
+      "name": "Discord bot draft pick API endpoint",
+      "passed": true
+    },
+    {
+      "name": "Free agency transaction API endpoint",
+      "passed": true
+    },
+    {
+      "name": "Discord draft status endpoint",
+      "passed": true
+    },
+    {
+      "name": "Discord Pokemon search endpoint",
+      "passed": true
+    },
+    {
+      "name": "Discord guild config endpoint",
+      "passed": true
+    },
+    {
+      "name": "Discord coach whoami endpoint",
+      "passed": true
+    },
+    {
+      "name": "Discord coverage notification endpoint",
+      "passed": true
+    },
+    {
+      "name": "Notion sync pull endpoint",
+      "passed": true
+    },
+    {
+      "name": "Notion sync incremental endpoint",
+      "passed": true
+    },
+    {
+      "name": "Notion sync status endpoint",
+      "passed": true
+    },
+    {
+      "name": "Team roster API endpoint",
+      "passed": true
+    }
+  ]
+}

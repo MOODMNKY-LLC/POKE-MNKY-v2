@@ -184,8 +184,8 @@ export default function ProfilePage() {
           <div className="flex items-center gap-6">
             <UserAvatar
               src={profile.avatar_url || profile.discord_avatar || ""}
-              alt={profile.display_name || profile.username || "User"}
-              fallback={profile.display_name?.[0] || profile.username?.[0] || "U"}
+              alt={profile.display_name || profile.discord_username || "User"}
+              fallback={profile.display_name?.[0] || profile.discord_username?.[0] || "U"}
               role={profile.role}
               size="xl"
               showBadge={true}
@@ -193,10 +193,10 @@ export default function ProfilePage() {
             />
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
-                <h2 className="text-2xl font-bold">{profile.display_name || profile.username || "Unnamed User"}</h2>
+                <h2 className="text-2xl font-bold">{profile.display_name || profile.discord_username || "Unnamed User"}</h2>
                 <PokeballIcon role={profile.role} size="sm" />
               </div>
-              <p className="text-muted-foreground mb-2">@{profile.username || "no-username"}</p>
+              <p className="text-muted-foreground mb-2">@{profile.discord_username || "no-username"}</p>
               <div className="flex gap-2 flex-wrap">
                 <Badge variant="secondary" className="capitalize">
                   <Shield className="h-3 w-3 mr-1" />

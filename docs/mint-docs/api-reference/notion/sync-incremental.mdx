@@ -1,0 +1,74 @@
+---
+title: Notion Sync Incremental
+api: POST /api/sync/notion/pull/incremental
+---
+
+# Notion Sync Incremental
+
+Trigger an incremental sync job (only processes changed pages since timestamp).
+
+<Warning>
+This endpoint requires `NOTION_SYNC_SECRET` authentication and `NOTION_API_KEY` environment variable.
+</Warning>
+
+## Request
+
+<ParamField body="since" type="string" required>
+  ISO timestamp - only pages modified after this time will be synced
+</ParamField>
+
+<ParamField body="scope" type="array">
+  Array of entities to sync: ["pokemon", "role_tags", "moves"] (optional, defaults to all)
+</ParamField>
+
+<ParamField body="dryRun" type="boolean">
+  If true, performs validation without making changes (optional, default: false)
+</ParamField>
+
+## Response
+
+<ResponseField name="success" type="boolean">
+  Success status
+</ResponseField>
+
+<ResponseField name="job_id" type="string">
+  Sync job UUID for tracking status
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Job status (`running`, `completed`, `failed`)
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Status message
+</ResponseField>
+
+## Example Request
+
+```bash
+curl -X POST https://poke-mnky.moodmnky.com/api/sync/notion/pull/incremental \
+  -H "Authorization: Bearer YOUR_NOTION_SYNC_SECRET" \
+  -H "Content-Type: application/json" \
+  -d "{\"since\": \"2026-01-26T00:00:00Z\", \"scope\": [\"pokemon\"], \"dryRun\": false}"
+```
+
+## Example Response
+
+```json
+{
+  "success": true,
+  "job_id": "job-uuid-here",
+  "status": "running",
+  "message": "Sync job started"
+}
+```
+
+## Checking Job Status
+
+Use the [Sync Status](/api-reference/notion/sync-status) endpoint to check job progress.
+
+## Error Responses
+
+- `400` - Missing since timestamp or invalid format
+- `401` - Unauthorized (invalid/missing sync secret)
+- `500` - Server error or missing NOTION_API_KEY

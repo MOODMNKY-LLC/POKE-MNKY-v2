@@ -33,12 +33,14 @@ import {
 
 export function NavUser({
   user,
+  onProfileClick,
 }: {
   user: {
     name: string
     email: string
     avatar: string
   }
+  onProfileClick?: () => void
 }) {
   const { isMobile } = useSidebar()
   const router = useRouter()
@@ -111,7 +113,7 @@ export function NavUser({
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem onClick={() => router.push("/dashboard/profile")}>
+              <DropdownMenuItem onClick={() => onProfileClick?.()}>
                 <User />
                 View Profile
               </DropdownMenuItem>
