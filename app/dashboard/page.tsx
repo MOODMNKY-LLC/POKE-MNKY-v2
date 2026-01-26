@@ -86,17 +86,17 @@ export default async function DashboardPage() {
           </Breadcrumb>
         </div>
       </header>
-      <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+      <div className="flex flex-1 flex-col gap-4 p-4 pt-0 safe-area-padding">
           <div className="space-y-4">
             {/* Welcome Section with Coach Card - Always shown */}
             <div className="space-y-4">
               <div className="grid gap-4 lg:grid-cols-2">
                 {/* Welcome Text - Takes 50% width on large screens */}
                 <div className="flex flex-col justify-center">
-                  <h1 className="text-3xl font-bold tracking-tight">
+                  <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
                     Welcome back, {profile.display_name || profile.discord_username || "Member"}!
                   </h1>
-                  <p className="text-muted-foreground mt-2">
+                  <p className="text-muted-foreground mt-2 text-sm sm:text-base">
                     Your personal dashboard for POKE MNKY
                     {season && ` · ${season.name}`}
                   </p>
@@ -123,13 +123,13 @@ export default async function DashboardPage() {
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <Card>
+              <Card className="touch-manipulation">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">My Profile</CardTitle>
                   <Users className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold capitalize">{profile.role || "Member"}</div>
+                  <div className="text-xl sm:text-2xl font-bold capitalize">{profile.role || "Member"}</div>
                   <p className="text-xs text-muted-foreground mb-2">
                     {profile.team_id ? "Team Member" : "Individual"}
                   </p>
@@ -154,7 +154,7 @@ export default async function DashboardPage() {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="touch-manipulation">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Draft</CardTitle>
                   <ClipboardList className="h-4 w-4 text-muted-foreground" />
@@ -163,14 +163,13 @@ export default async function DashboardPage() {
                   <div className="space-y-2">
                     <Link
                       href="/dashboard/draft"
-                      className="text-sm text-primary hover:underline"
+                      className="text-sm text-primary hover:underline min-h-[44px] flex items-center touch-manipulation"
                     >
                       Draft Planning
                     </Link>
-                    <br />
                     <Link
                       href="/draft/board"
-                      className="text-sm text-primary hover:underline"
+                      className="text-sm text-primary hover:underline min-h-[44px] flex items-center touch-manipulation"
                     >
                       Draft Board
                     </Link>
@@ -178,7 +177,7 @@ export default async function DashboardPage() {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="touch-manipulation">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Quick Actions</CardTitle>
                   <Sword className="h-4 w-4 text-muted-foreground" />
@@ -187,14 +186,13 @@ export default async function DashboardPage() {
                   <div className="space-y-2">
                     <Link
                       href="/matches/submit"
-                      className="text-sm text-primary hover:underline"
+                      className="text-sm text-primary hover:underline min-h-[44px] flex items-center touch-manipulation"
                     >
                       Submit Match Result
                     </Link>
-                    <br />
                     <Link
                       href="/teams/builder"
-                      className="text-sm text-primary hover:underline"
+                      className="text-sm text-primary hover:underline min-h-[44px] flex items-center touch-manipulation"
                     >
                       Team Builder
                     </Link>
@@ -202,7 +200,7 @@ export default async function DashboardPage() {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="touch-manipulation">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">League</CardTitle>
                   <Trophy className="h-4 w-4 text-muted-foreground" />
@@ -211,14 +209,13 @@ export default async function DashboardPage() {
                   <div className="space-y-2">
                     <Link
                       href="/standings"
-                      className="text-sm text-primary hover:underline"
+                      className="text-sm text-primary hover:underline min-h-[44px] flex items-center touch-manipulation"
                     >
                       View Standings
                     </Link>
-                    <br />
                     <Link
                       href="/schedule"
-                      className="text-sm text-primary hover:underline"
+                      className="text-sm text-primary hover:underline min-h-[44px] flex items-center touch-manipulation"
                     >
                       Match Schedule
                     </Link>
@@ -226,7 +223,7 @@ export default async function DashboardPage() {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="touch-manipulation">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Resources</CardTitle>
                   <BookOpen className="h-4 w-4 text-muted-foreground" />
@@ -235,14 +232,13 @@ export default async function DashboardPage() {
                   <div className="space-y-2">
                     <Link
                       href="/pokedex"
-                      className="text-sm text-primary hover:underline"
+                      className="text-sm text-primary hover:underline min-h-[44px] flex items-center touch-manipulation"
                     >
                       Pokédex
                     </Link>
-                    <br />
                     <Link
                       href="/insights"
-                      className="text-sm text-primary hover:underline"
+                      className="text-sm text-primary hover:underline min-h-[44px] flex items-center touch-manipulation"
                     >
                       AI Insights
                     </Link>
@@ -252,10 +248,10 @@ export default async function DashboardPage() {
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
-              <Card>
+              <Card className="touch-manipulation">
                 <CardHeader>
-                  <CardTitle>Recent Activity</CardTitle>
-                  <CardDescription>Your recent actions and updates</CardDescription>
+                  <CardTitle className="text-base sm:text-lg">Recent Activity</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">Your recent actions and updates</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground">
@@ -264,10 +260,10 @@ export default async function DashboardPage() {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="touch-manipulation">
                 <CardHeader>
-                  <CardTitle>Quick Stats</CardTitle>
-                  <CardDescription>Your league statistics</CardDescription>
+                  <CardTitle className="text-base sm:text-lg">Quick Stats</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">Your league statistics</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground">
