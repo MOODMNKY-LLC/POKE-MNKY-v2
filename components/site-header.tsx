@@ -14,8 +14,10 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { UserAvatar } from "@/components/ui/user-avatar"
 import { PokeballIcon } from "@/components/ui/pokeball-icon"
-import { MessageSquare, Sparkles, Menu, Database, Brain, Trophy, Calendar, Users, BookOpen, LogOut, Info, Loader2, CheckCircle2, Swords, ChevronDown, FileText, LayoutDashboard, ClipboardList, PlayCircle, TestTube } from "lucide-react"
+import { MessageSquare, Sparkles, Menu, Database, Brain, Trophy, Calendar, Users, BookOpen, LogOut, Info, Loader2, CheckCircle2, Swords, ChevronDown, FileText, LayoutDashboard, ClipboardList, PlayCircle, TestTube, Library, History, Shield, Target } from "lucide-react"
 import { ThemeSwitcher } from "@/components/theme-switcher"
+import { ScrollingText } from "@/components/ui/scrolling-text"
+import { HeaderMusicPlayer } from "@/components/music/header-music-player"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
@@ -171,19 +173,24 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur-xl supports-[backdrop-filter]:bg-background/80">
       <div className="container mx-auto flex h-16 items-center px-4 md:px-6">
-        <div className="mr-4 flex items-center gap-2">
-          <Link href="/" className="flex items-center space-x-2 group">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary via-primary to-secondary group-hover:scale-110 transition-transform shadow-lg shadow-primary/20 overflow-hidden">
+        <div className="mr-4 flex items-center gap-3">
+          <Link href="/" className="flex items-center space-x-3 group">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary via-primary to-secondary group-hover:scale-110 transition-transform shadow-lg shadow-primary/20 overflow-hidden">
               <img 
                 src="/league-logo.svg" 
-                alt="Average at Best Battle League" 
+                alt="Average at Best Pokemon Battle League" 
                 className="h-full w-full object-contain p-1"
                 loading="eager"
               />
             </div>
-            <span className="hidden font-bold text-foreground lg:inline-block group-hover:text-primary transition-colors font-marker" suppressHydrationWarning>
-              Average at Best Battle League
-            </span>
+            <div className="hidden lg:block">
+              <ScrollingText
+                text="Average At Best Pokemon Battle League"
+                speed={20}
+                pauseOnHover={true}
+                className="font-bold text-foreground group-hover:text-primary transition-colors font-marker"
+              />
+            </div>
             <span className="hidden font-bold text-foreground sm:inline-block lg:hidden font-marker" suppressHydrationWarning>AAB League</span>
           </Link>
         </div>
@@ -191,95 +198,163 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
         {/* Desktop Navigation */}
         <nav className="hidden lg:flex flex-1 items-center justify-between gap-6">
           <div className="flex items-center gap-1">
-            {/* League Management Section */}
-            <Link href="/standings">
-              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-                <Trophy className="h-4 w-4 mr-1.5" />
-                Standings
-              </Button>
-            </Link>
-            <Link href="/teams">
-              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-                <Users className="h-4 w-4 mr-1.5" />
-                Teams
-              </Button>
-            </Link>
-            <Link href="/schedule">
-              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-                <Calendar className="h-4 w-4 mr-1.5" />
-                Schedule
-              </Button>
-            </Link>
-            <Link href="/draft">
-              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-                <ClipboardList className="h-4 w-4 mr-1.5" />
-                Draft
-              </Button>
-            </Link>
+            {/* League Dropdown - Static league information */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild suppressHydrationWarning>
+                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+                  <Trophy className="h-4 w-4 mr-1.5" />
+                  League
+                  <ChevronDown className="h-3 w-3 ml-1" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-56">
+                <DropdownMenuLabel>League Information</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/standings" className="cursor-pointer">
+                    <Trophy className="mr-2 h-4 w-4" />
+                    Standings
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/teams" className="cursor-pointer">
+                    <Users className="mr-2 h-4 w-4" />
+                    Teams
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/schedule" className="cursor-pointer">
+                    <Calendar className="mr-2 h-4 w-4" />
+                    Schedule
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             
             {/* Divider */}
             <div className="h-6 w-px bg-border mx-1" />
             
-            {/* Showdown Section */}
-            <Link href="/showdown">
-              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-                <Swords className="h-4 w-4 mr-1.5" />
-                Showdown
-              </Button>
-            </Link>
+            {/* Draft Dropdown - Interactive draft features */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild suppressHydrationWarning>
+                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+                  <ClipboardList className="h-4 w-4 mr-1.5" />
+                  Draft
+                  <ChevronDown className="h-3 w-3 ml-1" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-56">
+                <DropdownMenuLabel>Draft & Selection</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/draft" className="cursor-pointer">
+                    <ClipboardList className="mr-2 h-4 w-4" />
+                    Draft Hub
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/draft/board" className="cursor-pointer">
+                    <Target className="mr-2 h-4 w-4" />
+                    Draft Board
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             
             {/* Divider */}
             <div className="h-6 w-px bg-border mx-1" />
             
-            {/* Reference & Insights Section */}
-            <Link href="/pokedex">
-              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-                <BookOpen className="h-4 w-4 mr-1.5" />
-                Pokédex
-              </Button>
-            </Link>
-            <Link href="/insights">
-              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-                <Sparkles className="h-4 w-4 mr-1.5" />
-                Insights
-              </Button>
-            </Link>
-            <Link href="/videos">
-              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-                <PlayCircle className="h-4 w-4 mr-1.5" />
-                Videos
-              </Button>
-            </Link>
+            {/* Battle Dropdown - Showdown and battle-related features */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild suppressHydrationWarning>
+                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+                  <Swords className="h-4 w-4 mr-1.5" />
+                  Battle
+                  <ChevronDown className="h-3 w-3 ml-1" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-56">
+                <DropdownMenuLabel>Battle & Teams</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/showdown" className="cursor-pointer">
+                    <Swords className="mr-2 h-4 w-4" />
+                    Showdown Hub
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/showdown/match-lobby" className="cursor-pointer">
+                    <Users className="mr-2 h-4 w-4" />
+                    Match Lobby
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/showdown/team-library" className="cursor-pointer">
+                    <Library className="mr-2 h-4 w-4" />
+                    Team Library
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/showdown/team-validator" className="cursor-pointer">
+                    <Shield className="mr-2 h-4 w-4" />
+                    Team Validator
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/showdown/replay-library" className="cursor-pointer">
+                    <History className="mr-2 h-4 w-4" />
+                    Replay Library
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/teams/builder" className="cursor-pointer">
+                    <Brain className="mr-2 h-4 w-4" />
+                    Team Builder
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             
             {/* Divider */}
             <div className="h-6 w-px bg-border mx-1" />
             
-            {/* Testing Section */}
-            <Link href="/test/mcp-rest-api">
-              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-                <TestTube className="h-4 w-4 mr-1.5" />
-                API Playground
-              </Button>
-            </Link>
+            {/* Reference Dropdown - Reference materials and learning */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild suppressHydrationWarning>
+                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+                  <BookOpen className="h-4 w-4 mr-1.5" />
+                  Reference
+                  <ChevronDown className="h-3 w-3 ml-1" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-56">
+                <DropdownMenuLabel>Reference & Learning</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/pokedex" className="cursor-pointer">
+                    <BookOpen className="mr-2 h-4 w-4" />
+                    Pokédex
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/insights" className="cursor-pointer">
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    AI Insights
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/videos" className="cursor-pointer">
+                    <PlayCircle className="mr-2 h-4 w-4" />
+                    Videos
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             
             {/* Divider */}
             <div className="h-6 w-px bg-border mx-1" />
             
-            {/* Dashboard Link - Only visible to authenticated users */}
-            {user && (
-              <>
-                <Link href="/dashboard">
-                  <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-                    <LayoutDashboard className="h-4 w-4 mr-1.5" />
-                    Dashboard
-                  </Button>
-                </Link>
-                {/* Divider */}
-                <div className="h-6 w-px bg-border mx-1" />
-              </>
-            )}
-            
-            {/* Resources Section */}
+            {/* Resources Dropdown - Developer and testing tools */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild suppressHydrationWarning>
                 <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
@@ -288,17 +363,32 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
                   <ChevronDown className="h-3 w-3 ml-1" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
+              <DropdownMenuContent align="start" className="w-56">
+                <DropdownMenuLabel>Developer Resources</DropdownMenuLabel>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link href="/docs/api" className="cursor-pointer">
                     <FileText className="mr-2 h-4 w-4" />
                     API Documentation
                   </Link>
                 </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/test/mcp-rest-api" className="cursor-pointer">
+                    <TestTube className="mr-2 h-4 w-4" />
+                    API Playground
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/test-mcp" className="cursor-pointer">
+                    <TestTube className="mr-2 h-4 w-4" />
+                    MCP Testing
+                  </Link>
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
           <div className="flex items-center gap-2">
+            <HeaderMusicPlayer />
             <ThemeSwitcher />
             {isLoading ? (
               // Loading skeleton to prevent layout shift
@@ -323,11 +413,19 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link href="/admin" className="cursor-pointer">
-                      <Database className="mr-2 h-4 w-4" />
-                      Admin Dashboard
+                    <Link href="/dashboard" className="cursor-pointer">
+                      <LayoutDashboard className="mr-2 h-4 w-4" />
+                      Dashboard
                     </Link>
                   </DropdownMenuItem>
+                  {userProfile?.role === "admin" && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/admin" className="cursor-pointer">
+                        <Database className="mr-2 h-4 w-4" />
+                        Admin Dashboard
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={handleSignOut}
@@ -380,11 +478,19 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link href="/admin" className="cursor-pointer">
-                      <Database className="mr-2 h-4 w-4" />
-                      Admin Dashboard
+                    <Link href="/dashboard" className="cursor-pointer">
+                      <LayoutDashboard className="mr-2 h-4 w-4" />
+                      Dashboard
                     </Link>
                   </DropdownMenuItem>
+                  {userProfile?.role === "admin" && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/admin" className="cursor-pointer">
+                        <Database className="mr-2 h-4 w-4" />
+                        Admin Dashboard
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={handleSignOut}
@@ -411,7 +517,7 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
             </SheetTrigger>
             <SheetContent side="right" className="w-[300px] sm:w-[400px]">
               <nav className="flex flex-col gap-4 mt-8">
-                {/* League Management Section */}
+                {/* League Section */}
                 <div className="space-y-2">
                   <p className="text-xs font-semibold text-muted-foreground uppercase px-2">League</p>
                   <Link
@@ -435,27 +541,70 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
                     <Calendar className="h-5 w-5" />
                     Schedule
                   </Link>
+                </div>
+                
+                {/* Divider */}
+                <div className="h-px bg-border" />
+                
+                {/* Draft Section */}
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase px-2">Draft</p>
                   <Link
                     href="/draft"
                     className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2"
                   >
                     <ClipboardList className="h-5 w-5" />
-                    Draft Room
+                    Draft Hub
+                  </Link>
+                  <Link
+                    href="/draft/board"
+                    className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2"
+                  >
+                    <Target className="h-5 w-5" />
+                    Draft Board
                   </Link>
                 </div>
                 
                 {/* Divider */}
                 <div className="h-px bg-border" />
                 
-                {/* Showdown Section */}
+                {/* Battle Section */}
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase px-2 font-marker" suppressHydrationWarning>Showdown</p>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase px-2">Battle</p>
                   <Link
                     href="/showdown"
                     className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2"
                   >
                     <Swords className="h-5 w-5" />
-                    Battle Simulator
+                    Showdown Hub
+                  </Link>
+                  <Link
+                    href="/showdown/match-lobby"
+                    className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2"
+                  >
+                    <Users className="h-5 w-5" />
+                    Match Lobby
+                  </Link>
+                  <Link
+                    href="/showdown/team-library"
+                    className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2"
+                  >
+                    <Library className="h-5 w-5" />
+                    Team Library
+                  </Link>
+                  <Link
+                    href="/showdown/team-validator"
+                    className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2"
+                  >
+                    <Shield className="h-5 w-5" />
+                    Team Validator
+                  </Link>
+                  <Link
+                    href="/showdown/replay-library"
+                    className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2"
+                  >
+                    <History className="h-5 w-5" />
+                    Replay Library
                   </Link>
                   <Link
                     href="/teams/builder"
@@ -469,8 +618,9 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
                 {/* Divider */}
                 <div className="h-px bg-border" />
                 
-                {/* Reference & Insights Section */}
+                {/* Reference Section */}
                 <div className="space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase px-2">Reference</p>
                   <Link
                     href="/pokedex"
                     className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2"
@@ -485,27 +635,17 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
                     <Sparkles className="h-5 w-5" />
                     AI Insights
                   </Link>
+                  <Link
+                    href="/videos"
+                    className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2"
+                  >
+                    <PlayCircle className="h-5 w-5" />
+                    Videos
+                  </Link>
                 </div>
                 
                 {/* Divider */}
                 <div className="h-px bg-border" />
-                
-                {/* Dashboard Section - Only visible to authenticated users */}
-                {user && (
-                  <>
-                    <div className="space-y-2">
-                      <Link
-                        href="/dashboard"
-                        className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2"
-                      >
-                        <LayoutDashboard className="h-5 w-5" />
-                        Dashboard
-                      </Link>
-                    </div>
-                    {/* Divider */}
-                    <div className="h-px bg-border" />
-                  </>
-                )}
                 
                 {/* Resources Section */}
                 <div className="space-y-2">
@@ -518,32 +658,21 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
                     API Documentation
                   </Link>
                   <Link
-                    href="/test-mcp"
-                    className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2"
-                  >
-                    <TestTube className="h-5 w-5" />
-                    MCP Testing Playground
-                  </Link>
-                  <Link
                     href="/test/mcp-rest-api"
                     className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2"
                   >
                     <TestTube className="h-5 w-5" />
-                    REST API Playground
+                    API Playground
+                  </Link>
+                  <Link
+                    href="/test-mcp"
+                    className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2"
+                  >
+                    <TestTube className="h-5 w-5" />
+                    MCP Testing
                   </Link>
                 </div>
                 
-                {/* Divider */}
-                <div className="h-px bg-border" />
-                
-                {/* Admin Section */}
-                <Link
-                  href="/admin"
-                  className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2"
-                >
-                  <Database className="h-5 w-5" />
-                  Admin Dashboard
-                </Link>
                 <div className="pt-4 mt-4 border-t border-border">
                   {user ? (
                     <>

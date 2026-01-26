@@ -335,27 +335,8 @@ export function ShowdownPokedexSync() {
               Showdown Competitive Database
             </CardTitle>
             <CardDescription className="mt-2">
-              <p className="mb-2">
-                Syncs Pokémon Showdown&apos;s competitive pokedex data to keep your database up-to-date with:
-              </p>
-              <ul className="list-disc list-inside space-y-1 text-sm">
-                <li>Base stats (HP, Attack, Defense, Sp. Atk, Sp. Def, Speed)</li>
-                <li>Type information</li>
-                <li>Abilities (including hidden abilities)</li>
-                <li>Competitive tiers and format data</li>
-                <li>Evolution chains and forme data</li>
-              </ul>
-              <p className="mt-2 text-xs text-muted-foreground">
-                This ensures your draft pool and team builder have accurate competitive metadata from{" "}
-                <a
-                  href="https://play.pokemonshowdown.com/data/pokedex.json"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline hover:text-foreground"
-                >
-                  Pokémon Showdown&apos;s official data
-                </a>
-                .
+              <p className="text-sm">
+                Syncs Pokémon Showdown&apos;s competitive pokedex data including base stats, types, abilities, tiers, and evolution chains.
               </p>
             </CardDescription>
           </div>
@@ -390,7 +371,7 @@ export function ShowdownPokedexSync() {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
+        <div className="space-y-3">
           {/* Schedule and Last Run Info */}
           <div className="grid gap-4 md:grid-cols-2">
             <div className="rounded-lg border p-3">

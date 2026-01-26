@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Loader2, Plus, X } from "lucide-react"
+import { AdminPageHeader } from "@/components/admin/admin-page-header"
 
 interface DraftSession {
   id: string
@@ -127,75 +128,73 @@ export default function DraftSessionsAdminPage() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Draft Session Management</h1>
-          <p className="text-muted-foreground mt-1">
-            Create and manage draft sessions for your league
-          </p>
-        </div>
-        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Create Session
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create Draft Session</DialogTitle>
-              <DialogDescription>
-                Create a new draft session for the current season
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Draft Type</label>
-                <Select value={draftType} onValueChange={(v) => setDraftType(v as any)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="snake">Snake Draft</SelectItem>
-                    <SelectItem value="linear">Linear Draft</SelectItem>
-                    <SelectItem value="auction">Auction Draft</SelectItem>
-                  </SelectContent>
-                </Select>
+      <AdminPageHeader
+        title="Draft Session Management"
+        description="Create and manage draft sessions for your league"
+        action={
+          <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Create Session
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create Draft Session</DialogTitle>
+                <DialogDescription>
+                  Create a new draft session for the current season
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Draft Type</label>
+                  <Select value={draftType} onValueChange={(v) => setDraftType(v as any)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="snake">Snake Draft</SelectItem>
+                      <SelectItem value="linear">Linear Draft</SelectItem>
+                      <SelectItem value="auction">Auction Draft</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Pick Time Limit (seconds)</label>
+                  <Input
+                    type="number"
+                    value={pickTimeLimit}
+                    onChange={(e) => setPickTimeLimit(parseInt(e.target.value) || 45)}
+                    min={10}
+                    max={300}
+                  />
+                </div>
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={createSession} disabled={creating}>
+                    {creating ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Creating...
+                      </>
+                    ) : (
+                      "Create Session"
+                    )}
+                  </Button>
+                </div>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Pick Time Limit (seconds)</label>
-                <Input
-                  type="number"
-                  value={pickTimeLimit}
-                  onChange={(e) => setPickTimeLimit(parseInt(e.target.value) || 45)}
-                  min={10}
-                  max={300}
-                />
-              </div>
-              {error && (
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={createSession} disabled={creating}>
-                  {creating ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creating...
-                    </>
-                  ) : (
-                    "Create Session"
-                  )}
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
+            </DialogContent>
+          </Dialog>
+        }
+      />
 
       {error && (
         <Alert variant="destructive">

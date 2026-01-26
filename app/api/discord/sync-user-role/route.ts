@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate appRole
-    const validRoles: UserRole[] = ["admin", "commissioner", "coach", "viewer"]
+    const validRoles: UserRole[] = ["admin", "commissioner", "coach", "spectator"]
     if (!validRoles.includes(appRole)) {
       return NextResponse.json({ error: "Invalid app role" }, { status: 400 })
     }

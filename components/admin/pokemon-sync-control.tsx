@@ -255,7 +255,7 @@ export function PokemonSyncControl() {
           Manually trigger and monitor Pokemon data synchronization from PokeAPI
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-4">
         {/* Sync Status */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">

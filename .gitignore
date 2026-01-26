@@ -54,3 +54,4 @@ temp/Pokemon-Showdown-Teams/
 temp/pokepaste-repo/
 
 .vercel
+.cursor/mcp.json

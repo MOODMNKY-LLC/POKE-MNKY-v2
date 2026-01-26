@@ -1,22 +1,19 @@
+"use client"
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Trophy, Network, Settings, Award, Users } from "lucide-react"
-import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
+import { AdminPageHeader } from "@/components/admin/admin-page-header"
+import { QuickLinksCard } from "@/components/admin/quick-links-card"
 
 export default function AdminPlayoffsPage() {
   return (
     <div className="container mx-auto py-8 px-4 max-w-7xl">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Playoff Management</h1>
-          <p className="text-muted-foreground">Manage playoff brackets and championship matches</p>
-        </div>
-        <Button asChild variant="outline">
-          <Link href="/admin">Back to Dashboard</Link>
-        </Button>
-      </div>
+      <AdminPageHeader
+        title="Playoff Management"
+        description="Manage playoff brackets and championship matches"
+      />
 
       {/* Hero Section */}
       <Card className="mb-8 bg-muted/50">
@@ -129,32 +126,13 @@ export default function AdminPlayoffsPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Quick Links</CardTitle>
-            <CardDescription>Access related features</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <Button asChild variant="outline" className="w-full justify-start">
-              <Link href="/playoffs">
-                <Network className="h-4 w-4 mr-2" />
-                View Playoff Bracket
-              </Link>
-            </Button>
-            <Button asChild variant="outline" className="w-full justify-start">
-              <Link href="/standings">
-                <Trophy className="h-4 w-4 mr-2" />
-                View Standings
-              </Link>
-            </Button>
-            <Button asChild variant="outline" className="w-full justify-start">
-              <Link href="/admin/matches">
-                <Trophy className="h-4 w-4 mr-2" />
-                Manage Matches
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
+        <QuickLinksCard
+          links={[
+            { href: "/playoffs", label: "View Playoff Bracket", icon: Network },
+            { href: "/standings", label: "View Standings", icon: Trophy },
+            { href: "/admin/league#matches", label: "Manage Matches", icon: Trophy },
+          ]}
+        />
       </div>
     </div>
   )

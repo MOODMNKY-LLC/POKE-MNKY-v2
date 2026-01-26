@@ -20,6 +20,7 @@ import { redirect } from "next/navigation"
 import Link from "next/link"
 import { Trophy, Users, Calendar, BarChart3, Sword, BookOpen, ClipboardList } from "lucide-react"
 import { DraftTabsSection } from "@/components/dashboard/draft-tabs-section"
+import { CoachCard } from "@/components/profile/coach-card"
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -35,6 +36,24 @@ export default async function DashboardPage() {
 
   if (!profile) {
     redirect("/auth/login")
+  }
+
+  // Fetch current season
+  const { data: season } = await supabase
+    .from("seasons")
+    .select("id, name, is_current")
+    .eq("is_current", true)
+    .single()
+
+  // Fetch team data for coaches
+  let team = null
+  if (profile.role === "coach" && profile.team_id) {
+    const { data: teamData } = await supabase
+      .from("teams")
+      .select("id, name, wins, losses, differential, division, conference, avatar_url, logo_url, coach_name")
+      .eq("id", profile.team_id)
+      .single()
+    team = teamData
   }
 
   return (
@@ -65,8 +84,16 @@ export default async function DashboardPage() {
               </h1>
               <p className="text-muted-foreground">
                 Your personal dashboard for POKE MNKY
+                {season && ` · ${season.name}`}
               </p>
             </div>
+
+            {/* Coach Card - Featured prominently for coaches */}
+            {profile.role === "coach" && team && (
+              <div className="w-full">
+                <CoachCard team={team} userId={profile.id} />
+              </div>
+            )}
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               <Card>

@@ -143,7 +143,7 @@ export default function HomePage() {
               <FeatureCard
                 icon={<Shield className="h-8 w-8" />}
                 title="Role-Based Access"
-                description="Commissioner tools for league management, coach dashboards for team control, and viewer access for public stats."
+                description="Commissioner tools for league management, coach dashboards for team control, and spectator access for public stats."
                 status="in-progress"
               />
               <FeatureCard

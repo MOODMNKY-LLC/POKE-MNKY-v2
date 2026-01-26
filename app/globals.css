@@ -454,6 +454,20 @@
     animation: marquee-vertical var(--duration) linear infinite;
   }
 
+  /* Scrolling text animation for header */
+  @keyframes scroll-text {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
+  .animate-scroll-text {
+    animation: scroll-text linear infinite;
+  }
+
   @keyframes fadeIn {
     from {
       opacity: 0;

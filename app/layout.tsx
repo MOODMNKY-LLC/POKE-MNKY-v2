@@ -8,6 +8,7 @@ import { ServiceWorkerRegistration } from "@/components/service-worker-registrat
 import { PWAInstallPrompt } from "@/components/pwa-install-prompt"
 import { ConditionalHeader } from "@/components/conditional-header"
 import { AssistantWrapper } from "@/components/ai/assistant-wrapper"
+import { MobileMusicPlayer } from "@/components/music/mobile-music-player"
 import { Suspense } from "react"
 import { Toaster } from "sonner"
 import "./globals.css"
@@ -128,6 +129,7 @@ export default function RootLayout({
         <PWAInstallPrompt />
         <Toaster position="top-right" />
         <AssistantWrapper />
+        <MobileMusicPlayer />
       </body>
     </html>
   )

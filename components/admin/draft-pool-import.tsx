@@ -304,8 +304,8 @@ export function DraftPoolImport() {
           </TabsList>
 
           {/* Import Tab */}
-          <TabsContent value="import" className="space-y-4 mt-4">
-            <div className="space-y-4">
+          <TabsContent value="import" className="space-y-3 mt-4">
+            <div className="space-y-3">
               {/* File Upload */}
               <div
                 className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:border-primary/50 transition-colors"
@@ -423,8 +423,8 @@ export function DraftPoolImport() {
           </TabsContent>
 
           {/* Staging Preview Tab */}
-          <TabsContent value="staging" className="space-y-4 mt-4">
-            <div className="space-y-4">
+          <TabsContent value="staging" className="space-y-3 mt-4">
+            <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold">Staging Table Statistics</h3>
                 <Button
@@ -485,8 +485,8 @@ export function DraftPoolImport() {
           </TabsContent>
 
           {/* Sync Tab */}
-          <TabsContent value="sync" className="space-y-4 mt-4">
-            <div className="space-y-4">
+          <TabsContent value="sync" className="space-y-3 mt-4">
+            <div className="space-y-3">
               {/* Season Selector */}
               <div className="space-y-2">
                 <Label htmlFor="season-select">Target Season</Label>

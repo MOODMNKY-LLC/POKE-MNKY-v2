@@ -62,7 +62,7 @@ export default function FreeAgencyPage() {
 
       const userProfile = {
         ...profileData,
-        role: profileData.role || "viewer",
+        role: profileData.role || "spectator",
         team_id: Array.isArray(profileData.teams) 
           ? profileData.teams[0]?.id || null
           : (profileData.teams as any)?.id || null,

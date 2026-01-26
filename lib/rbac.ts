@@ -5,7 +5,7 @@ export enum UserRole {
   ADMIN = "admin",
   COMMISSIONER = "commissioner",
   COACH = "coach",
-  VIEWER = "viewer",
+  SPECTATOR = "spectator",
 }
 
 // Permission strings
@@ -13,22 +13,49 @@ export const Permissions = {
   // Admin permissions
   ALL: "*",
 
+  // System permissions
+  MANAGE_USERS: "manage:users",
+  MANAGE_ROLES: "manage:roles",
+  MANAGE_SYSTEM: "manage:system",
+  MANAGE_INTEGRATIONS: "manage:integrations",
+  MANAGE_PLATFORM_KIT: "manage:platform_kit",
+
   // Commissioner permissions
   MANAGE_LEAGUE: "manage:league",
+  MANAGE_SEASONS: "manage:seasons",
+  MANAGE_CONFERENCES: "manage:conferences",
+  MANAGE_DIVISIONS: "manage:divisions",
   MANAGE_TEAMS: "manage:teams",
+  MANAGE_COACHES: "manage:coaches",
   MANAGE_MATCHES: "manage:matches",
+  MANAGE_MATCHWEEKS: "manage:matchweeks",
   MANAGE_TRADES: "manage:trades",
+  MANAGE_DRAFT: "manage:draft",
+  MANAGE_FREE_AGENCY: "manage:free_agency",
+  APPROVE_RESULTS: "approve:results",
+  APPROVE_TRADES: "approve:trades",
   VIEW_ANALYTICS: "view:analytics",
+  VIEW_ALL_TEAMS: "view:all_teams",
+  VIEW_ALL_COACHES: "view:all_coaches",
 
   // Coach permissions
   MANAGE_OWN_TEAM: "manage:own_team",
+  MANAGE_OWN_ROSTER: "manage:own_roster",
   SUBMIT_RESULTS: "submit:results",
   PROPOSE_TRADES: "propose:trades",
+  CREATE_BATTLES: "create:battles",
+  USE_AI_FEATURES: "use:ai_features",
   VIEW_LEAGUE: "view:league",
-
-  // Viewer permissions
   VIEW_STANDINGS: "view:standings",
   VIEW_SCHEDULE: "view:schedule",
+  VIEW_OWN_TEAM: "view:own_team",
+
+  // Spectator permissions
+  VIEW_TEAMS: "view:teams",
+  VIEW_MATCHES: "view:matches",
+  VIEW_TRADES: "view:trades",
+  VIEW_POKEMON: "view:pokemon",
+  VIEW_PUBLIC_DATA: "view:public_data",
 } as const
 
 export type Permission = (typeof Permissions)[keyof typeof Permissions]
@@ -108,6 +135,28 @@ export async function hasAnyRole(supabase: SupabaseClient, userId: string, roles
 }
 
 /**
+ * Check if user has a role or a higher role in the hierarchy
+ * Hierarchy: admin > commissioner > coach > spectator
+ */
+export async function hasRoleOrHigher(
+  supabase: SupabaseClient,
+  userId: string,
+  requiredRole: UserRole,
+): Promise<boolean> {
+  const { data, error } = await supabase.rpc("user_has_role_or_higher", {
+    user_id: userId,
+    required_role: requiredRole,
+  })
+
+  if (error) {
+    console.error("Error checking role hierarchy:", error)
+    return false
+  }
+
+  return data === true
+}
+
+/**
  * Require user to have a specific role (throws error if not)
  */
 export async function requireRole(
@@ -122,6 +171,28 @@ export async function requireRole(
   }
 
   return role
+}
+
+/**
+ * Require user to have a role or higher role (throws error if not)
+ * Hierarchy: admin > commissioner > coach > spectator
+ */
+export async function requireRoleOrHigher(
+  supabase: SupabaseClient,
+  userId: string,
+  requiredRole: UserRole,
+): Promise<UserRole> {
+  const hasAccess = await hasRoleOrHigher(supabase, userId, requiredRole)
+  
+  if (!hasAccess) {
+    const role = await getUserRole(supabase, userId)
+    throw new Error(
+      `Insufficient permissions. Required role: ${requiredRole} or higher. Current role: ${role || "none"}`
+    )
+  }
+
+  const role = await getUserRole(supabase, userId)
+  return role as UserRole
 }
 
 /**
@@ -169,7 +240,7 @@ export async function requirePermission(
   userId: string,
   permission: Permission,
 ): Promise<void> {
-  const hasAccess = await hasPermission(supabase, userId)
+  const hasAccess = await hasPermission(supabase, userId, permission)
 
   if (!hasAccess) {
     throw new Error(`Insufficient permissions. Required: ${permission}`)
