@@ -242,7 +242,7 @@ function UsersManagementContent() {
             </div>
           </CardContent>
         </Card>
-        {["admin", "commissioner", "coach", "viewer"].map((role) => (
+        {["admin", "commissioner", "coach", "spectator"].map((role) => (
           <Card key={role}>
             <CardContent className="flex items-center gap-4 p-6">
               <div className="rounded-full bg-accent/10 p-3">
@@ -284,7 +284,7 @@ function UsersManagementContent() {
                 <SelectItem value="admin">Admin</SelectItem>
                 <SelectItem value="commissioner">Commissioner</SelectItem>
                 <SelectItem value="coach">Coach</SelectItem>
-                <SelectItem value="viewer">Viewer</SelectItem>
+                <SelectItem value="spectator">Spectator</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -330,7 +330,7 @@ function UsersManagementContent() {
                         {user.id === currentUser?.id ? (
                           <div className="flex items-center gap-2">
                             <Badge variant="secondary" className="w-[140px] justify-center">
-                              {user.role || "viewer"}
+                              {user.role || "spectator"}
                             </Badge>
                             <span className="text-xs text-muted-foreground" title="Cannot change your own role">
                               (You)
@@ -349,7 +349,7 @@ function UsersManagementContent() {
                                 <SelectItem value="admin">Admin</SelectItem>
                                 <SelectItem value="commissioner">Commissioner</SelectItem>
                                 <SelectItem value="coach">Coach</SelectItem>
-                                <SelectItem value="viewer">Viewer</SelectItem>
+                                <SelectItem value="spectator">Spectator</SelectItem>
                               </SelectContent>
                             </Select>
                             {user.discord_id && (

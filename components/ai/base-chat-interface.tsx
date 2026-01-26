@@ -692,7 +692,7 @@ export function BaseChatInterface({
               disabled={isLoading || !input.trim()}
               size="icon"
               className={cn(
-                "absolute right-2 bottom-2 h-10 w-10 min-h-[44px] min-w-[44px] shrink-0",
+                "absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 min-h-[44px] min-w-[44px] shrink-0",
                 "touch-manipulation active:scale-95"
               )}
             >

@@ -19,8 +19,18 @@ export async function POST(request: Request) {
       const { messages, selectedPokemon, mcpEnabled = true, model } = body
 
       // Get MCP server URL and API key from environment
-      const mcpServerUrl = process.env.MCP_DRAFT_POOL_SERVER_URL || 'https://mcp-draft-pool.moodmnky.com/mcp'
-      const mcpApiKey = process.env.MCP_API_KEY
+      const mcpServerUrl = (process.env.MCP_DRAFT_POOL_SERVER_URL || 'https://mcp-draft-pool.moodmnky.com/mcp').trim()
+      const mcpApiKey = process.env.MCP_API_KEY?.trim()
+      
+      // Debug logging for MCP configuration
+      if (mcpEnabled) {
+        console.log('[Pokédex] MCP Configuration:', {
+          serverUrl: mcpServerUrl,
+          hasApiKey: !!mcpApiKey,
+          apiKeyLength: mcpApiKey?.length || 0,
+          serverUrlIsPublic: mcpServerUrl.startsWith('https://'),
+        })
+      }
 
       // Build system message
       const systemMessage = `You are a knowledgeable Pokédex assistant for the Average at Best Battle League.
@@ -70,16 +80,28 @@ When asked about 'points', refer to draft point costs in the league draft pool. 
       }
 
       // Conditionally add MCP tools
-      if (mcpEnabled) {
-        tools.mcp = openai.tools.mcp({
-          serverLabel: 'poke-mnky-draft-pool',
-          serverUrl: mcpServerUrl,
-          serverDescription: 'Access to POKE MNKY draft pool and team data. Provides tools for querying available Pokémon, draft costs, and team information.',
-          requireApproval: 'never',
-          // Configure authentication: Bearer token in authorization field
-          ...(mcpApiKey && {
+      if (mcpEnabled && mcpApiKey && mcpServerUrl) {
+        try {
+          tools.mcp = openai.tools.mcp({
+            serverLabel: 'poke-mnky-draft-pool',
+            serverUrl: mcpServerUrl,
+            serverDescription: 'Access to POKE MNKY draft pool and team data. Provides tools for querying available Pokémon, draft costs, and team information.',
+            requireApproval: 'never',
+            // Configure authentication: Bearer token in authorization field
             authorization: `Bearer ${mcpApiKey}`,
-          }),
+          })
+        } catch (mcpError: any) {
+          console.error('[Pokédex] Failed to configure MCP tools:', {
+            error: mcpError.message,
+            serverUrl: mcpServerUrl,
+            hasApiKey: !!mcpApiKey,
+          })
+          // Continue without MCP tools - don't fail the entire request
+        }
+      } else if (mcpEnabled) {
+        console.warn('[Pokédex] MCP enabled but missing configuration:', {
+          hasServerUrl: !!mcpServerUrl,
+          hasApiKey: !!mcpApiKey,
         })
       }
 

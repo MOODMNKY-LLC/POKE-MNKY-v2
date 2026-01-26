@@ -5,7 +5,7 @@ import { createBrowserClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { Database, Calendar, Trophy, Users, RefreshCw, Settings, MessageSquare, ClipboardList } from "lucide-react"
+import { Database, Calendar, Trophy, Users, RefreshCw, Settings, MessageSquare, ClipboardList, FileText, ChevronDown, ChevronUp, Music } from "lucide-react"
 import { SupabaseManager } from "@/components/platform/supabase-manager"
 // PokepediaSyncStatusNew removed - sync system deleted
 import { ShowdownPokedexSync } from "@/components/admin/showdown-pokedex-sync"
@@ -13,12 +13,16 @@ import { PokemonSyncControl } from "@/components/admin/pokemon-sync-control"
 import { DraftPoolImport } from "@/components/admin/draft-pool-import"
 import { PokeMnkyPremium } from "@/components/ui/poke-mnky-avatar"
 import { useRouter } from "next/navigation"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 
 export default function AdminPage() {
   const [user, setUser] = useState<any>(null)
   const [stats, setStats] = useState({ teams: 0, matches: 0, pokemon: 0 })
   const [lastSync, setLastSync] = useState<any>(null)
   const [platformOpen, setPlatformOpen] = useState(false)
+  const [draftPoolOpen, setDraftPoolOpen] = useState(false)
+  const [pokemonSyncOpen, setPokemonSyncOpen] = useState(false)
+  const [showdownSyncOpen, setShowdownSyncOpen] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -154,197 +158,281 @@ export default function AdminPage() {
           </Card>
         </div>
 
-        {/* Quick Actions */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          <Card>
-            <CardHeader>
-              <Database className="mb-2 h-8 w-8 text-primary" />
-              <CardTitle>Sync Google Sheets</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="mb-4 text-sm text-muted-foreground">
-                Import the latest data from your Google Sheets master data file.
-              </p>
-              <div className="flex gap-2">
-                <Button asChild variant="outline" className="flex-1">
-                  <Link href="/admin/google-sheets">Configure</Link>
-                </Button>
-                <form action="/api/sync/google-sheets" method="POST" className="flex-1">
-                  <Button type="submit" className="w-full">
-                    Sync Now
-                  </Button>
-                </form>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <Calendar className="mb-2 h-8 w-8 text-chart-2" />
-              <CardTitle>Manage Matches</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="mb-4 text-sm text-muted-foreground">Add or update match results and schedules.</p>
-              <Button asChild variant="outline" className="w-full bg-transparent">
-                <Link href="/admin/matches">Manage Matches</Link>
-              </Button>
-            </CardContent>
-          </Card>
-
+        {/* League Management */}
+        <div className="mb-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           <Card>
             <CardHeader>
               <Users className="mb-2 h-8 w-8 text-chart-3" />
-              <CardTitle>Manage Teams</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="mb-4 text-sm text-muted-foreground">Edit team information and rosters.</p>
-              <Button asChild variant="outline" className="w-full bg-transparent">
-                <Link href="/admin/teams">Manage Teams</Link>
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <ClipboardList className="mb-2 h-8 w-8 text-primary" />
-              <CardTitle>Draft Sessions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="mb-4 text-sm text-muted-foreground">Create and manage draft sessions for your league.</p>
-              <Button asChild variant="outline" className="w-full bg-transparent">
-                <Link href="/admin/draft/sessions">Manage Draft Sessions</Link>
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <Trophy className="mb-2 h-8 w-8 text-accent" />
-              <CardTitle>Playoff Bracket</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="mb-4 text-sm text-muted-foreground">Set up and manage playoff matches.</p>
-              <Button asChild variant="outline" className="w-full bg-transparent">
-                <Link href="/admin/playoffs">Manage Playoffs</Link>
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <Database className="mb-2 h-8 w-8 text-primary" />
-              <CardTitle>Sync History</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="mb-4 text-sm text-muted-foreground">View data synchronization logs.</p>
-              <Button asChild variant="outline" className="w-full bg-transparent">
-                <Link href="/admin/sync-logs">View Logs</Link>
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <Trophy className="mb-2 h-8 w-8 text-chart-1" />
-              <CardTitle>Statistics</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="mb-4 text-sm text-muted-foreground">Manage Pokemon performance stats.</p>
-              <Button asChild variant="outline" className="w-full bg-transparent">
-                <Link href="/admin/stats">Manage Stats</Link>
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* User Management */}
-          <Card>
-            <CardHeader>
-              <Users className="mb-2 h-8 w-8 text-primary" />
-              <CardTitle>User Management</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="mb-4 text-sm text-muted-foreground">Manage user roles, permissions, and access control.</p>
-              <Button asChild variant="outline" className="w-full bg-transparent">
-                <Link href="/admin/users">Manage Users</Link>
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Discord Management */}
-          <Card>
-            <CardHeader>
-              <MessageSquare className="mb-2 h-8 w-8 text-primary" />
-              <CardTitle>Discord Management</CardTitle>
+              <CardTitle>League Management</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="mb-4 text-sm text-muted-foreground">
-                Manage Discord roles, sync permissions, and configure bot settings.
+                Manage teams, matches, statistics, and sync logs in one unified interface.
               </p>
-              <div className="flex flex-col gap-2">
+              <Button asChild variant="outline" className="w-full bg-transparent">
+                <Link href="/admin/league">Manage League</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Draft Management Section */}
+        <div className="mb-8">
+          <div className="mb-4">
+            <h3 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+              <ClipboardList className="h-6 w-6 text-primary" />
+              Draft Management
+            </h3>
+            <p className="text-muted-foreground">
+              Create draft sessions, manage the draft pool, and import draft data.
+            </p>
+          </div>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <Card>
+              <CardHeader>
+                <ClipboardList className="mb-2 h-8 w-8 text-primary" />
+                <CardTitle>Draft Sessions</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="mb-4 text-sm text-muted-foreground">
+                  Create and manage draft sessions for your league.
+                </p>
                 <Button asChild variant="outline" className="w-full bg-transparent">
-                  <Link href="/admin/users#discord">Manage Discord</Link>
+                  <Link href="/admin/draft/sessions">Manage Draft Sessions</Link>
                 </Button>
-                <div className="flex gap-2">
-                  <Button asChild variant="ghost" size="sm" className="flex-1 text-xs">
-                    <Link href="/admin/discord/config">Config</Link>
-                  </Button>
-                  <Button asChild variant="ghost" size="sm" className="flex-1 text-xs">
-                    <Link href="/admin/discord/bot">Bot Status</Link>
-                  </Button>
-                  <Button asChild variant="ghost" size="sm" className="flex-1 text-xs">
-                    <Link href="/admin/discord/webhooks">Webhooks</Link>
-                  </Button>
-                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <ClipboardList className="mb-2 h-8 w-8 text-primary" />
+                <CardTitle>Pokémon Draft Pool</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="mb-4 text-sm text-muted-foreground">
+                  Manage which Pokémon are available for the draft pool. Edit tier and availability for all Pokémon.
+                </p>
+                <Button asChild variant="outline" className="w-full bg-transparent">
+                  <Link href="/admin/pokemon">Manage Pokémon</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+          
+          {/* Draft Pool Import & Sync Component */}
+          <div className="mt-4">
+            <Collapsible open={draftPoolOpen} onOpenChange={setDraftPoolOpen}>
+              <div className="rounded-lg border bg-card">
+                <CollapsibleTrigger asChild>
+                  <div className="flex items-center justify-between p-6 cursor-pointer hover:bg-muted/50 transition-colors">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Database className="h-5 w-5 text-primary" />
+                        <h3 className="text-lg font-semibold">Draft Pool Import & Sync</h3>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Import draft pool data from server agent JSON and sync to production database.
+                      </p>
+                    </div>
+                    {draftPoolOpen ? (
+                      <ChevronUp className="h-4 w-4 text-muted-foreground ml-4 shrink-0" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4 text-muted-foreground ml-4 shrink-0" />
+                    )}
+                  </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="border-t">
+                    <DraftPoolImport />
+                  </div>
+                </CollapsibleContent>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Poképedia Dashboard */}
-          <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5">
-            <CardHeader>
-              <Database className="mb-2 h-8 w-8 text-primary" />
-              <CardTitle>Poképedia Dashboard</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="mb-4 text-sm text-muted-foreground">
-                Comprehensive Supabase management and Poképedia sync monitoring.
-              </p>
-              <Button asChild className="w-full">
-                <Link href="/admin/pokepedia-dashboard">Open Dashboard</Link>
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Pokémon Draft Pool Management */}
-          <Card>
-            <CardHeader>
-              <ClipboardList className="mb-2 h-8 w-8 text-primary" />
-              <CardTitle>Pokémon Draft Pool</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="mb-4 text-sm text-muted-foreground">
-                Manage which Pokémon are available for the draft pool. Edit tier and availability for all Pokémon.
-              </p>
-              <Button asChild variant="outline" className="w-full bg-transparent">
-                <Link href="/admin/pokemon">Manage Pokémon</Link>
-              </Button>
-            </CardContent>
-          </Card>
+            </Collapsible>
+          </div>
         </div>
 
-        {/* Pokemon Data Sync Control */}
-        <div id="pokemon-sync" className="mt-8 scroll-mt-8">
-          <PokemonSyncControl />
+        {/* Data Synchronization Section */}
+        <div className="mb-8">
+          <div className="mb-4">
+            <h3 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+              <RefreshCw className="h-6 w-6 text-primary" />
+              Data Synchronization
+            </h3>
+            <p className="text-muted-foreground">
+              Sync data from external sources and keep your database up-to-date.
+            </p>
+          </div>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <Card>
+              <CardHeader>
+                <FileText className="mb-2 h-8 w-8 text-primary" />
+                <CardTitle>Google Sheets Sync</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="mb-4 text-sm text-muted-foreground">
+                  Import the latest data from your Google Sheets master data file.
+                </p>
+                <div className="flex gap-2">
+                  <Button asChild variant="outline" className="flex-1">
+                    <Link href="/admin/google-sheets">Configure</Link>
+                  </Button>
+                  <form action="/api/sync/google-sheets" method="POST" className="flex-1">
+                    <Button type="submit" className="w-full">
+                      Sync Now
+                    </Button>
+                  </form>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Sync Components */}
+          <div className="mt-4 space-y-4">
+            <Collapsible open={pokemonSyncOpen} onOpenChange={setPokemonSyncOpen}>
+              <div className="rounded-lg border bg-card">
+                <CollapsibleTrigger asChild>
+                  <div className="flex items-center justify-between p-6 cursor-pointer hover:bg-muted/50 transition-colors">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Database className="h-5 w-5 text-primary" />
+                        <h3 className="text-lg font-semibold">Pokemon Data Sync</h3>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Manually trigger and monitor Pokemon data synchronization from PokeAPI.
+                      </p>
+                    </div>
+                    {pokemonSyncOpen ? (
+                      <ChevronUp className="h-4 w-4 text-muted-foreground ml-4 shrink-0" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4 text-muted-foreground ml-4 shrink-0" />
+                    )}
+                  </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="border-t">
+                    <PokemonSyncControl />
+                  </div>
+                </CollapsibleContent>
+              </div>
+            </Collapsible>
+
+            <Collapsible open={showdownSyncOpen} onOpenChange={setShowdownSyncOpen}>
+              <div className="rounded-lg border bg-card">
+                <CollapsibleTrigger asChild>
+                  <div className="flex items-center justify-between p-6 cursor-pointer hover:bg-muted/50 transition-colors">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Database className="h-5 w-5 text-primary" />
+                        <h3 className="text-lg font-semibold">Showdown Competitive Database</h3>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Sync Pokémon Showdown&apos;s competitive pokedex data to keep your database up-to-date.
+                      </p>
+                    </div>
+                    {showdownSyncOpen ? (
+                      <ChevronUp className="h-4 w-4 text-muted-foreground ml-4 shrink-0" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4 text-muted-foreground ml-4 shrink-0" />
+                    )}
+                  </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="border-t">
+                    <ShowdownPokedexSync />
+                  </div>
+                </CollapsibleContent>
+              </div>
+            </Collapsible>
+          </div>
         </div>
 
-        {/* Showdown Pokedex Sync */}
-        <div id="showdown-sync" className="mt-8 scroll-mt-8">
-          <ShowdownPokedexSync />
-        </div>
+        {/* System Management Section */}
+        <div className="mb-8">
+          <div className="mb-4">
+            <h3 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+              <Settings className="h-6 w-6 text-primary" />
+              System Management
+            </h3>
+            <p className="text-muted-foreground">
+              Configure platform settings, manage users, and access system tools.
+            </p>
+          </div>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <Card>
+              <CardHeader>
+                <Users className="mb-2 h-8 w-8 text-primary" />
+                <CardTitle>User Management</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="mb-4 text-sm text-muted-foreground">
+                  Manage user roles, permissions, and access control.
+                </p>
+                <Button asChild variant="outline" className="w-full bg-transparent">
+                  <Link href="/admin/users">Manage Users</Link>
+                </Button>
+              </CardContent>
+            </Card>
 
-        {/* Draft Pool Import & Sync */}
-        <div id="draft-pool-import" className="mt-8 scroll-mt-8">
-          <DraftPoolImport />
+            <Card>
+              <CardHeader>
+                <MessageSquare className="mb-2 h-8 w-8 text-primary" />
+                <CardTitle>Discord Management</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="mb-4 text-sm text-muted-foreground">
+                  Manage Discord roles, sync permissions, bot settings, and webhooks.
+                </p>
+                <Button asChild variant="outline" className="w-full bg-transparent">
+                  <Link href="/admin/discord">Manage Discord</Link>
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5">
+              <CardHeader>
+                <Database className="mb-2 h-8 w-8 text-primary" />
+                <CardTitle>Poképedia Dashboard</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="mb-4 text-sm text-muted-foreground">
+                  Comprehensive Supabase management and Poképedia sync monitoring.
+                </p>
+                <Button asChild className="w-full">
+                  <Link href="/admin/pokepedia-dashboard">Open Dashboard</Link>
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <Trophy className="mb-2 h-8 w-8 text-accent" />
+                <CardTitle>Playoff Bracket</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="mb-4 text-sm text-muted-foreground">
+                  Set up and manage playoff matches.
+                </p>
+                <Button asChild variant="outline" className="w-full bg-transparent">
+                  <Link href="/admin/playoffs">Manage Playoffs</Link>
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <Music className="mb-2 h-8 w-8 text-primary" />
+                <CardTitle>Music Management</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="mb-4 text-sm text-muted-foreground">
+                  Download and manage music tracks from Pixabay for the in-app music player.
+                </p>
+                <Button asChild variant="outline" className="w-full bg-transparent">
+                  <Link href="/admin/music">Manage Music</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </main>
 

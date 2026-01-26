@@ -18,7 +18,7 @@ export const APP_TO_DISCORD_ROLE_MAP: Record<UserRole, string[]> = {
   admin: ["Commissioner", "League Admin"], // Can map to multiple Discord roles
   commissioner: ["Commissioner"], // If you have a separate Commissioner role
   coach: ["Coach"],
-  viewer: ["Spectator"],
+  spectator: ["Spectator"], // Updated from viewer to spectator
 }
 
 // Discord role to App role mapping (Discord → App)
@@ -26,7 +26,7 @@ export const DISCORD_TO_APP_ROLE_MAP: Record<string, UserRole> = {
   Commissioner: "admin",
   "League Admin": "admin",
   Coach: "coach",
-  Spectator: "viewer",
+  Spectator: "spectator", // Updated from viewer to spectator
 }
 
 /**
@@ -35,16 +35,25 @@ export const DISCORD_TO_APP_ROLE_MAP: Record<string, UserRole> = {
  * NOTE: Discord bot is hosted externally - this creates a temporary client for role sync operations
  */
 async function createDiscordClient() {
+  console.log("[Discord Sync] Creating Discord client...")
+  
   if (!process.env.DISCORD_BOT_TOKEN) {
+    console.error("[Discord Sync] DISCORD_BOT_TOKEN not configured")
     throw new Error("DISCORD_BOT_TOKEN is not configured")
   }
 
+  console.log("[Discord Sync] Importing discord.js...")
   const { Client, GatewayIntentBits } = await getDiscordClient()
+  
+  console.log("[Discord Sync] Creating client instance...")
   const client = new Client({
     intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
   })
 
+  console.log("[Discord Sync] Logging in...")
   await client.login(process.env.DISCORD_BOT_TOKEN)
+  console.log("[Discord Sync] Client logged in successfully")
+  
   return client
 }
 
@@ -54,13 +63,26 @@ async function createDiscordClient() {
  * NOTE: Discord bot is hosted externally - this creates a temporary client for role sync operations
  */
 export async function getGuild() {
+  console.log("[Discord Sync] Getting guild...")
+  
   if (!process.env.DISCORD_GUILD_ID) {
+    console.error("[Discord Sync] DISCORD_GUILD_ID not configured")
     throw new Error("DISCORD_GUILD_ID is not configured")
   }
 
+  if (!process.env.DISCORD_BOT_TOKEN) {
+    console.error("[Discord Sync] DISCORD_BOT_TOKEN not configured")
+    throw new Error("DISCORD_BOT_TOKEN is not configured")
+  }
+
+  console.log("[Discord Sync] Creating Discord client...")
   // Create temporary client for API operations
   const client = await createDiscordClient()
+  console.log("[Discord Sync] Client created, fetching guild...")
+  
   const guild = await client.guilds.fetch(process.env.DISCORD_GUILD_ID)
+  console.log(`[Discord Sync] Guild fetched: ${guild.name} (${guild.id})`)
+  
   return { guild, client, shouldDestroy: true } // Always destroy temporary client
 }
 
@@ -176,37 +198,58 @@ export async function syncAppRoleToDiscord(
 /**
  * Sync Discord role to App (Discord → App)
  * Updates app role based on Discord member roles
+ * 
+ * @param discordId - Discord user ID
+ * @param syncedBy - Admin user ID who triggered sync
+ * @param member - Optional: Pre-fetched Discord member (to avoid re-fetching)
+ * @param guild - Optional: Pre-fetched Discord guild (to avoid re-creating client)
  */
 export async function syncDiscordRoleToApp(
   discordId: string,
   syncedBy?: string, // Admin user ID who triggered sync
+  member?: GuildMember, // Optional: Pre-fetched member
+  guild?: any, // Optional: Pre-fetched guild
 ): Promise<{ success: boolean; appRole: UserRole | null; message: string }> {
+  let client: any = null
+  let shouldDestroy = false
+  
   try {
-    const { guild, client, shouldDestroy } = await getGuild()
-
-    // Fetch Discord member
-    let member: GuildMember
-    try {
-      member = await guild.members.fetch(discordId)
-    } catch (error: any) {
-      if (shouldDestroy) {
-        await client.destroy()
+    // Use provided member/guild or fetch new ones
+    let discordMember: GuildMember
+    
+    if (member && guild) {
+      // Use provided member (more efficient for bulk sync)
+      discordMember = member
+    } else {
+      // Fetch new client and member (for single sync)
+      console.log(`[Discord Sync] Fetching member ${discordId}...`)
+      const { guild: fetchedGuild, client: fetchedClient, shouldDestroy: shouldDestroyClient } = await getGuild()
+      guild = fetchedGuild
+      client = fetchedClient
+      shouldDestroy = shouldDestroyClient
+      
+      try {
+        discordMember = await guild.members.fetch(discordId)
+      } catch (error: any) {
+        if (shouldDestroy && client) {
+          await client.destroy()
+        }
+        if (error.code === 10007) {
+          return { success: false, appRole: null, message: "User not found in Discord server" }
+        }
+        throw error
       }
-      if (error.code === 10007) {
-        return { success: false, appRole: null, message: "User not found in Discord server" }
-      }
-      throw error
     }
 
     // Determine app role from Discord roles (priority order)
-    let appRole: UserRole = "viewer" // Default
+    let appRole: UserRole = "spectator" // Default
 
     // Check roles in priority order (admin roles first)
-    const rolePriority: UserRole[] = ["admin", "commissioner", "coach", "viewer"]
+    const rolePriority: UserRole[] = ["admin", "commissioner", "coach", "spectator"]
 
     for (const role of rolePriority) {
       const mappedDiscordRoles = APP_TO_DISCORD_ROLE_MAP[role] || []
-      if (mappedDiscordRoles.some((name) => member.roles.cache.some((r) => r.name === name))) {
+      if (mappedDiscordRoles.some((name) => discordMember.roles.cache.some((r) => r.name === name))) {
         appRole = role
         break // Use highest priority match
       }
@@ -221,24 +264,51 @@ export async function syncDiscordRoleToApp(
       .single()
 
     if (!profile) {
-      if (shouldDestroy) {
+      if (shouldDestroy && client) {
         await client.destroy()
       }
       return { success: false, appRole: null, message: "User not found in database" }
     }
 
-    // Update if different
-    if (profile.role !== appRole) {
-      const { error } = await supabase.from("profiles").update({ role: appRole }).eq("id", profile.id)
+    // Get Discord roles array for storage
+    const discordRolesArray = discordMember.roles.cache
+      .filter(role => role.name !== '@everyone')
+      .map(role => ({
+        id: role.id,
+        name: role.name,
+        color: role.hexColor,
+        position: role.position,
+      }))
+      .sort((a, b) => b.position - a.position)
 
-      if (error) {
-        if (shouldDestroy) {
-          await client.destroy()
-        }
-        return { success: false, appRole: null, message: `Database error: ${error.message}` }
+    // Update if role is different OR if Discord roles need updating
+    const needsUpdate = profile.role !== appRole
+    
+    // Always update Discord roles to keep them in sync (including empty array for removals)
+    const updateData: { role?: UserRole; discord_roles: any[]; updated_at: string } = {
+      discord_roles: discordRolesArray, // Always update, even if empty (reflects role removals)
+      updated_at: new Date().toISOString(),
+    }
+    
+    if (needsUpdate) {
+      updateData.role = appRole
+    }
+
+    // Always update Discord roles in database (handles additions, removals, and changes)
+    const { error } = await supabase
+      .from("profiles")
+      .update(updateData)
+      .eq("id", profile.id)
+
+    if (error) {
+      if (shouldDestroy && client) {
+        await client.destroy()
       }
+      return { success: false, appRole: null, message: `Database error: ${error.message}` }
+    }
 
-      // Log activity
+    // Log activity only if app role changed
+    if (needsUpdate) {
       await supabase.from("user_activity_log").insert({
         user_id: profile.id,
         action: "discord_role_sync",
@@ -248,25 +318,25 @@ export async function syncDiscordRoleToApp(
           old_role: profile.role,
           new_role: appRole,
           synced_by: syncedBy || "system",
+          discord_roles: discordRolesArray,
+          discord_roles_count: discordRolesArray.length,
         },
       })
-
-      if (shouldDestroy) {
-        await client.destroy()
-      }
-      return {
-        success: true,
-        appRole,
-        message: `Updated app role from ${profile.role} to ${appRole}`,
-      }
     }
 
-    if (shouldDestroy) {
+    if (shouldDestroy && client) {
       await client.destroy()
     }
     return { success: true, appRole, message: "Role already in sync" }
   } catch (error: any) {
-    console.error("[Discord Sync] Error syncing Discord role to app:", error)
+    console.error(`[Discord Sync] Error syncing Discord role to app (${discordId}):`, error)
+    if (shouldDestroy && client) {
+      try {
+        await client.destroy()
+      } catch (destroyError) {
+        console.error("[Discord Sync] Error destroying client:", destroyError)
+      }
+    }
     return {
       success: false,
       appRole: null,
@@ -286,48 +356,91 @@ export async function syncAllDiscordRolesToApp(syncedBy?: string): Promise<{
   let client: any = null
   let shouldDestroy = false
   
+  console.log("[Discord Sync] Starting bulk sync...")
+  
   try {
+    console.log("[Discord Sync] Getting Discord guild...")
     const { guild, client: guildClient, shouldDestroy: shouldDestroyGuild } = await getGuild()
     client = guildClient
     shouldDestroy = shouldDestroyGuild
     
+    console.log("[Discord Sync] Guild obtained, fetching members...")
     const members = await guild.members.fetch()
+    console.log(`[Discord Sync] Found ${members.size} Discord members`)
 
     const supabase = createServiceRoleClient()
     const results = { updated: 0, skipped: 0, errors: 0 }
+    let processed = 0
 
+    // Reuse the same guild/client for all member syncs (more efficient)
     for (const [discordId, member] of members) {
+      processed++
+      if (processed % 10 === 0) {
+        console.log(`[Discord Sync] Processed ${processed}/${members.size} members...`)
+      }
+      
       try {
-        const syncResult = await syncDiscordRoleToApp(discordId, syncedBy)
+        // Pass member and guild to avoid re-fetching
+        const syncResult = await syncDiscordRoleToApp(discordId, syncedBy, member, guild)
 
         if (!syncResult.success) {
           if (syncResult.message.includes("not found")) {
+            // User not found in database (Discord member exists but no matching profile)
+            if (processed <= 5 || processed % 10 === 0) {
+              console.log(`[Discord Sync] Skipped ${discordId}: ${syncResult.message}`)
+            }
             results.skipped++
           } else {
+            console.error(`[Discord Sync] Error syncing ${discordId}:`, syncResult.message)
             results.errors++
           }
         } else if (syncResult.message.includes("Updated")) {
+          console.log(`[Discord Sync] ✅ Updated ${discordId}: ${syncResult.message}`)
           results.updated++
         } else {
+          // Role already in sync
+          if (processed <= 5 || processed % 10 === 0) {
+            console.log(`[Discord Sync] ⏭️  Skipped ${discordId}: ${syncResult.message}`)
+          }
           results.skipped++
         }
-      } catch (error) {
-        console.error(`[Discord Sync] Error syncing ${discordId}:`, error)
+      } catch (error: any) {
+        console.error(`[Discord Sync] Exception syncing ${discordId}:`, error.message)
         results.errors++
       }
     }
 
+    console.log(`[Discord Sync] Bulk sync complete:`, results)
+    console.log(`[Discord Sync] Summary: ${results.updated} updated, ${results.skipped} skipped (no profile or already synced), ${results.errors} errors`)
+
     if (shouldDestroy && client) {
+      console.log("[Discord Sync] Destroying Discord client...")
       await client.destroy()
     }
 
     return {
       success: true,
       results,
-      message: `Synced ${results.updated} users, ${results.skipped} unchanged, ${results.errors} errors`,
+      message: `Synced ${results.updated} users, ${results.skipped} skipped (no matching profile or already in sync), ${results.errors} errors`,
     }
   } catch (error: any) {
     console.error("[Discord Sync] Error in bulk sync:", error)
+    console.error("[Discord Sync] Error details:", {
+      message: error.message,
+      name: error.name,
+      code: error.code,
+      stack: error.stack,
+    })
+    
+    if (shouldDestroy && client) {
+      try {
+        console.log("[Discord Sync] Cleaning up client after error...")
+        await client.destroy()
+      } catch (destroyError) {
+        console.error("[Discord Sync] Error destroying client:", destroyError)
+      }
+    }
+    
     return {
       success: false,
       results: { updated: 0, skipped: 0, errors: 0 },
