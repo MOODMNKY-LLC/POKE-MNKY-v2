@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
       .limit(limit)
 
     // Get owned Pokemon IDs if excluding owned
-    let ownedPokemonIds: string[] = []
+    let ownedPokemonIds = new Set<string>()
     if (excludeOwned && seasonId) {
       // Get all owned Pokemon for the season
       const { data: ownedPicks } = await supabase
@@ -101,7 +101,7 @@ export async function GET(request: NextRequest) {
         .eq("status", "active")
 
       if (ownedPicks) {
-        ownedPokemonIds = ownedPicks.map((p) => p.pokemon_id)
+        ownedPicks.forEach((p) => ownedPokemonIds.add(p.pokemon_id))
       }
 
       // If discord_user_id provided, also exclude that user's team's Pokemon
@@ -130,18 +130,16 @@ export async function GET(request: NextRequest) {
               .eq("status", "active")
 
             if (userOwnedPicks) {
-              ownedPokemonIds = [
-                ...ownedPokemonIds,
-                ...userOwnedPicks.map((p) => p.pokemon_id),
-              ]
+              userOwnedPicks.forEach((p) => ownedPokemonIds.add(p.pokemon_id))
             }
           }
         }
       }
 
       // Exclude owned Pokemon
-      if (ownedPokemonIds.length > 0) {
-        pokemonQuery = pokemonQuery.not("id", "in", `(${ownedPokemonIds.join(",")})`)
+      if (ownedPokemonIds.size > 0) {
+        const ownedIdsArray = Array.from(ownedPokemonIds)
+        pokemonQuery = pokemonQuery.not("id", "in", `(${ownedIdsArray.join(",")})`)
       }
     }
 
