@@ -515,8 +515,8 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
                 <span className="sr-only">Toggle menu</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[300px] sm:w-[400px]">
-              <nav className="flex flex-col gap-4 mt-8">
+            <SheetContent side="right" className="w-[300px] sm:w-[400px] overflow-y-auto max-h-screen">
+              <nav className="flex flex-col gap-4 mt-8 pb-4">
                 {/* League Section */}
                 <div className="space-y-2">
                   <p className="text-xs font-semibold text-muted-foreground uppercase px-2">League</p>
