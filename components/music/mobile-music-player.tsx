@@ -91,12 +91,13 @@ export function MobileMusicPlayer() {
 
   return (
     <>
-      {/* Floating Button - Always Visible */}
+      {/* Floating Button - Always Visible on Mobile */}
       <Button
         variant="outline"
         size="icon"
-        className="fixed bottom-20 right-4 z-40 h-12 w-12 rounded-full shadow-lg xl:hidden"
+        className="fixed bottom-6 left-4 z-[45] h-12 w-12 rounded-full shadow-lg bg-background xl:hidden"
         onClick={() => setIsOpen(true)}
+        title="Music Player"
       >
         <Music2 className="h-5 w-5" />
       </Button>
