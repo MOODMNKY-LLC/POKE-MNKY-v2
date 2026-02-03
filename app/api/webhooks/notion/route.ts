@@ -74,6 +74,12 @@ export async function POST(request: NextRequest) {
     const body = await request.text()
     console.log(`[Notion Webhook ${requestId}] Body length: ${body.length} bytes`)
     
+    // Handle empty body requests (health checks, retries, etc.)
+    if (!body || body.length === 0) {
+      console.log(`[Notion Webhook ${requestId}] Empty body received - likely health check or retry`)
+      return NextResponse.json({ success: true, message: "Empty body acknowledged" }, { status: 200 })
+    }
+    
     // Log headers for debugging
     const headers = Object.fromEntries(request.headers.entries())
     console.log(`[Notion Webhook ${requestId}] Headers:`, {
