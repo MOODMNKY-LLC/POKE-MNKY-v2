@@ -1,8 +1,9 @@
 -- Discord Notification Log table
 -- Tracks Discord webhook notifications sent for draft board sync events
 
+-- Use gen_random_uuid() which is built-in to PostgreSQL
 CREATE TABLE IF NOT EXISTS public.discord_notification_log (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   webhook_name TEXT NOT NULL,
   event_type TEXT NOT NULL,
   payload JSONB DEFAULT '{}'::jsonb,
