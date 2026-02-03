@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { FreeAgencySystem } from "@/lib/free-agency"
-import { getCurrentUserProfile } from "@/lib/rbac"
+import { freeAgencyTransactionSchema } from "@/lib/validation/free-agency"
+import { mapRPCError } from "@/lib/supabase/rpc-error-map"
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,96 +12,109 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
-    }
-
-    const profile = await getCurrentUserProfile(supabase)
-    if (!profile) {
-      return NextResponse.json({ success: false, error: "Profile not found" }, { status: 404 })
+      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 })
     }
 
     const body = await request.json()
-    const { team_id, season_id, transaction_type, added_pokemon_id, dropped_pokemon_id } = body
 
-    // Validate required fields
-    if (!team_id || !season_id || !transaction_type) {
+    const validationResult = freeAgencyTransactionSchema.safeParse(body)
+    if (!validationResult.success) {
       return NextResponse.json(
-        { success: false, error: "Missing required fields: team_id, season_id, transaction_type" },
+        {
+          ok: false,
+          error: "Validation failed",
+          details: validationResult.error.errors,
+        },
         { status: 400 }
       )
     }
 
-    // Verify user is coach of this team
-    const { data: team } = await supabase
-      .from("teams")
-      .select("coach_id, coaches!inner(user_id)")
-      .eq("id", team_id)
-      .single()
-
-    if (!team || (team.coaches as any).user_id !== user.id) {
-      return NextResponse.json(
-        { success: false, error: "You are not the coach of this team" },
-        { status: 403 }
-      )
-    }
-
-    // Validate transaction type
-    if (!["replacement", "addition", "drop_only"].includes(transaction_type)) {
-      return NextResponse.json(
-        { success: false, error: "Invalid transaction_type" },
-        { status: 400 }
-      )
-    }
-
-    // Validate transaction type requirements
-    if (transaction_type === "replacement" && (!added_pokemon_id || !dropped_pokemon_id)) {
-      return NextResponse.json(
-        { success: false, error: "Replacement requires both added_pokemon_id and dropped_pokemon_id" },
-        { status: 400 }
-      )
-    }
-
-    if (transaction_type === "addition" && !added_pokemon_id) {
-      return NextResponse.json(
-        { success: false, error: "Addition requires added_pokemon_id" },
-        { status: 400 }
-      )
-    }
-
-    if (transaction_type === "drop_only" && !dropped_pokemon_id) {
-      return NextResponse.json(
-        { success: false, error: "Drop only requires dropped_pokemon_id" },
-        { status: 400 }
-      )
-    }
-
-    // Submit transaction
-    const freeAgency = new FreeAgencySystem()
-    const result = await freeAgency.submitTransaction(
+    const {
       team_id,
       season_id,
       transaction_type,
-      added_pokemon_id || null,
-      dropped_pokemon_id || null,
-      user.id
-    )
+      added_pokemon_id,
+      dropped_pokemon_id,
+      notes,
+    } = validationResult.data
 
-    if (!result.success) {
-      return NextResponse.json(
-        { success: false, error: result.error, validation: result.validation },
-        { status: 400 }
-      )
+    if (transaction_type === "replacement" && added_pokemon_id && dropped_pokemon_id) {
+      const { data, error } = await supabase.rpc("rpc_free_agency_transaction", {
+        p_season_id: season_id,
+        p_team_id: team_id,
+        p_drop_pokemon_id: dropped_pokemon_id,
+        p_add_pokemon_id: added_pokemon_id,
+        p_notes: notes ?? null,
+      })
+
+      if (error) {
+        const errorMapping = mapRPCError(error)
+        return NextResponse.json(
+          {
+            ok: false,
+            error: errorMapping.message,
+            code: errorMapping.code,
+          },
+          { status: errorMapping.statusCode }
+        )
+      }
+
+      const row = Array.isArray(data) && data.length > 0 ? data[0] : data
+      if (!row) {
+        return NextResponse.json(
+          { ok: false, error: "RPC did not return expected data" },
+          { status: 500 }
+        )
+      }
+
+      return NextResponse.json({
+        ok: true,
+        dropped_pick_id: row.dropped_pick_id,
+        added_pick_id: row.added_pick_id,
+        added_points_snapshot: row.added_points_snapshot,
+        team_budget: {
+          points_used: row.points_used,
+          budget_remaining: row.budget_remaining,
+          slots_used: row.slots_used,
+          slots_remaining: row.slots_remaining,
+        },
+      })
     }
 
-    return NextResponse.json({
-      success: true,
-      transaction: result.transaction,
-      validation: result.validation,
-    })
-  } catch (error: any) {
+    if (transaction_type === "addition" || transaction_type === "drop_only") {
+      const freeAgency = new FreeAgencySystem()
+      const result = await freeAgency.submitTransaction(
+        team_id,
+        season_id,
+        transaction_type,
+        added_pokemon_id ?? null,
+        dropped_pokemon_id ?? null,
+        user.id
+      )
+
+      if (!result.success) {
+        return NextResponse.json(
+          { ok: false, error: result.error, validation: result.validation },
+          { status: 400 }
+        )
+      }
+
+      return NextResponse.json({
+        ok: true,
+        transaction: result.transaction,
+        validation: result.validation,
+      })
+    }
+
+    return NextResponse.json(
+      { ok: false, error: "Invalid transaction_type or missing ids" },
+      { status: 400 }
+    )
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Internal server error"
     console.error("Free agency submit error:", error)
     return NextResponse.json(
-      { success: false, error: error.message || "Internal server error" },
+      { ok: false, error: message },
       { status: 500 }
     )
   }

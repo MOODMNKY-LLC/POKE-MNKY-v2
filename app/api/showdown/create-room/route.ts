@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { createServiceRoleClient } from '@/lib/supabase/service';
+import { z } from 'zod';
+import { apiError, apiErrorInternal } from '@/lib/api-response';
+
+const createRoomSchema = z.object({
+  match_id: z.string().uuid('match_id must be a valid UUID'),
+});
 
 export async function POST(request: NextRequest) {
   try {
@@ -8,14 +14,18 @@ export async function POST(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', 401, { code: 'UNAUTHORIZED' });
     }
 
-    const { match_id } = await request.json();
-
-    if (!match_id) {
-      return NextResponse.json({ error: 'match_id is required' }, { status: 400 });
+    const body = await request.json();
+    const parsed = createRoomSchema.safeParse(body);
+    if (!parsed.success) {
+      return apiError('match_id is required and must be a valid UUID', 400, {
+        code: 'VALIDATION_ERROR',
+        details: parsed.error.errors,
+      });
     }
+    const { match_id } = parsed.data;
 
     // Get match details using service role client for reliable access
     const serviceSupabase = createServiceRoleClient();
@@ -31,18 +41,15 @@ export async function POST(request: NextRequest) {
 
     if (matchError || !match) {
       console.error('[Showdown] Match fetch error:', matchError);
-      return NextResponse.json({ error: 'Match not found' }, { status: 404 });
+      return apiError('Match not found', 404, { code: 'NOT_FOUND' });
     }
 
     // Check if user is part of this match (coach of team1 or team2)
     const isTeam1Coach = match.team1?.coach_id === user.id;
     const isTeam2Coach = match.team2?.coach_id === user.id;
-    
+
     if (!isTeam1Coach && !isTeam2Coach) {
-      return NextResponse.json(
-        { error: 'You are not part of this match' },
-        { status: 403 }
-      );
+      return apiError('You are not part of this match', 403, { code: 'FORBIDDEN' });
     }
 
     // Check if room already exists
@@ -122,10 +129,7 @@ export async function POST(request: NextRequest) {
 
     if (updateError) {
       console.error('[Showdown] Update match error:', updateError);
-      return NextResponse.json(
-        { error: `Failed to update match: ${updateError.message}` },
-        { status: 500 }
-      );
+      return apiError(updateError.message, 500, { code: 'DB_ERROR' });
     }
 
     return NextResponse.json({
@@ -135,10 +139,6 @@ export async function POST(request: NextRequest) {
       match_id
     });
   } catch (error) {
-    console.error('[Showdown] Create room error:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
+    return apiErrorInternal(error, 'Showdown create-room');
   }
 }

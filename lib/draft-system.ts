@@ -4,6 +4,7 @@
  */
 
 import { createServiceRoleClient } from "./supabase/service"
+import { pushDraftStateToNotion } from "./sync/push-draft-state-to-notion"
 
 export interface DraftPick {
   pokemon_name: string
@@ -287,6 +288,13 @@ export class DraftSystem {
       .eq("pokemon_name", pokemon.pokemon_name)
       .eq("season_id", session.season_id)
       .eq("status", "available")
+
+    // Optional: push draft state to Notion so admins see Status = "Drafted" in Draft Board
+    pushDraftStateToNotion(this.supabase, {
+      season_id: session.season_id,
+      pokemon_name: pokemon.pokemon_name,
+      point_value: pokemon.point_value,
+    }).catch((err) => console.warn("[DraftSystem] Push to Notion failed:", err))
 
     // Advance to next pick
     const nextPickNumber = session.current_pick_number + 1

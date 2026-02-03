@@ -18,7 +18,7 @@ import {
 } from "../notion/client"
 
 interface SyncOptions {
-  scope?: Array<"pokemon" | "role_tags" | "moves" | "coaches" | "teams">
+  scope?: Array<"pokemon" | "role_tags" | "moves" | "coaches" | "teams" | "draft_board">
   incremental?: boolean
   since?: Date
   dryRun?: boolean
@@ -31,6 +31,7 @@ interface SyncResult {
     roleTags: { created: number; updated: number; failed: number }
     moves: { created: number; updated: number; failed: number }
     relations: { updated: number; failed: number }
+    draft_board?: { synced: number; skipped: number; failed: number }
   }
   errors: Array<{ entity: string; error: string }>
   duration: number
@@ -492,6 +493,245 @@ async function syncPokemon(
   return stats
 }
 
+/** Draft pool status enum values in Supabase */
+type DraftPoolStatus = "available" | "drafted" | "banned" | "unavailable"
+
+/**
+ * Map Notion Status select to draft_pool.status
+ */
+function normalizeDraftBoardStatus(notionStatus: string | null): DraftPoolStatus {
+  if (!notionStatus) return "available"
+  const mapping: Record<string, DraftPoolStatus> = {
+    Available: "available",
+    Banned: "banned",
+    Unavailable: "unavailable",
+    Drafted: "drafted",
+  }
+  return mapping[notionStatus] ?? "available"
+}
+
+/**
+ * Sync Draft Board from Notion to Supabase draft_pool
+ * Notion wins for point_value, tera_captain_eligible, status (when not drafted), generation, pokemon_id.
+ * Supabase wins for status=drafted, drafted_by_team_id, drafted_at.
+ */
+async function syncDraftBoard(
+  supabase: ReturnType<typeof createClient>,
+  notionDatabaseId: string,
+  options: SyncOptions
+): Promise<{ synced: number; skipped: number; failed: number; errors: any[] }> {
+  const stats = { synced: 0, skipped: 0, failed: 0, errors: [] as any[] }
+  const notionClient = createNotionClient()
+
+  // Resolve current season (default target for draft board)
+  const { data: currentSeason, error: seasonError } = await supabase
+    .from("seasons")
+    .select("id")
+    .eq("is_current", true)
+    .limit(1)
+    .single()
+
+  if (seasonError || !currentSeason?.id) {
+    stats.errors.push({
+      entity: "draft_board",
+      error: "No current season (is_current = true) found. Create or set a current season.",
+    })
+    return stats
+  }
+
+  const seasonId = currentSeason.id
+
+  let filter: any = undefined
+  if (options.incremental && options.since) {
+    filter = {
+      timestamp: "last_edited_time",
+      last_edited_time: {
+        on_or_after: options.since.toISOString(),
+      },
+    }
+  }
+
+  const notionPages = await queryAllPages(notionClient, notionDatabaseId, {
+    filter,
+    maxPages: options.dryRun ? 20 : undefined,
+  })
+
+  console.log(`  Found ${notionPages.length} draft board entries in Notion`)
+
+  // Existing draft_pool rows for this season (to preserve drafted state)
+  const { data: existingRows, error: existingError } = await supabase
+    .from("draft_pool")
+    .select("id, pokemon_name, point_value, status, drafted_by_team_id, drafted_at")
+    .eq("season_id", seasonId)
+
+  if (existingError) {
+    console.error("[syncDraftBoard] Error fetching existing draft_pool rows:", existingError)
+    stats.errors.push({ entity: "draft_board", error: `Failed to fetch existing rows: ${existingError.message}` })
+    return stats
+  }
+
+  const existingByKey = new Map<string, (typeof existingRows)[0]>()
+  existingRows?.forEach((row) => {
+    existingByKey.set(`${row.pokemon_name}:${row.point_value}`, row)
+  })
+
+  // Resolve pokemon_id from pokemon_cache by name (only for names we need)
+  const names = [...new Set(notionPages.map((p) => extractPropertyValue(p.properties["Name"], "title")?.toString().toLowerCase().trim()).filter(Boolean))]
+  const nameMap = new Map<string, number>()
+  if (names.length > 0) {
+    const { data: pokemonCache } = await supabase
+      .from("pokemon_cache")
+      .select("pokemon_id, name")
+      .in("name", names)
+    pokemonCache?.forEach((pc) => {
+      const n = (pc.name || "").toLowerCase().trim()
+      nameMap.set(n, pc.pokemon_id)
+    })
+  }
+
+  const toUpsert: Array<{
+    season_id: string
+    pokemon_name: string
+    point_value: number
+    status: DraftPoolStatus
+    tera_captain_eligible: boolean
+    pokemon_id: number | null
+    generation: number | null
+    banned_reason: string | null
+    drafted_by_team_id?: string | null
+    drafted_at?: string | null
+  }> = []
+
+  for (const page of notionPages) {
+    try {
+      const addedToDraftBoard = extractPropertyValue(page.properties["Added to Draft Board"], "checkbox")
+      if (addedToDraftBoard !== true) {
+        continue
+      }
+
+      const name = extractPropertyValue(page.properties["Name"], "title")
+      if (!name || typeof name !== "string") {
+        stats.errors.push({ entity: `draft_board:${page.id}`, error: "Missing Name" })
+        stats.failed++
+        continue
+      }
+
+      const pointValue = extractPropertyValue(page.properties["Point Value"], "number")
+      if (pointValue == null || pointValue < 1 || pointValue > 20) {
+        stats.errors.push({ entity: `draft_board:${page.id}`, error: "Invalid Point Value (1-20)" })
+        stats.failed++
+        continue
+      }
+
+      const notionStatus = extractPropertyValue(page.properties["Status"], "select")
+      const status = normalizeDraftBoardStatus(notionStatus)
+      const teraCaptainEligible = extractPropertyValue(page.properties["Tera Captain Eligible"], "checkbox") ?? true
+      const pokemonIdNotion = extractPropertyValue(page.properties["Pokemon ID (PokeAPI)"], "number")
+      const generation = extractPropertyValue(page.properties["Generation"], "number") ?? null
+      const notesProp = page.properties["Notes / Banned Reason"] ?? page.properties["Notes"]
+      const bannedReason = notesProp ? extractPropertyValue(notesProp, "rich_text") : null
+
+      const key = `${name.trim()}:${pointValue}`
+      const existing = existingByKey.get(key)
+
+      // Resolve pokemon_id: prefer Notion "Pokemon ID (PokeAPI)", else pokemon_cache by name
+      let pokemonId: number | null = typeof pokemonIdNotion === "number" ? pokemonIdNotion : null
+      if (pokemonId == null) {
+        const normalizedName = name.toLowerCase().trim()
+        pokemonId = nameMap.get(normalizedName) ?? null
+      }
+
+      let finalStatus: DraftPoolStatus = status
+      let draftedByTeamId: string | null = null
+      let draftedAt: string | null = null
+
+      if (existing?.status === "drafted") {
+        // Supabase wins: preserve draft state
+        finalStatus = "drafted"
+        draftedByTeamId = existing.drafted_by_team_id ?? null
+        draftedAt = existing.drafted_at ?? null
+        stats.skipped++
+      }
+
+      toUpsert.push({
+        season_id: seasonId,
+        pokemon_name: name.trim(),
+        point_value: pointValue,
+        status: finalStatus,
+        tera_captain_eligible: teraCaptainEligible,
+        pokemon_id: pokemonId,
+        generation: generation != null ? Number(generation) : null,
+        banned_reason: bannedReason?.toString().trim() || null,
+        ...(draftedByTeamId != null && { drafted_by_team_id: draftedByTeamId }),
+        ...(draftedAt != null && { drafted_at: draftedAt }),
+      })
+    } catch (error: any) {
+      console.error(`[syncDraftBoard] Error processing page ${page.id}:`, error)
+      stats.failed++
+      stats.errors.push({ 
+        entity: `draft_board:${page.id}`, 
+        error: error.message,
+        stack: error.stack 
+      })
+    }
+  }
+
+  if (options.dryRun) {
+    stats.synced = toUpsert.length
+    return stats
+  }
+
+  // Upsert in batches (Supabase unique on season_id, pokemon_name, point_value)
+  const batchSize = 50
+  for (let i = 0; i < toUpsert.length; i += batchSize) {
+    const batch = toUpsert.slice(i, i + batchSize)
+    const { error: upsertError } = await supabase
+      .from("draft_pool")
+      .upsert(batch, {
+        onConflict: "season_id,pokemon_name,point_value",
+        ignoreDuplicates: false,
+      })
+
+    if (upsertError) {
+      stats.failed += batch.length
+      stats.errors.push({ entity: "draft_board", error: upsertError.message })
+    } else {
+      stats.synced += batch.length
+    }
+  }
+
+  // Store notion_mappings for draft_pool rows (for optional Supabase → Notion push)
+  const { data: poolRows } = await supabase
+    .from("draft_pool")
+    .select("id, pokemon_name, point_value")
+    .eq("season_id", seasonId)
+
+  const keyToId = new Map<string, string>()
+  poolRows?.forEach((row) => {
+    keyToId.set(`${row.pokemon_name}:${row.point_value}`, row.id)
+  })
+
+  for (const page of notionPages) {
+    const name = extractPropertyValue(page.properties["Name"], "title")?.toString().trim()
+    const pointValue = extractPropertyValue(page.properties["Point Value"], "number")
+    if (!name || pointValue == null) continue
+    const key = `${name}:${pointValue}`
+    const draftPoolId = keyToId.get(key)
+    if (draftPoolId) {
+      await supabase.from("notion_mappings").upsert(
+        {
+          notion_page_id: page.id,
+          entity_type: "draft_pool",
+          entity_id: draftPoolId,
+        },
+        { onConflict: "notion_page_id" }
+      )
+    }
+  }
+
+  return stats
+}
+
 /**
  * Rebuild join tables deterministically
  */
@@ -731,6 +971,9 @@ export async function syncNotionToSupabase(
       databaseId: "6ecead11-a275-45e9-b2ed-10aa4ac76b5a",
       dataSourceId: "9f7b6b32-e56b-468a-8225-e06c5d0e1d87",
     },
+    draftBoard: {
+      databaseId: "5e58ccd73ceb44ed83de826b51cf5c36",
+    },
   }
 
   try {
@@ -765,11 +1008,58 @@ export async function syncNotionToSupabase(
       result.stats.pokemon = pokemonStats
     }
 
+    if (scope.includes("draft_board")) {
+      const draftBoardStats = await syncDraftBoard(
+        supabase,
+        NOTION_DATABASES.draftBoard.databaseId,
+        options
+      )
+      result.stats.draft_board = draftBoardStats
+    }
+
     // Step 2: Rebuild join tables
     const joinStats = await rebuildJoinTables(supabase, options)
     result.stats.relations = joinStats
 
     result.success = true
+
+    // Step 3: Broadcast Realtime update if draft_board was synced
+    if (result.success && scope.includes("draft_board") && result.stats.draft_board) {
+      try {
+        // Get current season ID
+        const { data: season } = await supabase
+          .from("seasons")
+          .select("id")
+          .eq("is_current", true)
+          .single()
+
+        if (season) {
+          // Broadcast to Realtime channel for draft board updates
+          const channel = supabase.channel("draft-board-updates")
+          await channel.send({
+            type: "broadcast",
+            event: "draft_board_synced",
+            payload: {
+              season_id: season.id,
+              synced_count: result.stats.draft_board.synced || 0,
+              failed_count: result.stats.draft_board.failed || 0,
+              skipped_count: result.stats.draft_board.skipped || 0,
+              timestamp: new Date().toISOString(),
+              sync_duration_ms: result.duration,
+            },
+          })
+
+          console.log("[Sync Worker] Realtime broadcast sent for draft board sync")
+        }
+      } catch (realtimeError: any) {
+        // Don't fail sync if Realtime broadcast fails
+        console.error("[Sync Worker] Realtime broadcast error:", realtimeError)
+        result.errors.push({
+          entity: "realtime_broadcast",
+          error: realtimeError.message,
+        })
+      }
+    }
   } catch (error: any) {
     result.errors.push({ entity: "sync_worker", error: error.message })
     result.success = false

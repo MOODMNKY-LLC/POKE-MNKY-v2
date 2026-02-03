@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Plus, Library, Users } from "lucide-react"
 import Link from "next/link"
+import { LinkLeagueTeamButton } from "@/components/dashboard/link-league-team-button"
 
 export const dynamic = 'force-dynamic'
 
@@ -126,11 +127,18 @@ export default async function TeamsPage() {
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <Button asChild variant="outline" size="sm">
                             <Link href={`/dashboard/teams/${team.id}`}>View</Link>
                           </Button>
-                          {team.team_id && (
+                          {profile.role === "coach" && profile.team_id && (
+                            <LinkLeagueTeamButton
+                              showdownTeamId={team.id}
+                              isLinked={Boolean(team.team_id)}
+                              showUseForMatch
+                            />
+                          )}
+                          {profile.role !== "coach" && team.team_id && (
                             <span className="text-xs text-muted-foreground">
                               Linked to League Team
                             </span>

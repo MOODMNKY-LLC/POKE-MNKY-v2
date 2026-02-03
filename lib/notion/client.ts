@@ -7,7 +7,7 @@
 
 import axios, { AxiosInstance, AxiosError } from "axios"
 
-const NOTION_API_VERSION = "2022-06-28"
+const NOTION_API_VERSION = "2022-06-28" // Keep older version for compatibility, but webhook subscriptions may need newer version
 const NOTION_API_BASE = "https://api.notion.com/v1"
 
 export interface NotionPage {
@@ -29,14 +29,32 @@ export interface NotionQueryResult {
   next_cursor: string | null
 }
 
+/** Page icon: emoji or external image URL (shows next to title in database views) */
+export type NotionPageIcon =
+  | { type: "emoji"; emoji: string }
+  | { type: "external"; external: { url: string } }
+
+/** Page cover: external image URL (shows as large banner at top of page and prominently in Gallery View cards) */
+export type NotionPageCover =
+  | { type: "external"; external: { url: string } }
+  | { type: "file_upload"; file_upload: { id: string } }
+
 export interface NotionCreatePageRequest {
   parent: { database_id: string } | { page_id: string }
   properties: Record<string, any>
   children?: any[]
+  /** Icon displayed next to the page title (e.g. sprite URL for Draft Board rows) */
+  icon?: NotionPageIcon
+  /** Cover image displayed as banner at top of page and prominently in Gallery View cards */
+  cover?: NotionPageCover
 }
 
 export interface NotionUpdatePageRequest {
   properties: Record<string, any>
+  /** Icon displayed next to the page title */
+  icon?: NotionPageIcon
+  /** Cover image displayed as banner at top of page and prominently in Gallery View cards */
+  cover?: NotionPageCover
 }
 
 export class NotionAPIError extends Error {
@@ -272,6 +290,42 @@ export async function getDatabase(
   return response.data
 }
 
+export interface NotionUpdateDatabaseRequest {
+  title?: Array<{ plain_text: string }>
+  properties?: Record<string, NotionPropertySchema>
+}
+
+/** Schema for a single database property (used when adding/updating via PATCH) */
+export type NotionPropertySchema =
+  | { type: "title"; title?: object }
+  | { type: "rich_text"; rich_text?: object }
+  | { type: "number"; number?: object }
+  | { type: "select"; select?: { options: Array<{ name: string; color?: string }> } }
+  | { type: "multi_select"; multi_select?: { options: Array<{ name: string; color?: string }> } }
+  | { type: "checkbox"; checkbox?: object }
+  | { type: "url"; url?: object }
+  | { type: "files"; files?: object }
+  | { type: "date"; date?: object }
+  | { type: "relation"; relation?: object }
+  | { type: "formula"; formula?: object }
+  | { type: "rollup"; rollup?: object }
+
+/**
+ * Update a Notion database (e.g. add or modify properties)
+ * PATCH /v1/databases/{database_id}
+ */
+export async function updateDatabase(
+  client: AxiosInstance,
+  databaseId: string,
+  request: NotionUpdateDatabaseRequest
+): Promise<NotionDatabase> {
+  const response = await client.patch<NotionDatabase>(
+    `/databases/${databaseId}`,
+    request
+  )
+  return response.data
+}
+
 /**
  * Extract property value from Notion page property
  */
@@ -382,6 +436,17 @@ export function buildNotionProperty(
     case "url":
       return {
         url: value ? String(value) : null,
+      }
+
+    case "files":
+      // value: array of { type: "external", name: string, external: { url: string } }
+      if (!Array.isArray(value) || value.length === 0) return { files: [] }
+      return {
+        files: value.map((f: any) =>
+          f.type === "external" && f.external?.url
+            ? { type: "external", name: f.name || "image", external: { url: f.external.url } }
+            : f
+        ),
       }
 
     case "relation":

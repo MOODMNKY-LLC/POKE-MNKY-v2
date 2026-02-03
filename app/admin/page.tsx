@@ -206,14 +206,29 @@ export default function AdminPage() {
             <Card>
               <CardHeader>
                 <ClipboardList className="mb-2 h-8 w-8 text-primary" />
-                <CardTitle>Pokémon Draft Pool</CardTitle>
+                <CardTitle>Draft Board Management</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="mb-4 text-sm text-muted-foreground">
-                  Manage which Pokémon are available for the draft pool. Edit tier and availability for all Pokémon.
+                  Manage draft pool through Notion integration with real-time sync, analytics, and quick edits.
                 </p>
                 <Button asChild variant="outline" className="w-full bg-transparent">
-                  <Link href="/admin/pokemon">Manage Pokémon</Link>
+                  <Link href="/admin/draft-board-management">Manage Draft Board</Link>
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <ClipboardList className="mb-2 h-8 w-8 text-primary" />
+                <CardTitle>Pokémon Draft Pool (Quick Edit)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="mb-4 text-sm text-muted-foreground">
+                  Quick edits for individual Pokémon. For comprehensive management, use Draft Board Management.
+                </p>
+                <Button asChild variant="outline" className="w-full bg-transparent">
+                  <Link href="/admin/pokemon">Quick Edit Pokémon</Link>
                 </Button>
               </CardContent>
             </Card>

@@ -93,18 +93,7 @@ export const draftstatusCommand = {
         url.searchParams.set("guild_id", guildId)
       }
 
-      const response = await fetch(url.toString(), {
-        headers: {
-          Authorization: `Bearer ${process.env.DISCORD_BOT_API_KEY}`,
-        },
-      })
-
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: response.statusText }))
-        throw new Error(error.error || "Failed to get draft status")
-      }
-
-      const data: DraftStatusResponse = await response.json()
+      const data = await appGet<DraftStatusResponse>(url.toString())
 
       const embed = new EmbedBuilder()
         .setTitle(`📊 Draft Status: ${data.season.name || data.season.id}`)

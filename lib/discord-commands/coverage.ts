@@ -70,17 +70,11 @@ export const coverageCommand = {
         statusUrl.searchParams.set("guild_id", guildId)
       }
 
-      const statusResponse = await fetch(statusUrl.toString(), {
-        headers: {
-          Authorization: `Bearer ${process.env.DISCORD_BOT_API_KEY}`,
-        },
-      })
-
-      if (!statusResponse.ok) {
-        throw new Error("Failed to get team information")
-      }
-
-      const statusData = await statusResponse.json()
+      const statusData = await appGet<{
+        ok: boolean
+        coach?: { linked: boolean }
+        team?: { id: string }
+      }>(statusUrl.toString())
 
       if (!statusData.coach?.linked || !statusData.team) {
         return interaction.editReply({
