@@ -88,35 +88,90 @@ async function notifyDiscord(matchId: string): Promise<void> {
   }
 }
 
+const MAX_RETRIES = 3;
+const INITIAL_BACKOFF_MS = 1000;
+const MAX_BACKOFF_MS = 10000;
+
+function backoffMs(attempt: number): number {
+  const ms = INITIAL_BACKOFF_MS * Math.pow(2, attempt);
+  return Math.min(ms, MAX_BACKOFF_MS);
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 /**
- * Handle battle completion
+ * Run a step with retry and exponential backoff.
+ * Logs failures and rethrows after final attempt.
+ */
+async function withRetry<T>(
+  stepName: string,
+  roomId: string,
+  fn: () => Promise<T>
+): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    try {
+      const result = await fn();
+      if (attempt > 0) {
+        console.log(`[IntegrationWorker] ${stepName} succeeded on attempt ${attempt + 1} for room ${roomId}`);
+      }
+      return result;
+    } catch (err) {
+      lastError = err;
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.error(`[IntegrationWorker] ${stepName} failed (attempt ${attempt + 1}/${MAX_RETRIES}) for room ${roomId}:`, errMsg);
+      if (attempt < MAX_RETRIES - 1) {
+        const delay = backoffMs(attempt);
+        console.log(`[IntegrationWorker] Retrying ${stepName} in ${delay}ms...`);
+        await sleep(delay);
+      }
+    }
+  }
+  throw lastError;
+}
+
+/**
+ * Handle battle completion with retry/backoff and structured logging.
+ * Room ID format from app: battle-match-{matchId (first 16 chars of UUID)}.
  */
 async function handleBattleCompletion(event: BattleCompletionEvent): Promise<void> {
-  try {
-    console.log(`[IntegrationWorker] Processing battle completion for room ${event.roomId}`);
+  const roomId = event.roomId;
+  const startTime = Date.now();
 
-    // Parse replay
-    const parsedResult = await replayParser.parseReplay(event.roomId);
-    console.log(`[IntegrationWorker] Parsed replay:`, {
+  try {
+    console.log(`[IntegrationWorker] Processing battle completion for room ${roomId}`);
+
+    const parsedResult = await withRetry('Replay parse', roomId, () =>
+      replayParser.parseReplay(roomId)
+    );
+    console.log(`[IntegrationWorker] Parsed replay for ${roomId}:`, {
       winner: parsedResult.winner,
       scores: `${parsedResult.team1Score}-${parsedResult.team2Score}`,
       differential: parsedResult.differential,
     });
 
-    // Update match record
-    const { matchId } = await databaseUpdater.updateMatch(event.roomId, parsedResult);
+    const { matchId } = await withRetry('Update match', roomId, () =>
+      databaseUpdater.updateMatch(roomId, parsedResult)
+    );
 
-    // Update standings
-    await databaseUpdater.updateStandings();
+    await withRetry('Update standings', roomId, () =>
+      databaseUpdater.updateStandings()
+    );
 
-    // Notify Discord
     await notifyDiscord(matchId);
 
-    console.log(`[IntegrationWorker] Successfully processed battle completion for room ${event.roomId}`);
+    const durationMs = Date.now() - startTime;
+    console.log(`[IntegrationWorker] Successfully processed battle completion for room ${roomId} (match ${matchId}) in ${durationMs}ms`);
   } catch (error) {
-    console.error(`[IntegrationWorker] Error processing battle completion:`, error);
-    // TODO: Add error reporting/retry logic
-    // For now, log error and continue
+    const errMsg = error instanceof Error ? error.message : String(error);
+    const errStack = error instanceof Error ? error.stack : undefined;
+    console.error(`[IntegrationWorker] Error processing battle completion for room ${roomId} after ${MAX_RETRIES} attempts:`, errMsg);
+    if (errStack) {
+      console.error(`[IntegrationWorker] Stack:`, errStack);
+    }
+    // Don't rethrow - allow worker to continue processing other rooms
   }
 }
 

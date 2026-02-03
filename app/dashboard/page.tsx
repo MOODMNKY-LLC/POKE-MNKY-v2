@@ -57,15 +57,82 @@ export default async function DashboardPage() {
     .eq("is_current", true)
     .single()
 
-  // Fetch team data for coaches
+  // Fetch team data and overview stats for coaches
   let team = null
-  if (profile.role === "coach" && profile.team_id) {
+  let overviewStats: {
+    team_record?: { wins: number; losses: number; differential: number }
+    draft_budget?: { total: number; spent: number; remaining: number }
+    roster_count?: number
+    next_match?: {
+      match_id: string
+      week: number
+      opponent_name?: string
+      opponent_coach?: string
+      opponent_logo_url?: string
+      status?: string
+    }
+  } = {}
+  if (profile.role === "coach" && profile.team_id && season) {
     const { data: teamData } = await supabase
       .from("teams")
       .select("id, name, wins, losses, differential, division, conference, avatar_url, logo_url, coach_name")
       .eq("id", profile.team_id)
       .single()
     team = teamData
+    if (team) {
+      overviewStats.team_record = {
+        wins: team.wins ?? 0,
+        losses: team.losses ?? 0,
+        differential: team.differential ?? 0,
+      }
+      const { data: budget } = await supabase
+        .from("draft_budgets")
+        .select("total_points, spent_points, remaining_points")
+        .eq("team_id", profile.team_id)
+        .eq("season_id", season.id)
+        .single()
+      if (budget) {
+        overviewStats.draft_budget = {
+          total: budget.total_points ?? 0,
+          spent: budget.spent_points ?? 0,
+          remaining: budget.remaining_points ?? 0,
+        }
+      }
+      const { count: rosterCount } = await supabase
+        .from("team_rosters")
+        .select("*", { count: "exact", head: true })
+        .eq("team_id", profile.team_id)
+        .eq("season_id", season.id)
+      overviewStats.roster_count = rosterCount ?? 0
+      const { data: nextMatchRows } = await supabase
+        .from("matches")
+        .select(
+          `
+          id, week, team1_id, team2_id, status,
+          team1:teams!matches_team1_id_fkey(id, name, coach_name, logo_url),
+          team2:teams!matches_team2_id_fkey(id, name, coach_name, logo_url)
+        `
+        )
+        .or(`team1_id.eq.${profile.team_id},team2_id.eq.${profile.team_id}`)
+        .eq("season_id", season.id)
+        .eq("is_playoff", false)
+        .is("winner_id", null)
+        .order("week", { ascending: true })
+        .limit(1)
+      const nextMatch = (nextMatchRows as any[])?.[0]
+      if (nextMatch) {
+        const isTeam1 = nextMatch.team1_id === profile.team_id
+        const opponent = isTeam1 ? nextMatch.team2 : nextMatch.team1
+        overviewStats.next_match = {
+          match_id: nextMatch.id,
+          week: nextMatch.week,
+          opponent_name: opponent?.name,
+          opponent_coach: opponent?.coach_name,
+          opponent_logo_url: opponent?.logo_url,
+          status: nextMatch.status,
+        }
+      }
+    }
   }
 
   return (
@@ -168,7 +235,7 @@ export default async function DashboardPage() {
                       Draft Planning
                     </Link>
                     <Link
-                      href="/draft/board"
+                      href="/dashboard/draft/board"
                       className="text-sm text-primary hover:underline min-h-[44px] flex items-center touch-manipulation"
                     >
                       Draft Board
@@ -185,13 +252,13 @@ export default async function DashboardPage() {
                 <CardContent>
                   <div className="space-y-2">
                     <Link
-                      href="/matches/submit"
+                      href="/dashboard/weekly-matches/submit"
                       className="text-sm text-primary hover:underline min-h-[44px] flex items-center touch-manipulation"
                     >
                       Submit Match Result
                     </Link>
                     <Link
-                      href="/teams/builder"
+                      href="/dashboard/teams/builder"
                       className="text-sm text-primary hover:underline min-h-[44px] flex items-center touch-manipulation"
                     >
                       Team Builder
@@ -266,9 +333,50 @@ export default async function DashboardPage() {
                   <CardDescription className="text-xs sm:text-sm">Your league statistics</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-muted-foreground">
-                    Statistics dashboard coming soon...
-                  </p>
+                  {profile.role === "coach" && (overviewStats.team_record ?? overviewStats.draft_budget ?? overviewStats.roster_count != null) ? (
+                    <div className="space-y-3 text-sm">
+                      {overviewStats.team_record && (
+                        <div>
+                          <span className="text-muted-foreground">Record: </span>
+                          <span className="font-medium">
+                            {overviewStats.team_record.wins}–{overviewStats.team_record.losses}
+                            {overviewStats.team_record.differential !== 0 && (
+                              <span className={overviewStats.team_record.differential > 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
+                                {" "}({overviewStats.team_record.differential > 0 ? "+" : ""}{overviewStats.team_record.differential})
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                      )}
+                      {overviewStats.draft_budget != null && (
+                        <div>
+                          <span className="text-muted-foreground">Draft budget: </span>
+                          <span className="font-medium">{overviewStats.draft_budget.remaining} pts remaining</span>
+                        </div>
+                      )}
+                      {overviewStats.roster_count != null && (
+                        <div>
+                          <span className="text-muted-foreground">Roster: </span>
+                          <span className="font-medium">{overviewStats.roster_count} Pokémon</span>
+                        </div>
+                      )}
+                      {overviewStats.next_match && (
+                        <div className="pt-1">
+                          <span className="text-muted-foreground">Next match: </span>
+                          <Link
+                            href="/dashboard/weekly-matches"
+                            className="font-medium text-primary hover:underline"
+                          >
+                            Week {overviewStats.next_match.week} vs {overviewStats.next_match.opponent_name ?? overviewStats.next_match.opponent_coach ?? "TBD"}
+                          </Link>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      {profile.role === "coach" ? "No league stats yet." : "Statistics dashboard coming soon..."}
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             </div>

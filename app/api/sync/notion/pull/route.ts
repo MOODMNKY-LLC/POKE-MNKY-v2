@@ -9,7 +9,7 @@
  * 
  * Body:
  * {
- *   "scope": ["pokemon", "role_tags", "moves"], // optional, defaults to all
+ *   "scope": ["pokemon", "role_tags", "moves", "draft_board"], // optional; include "draft_board" to sync Notion Draft Board → Supabase draft_pool
  *   "dryRun": false, // optional
  *   "incremental": false, // optional
  *   "since": "2026-01-01T00:00:00Z" // optional, for incremental sync
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Execute sync (async - job status will be updated)
+    // Execute sync (async - job status will be updated). Include "draft_board" in scope to sync Notion Draft Board → draft_pool.
     const syncOptions = {
       scope: scope || ["pokemon", "role_tags", "moves"],
       dryRun,

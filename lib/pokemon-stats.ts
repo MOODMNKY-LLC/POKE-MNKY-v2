@@ -126,3 +126,27 @@ export function getStatBarWidth(baseStat: number): number {
   const maxBaseStat = 255
   return Math.min(100, (baseStat / maxBaseStat) * 100)
 }
+
+/**
+ * Level 50 speed stat formulas (VGC / draft convention).
+ * Used by Notion Draft Board and Pokemon Catalog–style displays.
+ */
+export interface SpeedTiersLevel50 {
+  speed0Ev: number   // 0 EV, 31 IV, neutral nature
+  speed252Ev: number // 252 EV, 31 IV, neutral nature
+  speed252Plus: number // 252 EV, 31 IV, +speed nature (1.1x)
+}
+
+/**
+ * Calculate speed tiers at level 50 for a given base speed.
+ * Formula: floor((2 * base + 31 + floor(ev/4)) * 50/100 + 5) * nature
+ */
+export function calculateSpeedTiersLevel50(baseSpeed: number): SpeedTiersLevel50 {
+  if (baseSpeed <= 0) {
+    return { speed0Ev: 5, speed252Ev: 5, speed252Plus: 5 }
+  }
+  const speed0Ev = Math.floor((2 * baseSpeed + 31) * 50 / 100 + 5)
+  const speed252Ev = Math.floor((2 * baseSpeed + 31 + 63) * 50 / 100 + 5)
+  const speed252Plus = Math.floor(speed252Ev * 1.1)
+  return { speed0Ev, speed252Ev, speed252Plus }
+}

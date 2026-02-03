@@ -12,6 +12,7 @@ import {
   Sparkles,
   Home,
   ClipboardList,
+  LayoutDashboard,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -24,6 +25,11 @@ export function DashboardDock() {
   const pathname = usePathname()
 
   const navItems = [
+    {
+      label: "Dashboard",
+      href: "/dashboard",
+      icon: LayoutDashboard,
+    },
     {
       label: "Home",
       href: "/",

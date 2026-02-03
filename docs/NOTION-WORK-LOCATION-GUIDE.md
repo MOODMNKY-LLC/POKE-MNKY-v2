@@ -81,12 +81,21 @@ All POKE MNKY databases are in the **MOODMNKY LLC** workspace. Here are direct l
 ### 7. **Draft Pools Database** 🎲
 **Direct Link**: https://www.notion.so/dd31c18ecd824e04a93597d629b067b9
 
-**What it is**: Draft pool configurations per season  
-**Contains**: Available Pokémon for each season's draft
+**What it is**: Draft pool configurations per season (one row per pool/season)  
+**Contains**: Pool name, Season relation, Pokemon Included/Banned relations
 
 ---
 
-### 8. **Draft Picks Database** ✏️
+### 8. **Draft Board Database** 📊 (Gen 9 draft board – sync source)
+**Direct Link**: https://www.notion.so/5e58ccd73ceb44ed83de826b51cf5c36
+
+**What it is**: One row per Pokémon entry for the league draft board (point value, status, Tera eligibility)  
+**Contains**: Name, Point Value (1–20), Status (Available/Banned/Unavailable/Drafted), Tera Captain Eligible, Season, Pokemon ID (PokeAPI), Generation, Notes  
+**Used for**: Admin source of truth; syncs to Supabase `draft_pool`. See [DRAFT-BOARD-NOTION-SCHEMA.md](./DRAFT-BOARD-NOTION-SCHEMA.md) for schema and sync rules.
+
+---
+
+### 9. **Draft Picks Database** ✏️
 **Direct Link**: https://www.notion.so/23d9a9973ce946d5927495b1d2ceeb35
 
 **What it is**: All draft picks made  
@@ -113,6 +122,7 @@ All POKE MNKY databases are in the **MOODMNKY LLC** workspace. Here are direct l
 | **Teams** | https://www.notion.so/7721b2dc5fbd4288ad1cf501d69d1b4b |
 | **Seasons** | https://www.notion.so/2ec8e71938e24da38041cff3d7277b8c |
 | **Draft Pools** | https://www.notion.so/dd31c18ecd824e04a93597d629b067b9 |
+| **Draft Board** | https://www.notion.so/5e58ccd73ceb44ed83de826b51cf5c36 |
 | **Draft Picks** | https://www.notion.so/23d9a9973ce946d5927495b1d2ceeb35 |
 | **Matches** | https://www.notion.so/93446d08e7df4b1591fae36bd454c1a3 |
 
@@ -178,4 +188,14 @@ If you can't access them, you may need to:
 
 ---
 
-**Status**: ✅ **All 9 databases documented with direct links**
+---
+
+## Draft Board Sync (Notion ↔ Supabase)
+
+- **Notion → Supabase**: Run sync with `scope: ["draft_board"]` (or include `draft_board` in scope). Uses current season (`is_current = true`). Preserves `status = 'drafted'` and `drafted_by_team_id` in Supabase; Notion wins for point value, Tera eligibility, and non-drafted status.
+- **Supabase → Notion**: When a pick is recorded via `DraftSystem.makePick()`, the app optionally updates the corresponding Notion Draft Board page to Status = "Drafted" (see `lib/sync/push-draft-state-to-notion.ts`). Requires `NOTION_API_KEY` and `notion_mappings` populated by a prior Notion → Supabase draft board sync.
+- **Env**: `NOTION_API_KEY`, `NOTION_SYNC_SECRET` (for pull API). Share the Draft Board database with your Notion integration.
+
+---
+
+**Status**: ✅ **All 10 databases documented with direct links; Draft Board sync documented**
