@@ -66,9 +66,21 @@ function verifyNotionSignature(
 }
 
 export async function POST(request: NextRequest) {
+  const requestId = `req_${Date.now()}_${Math.random().toString(36).substring(7)}`
+  console.log(`[Notion Webhook ${requestId}] Received webhook request`)
+  
   try {
     // Read raw body first (needed for signature verification and parsing)
     const body = await request.text()
+    console.log(`[Notion Webhook ${requestId}] Body length: ${body.length} bytes`)
+    
+    // Log headers for debugging
+    const headers = Object.fromEntries(request.headers.entries())
+    console.log(`[Notion Webhook ${requestId}] Headers:`, {
+      'content-type': headers['content-type'],
+      'x-notion-signature': headers['x-notion-signature'] ? 'present' : 'missing',
+      'user-agent': headers['user-agent'],
+    })
 
     // Handle verification token request (initial subscription setup)
     try {
@@ -77,15 +89,16 @@ export async function POST(request: NextRequest) {
         // Store verification token for future signature verification
         // For now, we'll use NOTION_WEBHOOK_SECRET as the verification token
         // In production, you should store this token securely
-        console.log("[Notion Webhook] Verification token received:", verificationPayload.verification_token.substring(0, 20) + "...")
+        console.log(`[Notion Webhook ${requestId}] Verification token received:`, verificationPayload.verification_token.substring(0, 20) + "...")
         
         // Return success to Notion (they'll verify this token in their UI)
         return NextResponse.json({
           verification_token: verificationPayload.verification_token,
-        })
+        }, { status: 200 })
       }
-    } catch {
+    } catch (parseError) {
       // Not a verification request, continue with normal webhook processing
+      console.log(`[Notion Webhook ${requestId}] Not a verification request, parsing as webhook event`)
     }
 
     // Get webhook secret/verification token from environment
@@ -114,7 +127,13 @@ export async function POST(request: NextRequest) {
     let payload: any
     try {
       payload = JSON.parse(body)
+      console.log(`[Notion Webhook ${requestId}] Parsed payload:`, {
+        type: payload.type,
+        database_id: payload.data?.database_id || payload.database_id,
+        has_data: !!payload.data,
+      })
     } catch (error) {
+      console.error(`[Notion Webhook ${requestId}] Failed to parse JSON:`, error)
       return NextResponse.json(
         { error: "Invalid JSON payload" },
         { status: 400 }
@@ -146,7 +165,7 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(
-      `[Notion Webhook] Processing ${eventType} for Draft Board database`
+      `[Notion Webhook ${requestId}] Processing ${eventType} for Draft Board database`
     )
 
     // Trigger incremental sync
@@ -233,11 +252,16 @@ export async function POST(request: NextRequest) {
 
     // Return immediately (sync runs async)
     // Notion expects a simple 200 OK response - keep it simple
+    console.log(`[Notion Webhook ${requestId}] Returning success response`)
     return NextResponse.json({
       success: true,
     }, { status: 200 })
   } catch (error: any) {
-    console.error("[Notion Webhook] Error:", error)
+    console.error(`[Notion Webhook ${requestId}] Error:`, {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+    })
     return NextResponse.json(
       { error: error.message || "Internal server error" },
       { status: 500 }
