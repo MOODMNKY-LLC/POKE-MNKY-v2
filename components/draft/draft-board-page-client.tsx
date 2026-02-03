@@ -8,6 +8,8 @@ import { TeamRosterPanel } from "@/components/draft/team-roster-panel"
 import { PickHistory } from "@/components/draft/pick-history"
 import { DraftChat } from "@/components/draft/draft-chat"
 import { DraftAssistantChat } from "@/components/ai/draft-assistant-chat"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { AlertCircle } from "lucide-react"
 
 interface DraftSession {
   id: string
@@ -19,19 +21,23 @@ interface DraftSession {
 }
 
 interface DraftBoardPageClientProps {
-  initialSession: DraftSession
+  initialSession: DraftSession | null
+  seasonId: string
   initialCurrentTeam: any
   initialPokemon: any[]
   initialDraftedPokemon: string[]
   initialBudget: { total: number; spent: number; remaining: number } | null
+  noDraftPoolForCurrentSeason?: boolean
 }
 
 export function DraftBoardPageClient({
   initialSession,
+  seasonId,
   initialCurrentTeam,
   initialPokemon,
   initialDraftedPokemon,
   initialBudget,
+  noDraftPoolForCurrentSeason = false,
 }: DraftBoardPageClientProps) {
   const [session, setSession] = useState(initialSession)
   const [currentTeam, setCurrentTeam] = useState(initialCurrentTeam)
@@ -39,13 +45,13 @@ export function DraftBoardPageClient({
 
   // Initialize Supabase client for real-time updates
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       const client = createClient()
       setSupabase(client)
     }
   }, [])
 
-  // Set up real-time subscriptions for session updates
+  // Set up real-time subscriptions for session updates (only when there is an active session)
   useEffect(() => {
     if (!supabase || !session) return
 
@@ -61,7 +67,7 @@ export function DraftBoardPageClient({
         },
         (payload: any) => {
           console.log("Session updated:", payload)
-          setSession((prev) => prev ? { ...prev, ...payload.new } : null)
+          setSession((prev) => (prev ? { ...prev, ...payload.new } : null))
         }
       )
       .subscribe()
@@ -71,41 +77,56 @@ export function DraftBoardPageClient({
     }
   }, [supabase, session?.id])
 
+  const hasActiveSession = !!session
+
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <DraftHeader session={session} currentTeam={currentTeam} />
-      
+      {noDraftPoolForCurrentSeason && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            No draft pool data for the current season. We do not display old draft pool data from other seasons. Populate the draft pool for the current season (Notion Draft Board + n8n seed workflow), or set the correct season as current in Settings.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {!hasActiveSession && !noDraftPoolForCurrentSeason && (
+        <Alert variant="default" className="border-amber-500/50 bg-amber-500/10">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            There is no active draft session. The board below shows the current draft pool for the season (read-only). When a draft session is started, picks and live updates will appear here.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <DraftHeader session={session} currentTeam={currentTeam} seasonId={seasonId} />
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left: Draft Board (2 columns) */}
         <div className="lg:col-span-2">
           <DraftBoardClient
-            sessionId={session.id}
+            sessionId={session?.id ?? ""}
             currentTeamId={currentTeam?.id || null}
-            seasonId={session.season_id}
-            isYourTurn={currentTeam?.id === session.current_team_id}
+            seasonId={seasonId}
+            isYourTurn={hasActiveSession && currentTeam?.id === session?.current_team_id}
             initialPokemon={initialPokemon}
             initialDraftedPokemon={initialDraftedPokemon}
             initialBudget={initialBudget}
           />
         </div>
-        
+
         {/* Right: Team Info (1 column) */}
         <div className="lg:col-span-1 space-y-6">
-          <TeamRosterPanel 
-            teamId={currentTeam?.id}
-            seasonId={session.season_id}
-          />
-          <PickHistory sessionId={session.id} />
-          {/* Draft Assistant Chat - New AI-powered assistant */}
+          <TeamRosterPanel teamId={currentTeam?.id} seasonId={seasonId} />
+          {hasActiveSession && <PickHistory sessionId={session!.id} />}
           <div className="h-[600px] border rounded-lg overflow-hidden">
             <DraftAssistantChat
               teamId={currentTeam?.id}
-              seasonId={session.season_id}
+              seasonId={seasonId}
               className="h-full"
             />
           </div>
-          {/* Legacy Draft Chat - Keep for now */}
-          <DraftChat sessionId={session.id} />
+          {hasActiveSession && <DraftChat sessionId={session!.id} />}
         </div>
       </div>
     </div>
