@@ -118,7 +118,7 @@ export function DraftBoardPageClient({
         {/* Right: Team Info (1 column) */}
         <div className="lg:col-span-1 space-y-6">
           <TeamRosterPanel teamId={currentTeam?.id} seasonId={seasonId} />
-          {hasActiveSession && <PickHistory sessionId={session!.id} />}
+          {hasActiveSession && session && <PickHistory sessionId={session.id} />}
           <div className="h-[600px] border rounded-lg overflow-hidden">
             <DraftAssistantChat
               teamId={currentTeam?.id}
@@ -126,7 +126,7 @@ export function DraftBoardPageClient({
               className="h-full"
             />
           </div>
-          {hasActiveSession && <DraftChat sessionId={session!.id} />}
+          {hasActiveSession && session && <DraftChat sessionId={session.id} />}
         </div>
       </div>
     </div>
