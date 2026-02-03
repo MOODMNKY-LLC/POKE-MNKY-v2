@@ -8,8 +8,9 @@ import { AlertCircle } from "lucide-react"
 export default async function DraftBoardPage() {
   const supabase = await createClient()
   const draftSystem = new DraftSystem()
+  const serviceSupabase = createServiceRoleClient()
 
-  // Get current season
+  // Only use the season marked as current (is_current = true). Do not show draft pool from other seasons.
   const { data: season } = await supabase
     .from("seasons")
     .select("id")
@@ -27,23 +28,12 @@ export default async function DraftBoardPage() {
     )
   }
 
-  // Get active draft session
-  const session = await draftSystem.getActiveSession(season.id)
+  const seasonId = season.id
 
-  if (!session) {
-    return (
-      <div className="container mx-auto p-6">
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            No active draft session found. Please create a draft session first.
-          </AlertDescription>
-        </Alert>
-      </div>
-    )
-  }
+  // Get active draft session (optional — we still show the board when none)
+  const session = await draftSystem.getActiveSession(seasonId)
 
-  // Get current user's team (optional - user might not be logged in)
+  // Get current user's team for the current season (optional - user might not be logged in)
   const { data: { user } } = await supabase.auth.getUser()
   let currentTeam = null
 
@@ -52,7 +42,7 @@ export default async function DraftBoardPage() {
       .from("teams")
       .select("*")
       .eq("coach_id", user.id)
-      .eq("season_id", session.season_id)
+      .eq("season_id", seasonId)
       .maybeSingle()
 
     if (teamData) {
@@ -60,29 +50,24 @@ export default async function DraftBoardPage() {
     }
   }
 
-  // Fetch initial data server-side
-  const serviceSupabase = createServiceRoleClient()
-  
-  // Fetch available Pokemon
-  const pokemon = await draftSystem.getAvailablePokemon(session.season_id, {})
+  // Fetch draft pool data for the current season only (no fallback to other seasons)
+  const pokemon = await draftSystem.getAvailablePokemon(seasonId, {})
 
-  // Fetch drafted Pokemon
   const { data: draftedData } = await serviceSupabase
     .from("draft_pool")
     .select("pokemon_name")
-    .eq("season_id", session.season_id)
+    .eq("season_id", seasonId)
     .eq("status", "drafted")
 
   const draftedPokemon = draftedData?.map(p => p.pokemon_name.toLowerCase()) || []
 
-  // Fetch budget
   let budget: { total: number; spent: number; remaining: number } | null = null
   if (currentTeam) {
     const { data: budgetData } = await serviceSupabase
       .from("draft_budgets")
       .select("total_points, spent_points, remaining_points")
       .eq("team_id", currentTeam.id)
-      .eq("season_id", session.season_id)
+      .eq("season_id", seasonId)
       .single()
 
     if (budgetData) {
@@ -94,13 +79,18 @@ export default async function DraftBoardPage() {
     }
   }
 
+  // Warn when current season has no draft pool data (do not display old/other season data)
+  const noDraftPoolForCurrentSeason = pokemon.length === 0
+
   return (
     <DraftBoardPageClient
       initialSession={session}
+      seasonId={seasonId}
       initialCurrentTeam={currentTeam}
       initialPokemon={pokemon}
       initialDraftedPokemon={draftedPokemon}
       initialBudget={budget}
+      noDraftPoolForCurrentSeason={noDraftPoolForCurrentSeason}
     />
   )
 }
