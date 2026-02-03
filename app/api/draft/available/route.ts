@@ -42,71 +42,45 @@ export async function GET(request: Request) {
       p_search: search ?? null
     })
 
-    if (rpcError) {
-      console.error(`[API /draft/available] RPC error:`, rpcError)
-      console.log(`[API /draft/available] Falling back to direct query...`)
-      
-      // Fallback: Direct query using season_id and status columns
-      // Note: generation is not in draft_pool, fetch from pokemon_cache separately
-      console.log(`[API /draft/available] Direct query - seasonId: ${seasonId}, type: ${typeof seasonId}`)
-      
-      // Debug: Check total count
-      const { count: totalCount } = await supabase
-        .from("draft_pool")
-        .select("*", { count: "exact", head: true })
-      console.log(`[API /draft/available] Total draft_pool rows: ${totalCount}`)
-      
-      // Debug: Check count with season_id filter
-      const { count: seasonCount } = await supabase
-        .from("draft_pool")
-        .select("*", { count: "exact", head: true })
-        .eq("season_id", seasonId)
-      console.log(`[API /draft/available] Rows with season_id=${seasonId}: ${seasonCount}`)
-      
-      // Debug: Check count with status filter
-      const { count: statusCount } = await supabase
-        .from("draft_pool")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "available")
-      console.log(`[API /draft/available] Rows with status='available': ${statusCount}`)
-      
-      // Debug: Get a sample row to see actual data
-      const { data: sampleData } = await supabase
-        .from("draft_pool")
-        .select("pokemon_name, season_id, status")
-        .limit(1)
-      console.log(`[API /draft/available] Sample row:`, sampleData?.[0])
-      
-      // Now try the actual query
-      // Workaround: Fetch all available Pokemon and filter by season_id in JavaScript
-      // This bypasses the Supabase JS client UUID comparison issue
-      console.log(`[API /draft/available] Fetching all available Pokemon (workaround for UUID issue)...`)
-      
-      // Try with tera_captain_eligible first, fallback if column doesn't exist
+    // Fall back to direct query when RPC errors OR when RPC returns 0 (e.g. RPC requires pokemon_id IS NOT NULL; local seed may have null pokemon_id)
+    const useDirectFallback = rpcError || !rpcData?.length
+    if (useDirectFallback) {
+      if (rpcError) {
+        console.error(`[API /draft/available] RPC error:`, rpcError)
+      } else {
+        console.log(`[API /draft/available] RPC returned 0 results; falling back to direct query (e.g. draft_pool has null pokemon_id).`)
+      }
+      console.log(`[API /draft/available] Direct query - seasonId: ${seasonId}`)
+
+      // Direct query: filter by season_id and (status = 'available' OR status IS NULL).
+      // Notion/n8n seed may leave status null when "Status" is not set in Notion.
+      console.log(`[API /draft/available] Fetching draft_pool for season_id=${seasonId} (status=available or null)...`)
+
       let allAvailableData: any[] | null = null
       let allAvailableError: any = null
-      
-      // First attempt: Include tera_captain_eligible
-      const { data: dataWithTera, error: errorWithTera } = await supabase
-        .from("draft_pool")
-        .select("pokemon_name, point_value, pokemon_id, status, season_id, tera_captain_eligible")
-        .eq("status", "available")
-        .order("point_value", { ascending: false })
-        .order("pokemon_name", { ascending: true })
-        .limit(1000)
-      
-      // Check if error is due to missing column
-      if (errorWithTera && errorWithTera.code === '42703' && errorWithTera.message?.includes('tera_captain_eligible')) {
-        console.log(`[API /draft/available] tera_captain_eligible column not found, retrying without it...`)
-        // Retry without tera_captain_eligible (backward compatibility)
-        const { data: dataWithoutTera, error: errorWithoutTera } = await supabase
+
+      const baseQuery = () =>
+        supabase
           .from("draft_pool")
-          .select("pokemon_name, point_value, pokemon_id, status, season_id")
-          .eq("status", "available")
+          .select("pokemon_name, point_value, pokemon_id, status, season_id, tera_captain_eligible")
+          .eq("season_id", seasonId)
+          .or("status.eq.available,status.is.null")
           .order("point_value", { ascending: false })
           .order("pokemon_name", { ascending: true })
           .limit(1000)
-        
+
+      const { data: dataWithTera, error: errorWithTera } = await baseQuery()
+
+      if (errorWithTera && errorWithTera.code === "42703" && errorWithTera.message?.includes("tera_captain_eligible")) {
+        console.log(`[API /draft/available] tera_captain_eligible column not found, retrying without it...`)
+        const { data: dataWithoutTera, error: errorWithoutTera } = await supabase
+          .from("draft_pool")
+          .select("pokemon_name, point_value, pokemon_id, status, season_id")
+          .eq("season_id", seasonId)
+          .or("status.eq.available,status.is.null")
+          .order("point_value", { ascending: false })
+          .order("pokemon_name", { ascending: true })
+          .limit(1000)
         allAvailableData = dataWithoutTera
         allAvailableError = errorWithoutTera
       } else {
@@ -131,21 +105,9 @@ export async function GET(request: Request) {
         }, { status: 500 })
       }
       
-      // Filter by season_id in JavaScript (workaround for UUID comparison issue)
-      const seasonIdStr = String(seasonId).trim()
-      const directData = allAvailableData?.filter((p: any) => {
-        const pSeasonId = String(p.season_id || '').trim()
-        const matches = pSeasonId === seasonIdStr
-        if (!matches && allAvailableData && allAvailableData.length > 0) {
-          // Log first mismatch for debugging
-          if (p === allAvailableData[0]) {
-            console.log(`[API /draft/available] UUID comparison: "${pSeasonId}" === "${seasonIdStr}" = ${matches}`)
-          }
-        }
-        return matches
-      }) || []
-      
-      console.log(`[API /draft/available] JavaScript filter: ${directData.length} rows match season_id out of ${allAvailableData?.length || 0} total`)
+      // Query already filtered by season_id; use results directly
+      const directData = allAvailableData || []
+      console.log(`[API /draft/available] Direct query returned ${directData.length} rows for season_id=${seasonId}`)
       
       // Remove season_id from results (not needed in response)
       // Include tera_captain_eligible if available (backward compatible)
