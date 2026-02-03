@@ -187,12 +187,15 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    const { data: job, error: jobError } = await supabase
+    // Try to create sync job, but don't fail if constraint issue
+    // (migration may not be applied yet)
+    let job: any = null
+    const { data: jobData, error: jobError } = await supabase
       .from("sync_jobs")
       .insert({
         job_type: "incremental",
         status: "running",
-        triggered_by: "notion_webhook",
+        triggered_by: "notion_webhook", // Will fail if migration not applied
         config: {
           scope: ["draft_board"],
           event_type: eventType,
@@ -204,51 +207,89 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (jobError) {
-      console.error("[Notion Webhook] Failed to create sync job:", jobError)
-      return NextResponse.json(
-        { error: `Failed to create sync job: ${jobError.message}` },
-        { status: 500 }
-      )
+      // If constraint error, try with 'manual' as fallback
+      if (jobError.message.includes("sync_jobs_triggered_by_check")) {
+        console.warn("[Notion Webhook] Constraint error, using 'manual' as fallback")
+        const { data: fallbackJob, error: fallbackError } = await supabase
+          .from("sync_jobs")
+          .insert({
+            job_type: "incremental",
+            status: "running",
+            triggered_by: "manual", // Fallback if migration not applied
+            config: {
+              scope: ["draft_board"],
+              event_type: eventType,
+              database_id: databaseId,
+              webhook_payload: payload,
+              note: "Triggered by Notion webhook (migration pending)",
+            },
+          })
+          .select()
+          .single()
+        
+        if (fallbackError) {
+          console.error("[Notion Webhook] Failed to create sync job (fallback):", fallbackError)
+          // Continue anyway - don't block webhook response
+        } else {
+          job = fallbackJob
+        }
+      } else {
+        console.error("[Notion Webhook] Failed to create sync job:", jobError)
+        // Continue anyway - don't block webhook response
+      }
+    } else {
+      job = jobData
     }
 
     // Execute sync asynchronously (don't block webhook response)
-    syncNotionToSupabase(supabaseUrl, serviceRoleKey, {
-      scope: ["draft_board"],
-      incremental: true,
-      since: new Date(Date.now() - 5 * 60 * 1000), // Last 5 minutes
-    })
-      .then(async (result) => {
-        // Update job status
-        await supabase
-          .from("sync_jobs")
-          .update({
-            status: result.success ? "completed" : "failed",
-            completed_at: new Date().toISOString(),
-            pokemon_synced: result.stats.draft_board?.synced || 0,
-            pokemon_failed: result.stats.draft_board?.failed || 0,
-            config: {
-              scope: ["draft_board"],
-              incremental: true,
-              result,
-            },
-          })
-          .eq("job_id", job.job_id)
+    if (job) {
+      syncNotionToSupabase(supabaseUrl, serviceRoleKey, {
+        scope: ["draft_board"],
+        incremental: true,
+        since: new Date(Date.now() - 5 * 60 * 1000), // Last 5 minutes
+      })
+        .then(async (result) => {
+          // Update job status
+          await supabase
+            .from("sync_jobs")
+            .update({
+              status: result.success ? "completed" : "failed",
+              completed_at: new Date().toISOString(),
+              pokemon_synced: result.stats.draft_board?.synced || 0,
+              pokemon_failed: result.stats.draft_board?.failed || 0,
+              config: {
+                scope: ["draft_board"],
+                incremental: true,
+                result,
+              },
+            })
+            .eq("job_id", job.job_id)
 
-        console.log(
-          `[Notion Webhook] Sync completed: ${result.stats.draft_board?.synced || 0} synced, ${result.stats.draft_board?.failed || 0} failed`
-        )
+          console.log(
+            `[Notion Webhook] Sync completed: ${result.stats.draft_board?.synced || 0} synced, ${result.stats.draft_board?.failed || 0} failed`
+          )
+        })
+        .catch(async (error) => {
+          console.error("[Notion Webhook] Sync job error:", error)
+          await supabase
+            .from("sync_jobs")
+            .update({
+              status: "failed",
+              completed_at: new Date().toISOString(),
+              error_log: { error: error.message, stack: error.stack },
+            })
+            .eq("job_id", job.job_id)
+        })
+    } else {
+      // No job created, but still run sync
+      syncNotionToSupabase(supabaseUrl, serviceRoleKey, {
+        scope: ["draft_board"],
+        incremental: true,
+        since: new Date(Date.now() - 5 * 60 * 1000),
+      }).catch((error) => {
+        console.error("[Notion Webhook] Sync error (no job):", error)
       })
-      .catch(async (error) => {
-        console.error("[Notion Webhook] Sync job error:", error)
-        await supabase
-          .from("sync_jobs")
-          .update({
-            status: "failed",
-            completed_at: new Date().toISOString(),
-            error_log: { error: error.message, stack: error.stack },
-          })
-          .eq("job_id", job.job_id)
-      })
+    }
 
     // Return immediately (sync runs async)
     // Notion expects a simple 200 OK response - keep it simple
