@@ -16,7 +16,7 @@
 
 **Functions Created**:
 - ✅ `map_tier_to_point_value()` - Maps Showdown tiers to point values
-- ✅ `populate_draft_pool_from_showdown_tiers()` - Populates draft pool
+- ✅ `populate_showdown_pool_from_tiers()` - Populates **showdown_pool** (tier reference); draft_pool is Notion-only
 - ✅ `populate_all_master_tables_from_pokeapi()` - Populates master tables
 - ✅ `get_pokemon_by_id()`, `get_pokemon_by_name()`, `search_pokemon()` - Helper functions
 
@@ -70,20 +70,22 @@
 
 ## 🚀 What You Can Do Now
 
-### 1. Populate Draft Pool (Works Now!)
+### 1. Populate Showdown Pool (tier reference — optional)
 
-**Run this SQL in Supabase SQL Editor**:
+**League draft pool** is **draft_pool** (Notion sync only). For **tier reference** (point suggestions, MCP), populate **showdown_pool**:
+
+**Run this SQL in Supabase SQL Editor** or use `pnpm tsx scripts/populate-draft-pool-from-tiers.ts`:
 
 ```sql
--- Populate draft pool from Showdown tiers
-SELECT * FROM populate_draft_pool_from_showdown_tiers(
+-- Populate showdown_pool from Showdown tiers (reference only)
+SELECT * FROM populate_showdown_pool_from_tiers(
   (SELECT id FROM seasons WHERE is_current = true LIMIT 1),
   true,   -- exclude_illegal
   false   -- exclude_forms
 );
 ```
 
-**Expected**: 1,200+ Pokemon inserted with tier-based point values
+**Expected**: 1,200+ Pokemon inserted into **showdown_pool** with tier-based point values
 
 ### 2. Use pokemon_unified View (Works with Showdown Data)
 

@@ -28,6 +28,25 @@ export default async function DraftBoardManagementPage() {
         </p>
       </div>
 
+      {/* How to populate the draft pool */}
+      <div className="rounded-lg border bg-muted/50 p-4 text-sm">
+        <h2 className="font-semibold mb-2">How to populate the draft pool</h2>
+        <ol className="list-decimal list-inside space-y-1.5 text-muted-foreground">
+          <li>
+            <strong className="text-foreground">Curate the list in Notion</strong> — Use the Master Draft Board and set &quot;Added to Draft Board&quot; for each Pokémon you want in the pool.
+          </li>
+          <li>
+            <strong className="text-foreground">Run the n8n seed once per season</strong> — When the pool is empty or you need a full refresh, run the <strong>Draft Pool Seed (Notion → Supabase)</strong> workflow in n8n. See <code className="rounded bg-muted px-1">docs/N8N-DRAFT-POOL-SEED-AND-UPSERT.md</code> for details.
+          </li>
+          <li>
+            <strong className="text-foreground">Ongoing changes</strong> — Edits in Notion are synced to Supabase by the n8n <strong>Notion Draft Board → Supabase Sync</strong> workflow (webhook or scheduled).
+          </li>
+        </ol>
+        <p className="mt-2 text-xs text-muted-foreground">
+          Quick Edit Panel below writes only to Supabase; changes are not synced back to Notion.
+        </p>
+      </div>
+
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Left Column */}
         <div className="space-y-6">

@@ -10,7 +10,6 @@ import { SupabaseManager } from "@/components/platform/supabase-manager"
 // PokepediaSyncStatusNew removed - sync system deleted
 import { ShowdownPokedexSync } from "@/components/admin/showdown-pokedex-sync"
 import { PokemonSyncControl } from "@/components/admin/pokemon-sync-control"
-import { DraftPoolImport } from "@/components/admin/draft-pool-import"
 import { PokeMnkyPremium } from "@/components/ui/poke-mnky-avatar"
 import { useRouter } from "next/navigation"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
@@ -20,7 +19,6 @@ export default function AdminPage() {
   const [stats, setStats] = useState({ teams: 0, matches: 0, pokemon: 0 })
   const [lastSync, setLastSync] = useState<any>(null)
   const [platformOpen, setPlatformOpen] = useState(false)
-  const [draftPoolOpen, setDraftPoolOpen] = useState(false)
   const [pokemonSyncOpen, setPokemonSyncOpen] = useState(false)
   const [showdownSyncOpen, setShowdownSyncOpen] = useState(false)
   const router = useRouter()
@@ -221,48 +219,17 @@ export default function AdminPage() {
             <Card>
               <CardHeader>
                 <ClipboardList className="mb-2 h-8 w-8 text-primary" />
-                <CardTitle>Pokémon Draft Pool (Quick Edit)</CardTitle>
+                <CardTitle>Pokémon Catalog</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="mb-4 text-sm text-muted-foreground">
-                  Quick edits for individual Pokémon. For comprehensive management, use Draft Board Management.
+                  Browse Pokémon and view draft pool status. To edit the pool, use Draft Board Management.
                 </p>
                 <Button asChild variant="outline" className="w-full bg-transparent">
-                  <Link href="/admin/pokemon">Quick Edit Pokémon</Link>
+                  <Link href="/admin/pokemon">View Pokémon Catalog</Link>
                 </Button>
               </CardContent>
             </Card>
-          </div>
-          
-          {/* Draft Pool Import & Sync Component */}
-          <div className="mt-4">
-            <Collapsible open={draftPoolOpen} onOpenChange={setDraftPoolOpen}>
-              <div className="rounded-lg border bg-card">
-                <CollapsibleTrigger asChild>
-                  <div className="flex items-center justify-between p-6 cursor-pointer hover:bg-muted/50 transition-colors">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Database className="h-5 w-5 text-primary" />
-                        <h3 className="text-lg font-semibold">Draft Pool Import & Sync</h3>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        Import draft pool data from server agent JSON and sync to production database.
-                      </p>
-                    </div>
-                    {draftPoolOpen ? (
-                      <ChevronUp className="h-4 w-4 text-muted-foreground ml-4 shrink-0" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4 text-muted-foreground ml-4 shrink-0" />
-                    )}
-                  </div>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <div className="border-t">
-                    <DraftPoolImport />
-                  </div>
-                </CollapsibleContent>
-              </div>
-            </Collapsible>
           </div>
         </div>
 

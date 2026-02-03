@@ -1,10 +1,12 @@
 /**
  * Draft Pool Import Service
- * 
+ *
+ * @deprecated Draft pool is now sourced from Notion via n8n (seed + sync workflows).
+ * This service and sheets_draft_pool staging are no longer used by the app.
+ * Kept for legacy scripts (e.g. validate-draft-pool-system.ts) only.
+ *
  * Handles importing draft pool data from server agent's JSON format
  * into the sheets_draft_pool staging table.
- * 
- * This is a safe, non-breaking addition to the codebase.
  */
 
 import { createServiceRoleClient } from "@/lib/supabase/service"

@@ -375,29 +375,24 @@ export class DraftSystem {
         data = rpcData
       } else if (rpcError) {
         console.warn(`[DraftSystem] RPC function error, falling back to standard query:`, rpcError)
-        // Fallback: Fetch all available Pokémon first (workaround for UUID comparison issue)
-        // Similar to API route workaround
+        // Fallback: Query draft_pool by season_id; include status = 'available' OR status IS NULL
+        // (Notion/n8n seed may leave status null when "Status" is not set in Notion)
         const { data: allAvailableData, error: allError } = await this.supabase
           .from("draft_pool")
           .select("pokemon_name, point_value, pokemon_id, status, season_id")
-          .eq("status", "available")
+          .eq("season_id", seasonIdUuid)
+          .or("status.eq.available,status.is.null")
           .order("point_value", { ascending: false })
           .order("pokemon_name", { ascending: true })
           .limit(1000)
 
         if (allError) {
-          console.error("[DraftSystem] Error fetching all available:", allError)
+          console.error("[DraftSystem] Error fetching draft_pool:", allError)
           data = null
           error = allError
         } else {
-          // Filter by season_id in JavaScript (workaround for UUID comparison issue)
-          const seasonIdStr = String(seasonIdUuid).trim()
-          const filteredData = allAvailableData?.filter((p: any) => {
-            const pSeasonId = String(p.season_id || '').trim()
-            return pSeasonId === seasonIdStr
-          }) || []
-
-          console.log(`[DraftSystem] JavaScript filter: ${filteredData.length} rows match season_id out of ${allAvailableData?.length || 0} total`)
+          const filteredData = allAvailableData || []
+          console.log(`[DraftSystem] Direct query: ${filteredData.length} rows for season_id ${seasonIdUuid}`)
 
           // Apply additional filters
           let filtered = filteredData
@@ -426,28 +421,23 @@ export class DraftSystem {
       }
     } catch (rpcError: any) {
       console.warn(`[DraftSystem] RPC call failed, falling back to standard query:`, rpcError?.message || rpcError)
-      // Fallback: Fetch all available Pokémon first (workaround for UUID comparison issue)
+      // Fallback: Query draft_pool by season_id; include status = 'available' OR status IS NULL
       const { data: allAvailableData, error: allError } = await this.supabase
         .from("draft_pool")
         .select("pokemon_name, point_value, pokemon_id, status, season_id")
-        .eq("status", "available")
+        .eq("season_id", seasonIdUuid)
+        .or("status.eq.available,status.is.null")
         .order("point_value", { ascending: false })
         .order("pokemon_name", { ascending: true })
         .limit(1000)
 
       if (allError) {
-        console.error("[DraftSystem] Error fetching all available:", allError)
+        console.error("[DraftSystem] Error fetching draft_pool:", allError)
         data = null
         error = allError
       } else {
-        // Filter by season_id in JavaScript (workaround for UUID comparison issue)
-        const seasonIdStr = String(seasonIdUuid).trim()
-        const filteredData = allAvailableData?.filter((p: any) => {
-          const pSeasonId = String(p.season_id || '').trim()
-          return pSeasonId === seasonIdStr
-        }) || []
-
-        console.log(`[DraftSystem] JavaScript filter: ${filteredData.length} rows match season_id out of ${allAvailableData?.length || 0} total`)
+        const filteredData = allAvailableData || []
+        console.log(`[DraftSystem] Direct query (catch): ${filteredData.length} rows for season_id ${seasonIdUuid}`)
 
         // Apply additional filters
         let filtered = filteredData
@@ -475,12 +465,12 @@ export class DraftSystem {
       }
     }
     
-    // Also try a count query to see if any rows exist
+    // Debug: count rows for this season (available or null status)
     const { count, error: countError } = await this.supabase
       .from("draft_pool")
       .select("*", { count: "exact", head: true })
       .eq("season_id", seasonIdUuid)
-      .eq("status", "available")
+      .or("status.eq.available,status.is.null")
 
     console.log(`[DraftSystem] Query results:`, {
       data_count: data?.length || 0,

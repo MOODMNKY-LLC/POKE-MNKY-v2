@@ -1,6 +1,39 @@
-import { DraftSystem } from "@/lib/draft-system"
+import { resolveDraftBoardDisplay } from "@/lib/draft-board-display-resolver"
 import { createServiceRoleClient } from "@/lib/supabase/service"
 import { NextResponse } from "next/server"
+
+const DRAFT_AVAILABLE_CACHE_TTL_MS = 90_000 // 90s in-memory cache for instant repeat loads
+const DRAFT_AVAILABLE_CACHE_MAX_ENTRIES = 80
+const draftAvailableCache = new Map<
+  string,
+  { data: { success: boolean; pokemon: any[]; total: number }; expires: number }
+>()
+
+function setDraftAvailableCache(
+  key: string,
+  data: { success: boolean; pokemon: any[]; total: number }
+): void {
+  const now = Date.now()
+  for (const [k, v] of draftAvailableCache.entries()) {
+    if (v.expires <= now) draftAvailableCache.delete(k)
+  }
+  if (draftAvailableCache.size >= DRAFT_AVAILABLE_CACHE_MAX_ENTRIES) {
+    const first = draftAvailableCache.keys().next().value
+    if (first != null) draftAvailableCache.delete(first)
+  }
+  draftAvailableCache.set(key, { data, expires: now + DRAFT_AVAILABLE_CACHE_TTL_MS })
+}
+
+function getDraftAvailableCacheKey(
+  seasonId: string,
+  minPoints: number | undefined,
+  maxPoints: number | undefined,
+  generation: number | undefined,
+  search: string | undefined,
+  limit: number
+): string {
+  return `${seasonId}:${minPoints ?? "n"}:${maxPoints ?? "n"}:${generation ?? "n"}:${search ?? ""}:${limit}`
+}
 
 export async function GET(request: Request) {
   try {
@@ -26,6 +59,12 @@ export async function GET(request: Request) {
         return NextResponse.json({ success: false, error: "No current season found" }, { status: 404 })
       }
       seasonId = season.id
+    }
+
+    const cacheKey = getDraftAvailableCacheKey(seasonId, minPoints, maxPoints, generation, search, limit)
+    const cached = draftAvailableCache.get(cacheKey)
+    if (cached && cached.expires > Date.now()) {
+      return NextResponse.json(cached.data)
     }
 
     // Use RPC function - schema confirmed: season_id and status columns exist
@@ -59,8 +98,22 @@ export async function GET(request: Request) {
       let allAvailableData: any[] | null = null
       let allAvailableError: any = null
 
+      // Prefer draft_pool_enriched (single query with types/generation); fall back to draft_pool if view missing
       const baseQuery = () =>
         supabase
+          .from("draft_pool_enriched")
+          .select("pokemon_name, point_value, pokemon_id, status, season_id, tera_captain_eligible, generation, types")
+          .eq("season_id", seasonId)
+          .or("status.eq.available,status.is.null")
+          .order("point_value", { ascending: false })
+          .order("pokemon_name", { ascending: true })
+          .limit(1000)
+
+      let { data: dataWithTera, error: errorWithTera } = await baseQuery()
+
+      if (errorWithTera && (errorWithTera.code === "42P01" || errorWithTera.message?.includes("draft_pool_enriched"))) {
+        console.log(`[API /draft/available] draft_pool_enriched view not found, using draft_pool...`)
+        const fallback = await supabase
           .from("draft_pool")
           .select("pokemon_name, point_value, pokemon_id, status, season_id, tera_captain_eligible")
           .eq("season_id", seasonId)
@@ -68,8 +121,9 @@ export async function GET(request: Request) {
           .order("point_value", { ascending: false })
           .order("pokemon_name", { ascending: true })
           .limit(1000)
-
-      const { data: dataWithTera, error: errorWithTera } = await baseQuery()
+        dataWithTera = fallback.data
+        errorWithTera = fallback.error
+      }
 
       if (errorWithTera && errorWithTera.code === "42703" && errorWithTera.message?.includes("tera_captain_eligible")) {
         console.log(`[API /draft/available] tera_captain_eligible column not found, retrying without it...`)
@@ -109,87 +163,44 @@ export async function GET(request: Request) {
       const directData = allAvailableData || []
       console.log(`[API /draft/available] Direct query returned ${directData.length} rows for season_id=${seasonId}`)
       
-      // Remove season_id from results (not needed in response)
-      // Include tera_captain_eligible if available (backward compatible)
+      // Keep generation and types when present (from draft_pool_enriched view)
       const directDataClean = directData.map((p: any) => ({
         pokemon_name: p.pokemon_name,
         point_value: p.point_value,
         pokemon_id: p.pokemon_id,
         status: p.status,
+        generation: p.generation,
+        types: p.types,
         ...(p.tera_captain_eligible !== undefined && {
           tera_captain_eligible: p.tera_captain_eligible,
         }),
       }))
       
-      const directError = null // No error if we got here
-      
-      if (directDataClean && directDataClean.length > 0) {
-        console.log(`[API /draft/available] Sample result:`, directDataClean[0])
+      if (directDataClean?.length) {
+        console.log(`[API /draft/available] Resolving display data (cache + PokeAPI) for ${directDataClean.length} rows`)
       }
-      
-      // Map to Pokemon format and fetch generation from pokemon_cache
-      const pokemonNames = directDataClean?.map((p: any) => p.pokemon_name) || []
-      const genMap = new Map<string, number>()
-      
-      if (pokemonNames.length > 0) {
-        // Fetch generation data in batches (Supabase supports up to 1000 items in .in())
-        const batchSize = 1000
-        for (let i = 0; i < pokemonNames.length; i += batchSize) {
-          const batch = pokemonNames.slice(i, i + batchSize)
-          const { data: genData } = await supabase
-            .from("pokemon_cache")
-            .select("pokemon_name, generation")
-            .in("pokemon_name", batch)
-          
-          genData?.forEach((p: any) => {
-            genMap.set(p.pokemon_name.toLowerCase(), p.generation)
-          })
+
+      // Resolve display data from cache, then PokeAPI; cache misses are fetched and written to pokemon_cache
+      const displayMap = await resolveDraftBoardDisplay(
+        supabase,
+        directDataClean.map((p: any) => ({ pokemon_name: p.pokemon_name, pokemon_id: p.pokemon_id }))
+      )
+
+      const pokemonWithGen = directDataClean?.map((p: any) => {
+        const nameKey = p.pokemon_name?.toLowerCase()
+        const display = nameKey ? displayMap.get(nameKey) : null
+        return {
+          pokemon_name: p.pokemon_name,
+          point_value: p.point_value,
+          pokemon_id: display?.pokemon_id ?? p.pokemon_id ?? null,
+          status: p.status || 'available',
+          generation: display?.generation ?? p.generation ?? null,
+          types: (display?.types?.length ? display.types : (Array.isArray(p.types) && p.types.length ? p.types : undefined)) ?? undefined,
+          ...(p.tera_captain_eligible !== undefined && {
+            tera_captain_eligible: p.tera_captain_eligible,
+          }),
         }
-      }
-      
-      // Fetch types for Pokémon that have pokemon_id
-      const pokemonIdsForTypes = directDataClean
-        ?.map((p: any) => p.pokemon_id)
-        .filter((id: any): id is number => id !== null && id !== undefined) || []
-      
-      const typesMap = new Map<number, string[]>()
-      if (pokemonIdsForTypes.length > 0) {
-        // Try pokemon_cache first
-        const { data: cacheTypesData } = await supabase
-          .from("pokemon_cache")
-          .select("pokemon_id, types")
-          .in("pokemon_id", pokemonIdsForTypes)
-
-        cacheTypesData?.forEach((entry: any) => {
-          if (entry.types && Array.isArray(entry.types)) {
-            typesMap.set(entry.pokemon_id, entry.types)
-          }
-        })
-
-        // Also try pokepedia_pokemon as fallback
-        const { data: pokepediaTypesData } = await supabase
-          .from("pokepedia_pokemon")
-          .select("id, types")
-          .in("id", pokemonIdsForTypes)
-
-        pokepediaTypesData?.forEach((entry: any) => {
-          if (entry.types && Array.isArray(entry.types) && !typesMap.has(entry.id)) {
-            typesMap.set(entry.id, entry.types)
-          }
-        })
-      }
-
-      const pokemonWithGen = directDataClean?.map((p: any) => ({
-        pokemon_name: p.pokemon_name,
-        point_value: p.point_value,
-        pokemon_id: p.pokemon_id,
-        status: p.status || 'available',
-        generation: genMap.get(p.pokemon_name.toLowerCase()) || null,
-        types: p.pokemon_id ? (typesMap.get(p.pokemon_id) || undefined) : undefined,
-        ...(p.tera_captain_eligible !== undefined && {
-          tera_captain_eligible: p.tera_captain_eligible,
-        }),
-      })) || []
+      }) || []
       
       // Apply filters
       let filteredPokemon = pokemonWithGen
@@ -210,12 +221,14 @@ export async function GET(request: Request) {
       }
 
       console.log(`[API /draft/available] Direct query returned ${filteredPokemon.length} Pokemon`)
-      
-      return NextResponse.json({
-        success: true,
+
+      const payload = {
+        success: true as const,
         pokemon: filteredPokemon.slice(0, limit),
         total: filteredPokemon.length,
-      })
+      }
+      draftAvailableCache.set(cacheKey, { data: payload, expires: Date.now() + DRAFT_AVAILABLE_CACHE_TTL_MS })
+      return NextResponse.json(payload)
     }
 
     if (!rpcData || rpcData.length === 0) {
@@ -224,15 +237,52 @@ export async function GET(request: Request) {
       console.log(`[API /draft/available] RPC function returned ${rpcData.length} Pokemon`)
     }
 
-    // RPC returns pokemon_id, pokemon_name, point_value, generation.
-    // Map RPC rows directly to expected format.
-    const pokemonWithGen = (rpcData || []).map((p: any) => ({
+    // RPC returns pokemon_id, pokemon_name, point_value, generation (from draft_pool; may be null).
+    // Attach types and generation from pokemon_cache so table view shows Types and correct Gen (same as direct path).
+    const rpcList = (rpcData || []).map((p: any) => ({
       pokemon_name: p.pokemon_name,
       point_value: p.point_value,
       pokemon_id: p.pokemon_id || null,
       generation: p.generation ?? null,
-      status: 'available'
+      status: 'available' as const,
     }))
+
+    const rpcNames = rpcList.map((p: any) => p.pokemon_name)
+
+    // Resolve display data (cache + PokeAPI) so we always have pokemon_id, types, generation
+    const displayMap = await resolveDraftBoardDisplay(
+      supabase,
+      rpcList.map((p: any) => ({ pokemon_name: p.pokemon_name, pokemon_id: p.pokemon_id }))
+    )
+
+    let statusByName = new Map<string, string>()
+    let teraByName = new Map<string, boolean>()
+    const { data: draftPoolRows } = await supabase
+      .from("draft_pool")
+      .select("pokemon_name, status, tera_captain_eligible")
+      .eq("season_id", seasonId)
+      .in("pokemon_name", rpcNames)
+    draftPoolRows?.forEach((row: any) => {
+      const key = row.pokemon_name?.toLowerCase()
+      if (key) {
+        if (row.status != null) statusByName.set(key, row.status)
+        if (row.tera_captain_eligible !== undefined) teraByName.set(key, row.tera_captain_eligible)
+      }
+    })
+
+    const pokemonWithGen = rpcList.map((p: any) => {
+      const nameKey = p.pokemon_name?.toLowerCase()
+      const display = nameKey ? displayMap.get(nameKey) : null
+      return {
+        pokemon_name: p.pokemon_name,
+        point_value: p.point_value,
+        pokemon_id: display?.pokemon_id ?? p.pokemon_id ?? null,
+        generation: display?.generation ?? p.generation ?? null,
+        status: (statusByName.get(nameKey) ?? p.status) as string,
+        tera_captain_eligible: teraByName.get(nameKey),
+        types: display?.types?.length ? display.types : undefined,
+      }
+    })
 
     // Apply filters
     let filteredPokemon = pokemonWithGen
@@ -317,11 +367,13 @@ export async function GET(request: Request) {
       })
     }
 
-    return NextResponse.json({
-      success: true,
+    const payload = {
+      success: true as const,
       pokemon: filteredPokemon.slice(0, limit),
       total: filteredPokemon.length,
-    })
+    }
+    setDraftAvailableCache(cacheKey, payload)
+    return NextResponse.json(payload)
   } catch (error: any) {
     console.error("Draft available error:", error)
     return NextResponse.json({ success: false, error: error.message }, { status: 500 })

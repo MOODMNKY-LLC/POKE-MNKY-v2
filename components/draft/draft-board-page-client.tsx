@@ -82,10 +82,10 @@ export function DraftBoardPageClient({
   return (
     <div className="container mx-auto p-6 space-y-6">
       {noDraftPoolForCurrentSeason && (
-        <Alert variant="destructive">
+        <Alert variant="default" className="border-amber-500/50 bg-amber-500/10">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            No draft pool data for the current season. We do not display old draft pool data from other seasons. Populate the draft pool for the current season (Notion Draft Board + n8n seed workflow), or set the correct season as current in Settings.
+            No active draft. Draft pool for this season is empty — populate it to see Pokémon.
           </AlertDescription>
         </Alert>
       )}
@@ -94,7 +94,7 @@ export function DraftBoardPageClient({
         <Alert variant="default" className="border-amber-500/50 bg-amber-500/10">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            There is no active draft session. The board below shows the current draft pool for the season (read-only). When a draft session is started, picks and live updates will appear here.
+            No active draft. Board is read-only until a draft session is started.
           </AlertDescription>
         </Alert>
       )}
