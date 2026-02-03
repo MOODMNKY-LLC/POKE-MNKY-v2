@@ -1,8 +1,11 @@
 -- Notion Webhook Subscriptions table
 -- Tracks Notion webhook subscriptions for Draft Board database
 
+-- Ensure uuid-ossp extension is available
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA public;
+
 CREATE TABLE IF NOT EXISTS public.notion_webhook_subscriptions (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   subscription_id TEXT NOT NULL UNIQUE,
   database_id TEXT NOT NULL,
   webhook_url TEXT NOT NULL,
