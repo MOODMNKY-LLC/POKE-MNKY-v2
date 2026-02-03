@@ -11,7 +11,7 @@ Successfully implemented database optimization and draft pool population system 
 - ✅ **pokemon_unified view** - Combines PokéAPI + Showdown data
 - ✅ **Showdown tier data** - 1,515 Pokemon with competitive tiers
 - ✅ **Intelligent tier-to-point mapping** - Maps Showdown tiers to draft point values (1-20)
-- ✅ **Draft pool population function** - Automatically populates draft pool from tiers
+- ✅ **Showdown pool population** - `populate_showdown_pool_from_tiers()` populates **showdown_pool** (tier reference); league draft pool is **draft_pool** (Notion sync only)
 
 ---
 
@@ -26,7 +26,7 @@ Successfully implemented database optimization and draft pool population system 
 
 **Functions Created**:
 - ✅ `map_tier_to_point_value(tier)` - Maps Showdown tiers to point values
-- ✅ `populate_draft_pool_from_showdown_tiers(season_id, exclude_illegal, exclude_forms)` - Populates draft pool
+- ✅ `populate_showdown_pool_from_tiers(season_id, exclude_illegal, exclude_forms)` - Populates **showdown_pool** (tier reference); draft_pool is Notion-only
 - ✅ `populate_all_master_tables_from_pokeapi()` - Populates master tables
 - ✅ `get_pokemon_by_id()`, `get_pokemon_by_name()`, `search_pokemon()` - Helper functions
 
@@ -61,13 +61,15 @@ Successfully implemented database optimization and draft pool population system 
 
 ## 🚀 Immediate Actions
 
-### Step 1: Populate Draft Pool (SQL)
+### Step 1: Populate Showdown Pool (tier reference) — optional
 
-**Run this in Supabase SQL Editor** (PostgREST cache needs refresh):
+**League draft pool** is **draft_pool**, populated only from Notion. For **tier reference** (point suggestions, tier lookup), populate **showdown_pool**:
+
+**Run this in Supabase SQL Editor** or use `pnpm tsx scripts/populate-draft-pool-from-tiers.ts`:
 
 ```sql
--- One-liner to populate draft pool for current season
-SELECT * FROM populate_draft_pool_from_showdown_tiers(
+-- One-liner to populate showdown_pool for current season (tier reference only)
+SELECT * FROM populate_showdown_pool_from_tiers(
   (SELECT id FROM seasons WHERE is_current = true LIMIT 1),
   true,   -- exclude_illegal
   false   -- exclude_forms
@@ -75,19 +77,17 @@ SELECT * FROM populate_draft_pool_from_showdown_tiers(
 ```
 
 **Expected Result**:
-- ✅ 1,200+ Pokemon inserted
+- ✅ 1,200+ Pokemon inserted into **showdown_pool**
 - ✅ Point values assigned based on tiers
-- ✅ All marked as 'available'
 
 **Verify**:
 ```sql
--- Check distribution
+-- Check distribution in showdown_pool
 SELECT 
   point_value,
   COUNT(*) as count
-FROM draft_pool
+FROM showdown_pool
 WHERE season_id = (SELECT id FROM seasons WHERE is_current = true LIMIT 1)
-  AND status = 'available'
 GROUP BY point_value
 ORDER BY point_value DESC;
 ```

@@ -1,14 +1,18 @@
 "use client"
 
-import { useEffect, useState, useTransition } from "react"
+import { useEffect, useState } from "react"
 import { PointTierSection } from "./point-tier-section"
+import { DraftBoardKanban } from "./draft-board-kanban"
+import { DraftBoardTable } from "./draft-board-table"
 import { BudgetDisplay } from "./budget-display"
 import { PickConfirmationDialog } from "./pick-confirmation-dialog"
 import { BorderBeam } from "@/components/ui/border-beam"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { createClient } from "@/lib/supabase/client"
+import { LayoutGrid, List } from "lucide-react"
 
 interface Pokemon {
   pokemon_name: string
@@ -16,6 +20,8 @@ interface Pokemon {
   generation: number | null
   pokemon_id: number | null
   status?: "available" | "drafted" | "banned" | "unavailable"
+  types?: string[]
+  tera_captain_eligible?: boolean
 }
 
 interface DraftBoardClientProps {
@@ -50,6 +56,7 @@ export function DraftBoardClient({
   const [selectedPokemon, setSelectedPokemon] = useState<Pokemon | null>(null)
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const [budget, setBudget] = useState<{ total: number; spent: number; remaining: number } | null>(initialBudget)
+  const [viewMode, setViewMode] = useState<"kanban" | "list">("list")
   const [supabase] = useState(() => {
     if (typeof window === 'undefined') return null as any
     return createClient()
@@ -192,15 +199,6 @@ export function DraftBoardClient({
     }
   }, [currentTeamId, seasonId, supabase])
 
-  // Organize Pokemon by point tier
-  const pokemonByTier: Record<number, Pokemon[]> = {}
-  pokemon.forEach(p => {
-    if (!pokemonByTier[p.point_value]) {
-      pokemonByTier[p.point_value] = []
-    }
-    pokemonByTier[p.point_value].push(p)
-  })
-
   // Filter Pokemon
   const filteredPokemon = pokemon.filter(p => {
     const matchesSearch = !searchQuery || p.pokemon_name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -211,6 +209,28 @@ export function DraftBoardClient({
 
   // Get point tiers (20 to 1)
   const pointTiers = Array.from({ length: 20 }, (_, i) => 20 - i)
+
+  // Group filtered Pokemon by point value for Kanban (1-20)
+  const pokemonByPoint: Record<number, { name: string; point_value: number; generation: number; pokemon_id: number | null; status: string; types?: string[] }[]> = {}
+  pointTiers.forEach(tier => {
+    pokemonByPoint[tier] = []
+  })
+  filteredPokemon.forEach(p => {
+    if (!pokemonByPoint[p.point_value]) {
+      pokemonByPoint[p.point_value] = []
+    }
+    pokemonByPoint[p.point_value].push({
+      name: p.pokemon_name,
+      point_value: p.point_value,
+      generation: p.generation ?? 1,
+      pokemon_id: p.pokemon_id ?? null,
+      status: p.status ?? "available",
+      types: p.types,
+    })
+  })
+
+  // Visible columns: all tiers when "all", else only selected tier
+  const visiblePointValues = selectedTier === "all" ? pointTiers : [selectedTier]
 
   const handlePokemonClick = (pokemonName: string) => {
     if (!currentTeamId || !isYourTurn) return
@@ -281,11 +301,25 @@ export function DraftBoardClient({
           />
         )}
         <CardHeader>
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
             <CardTitle>Draft Board</CardTitle>
-            {currentTeamId && (
-              <BudgetDisplay teamId={currentTeamId} seasonId={seasonId} />
-            )}
+            <div className="flex items-center gap-3">
+              <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "kanban" | "list")}>
+                <TabsList className="h-9">
+                  <TabsTrigger value="list" className="gap-1.5 text-xs">
+                    <List className="h-4 w-4" />
+                    Table
+                  </TabsTrigger>
+                  <TabsTrigger value="kanban" className="gap-1.5 text-xs">
+                    <LayoutGrid className="h-4 w-4" />
+                    Kanban
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+              {currentTeamId && (
+                <BudgetDisplay teamId={currentTeamId} seasonId={seasonId} />
+              )}
+            </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-4 mt-4">
             <Input
@@ -344,30 +378,29 @@ export function DraftBoardClient({
                 <p>Try clearing filters to see all Pokemon.</p>
               </div>
             </div>
+          ) : viewMode === "kanban" ? (
+            <DraftBoardKanban
+              pokemonByPoint={pokemonByPoint}
+              draftedPokemon={draftedPokemon}
+              isYourTurn={isYourTurn && !!currentTeamId}
+              onPick={handlePokemonClick}
+              visiblePointValues={visiblePointValues}
+            />
           ) : (
-            <div className="space-y-8">
-              {pointTiers.map(tier => {
-                const tierPokemon = filteredPokemon.filter(p => p.point_value === tier)
-                if (tierPokemon.length === 0) return null
-
-                return (
-                  <PointTierSection
-                    key={tier}
-                    points={tier}
-                    pokemon={tierPokemon.map(p => ({
-                      name: p.pokemon_name,
-                      point_value: p.point_value,
-                      generation: p.generation || 1,
-                      pokemon_id: p.pokemon_id ?? null,
-                      status: p.status || "available",
-                    }))}
-                    draftedPokemon={draftedPokemon}
-                    isYourTurn={isYourTurn && !!currentTeamId}
-                    onPick={handlePokemonClick}
-                  />
-                )
-              })}
-            </div>
+            <DraftBoardTable
+              pokemon={filteredPokemon.map((p) => ({
+                name: p.pokemon_name,
+                point_value: p.point_value,
+                generation: p.generation ?? null,
+                pokemon_id: p.pokemon_id ?? null,
+                status: (p.status ?? "available") as "available" | "drafted" | "banned" | "unavailable",
+                types: p.types,
+                tera_captain_eligible: p.tera_captain_eligible,
+              }))}
+              draftedPokemon={draftedPokemon}
+              isYourTurn={isYourTurn && !!currentTeamId}
+              onPick={handlePokemonClick}
+            />
           )}
         </CardContent>
       </Card>

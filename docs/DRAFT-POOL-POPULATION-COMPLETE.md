@@ -13,11 +13,12 @@
 - `map_tier_to_point_value(tier TEXT)` - Maps Showdown tiers to point values (1-20)
 - Intelligently assigns points based on competitive viability
 
-**Draft Pool Population Function**:
-- `populate_draft_pool_from_showdown_tiers(season_id, exclude_illegal, exclude_forms)`
-- Populates `draft_pool` from `pokemon_unified` view
+**Showdown Pool Population Function**:
+- `populate_showdown_pool_from_tiers(season_id, exclude_illegal, exclude_forms)`
+- Populates **showdown_pool** (tier-derived reference table) from `pokemon_unified` view
 - Uses Showdown tier data to assign point values
 - Handles conflicts and updates existing entries
+- **Note**: League draft pool is **draft_pool**, populated only from Notion; **showdown_pool** is for tier lookup and point suggestions.
 
 ### 2. Tier-to-Point Mapping Logic
 
@@ -51,16 +52,21 @@
 
 ## 🚀 Immediate Next Steps
 
-### Step 1: Populate Draft Pool (SQL)
+### Step 1: Populate Showdown Pool (SQL or script)
 
-Since PostgREST cache needs refresh, run this **directly in Supabase SQL Editor**:
+**Via script** (recommended):
+```bash
+pnpm tsx scripts/populate-draft-pool-from-tiers.ts
+```
+
+**Or run directly in Supabase SQL Editor**:
 
 ```sql
 -- Get current season ID
 SELECT id, name FROM seasons WHERE is_current = true;
 
--- Then populate draft pool (replace SEASON_ID with actual UUID)
-SELECT * FROM populate_draft_pool_from_showdown_tiers(
+-- Then populate showdown_pool (replace SEASON_ID with actual UUID)
+SELECT * FROM populate_showdown_pool_from_tiers(
   'SEASON_ID'::UUID,  -- Replace with actual season ID
   true,               -- exclude_illegal = true
   false               -- exclude_forms = false
@@ -69,7 +75,7 @@ SELECT * FROM populate_draft_pool_from_showdown_tiers(
 
 **Or use this one-liner**:
 ```sql
-SELECT * FROM populate_draft_pool_from_showdown_tiers(
+SELECT * FROM populate_showdown_pool_from_tiers(
   (SELECT id FROM seasons WHERE is_current = true LIMIT 1),
   true,
   false
@@ -87,20 +93,19 @@ SELECT * FROM populate_draft_pool_from_showdown_tiers(
 }
 ```
 
-### Step 2: Verify Draft Pool Population
+### Step 2: Verify Showdown Pool Population
 
 ```sql
 -- Check total entries
-SELECT COUNT(*) FROM draft_pool 
+SELECT COUNT(*) FROM showdown_pool 
 WHERE season_id = (SELECT id FROM seasons WHERE is_current = true LIMIT 1);
 
 -- Check point distribution
 SELECT 
   point_value,
   COUNT(*) as pokemon_count
-FROM draft_pool
+FROM showdown_pool
 WHERE season_id = (SELECT id FROM seasons WHERE is_current = true LIMIT 1)
-  AND status = 'available'
 GROUP BY point_value
 ORDER BY point_value DESC;
 
@@ -110,9 +115,8 @@ SELECT
   point_value,
   pokemon_id,
   generation
-FROM draft_pool
+FROM showdown_pool
 WHERE season_id = (SELECT id FROM seasons WHERE is_current = true LIMIT 1)
-  AND status = 'available'
 ORDER BY point_value DESC, pokemon_name
 LIMIT 20;
 ```
@@ -249,7 +253,8 @@ const { data: pool } = await supabase
 | `pokemon_showdown` | ✅ Complete | 1,515 | Source data |
 | `pokepedia_pokemon` | ⚠️ Empty | 0 | Needs PokéPedia sync |
 | `pokeapi_resources` | ⚠️ Empty | 0 | Needs sync |
-| `draft_pool` | ⚠️ Needs populate | 749 (old) | Run SQL to populate |
+| `draft_pool` | Notion sync | — | Populated by n8n from Notion Draft Board |
+| `showdown_pool` | ✅ Populate via script/SQL | — | Run `populate_showdown_pool_from_tiers` for tier reference |
 | `types` | ⚠️ Empty | 0 | Needs sync + populate |
 | `abilities` | ⚠️ Empty | 0 | Needs sync + populate |
 | `moves` | ⚠️ Empty | 0 | Needs sync + populate |
@@ -272,14 +277,12 @@ const { data: pool } = await supabase
 
 ## 🎉 Success!
 
-**Draft pool population system is complete!**
+**Showdown pool and draft pool setup is complete!**
 
 You can now:
-1. ✅ Populate draft pool from Showdown tiers (via SQL)
-2. ✅ Use `draft_pool_comprehensive` view for enhanced queries
+1. ✅ Populate **showdown_pool** from Showdown tiers (via script or SQL) for tier reference
+2. ✅ Use **draft_pool** / `draft_pool_comprehensive` for the league draft pool (Notion sync)
 3. ✅ Filter by point value, tier, generation, etc.
 4. ✅ Get complete Pokemon data in single query
 
-**Next**: Run the SQL query to populate draft pool, then start using it in your app!
-
-See `docs/DRAFT-POOL-POPULATION-SQL.md` for detailed SQL queries.
+**Next**: League draft pool comes from Notion (n8n sync). Optionally run the script to seed `showdown_pool` for point suggestions. See `docs/DRAFT-POOL-POPULATION-SQL.md` and `docs/DRAFT-POOL-DATA-SOURCE-DECISION.md`.

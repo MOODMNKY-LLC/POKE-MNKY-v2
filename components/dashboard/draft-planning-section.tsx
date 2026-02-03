@@ -285,7 +285,11 @@ export function DraftPlanningSection() {
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Draft pool is empty! Please populate it using the draft pool parser script.
+            Draft pool is empty. Populate it from the Notion Draft Board and run the n8n seed workflow, or see{" "}
+            <Link href="/admin/draft-board-management" className="underline font-medium">
+              Draft Board Management
+            </Link>{" "}
+            for instructions.
           </AlertDescription>
         </Alert>
       )}

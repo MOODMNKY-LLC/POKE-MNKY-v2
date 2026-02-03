@@ -1,6 +1,6 @@
-# Draft Pool Population - Direct SQL Queries
+# Showdown Pool Population - Direct SQL Queries
 
-Run these queries directly in **Supabase SQL Editor** to populate draft pool from Showdown tiers.
+Run these queries directly in **Supabase SQL Editor** to populate **showdown_pool** (tier-derived reference data) from Showdown tiers. The league draft pool is **draft_pool**, populated only from Notion; **showdown_pool** is for tier lookup and point suggestions.
 
 ## ✅ Step 1: Verify pokemon_unified View Works
 
@@ -51,7 +51,7 @@ ORDER BY point_value DESC NULLS LAST;
 
 ---
 
-## ✅ Step 3: Populate Draft Pool
+## ✅ Step 3: Populate Showdown Pool
 
 **⚠️ IMPORTANT**: Replace `'YOUR_SEASON_ID'` with your actual season UUID!
 
@@ -65,11 +65,11 @@ WHERE is_current = true;
 Then use that ID:
 
 ```sql
--- Populate draft pool from Showdown tiers
-SELECT * FROM populate_draft_pool_from_showdown_tiers(
+-- Populate showdown_pool from Showdown tiers (reference data only)
+SELECT * FROM populate_showdown_pool_from_tiers(
   'YOUR_SEASON_ID'::UUID,  -- Replace with actual season ID
   true,                     -- exclude_illegal = true
-  false                      -- exclude_forms = false
+  false                     -- exclude_forms = false
 );
 ```
 
@@ -86,12 +86,12 @@ SELECT * FROM populate_draft_pool_from_showdown_tiers(
 
 ---
 
-## ✅ Step 4: Verify Draft Pool Population
+## ✅ Step 4: Verify Showdown Pool Population
 
 ```sql
 -- Check total entries
 SELECT COUNT(*) as total_entries
-FROM draft_pool
+FROM showdown_pool
 WHERE season_id = 'YOUR_SEASON_ID';
 ```
 
@@ -100,9 +100,8 @@ WHERE season_id = 'YOUR_SEASON_ID';
 SELECT 
   point_value,
   COUNT(*) as pokemon_count
-FROM draft_pool
+FROM showdown_pool
 WHERE season_id = 'YOUR_SEASON_ID'
-  AND status = 'available'
 GROUP BY point_value
 ORDER BY point_value DESC;
 ```
@@ -115,11 +114,9 @@ SELECT
   pokemon_name,
   point_value,
   pokemon_id,
-  generation,
-  status
-FROM draft_pool
+  generation
+FROM showdown_pool
 WHERE season_id = 'YOUR_SEASON_ID'
-  AND status = 'available'
 ORDER BY point_value DESC, pokemon_name
 LIMIT 30;
 ```
@@ -133,13 +130,13 @@ LIMIT 30;
 SELECT 
   pu.showdown_tier,
   map_tier_to_point_value(pu.showdown_tier) as mapped_points,
-  dp.point_value as actual_points,
+  sp.point_value as actual_points,
   COUNT(*) as count
 FROM pokemon_unified pu
-JOIN draft_pool dp ON pu.pokemon_id = dp.pokemon_id
-WHERE dp.season_id = 'YOUR_SEASON_ID'
+JOIN showdown_pool sp ON pu.pokemon_id = sp.pokemon_id
+WHERE sp.season_id = 'YOUR_SEASON_ID'
   AND pu.showdown_tier IS NOT NULL
-GROUP BY pu.showdown_tier, mapped_points, dp.point_value
+GROUP BY pu.showdown_tier, mapped_points, sp.point_value
 ORDER BY mapped_points DESC NULLS LAST, pu.showdown_tier;
 ```
 
@@ -200,17 +197,18 @@ ORDER BY point_value DESC NULLS LAST;
 After running all queries:
 
 - ✅ **pokemon_unified**: ~1,515 records
-- ✅ **Draft pool populated**: 1,000+ entries
+- ✅ **showdown_pool populated**: 1,000+ entries
 - ✅ **Point distribution**: Spread across 1-20 points
 - ✅ **Tier mapping**: Correct point values for each tier
-- ✅ **Status**: All entries marked as 'available'
+
+**Note**: League draft pool is `draft_pool` (Notion sync). Use `showdown_pool` for tier reference and point suggestions.
 
 ---
 
 ## 🎯 Next Steps
 
-1. **Review point distribution** - Adjust tier mappings if needed
-2. **Test draft pool queries** - Use `draft_pool_comprehensive` view
-3. **Start drafting** - Use populated pool for draft sessions
+1. **Review point distribution** - Adjust tier mappings if needed (in `map_tier_to_point_value`)
+2. **Use showdown_pool** - For tier lookup, point suggestions, MCP/Showdown features
+3. **League draft pool** - Use `draft_pool` and `draft_pool_comprehensive` (populated from Notion)
 
-See `docs/APP-INTEGRATION-GUIDE.md` for using draft pool in your app!
+See `docs/DRAFT-POOL-DATA-SOURCE-DECISION.md` for data source overview.

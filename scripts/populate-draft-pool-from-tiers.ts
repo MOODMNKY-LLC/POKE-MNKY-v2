@@ -1,9 +1,10 @@
 /**
- * Populate Draft Pool from Showdown Tiers
- * 
- * Uses pokemon_unified view to intelligently populate draft_pool
- * based on Showdown competitive tiers
- * 
+ * Populate Showdown Pool from Showdown Tiers
+ *
+ * Uses pokemon_unified view to populate showdown_pool (tier-derived reference data).
+ * League draft pool (draft_pool) is Notion-only; this script populates showdown_pool
+ * for Showdown features (tier lookup, point suggestions, etc.).
+ *
  * Usage:
  *   pnpm tsx scripts/populate-draft-pool-from-tiers.ts [season_id]
  */
@@ -12,7 +13,7 @@ import { config } from 'dotenv'
 import { resolve } from 'path'
 import { createClient } from '@supabase/supabase-js'
 
-config({ path: resolve(process.cwd(), '.env.local') })
+config({ path: resolve(process.cwd(), '.env') })
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -31,7 +32,7 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey, {
 
 async function main() {
   console.log('='.repeat(70))
-  console.log('Populate Draft Pool from Showdown Tiers')
+  console.log('Populate Showdown Pool from Showdown Tiers')
   console.log('='.repeat(70))
   console.log('')
 
@@ -64,7 +65,7 @@ async function main() {
   // Verify pokemon_unified has data
   console.log('📊 Step 1: Verifying pokemon_unified view')
   console.log('─'.repeat(70))
-  
+
   const { count: unifiedCount, error: unifiedError } = await supabase
     .from('pokemon_unified')
     .select('*', { count: 'exact', head: true })
@@ -75,6 +76,9 @@ async function main() {
   }
 
   console.log(`✅ pokemon_unified: ${unifiedCount || 0} records`)
+  if ((unifiedCount ?? 0) === 0) {
+    console.log('⚠️  pokemon_unified is empty; showdown_pool will get 0 rows. Populate pokemon_showdown (e.g. Showdown ingest) first.')
+  }
 
   // Check tier distribution
   const { data: tierSample } = await supabase
@@ -98,39 +102,50 @@ async function main() {
     })
   console.log('')
 
-  // Check current draft pool
-  console.log('📊 Step 2: Checking current draft pool')
+  // Check current showdown pool
+  console.log('📊 Step 2: Checking current showdown_pool')
   console.log('─'.repeat(70))
-  
+
   const { count: currentPoolCount } = await supabase
-    .from('draft_pool')
+    .from('showdown_pool')
     .select('*', { count: 'exact', head: true })
     .eq('season_id', seasonId)
 
-  console.log(`Current draft_pool entries for season: ${currentPoolCount || 0}`)
+  console.log(`Current showdown_pool entries for season: ${currentPoolCount || 0}`)
   console.log('')
 
-  // Populate draft pool
-  console.log('📊 Step 3: Populating draft pool from Showdown tiers')
+  // Populate showdown pool
+  console.log('📊 Step 3: Populating showdown_pool from Showdown tiers')
   console.log('─'.repeat(70))
-  console.log('⚠️  This will insert/update draft_pool entries')
+  console.log('⚠️  This will insert/update showdown_pool entries')
   console.log('   Excluding: Illegal tier Pokemon')
   console.log('   Including: All other tiers mapped to point values')
   console.log('')
 
-  const { data: result, error: populateError } = await supabase
-    .rpc('populate_draft_pool_from_showdown_tiers', {
-      p_season_id: seasonId,
+  // Param keys in alphabetical order to match PostgREST schema cache (p_exclude_forms, p_exclude_illegal, p_season_id)
+  const { data: result, error: populateError } = await supabase.rpc(
+    'populate_showdown_pool_from_tiers',
+    {
+      p_exclude_forms: false,
       p_exclude_illegal: true,
-      p_exclude_forms: false
-    })
+      p_season_id: seasonId,
+    }
+  )
 
   if (populateError) {
-    console.error('❌ Error populating draft pool:', populateError.message)
+    console.error('❌ Error populating showdown pool:', populateError.message)
+    if (populateError.message?.includes('Could not find the function')) {
+      console.error('')
+      console.error('Troubleshooting:')
+      console.error('1. Ensure migration 20260201000000_create_showdown_pool.sql was applied to this project.')
+      console.error('   - Production: applied via MCP; if using production, try Supabase Dashboard → Settings → API → Reload schema cache.')
+      console.error('   - Local: run "supabase db push" or run the migration SQL in the SQL Editor.')
+      console.error('2. Confirm NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in .env point to the intended project.')
+    }
     process.exit(1)
   }
 
-  console.log('✅ Draft pool populated successfully!')
+  console.log('✅ Showdown pool populated successfully!')
   console.log('')
   console.log('📊 Results:')
   console.log(`   Inserted: ${result.inserted}`)
@@ -140,22 +155,21 @@ async function main() {
   console.log('')
 
   // Verify results
-  console.log('📊 Step 4: Verifying draft pool population')
+  console.log('📊 Step 4: Verifying showdown_pool population')
   console.log('─'.repeat(70))
-  
+
   const { count: newPoolCount } = await supabase
-    .from('draft_pool')
+    .from('showdown_pool')
     .select('*', { count: 'exact', head: true })
     .eq('season_id', seasonId)
 
-  console.log(`Total draft_pool entries: ${newPoolCount || 0}`)
+  console.log(`Total showdown_pool entries: ${newPoolCount || 0}`)
 
   // Check point value distribution
   const { data: pointDistribution } = await supabase
-    .from('draft_pool')
+    .from('showdown_pool')
     .select('point_value')
     .eq('season_id', seasonId)
-    .eq('status', 'available')
 
   const pointCounts: Record<number, number> = {}
   pointDistribution?.forEach(p => {
@@ -173,27 +187,28 @@ async function main() {
 
   // Sample entries
   const { data: sampleEntries } = await supabase
-    .from('draft_pool')
+    .from('showdown_pool')
     .select('pokemon_name, point_value, pokemon_id, generation')
     .eq('season_id', seasonId)
-    .eq('status', 'available')
     .order('point_value', { ascending: false })
     .limit(10)
 
   console.log('Sample entries (highest point values):')
   sampleEntries?.forEach(p => {
-    console.log(`  ${p.pokemon_name} (ID: ${p.pokemon_id || 'N/A'}) - ${p.point_value} points (Gen ${p.generation || 'N/A'})`)
+    console.log(
+      `  ${p.pokemon_name} (ID: ${p.pokemon_id ?? 'N/A'}) - ${p.point_value} points (Gen ${p.generation ?? 'N/A'})`
+    )
   })
   console.log('')
 
   console.log('='.repeat(70))
-  console.log('✅ Draft Pool Population Complete!')
+  console.log('✅ Showdown Pool Population Complete!')
   console.log('='.repeat(70))
   console.log('')
   console.log('Next steps:')
-  console.log('1. Review draft_pool entries in Supabase dashboard')
-  console.log('2. Adjust tier-to-point mappings if needed')
-  console.log('3. Use draft_pool_comprehensive view for enhanced queries')
+  console.log('1. Review showdown_pool entries in Supabase dashboard')
+  console.log('2. Adjust tier-to-point mappings in map_tier_to_point_value if needed')
+  console.log('3. draft_pool is Notion-only; use n8n sync for league draft pool')
   console.log('')
 }
 

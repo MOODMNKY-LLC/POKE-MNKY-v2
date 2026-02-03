@@ -23,16 +23,9 @@ import {
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
-import { Search, Save, Loader2, CheckCircle2, XCircle, RotateCcw, AlertTriangle, Heart, Sword, Shield, Zap, Sparkles, Gauge } from "lucide-react"
+import { Search, Save, Loader2, CheckCircle2, XCircle, AlertTriangle, Heart, Sword, Shield, Zap, Sparkles, Gauge } from "lucide-react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { PokemonSprite } from "@/components/pokemon-sprite"
 import { PokemonStatIcon } from "@/components/pokemon-stat-icon"
@@ -153,9 +146,6 @@ export default function AdminPokemonPage() {
   const [user, setUser] = useState<any>(null)
   const [pokemon, setPokemon] = useState<PokemonData[]>([])
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [resetting, setResetting] = useState(false)
-  const [showResetConfirm, setShowResetConfirm] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedGeneration, setSelectedGeneration] = useState<number | "all">("all")
   const [selectedTier, setSelectedTier] = useState<string | "all">("all")
@@ -287,176 +277,8 @@ export default function AdminPokemonPage() {
     }
   }
 
-  function handleTierChange(pokemonId: number, newTier: string | null) {
-    setPokemon((prev) =>
-      prev.map((p) => {
-        if (p.pokemon_id === pokemonId) {
-          const newPointValue = mapTierToPointValue(newTier)
-          return {
-            ...p,
-            tier: newTier,
-            point_value: newPointValue,
-            _edited: p._originalTier !== newTier || p._originalAvailable !== p.available || p._originalPointValue !== newPointValue,
-          }
-        }
-        return p
-      })
-    )
-  }
-
-  function handlePointValueChange(pokemonId: number, newPointValue: number) {
-    // Clamp point value between 1 and 20
-    const clampedValue = Math.max(1, Math.min(20, newPointValue))
-    setPokemon((prev) =>
-      prev.map((p) => {
-        if (p.pokemon_id === pokemonId) {
-          return {
-            ...p,
-            point_value: clampedValue,
-            _edited: p._originalTier !== p.tier || p._originalAvailable !== p.available || p._originalPointValue !== clampedValue,
-          }
-        }
-        return p
-      })
-    )
-  }
-
-  function handleAvailableChange(pokemonId: number, checked: boolean | "indeterminate") {
-    // Convert checked value to boolean (handle "indeterminate" as false)
-    const available = checked === true
-    
-    setPokemon((prev) =>
-      prev.map((p) => {
-        if (p.pokemon_id === pokemonId) {
-          return {
-            ...p,
-            available,
-            _edited: p._originalTier !== p.tier || p._originalAvailable !== available || p._originalPointValue !== p.point_value,
-          }
-        }
-        return p
-      })
-    )
-  }
-
-  async function handleSave() {
-    if (!seasonId) {
-      toast({
-        title: "Error",
-        description: "No active season found",
-        variant: "destructive",
-      })
-      return
-    }
-
-    const editedPokemon = pokemon.filter((p) => p._edited)
-    
-    if (editedPokemon.length === 0) {
-      toast({
-        title: "No Changes",
-        description: "No changes to save",
-      })
-      return
-    }
-
-    setSaving(true)
-    try {
-      const response = await fetch("/api/admin/pokemon", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          updates: editedPokemon.map((p) => ({
-            pokemon_id: p.pokemon_id,
-            name: p.name,
-            tier: p.tier,
-            point_value: p.point_value,
-            available: p.available,
-            generation: p.generation,
-          })),
-          season_id: seasonId,
-        }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to save changes")
-      }
-
-      // Reset edited flags
-      setPokemon((prev) =>
-        prev.map((p) => ({
-          ...p,
-          _edited: false,
-          _originalTier: p.tier,
-          _originalAvailable: p.available,
-          _originalPointValue: p.point_value,
-        }))
-      )
-
-      toast({
-        title: "Success",
-        description: `Saved ${data.updated || editedPokemon.length} Pokémon`,
-      })
-    } catch (error: any) {
-      console.error("Error saving:", error)
-      toast({
-        title: "Error",
-        description: error.message || "Failed to save changes",
-        variant: "destructive",
-      })
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  async function handleReset() {
-    if (!seasonId) {
-      toast({
-        title: "Error",
-        description: "No season selected",
-        variant: "destructive",
-      })
-      return
-    }
-
-    setResetting(true)
-    try {
-      const response = await fetch(`/api/admin/pokemon?season_id=${encodeURIComponent(seasonId)}`, {
-        method: "DELETE",
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to reset draft pool")
-      }
-
-      // Reload Pokemon data to show initial state
-      await loadPokemon()
-
-      toast({
-        title: "Success",
-        description: `Reset draft pool. All ${data.deleted_count || 0} entries cleared.`,
-      })
-
-      setShowResetConfirm(false)
-    } catch (error: any) {
-      console.error("Error resetting:", error)
-      toast({
-        title: "Error",
-        description: error.message || "Failed to reset draft pool",
-        variant: "destructive",
-      })
-    } finally {
-      setResetting(false)
-    }
-  }
-
   // Filter, sort, and paginate Pokémon
-  const { filteredPokemon, editedCount, paginatedPokemon, totalPages, availableCount } = useMemo(() => {
+  const { filteredPokemon, paginatedPokemon, totalPages, availableCount } = useMemo(() => {
     let filtered = pokemon
 
     // Apply search filter
@@ -498,13 +320,11 @@ export default function AdminPokemonPage() {
     const endIndex = startIndex + pageSize
     const paginated = sorted.slice(startIndex, endIndex)
 
-    const edited = pokemon.filter((p) => p._edited).length
     const available = pokemon.filter((p) => p.available === true).length
 
     return {
       filteredPokemon: sorted,
       paginatedPokemon: paginated,
-      editedCount: edited,
       totalPages,
       availableCount: available,
     }
@@ -514,37 +334,6 @@ export default function AdminPokemonPage() {
   useEffect(() => {
     setCurrentPage(1)
   }, [searchQuery, selectedGeneration, selectedTier, pooledOnly])
-
-  // Master checkbox handler - toggle all Pokémon on current page
-  function handleMasterCheckboxChange(checked: boolean) {
-    const currentPageIds = new Set(paginatedPokemon.map((p) => p.pokemon_id))
-    setPokemon((prev) =>
-      prev.map((p) => {
-        // Only update Pokémon that are on the current page
-        if (currentPageIds.has(p.pokemon_id)) {
-          return {
-            ...p,
-            available: checked,
-            _edited: p._originalTier !== p.tier || p._originalAvailable !== checked || p._originalPointValue !== p.point_value,
-          }
-        }
-        return p
-      })
-    )
-  }
-
-  // Check if all visible Pokémon are checked
-  const allChecked = useMemo(() => {
-    if (paginatedPokemon.length === 0) return false
-    return paginatedPokemon.every((p) => p.available === true)
-  }, [paginatedPokemon])
-
-  // Check if some (but not all) visible Pokémon are checked
-  const someChecked = useMemo(() => {
-    if (paginatedPokemon.length === 0) return false
-    const checkedCount = paginatedPokemon.filter((p) => p.available === true).length
-    return checkedCount > 0 && checkedCount < paginatedPokemon.length
-  }, [paginatedPokemon])
 
   if (!user) {
     return (
@@ -557,11 +346,23 @@ export default function AdminPokemonPage() {
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="mb-8">
-        <h1 className="text-4xl font-bold mb-2">Pokémon Draft Pool Management</h1>
+        <h1 className="text-4xl font-bold mb-2">Pokémon Catalog (Draft Pool Status)</h1>
         <p className="text-muted-foreground">
-          Manage which Pokémon are available for the draft pool. Edit tier and availability inline.
+          Browse Pokémon and see current draft pool status for the selected season. To edit the draft pool, use the Notion Draft Board and run the n8n seed workflow when needed.
         </p>
       </div>
+
+      {/* CTA: Edit draft pool in Notion */}
+      <Alert className="mb-6">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertDescription>
+          <strong>To edit the draft pool:</strong> Use the{" "}
+          <Link href="/admin/draft-board-management" className="underline font-medium">
+            Draft Board Management
+          </Link>{" "}
+          page. Curate the list in the Notion Master Draft Board (check &quot;Added to Draft Board&quot;) and run the n8n &quot;Draft Pool Seed (Notion → Supabase)&quot; workflow once per season or when the pool is empty.
+        </AlertDescription>
+      </Alert>
 
       {/* Controls */}
       <Card className="mb-6">
@@ -733,25 +534,7 @@ export default function AdminPokemonPage() {
               </div>
             </div>
             <div className="flex items-center gap-4">
-              {editedCount > 0 && (
-                <Badge variant="outline" className="text-sm">
-                  {editedCount} unsaved changes
-                </Badge>
-              )}
               <GoogleSheetsExportDialog />
-              <Button onClick={handleSave} disabled={saving || editedCount === 0}>
-                {saving ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4 mr-2" />
-                    Save Changes
-                  </>
-                )}
-              </Button>
             </div>
           </div>
         </CardHeader>
@@ -771,7 +554,7 @@ export default function AdminPokemonPage() {
                 )}
               </CardTitle>
               <CardDescription className="mt-1">
-                Click tier dropdown or checkbox to edit. Changes are saved when you click "Save Changes".
+                Read-only view. To edit the draft pool, use Draft Board Management and Notion.
                 {pooledOnly && (
                   <span className="ml-2 font-medium">
                     • Showing {availableCount} available Pokémon
@@ -806,19 +589,7 @@ export default function AdminPokemonPage() {
                       <TableHead className="min-w-[180px]">Tier</TableHead>
                       <TableHead className="w-24">Points</TableHead>
                       <TableHead className="w-32 text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          <span>Available</span>
-                          <Checkbox
-                            checked={allChecked}
-                            ref={(el) => {
-                              if (el) {
-                                el.indeterminate = someChecked && !allChecked
-                              }
-                            }}
-                            onCheckedChange={(checked) => handleMasterCheckboxChange(checked)}
-                            className="cursor-pointer"
-                          />
-                        </div>
+                        <span>Available</span>
                       </TableHead>
                     </TableRow>
                   </TableHeader>
@@ -826,7 +597,6 @@ export default function AdminPokemonPage() {
                     {paginatedPokemon.map((p) => (
                       <TableRow
                         key={`${p.pokemon_id}-${p.available}`}
-                        className={p._edited ? "bg-primary/5" : ""}
                       >
                         <TableCell className="font-mono text-sm font-semibold">
                           {p.pokemon_id}
@@ -912,54 +682,17 @@ export default function AdminPokemonPage() {
                           <Badge variant="secondary">Gen {p.generation}</Badge>
                         </TableCell>
                       <TableCell>
-                        <Select
-                          value={p.tier || "null"}
-                          onValueChange={(v) =>
-                            handleTierChange(p.pokemon_id, v === "null" ? null : v)
-                          }
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {TIER_OPTIONS.map((option) => (
-                              <SelectItem
-                                key={option.value || "null"}
-                                value={option.value || "null"}
-                              >
-                                {option.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <Badge variant="secondary">{p.tier ?? "—"}</Badge>
                       </TableCell>
-                      <TableCell>
-                        <Select
-                          value={p.point_value.toString()}
-                          onValueChange={(v) => handlePointValueChange(p.pokemon_id, parseInt(v))}
-                        >
-                          <SelectTrigger className="w-24">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {Array.from({ length: 20 }, (_, i) => i + 1).map((value) => (
-                              <SelectItem key={value} value={value.toString()}>
-                                {value} pts
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                      <TableCell className="font-medium">
+                        {p.point_value} pts
                       </TableCell>
                       <TableCell className="text-center">
-                        <div className="flex items-center justify-center">
-                          <Checkbox
-                            checked={p.available}
-                            onCheckedChange={(checked) =>
-                              handleAvailableChange(p.pokemon_id, checked)
-                            }
-                            aria-label={`${p.name} available for draft`}
-                          />
-                        </div>
+                        {p.available ? (
+                          <CheckCircle2 className="h-5 w-5 text-green-600 inline-block" aria-label={`${p.name} available`} />
+                        ) : (
+                          <XCircle className="h-5 w-5 text-muted-foreground inline-block" aria-label={`${p.name} not available`} />
+                        )}
                       </TableCell>
                     </TableRow>
                     ))}
@@ -1048,49 +781,6 @@ export default function AdminPokemonPage() {
         </CardContent>
       </Card>
 
-      {/* Reset Confirmation Dialog */}
-      <Dialog open={showResetConfirm} onOpenChange={setShowResetConfirm}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-destructive" />
-              Reset Draft Pool
-            </DialogTitle>
-            <DialogDescription>
-              This will permanently delete all draft pool entries for the current season. This action cannot be undone.
-              <br />
-              <br />
-              <strong>Are you sure you want to continue?</strong>
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowResetConfirm(false)}
-              disabled={resetting}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleReset}
-              disabled={resetting}
-            >
-              {resetting ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Resetting...
-                </>
-              ) : (
-                <>
-                  <RotateCcw className="h-4 w-4 mr-2" />
-                  Reset Draft Pool
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

@@ -1,15 +1,11 @@
 /**
  * Draft Pool Sync Service
- * 
+ *
+ * @deprecated Draft pool is now sourced from Notion via n8n (seed + sync workflows).
+ * Staging (sheets_draft_pool) → production sync is no longer used by the app.
+ * Kept for legacy scripts only.
+ *
  * Syncs data from sheets_draft_pool staging table to draft_pool production table.
- * 
- * This service:
- * 1. Reads Pokemon from staging table
- * 2. Matches Pokemon names to pokemon_cache for pokemon_id
- * 3. Maps statuses correctly (is_available → status enum)
- * 4. Sets tera_captain_eligible based on is_tera_banned
- * 5. Handles conflicts (preserves drafted Pokemon)
- * 6. Requires season_id for production table
  */
 
 import { createServiceRoleClient } from "@/lib/supabase/service"
