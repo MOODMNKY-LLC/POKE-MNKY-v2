@@ -465,6 +465,6 @@ This project is proprietary software developed for the "Average at Best Draft Le
 
 **Built with ❤️ for competitive Pokémon trainers**
 
-*Last Updated: January 2026*
+*Last Updated: February 2026*
 
 </div>
