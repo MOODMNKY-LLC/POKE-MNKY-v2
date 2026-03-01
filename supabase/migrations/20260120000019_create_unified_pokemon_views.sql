@@ -249,6 +249,7 @@ COMMENT ON VIEW public.pokemon_with_all_data IS 'Complete Pokemon data with all 
 -- Extends draft_pool_with_showdown to include PokéAPI data
 -- ============================================================================
 
+DROP VIEW IF EXISTS public.draft_pool_comprehensive;
 CREATE OR REPLACE VIEW public.draft_pool_comprehensive AS
 SELECT 
   dp.*,

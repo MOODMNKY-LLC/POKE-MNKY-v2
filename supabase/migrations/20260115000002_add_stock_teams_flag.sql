@@ -15,8 +15,9 @@ CREATE INDEX IF NOT EXISTS idx_showdown_teams_is_stock
 ON public.showdown_teams(is_stock) 
 WHERE is_stock = TRUE;
 
--- Update RLS policy to allow viewing stock teams
+-- Update RLS policy to allow viewing stock teams (idempotent)
 DROP POLICY IF EXISTS "Users can view own teams" ON public.showdown_teams;
+DROP POLICY IF EXISTS "Users can view own teams and stock teams" ON public.showdown_teams;
 CREATE POLICY "Users can view own teams and stock teams"
   ON public.showdown_teams
   FOR SELECT

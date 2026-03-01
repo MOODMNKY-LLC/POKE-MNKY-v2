@@ -101,6 +101,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+DROP TRIGGER IF EXISTS draft_pick_broadcast ON team_rosters;
 CREATE TRIGGER draft_pick_broadcast
   AFTER INSERT ON team_rosters
   FOR EACH ROW
@@ -125,6 +126,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+DROP TRIGGER IF EXISTS draft_turn_broadcast ON draft_sessions;
 CREATE TRIGGER draft_turn_broadcast
   AFTER UPDATE ON draft_sessions
   FOR EACH ROW

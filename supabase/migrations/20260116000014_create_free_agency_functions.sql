@@ -1,5 +1,7 @@
 -- Free Agency Database Functions
--- Helper functions for free agency operations
+-- Helper functions for free agency operations (idempotent: drop if return type changed)
+
+DROP FUNCTION IF EXISTS public.get_available_pokemon_for_free_agency(uuid, integer, integer, integer, text);
 
 -- Function to get available Pokemon (not on any roster in current season)
 CREATE OR REPLACE FUNCTION public.get_available_pokemon_for_free_agency(

@@ -28,30 +28,44 @@ CREATE TABLE IF NOT EXISTS public.draft_pool (
   UNIQUE(sheet_name, pokemon_name, point_value)
 );
 
--- Add indexes for common queries
-CREATE INDEX IF NOT EXISTS idx_draft_pool_available ON public.draft_pool(is_available) WHERE is_available = true;
-CREATE INDEX IF NOT EXISTS idx_draft_pool_point_value ON public.draft_pool(point_value);
-CREATE INDEX IF NOT EXISTS idx_draft_pool_generation ON public.draft_pool(generation);
-CREATE INDEX IF NOT EXISTS idx_draft_pool_sheet_name ON public.draft_pool(sheet_name);
-CREATE INDEX IF NOT EXISTS idx_draft_pool_pokemon_name ON public.draft_pool(pokemon_name);
+-- Add indexes for common queries (idempotent: skip if column was dropped/changed in a later migration)
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'draft_pool' AND column_name = 'is_available') THEN
+    CREATE INDEX IF NOT EXISTS idx_draft_pool_available ON public.draft_pool(is_available) WHERE is_available = true;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'draft_pool' AND column_name = 'point_value') THEN
+    CREATE INDEX IF NOT EXISTS idx_draft_pool_point_value ON public.draft_pool(point_value);
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'draft_pool' AND column_name = 'generation') THEN
+    CREATE INDEX IF NOT EXISTS idx_draft_pool_generation ON public.draft_pool(generation);
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'draft_pool' AND column_name = 'sheet_name') THEN
+    CREATE INDEX IF NOT EXISTS idx_draft_pool_sheet_name ON public.draft_pool(sheet_name);
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'draft_pool' AND column_name = 'pokemon_name') THEN
+    CREATE INDEX IF NOT EXISTS idx_draft_pool_pokemon_name ON public.draft_pool(pokemon_name);
+  END IF;
+END $$;
 
--- Add RLS policies
+-- Add RLS policies (idempotent: drop if exists so re-run is safe)
 ALTER TABLE public.draft_pool ENABLE ROW LEVEL SECURITY;
 
--- Policy: Anyone authenticated can read draft pool
+DROP POLICY IF EXISTS "Draft pool is viewable by authenticated users" ON public.draft_pool;
 CREATE POLICY "Draft pool is viewable by authenticated users"
   ON public.draft_pool
   FOR SELECT
   TO authenticated
   USING (true);
 
--- Policy: Only service role can insert/update (via backend)
+DROP POLICY IF EXISTS "Draft pool is insertable by service role" ON public.draft_pool;
 CREATE POLICY "Draft pool is insertable by service role"
   ON public.draft_pool
   FOR INSERT
   TO service_role
   WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Draft pool is updatable by service role" ON public.draft_pool;
 CREATE POLICY "Draft pool is updatable by service role"
   ON public.draft_pool
   FOR UPDATE
@@ -59,6 +73,7 @@ CREATE POLICY "Draft pool is updatable by service role"
   USING (true)
   WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Draft pool is deletable by service role" ON public.draft_pool;
 CREATE POLICY "Draft pool is deletable by service role"
   ON public.draft_pool
   FOR DELETE

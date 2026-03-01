@@ -69,6 +69,7 @@ export async function GET(
         id,
         pokemon_id,
         points_snapshot,
+        is_tera_captain,
         acquisition,
         status,
         draft_round,
@@ -173,6 +174,7 @@ export async function GET(
         draft_pick_id: pick.id,
         pokemon_id: pick.pokemon_id,
         pokemon_name: pokemon?.name || null,
+        is_tera_captain: pick.is_tera_captain ?? false,
         pokemon: pokemon
           ? {
               id: pokemon.id,

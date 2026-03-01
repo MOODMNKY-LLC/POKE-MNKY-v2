@@ -116,6 +116,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           url: "/dashboard/free-agency",
         },
         {
+          title: "Trade Block",
+          url: "/dashboard/trade-block",
+        },
+        {
           title: "Team Stats",
           url: "/dashboard/league-team/stats",
         },
@@ -140,6 +144,23 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       {
         title: "My Roster",
         url: "/dashboard/draft/roster",
+      },
+    ],
+  })
+
+  // Add Guides section (player dashboard guides)
+  navItems.push({
+    title: "Guides",
+    url: "/dashboard/guides",
+    icon: BookOpen,
+    items: [
+      {
+        title: "All guides",
+        url: "/dashboard/guides",
+      },
+      {
+        title: "Coach & team builder",
+        url: "/dashboard/guides/coach-and-team-builder",
       },
     ],
   })

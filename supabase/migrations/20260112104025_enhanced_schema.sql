@@ -185,32 +185,53 @@ ALTER TABLE public.trade_offers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.trade_transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.discord_webhooks ENABLE ROW LEVEL SECURITY;
 
--- Public read policies
+-- Public read policies (idempotent: drop if exists)
+DROP POLICY IF EXISTS "Public read seasons" ON public.seasons;
 CREATE POLICY "Public read seasons" ON public.seasons FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Public read conferences" ON public.conferences;
 CREATE POLICY "Public read conferences" ON public.conferences FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Public read divisions" ON public.divisions;
 CREATE POLICY "Public read divisions" ON public.divisions FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Public read coaches" ON public.coaches;
 CREATE POLICY "Public read coaches" ON public.coaches FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Public read pokemon_cache" ON public.pokemon_cache;
 CREATE POLICY "Public read pokemon_cache" ON public.pokemon_cache FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Public read draft_budgets" ON public.draft_budgets;
 CREATE POLICY "Public read draft_budgets" ON public.draft_budgets FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Public read matchweeks" ON public.matchweeks;
 CREATE POLICY "Public read matchweeks" ON public.matchweeks FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Public read battle_sessions" ON public.battle_sessions;
 CREATE POLICY "Public read battle_sessions" ON public.battle_sessions FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Public read battle_events" ON public.battle_events;
 CREATE POLICY "Public read battle_events" ON public.battle_events FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Public read trade_listings" ON public.trade_listings;
 CREATE POLICY "Public read trade_listings" ON public.trade_listings FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Public read trade_offers" ON public.trade_offers;
 CREATE POLICY "Public read trade_offers" ON public.trade_offers FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Public read trade_transactions" ON public.trade_transactions;
 CREATE POLICY "Public read trade_transactions" ON public.trade_transactions FOR SELECT USING (true);
 
--- Admin write policies
+-- Admin write policies (idempotent)
+DROP POLICY IF EXISTS "Authenticated insert seasons" ON public.seasons;
 CREATE POLICY "Authenticated insert seasons" ON public.seasons FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "Authenticated insert coaches" ON public.coaches;
 CREATE POLICY "Authenticated insert coaches" ON public.coaches FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "Authenticated insert pokemon_cache" ON public.pokemon_cache;
 CREATE POLICY "Authenticated insert pokemon_cache" ON public.pokemon_cache FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "Authenticated update pokemon_cache" ON public.pokemon_cache;
 CREATE POLICY "Authenticated update pokemon_cache" ON public.pokemon_cache FOR UPDATE USING (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "Authenticated insert battle_sessions" ON public.battle_sessions;
 CREATE POLICY "Authenticated insert battle_sessions" ON public.battle_sessions FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "Authenticated update battle_sessions" ON public.battle_sessions;
 CREATE POLICY "Authenticated update battle_sessions" ON public.battle_sessions FOR UPDATE USING (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "Authenticated insert battle_events" ON public.battle_events;
 CREATE POLICY "Authenticated insert battle_events" ON public.battle_events FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 
--- Coach-owned policies (coaches can manage their own trades)
+-- Coach-owned policies (idempotent)
+DROP POLICY IF EXISTS "Coaches manage own trade_listings" ON public.trade_listings;
 CREATE POLICY "Coaches manage own trade_listings" ON public.trade_listings 
   FOR ALL USING (auth.uid() IN (SELECT user_id FROM coaches WHERE id IN (SELECT coach_id FROM teams WHERE id = team_id)));
 
+DROP POLICY IF EXISTS "Coaches create trade_offers" ON public.trade_offers;
 CREATE POLICY "Coaches create trade_offers" ON public.trade_offers 
   FOR INSERT WITH CHECK (auth.uid() IN (SELECT user_id FROM coaches WHERE id IN (SELECT coach_id FROM teams WHERE id = offering_team_id)));

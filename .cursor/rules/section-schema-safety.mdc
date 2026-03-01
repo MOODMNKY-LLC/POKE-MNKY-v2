@@ -1,0 +1,26 @@
+---
+description: Prevent breaking Shopify section schema and theme editor blocks/settings
+globs: "**/sections/**/*.liquid"
+alwaysApply: false
+---
+
+# Section Schema Safety
+
+## Schema rules
+- `{% schema %}` must contain strict JSON.
+- Never add trailing commas.
+- Maintain stable setting IDs; if you must rename, provide a migration plan.
+
+## Blocks
+- Do not remove blocks or change block `type` lightly.
+- Keep `presets` intact unless requested.
+- When adding a setting:
+  - Add it to schema
+  - Wire it into markup with a clear default behavior
+
+## Output style
+- When adding settings, include:
+  - label
+  - type
+  - default
+  - (min/max) if numeric

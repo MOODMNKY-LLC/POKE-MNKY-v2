@@ -43,23 +43,24 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_draft_sessions_unique_active_per_season
   ON public.draft_sessions(season_id) 
   WHERE status = 'active';
 
--- Add RLS policies
+-- Add RLS policies (idempotent: drop if exists so re-run is safe)
 ALTER TABLE public.draft_sessions ENABLE ROW LEVEL SECURITY;
 
--- Policy: Authenticated users can read draft sessions
+DROP POLICY IF EXISTS "Draft sessions are viewable by authenticated users" ON public.draft_sessions;
 CREATE POLICY "Draft sessions are viewable by authenticated users"
   ON public.draft_sessions
   FOR SELECT
   TO authenticated
   USING (true);
 
--- Policy: Only service role can insert/update (via backend)
+DROP POLICY IF EXISTS "Draft sessions are insertable by service role" ON public.draft_sessions;
 CREATE POLICY "Draft sessions are insertable by service role"
   ON public.draft_sessions
   FOR INSERT
   TO service_role
   WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Draft sessions are updatable by service role" ON public.draft_sessions;
 CREATE POLICY "Draft sessions are updatable by service role"
   ON public.draft_sessions
   FOR UPDATE

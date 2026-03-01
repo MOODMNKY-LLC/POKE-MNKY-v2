@@ -45,7 +45,7 @@ BEGIN
     -- Create index for tera banned queries
     CREATE INDEX IF NOT EXISTS idx_draft_pool_tera_banned 
     ON public.draft_pool(is_tera_banned) 
-    WHERE is_tera_banned = true;
+    WHERE (is_tera_banned::text IN ('true', 't'));
     
     -- Add comment
     COMMENT ON COLUMN public.draft_pool.is_tera_banned IS 

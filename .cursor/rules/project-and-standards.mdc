@@ -1,0 +1,29 @@
+---
+description: Project identity (mood-mnky-command), documentation usage, tech stack, and coding standards
+alwaysApply: true
+---
+
+# Project and Standards
+
+## Project identity
+
+This repo is **mood-mnky-command**: MNKY VERSE storefront, MNKY LABZ dashboard, Blending Lab, and Shopify theme in one codebase. Consult **`README.md`** and the **`docs/`** directory for goals, architecture, and features. If the project has **`PRD.md`**, use it for product goals. For additional or updated documentation, use MCP tools (Brave Search, FireCrawl, etc.) to find official sources.
+
+## Technical stack compliance
+
+- **Adhere to the project's established technology stack.** Do not introduce new technologies unless explicitly instructed and justified.
+- You may suggest alternatives when beneficial; do not implement them without user confirmation.
+
+## Coding best practices
+
+- **Do not modify code or UI that already works** unless explicitly instructed.
+- Avoid duplicating existing functionality; reuse working components.
+- Write tests for new or modified functionality.
+- **Never unintentionally delete data or code**; confirm explicitly before destructive actions.
+- Commit frequently to keep project history reliable.
+- Ask clarifying questions when tasks or requirements are unclear.
+
+## User interface (UI)
+
+- **Never change or affect the UI unintentionally.** Only alter UI when explicitly instructed or when it is clearly part of the task.
+- Ensure UI changes are tested and validated.

@@ -15,6 +15,7 @@ import {
   convertUIMessagesToResponsesAPIFormat, 
   convertResponsesAPIToUIMessage 
 } from '@/lib/openai-client'
+import { logger } from '@/lib/logger'
 
 export async function POST(request: Request) {
   try {
@@ -50,28 +51,14 @@ export async function POST(request: Request) {
 
     // Validate messages array exists
     if (!rawMessages || !Array.isArray(rawMessages)) {
-      console.error('[General Assistant] Invalid messages:', rawMessages)
+      logger.error('Invalid messages', { route: 'ai/assistant' })
       return NextResponse.json(
         { error: 'Messages array is required' },
         { status: 400 }
       )
     }
 
-    // Debug: Log message format for troubleshooting
-    console.log('[General Assistant] Raw messages received:', {
-      count: rawMessages.length,
-      firstMessage: rawMessages[0] ? {
-        role: rawMessages[0].role,
-        hasParts: !!rawMessages[0].parts,
-        hasContent: !!rawMessages[0].content,
-        keys: Object.keys(rawMessages[0]),
-      } : null,
-      allMessages: rawMessages.map((msg: any) => ({
-        role: msg.role,
-        hasParts: !!msg.parts,
-        hasContent: !!msg.content,
-      })),
-    })
+    logger.debug('Messages received', { route: 'ai/assistant', count: rawMessages.length })
 
     // System message varies based on authentication status
     const systemMessage = isAuthenticated
@@ -178,37 +165,30 @@ Be friendly, helpful, and knowledgeable. Always use available tools (file_search
         )
 
         // Build tools array for Responses API
+        // Note: Responses API does NOT accept require_approval on tools - omit it to avoid 400
         const tools: Array<{
           type: "mcp" | "function" | "web_search" | "file_search" | "code_interpreter"
           server_label?: string
           server_url?: string
           server_description?: string
-          require_approval?: "always" | "never" | object
           allowed_tools?: string[]
           authorization?: string
+          vector_store_ids?: string[]
           [key: string]: any
         }> = []
 
         // Public tools (available to all users)
-        tools.push({
-          type: "web_search",
-          require_approval: "never",
-        })
+        tools.push({ type: "web_search" })
 
         // File search - use vector store if configured
         const vectorStoreId = process.env.OPENAI_VECTOR_STORE_ID
         if (vectorStoreId) {
           tools.push({
             type: "file_search",
-            require_approval: "never",
             vector_store_ids: [vectorStoreId],
           })
         } else if (files && Array.isArray(files) && files.length > 0) {
-          // Fallback: use file_search without vector store if files uploaded
-          tools.push({
-            type: "file_search",
-            require_approval: "never",
-          })
+          tools.push({ type: "file_search" })
         }
 
         // MCP tools (only for authenticated users)
@@ -221,14 +201,13 @@ Be friendly, helpful, and knowledgeable. Always use available tools (file_search
             server_label: "poke-mnky-draft-pool",
             server_url: mcpServerUrl,
             server_description: "Access to POKE MNKY draft pool and team data. Provides 9 tools: get_available_pokemon, get_draft_status, get_team_budget, get_team_picks, get_pokemon_types, get_smogon_meta, get_ability_mechanics, get_move_mechanics, analyze_pick_value.",
-            require_approval: "never",
             ...(mcpApiKey && {
               authorization: `Bearer ${mcpApiKey}`,
             }),
           })
         }
 
-        console.log('[General Assistant] Using Responses API:', {
+        logger.debug('[General Assistant] Using Responses API:', {
           isAuthenticated,
           toolCount: tools.length,
           hasWebSearch: tools.some(t => t.type === 'web_search'),
@@ -254,7 +233,7 @@ Be friendly, helpful, and knowledgeable. Always use available tools (file_search
             o.name === 'file_search'
           )
           
-          console.log('[General Assistant] Responses API output:', {
+          logger.debug('[General Assistant] Responses API output:', {
             hasOutput: !!response.output,
             outputLength: response.output.length,
             toolCallsFound: toolCalls.length,
@@ -275,7 +254,7 @@ Be friendly, helpful, and knowledgeable. Always use available tools (file_search
           )
           
           if (fileSearchCalls.length > 0) {
-            console.log('[General Assistant] ✅ FILE_SEARCH TOOL WAS CALLED:', {
+            logger.debug('[General Assistant] ✅ FILE_SEARCH TOOL WAS CALLED:', {
               count: fileSearchCalls.length,
               calls: fileSearchCalls.map((tc: any) => ({
                 type: tc.type,
@@ -285,7 +264,7 @@ Be friendly, helpful, and knowledgeable. Always use available tools (file_search
               })),
             })
           } else {
-            console.log('[General Assistant] ⚠️ FILE_SEARCH TOOL WAS NOT CALLED - Response may be from system prompt only')
+            logger.debug('[General Assistant] ⚠️ FILE_SEARCH TOOL WAS NOT CALLED - Response may be from system prompt only')
           }
         }
 
@@ -293,7 +272,7 @@ Be friendly, helpful, and knowledgeable. Always use available tools (file_search
         const assistantMessage = convertResponsesAPIToUIMessage(response)
 
         // Log final message for debugging
-        console.log('[General Assistant] Final assistant message:', {
+        logger.debug('[General Assistant] Final assistant message:', {
           hasContent: !!assistantMessage.content,
           contentLength: assistantMessage.content?.length || 0,
           hasParts: !!assistantMessage.parts,
@@ -309,12 +288,25 @@ Be friendly, helpful, and knowledgeable. Always use available tools (file_search
           output_text: assistantMessage.content,
         })
       } catch (responsesError: any) {
-        console.error('[General Assistant] Responses API error:', {
-          error: responsesError.message,
-          stack: responsesError.stack,
-        })
+        const is404VectorStore =
+          responsesError?.status === 404 &&
+          typeof responsesError?.message === 'string' &&
+          responsesError.message.includes('Vector store') &&
+          responsesError.message.includes('not found')
+
+        if (is404VectorStore) {
+          logger.warn('[General Assistant] Vector store not found (404). OPENAI_VECTOR_STORE_ID may be wrong or from another org. Falling back to Chat Completions without file_search.', {
+            vectorStoreId: process.env.OPENAI_VECTOR_STORE_ID,
+            error: responsesError.message,
+          })
+        } else {
+          logger.error('[General Assistant] Responses API error:', {
+            error: responsesError.message,
+            stack: responsesError.stack,
+          })
+        }
         // Fall through to Chat Completions API
-        console.log('[General Assistant] Falling back to Chat Completions API')
+        logger.debug('[General Assistant] Falling back to Chat Completions API')
       }
     }
 
@@ -348,7 +340,7 @@ Be friendly, helpful, and knowledgeable. Always use available tools (file_search
       : undefined
 
     // Log MCP configuration for debugging
-    console.log('[General Assistant] Request details:', {
+    logger.debug('[General Assistant] Request details:', {
       isAuthenticated,
       mcpEnabled,
       effectiveMcpEnabled,
@@ -377,7 +369,7 @@ Be friendly, helpful, and knowledgeable. Always use available tools (file_search
         throw new Error(`convertToModelMessages returned non-array: ${typeof modelMessages}`)
       }
 
-      console.log('[General Assistant] Successfully converted messages:', {
+      logger.debug('[General Assistant] Successfully converted messages:', {
         inputCount: rawMessages.length,
         outputCount: modelMessages.length,
         firstOutput: modelMessages[0] ? {
@@ -388,7 +380,7 @@ Be friendly, helpful, and knowledgeable. Always use available tools (file_search
         } : null,
       })
     } catch (conversionError: any) {
-      console.error('[General Assistant] Error converting messages:', {
+      logger.error('[General Assistant] Error converting messages:', {
         error: conversionError.message,
         stack: conversionError.stack,
         rawMessages: JSON.stringify(rawMessages, null, 2),
@@ -404,7 +396,7 @@ Be friendly, helpful, and knowledgeable. Always use available tools (file_search
 
     // Ensure we have valid messages
     if (!modelMessages || modelMessages.length === 0) {
-      console.error('[General Assistant] No valid messages after conversion:', {
+      logger.error('[General Assistant] No valid messages after conversion:', {
         rawMessages,
         modelMessages,
       })
@@ -415,7 +407,7 @@ Be friendly, helpful, and knowledgeable. Always use available tools (file_search
     }
 
     // Log tool configuration
-    console.log('[General Assistant] Tool configuration:', {
+    logger.debug('[General Assistant] Tool configuration:', {
       mcpEnabled,
       hasTools: !!tools,
       toolCount: tools ? Object.keys(tools).length : 0,
@@ -436,7 +428,7 @@ Be friendly, helpful, and knowledgeable. Always use available tools (file_search
       // Note: Unauthenticated users get maxSteps: 1 (no tool calls)
       onStepFinish: (step) => {
         // Log step information for debugging
-        console.log('[General Assistant] Step finished:', {
+        logger.debug('[General Assistant] Step finished:', {
           stepNumber: step.stepType,
           hasText: !!step.text,
           textPreview: step.text ? step.text.substring(0, 100) : null,
@@ -449,12 +441,12 @@ Be friendly, helpful, and knowledgeable. Always use available tools (file_search
         
         // Log full step object for debugging (first time only)
         if (step.toolCalls && step.toolCalls.length > 0 && !step.toolResults) {
-          console.log('[General Assistant] 🔍 DEBUG: Full step object:', JSON.stringify(step, null, 2).substring(0, 1000))
+          logger.debug('[General Assistant] 🔍 DEBUG: Full step object:', JSON.stringify(step, null, 2).substring(0, 1000))
         }
         
         // Log tool calls when they happen
         if (step.toolCalls && step.toolCalls.length > 0) {
-          console.log('[General Assistant] ✅ Tool calls executed:', {
+          logger.debug('[General Assistant] ✅ Tool calls executed:', {
             count: step.toolCalls.length,
             tools: step.toolCalls.map((tc: any) => ({
               toolCallId: tc.toolCallId,
@@ -466,11 +458,11 @@ Be friendly, helpful, and knowledgeable. Always use available tools (file_search
         
         // Log tool results if available
         if (step.toolResults && step.toolResults.length > 0) {
-          console.log('[General Assistant] ✅ Tool results received:', {
+          logger.debug('[General Assistant] ✅ Tool results received:', {
             count: step.toolResults.length,
             results: step.toolResults.map((tr: any) => {
               // Debug: Log full tool result object - MCP tools may use 'content' array format
-              console.log('[General Assistant] 🔍 DEBUG: Full tool result object:', {
+              logger.debug('[General Assistant] 🔍 DEBUG: Full tool result object:', {
                 keys: Object.keys(tr),
                 toolCallId: tr.toolCallId,
                 toolName: tr.toolName,
@@ -562,7 +554,7 @@ Be friendly, helpful, and knowledgeable. Always use available tools (file_search
     })
 
     // Log result metadata
-    console.log('[General Assistant] Stream result created:', {
+    logger.debug('[General Assistant] Stream result created:', {
       hasTextStream: !!result.textStream,
       hasToolCalls: !!result.toolCalls,
     })
@@ -572,8 +564,8 @@ Be friendly, helpful, and knowledgeable. Always use available tools (file_search
       consumeSseStream: consumeStream,
     })
   } catch (error) {
-    console.error('[General Assistant] Error:', error)
-    console.error('[General Assistant] Error stack:', error instanceof Error ? error.stack : 'No stack')
+    logger.error('[General Assistant] Error:', error)
+    logger.error('[General Assistant] Error stack:', error instanceof Error ? error.stack : 'No stack')
     return new Response(
       error instanceof Error ? error.message : 'Assistant failed',
       { status: 500 }

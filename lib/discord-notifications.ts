@@ -68,6 +68,100 @@ export async function notifyTradeProposal(tradeId: string) {
   await postWebhook(webhook.webhook_url, message)
 }
 
+/** CHATGPT-V3: Notify receiving coach (block owner) that a new league trade offer was made. */
+export async function notifyLeagueTradeOffer(offerId: string) {
+  const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY || "")
+  const { data: offer } = await supabase
+    .from("league_trade_offers")
+    .select("offering_team:teams!offering_team_id(name), receiving_team:teams!receiving_team_id(name)")
+    .eq("id", offerId)
+    .single()
+  if (!offer) return
+  const { data: webhook } = await supabase.from("discord_webhooks").select("*").eq("name", "trades").single()
+  if (!webhook) return
+  const offering = (offer as any).offering_team?.name ?? "A team"
+  const receiving = (offer as any).receiving_team?.name ?? "your team"
+  await postWebhook(
+    webhook.webhook_url,
+    `🔄 **New Trade Offer**\n\n**${offering}** has made a trade offer to **${receiving}**. View on the app to accept or reject.`
+  )
+}
+
+/** Notify offering coach that their offer was rejected. */
+export async function notifyLeagueTradeRejected(offerId: string) {
+  const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY || "")
+  const { data: offer } = await supabase
+    .from("league_trade_offers")
+    .select("receiving_team:teams!receiving_team_id(name)")
+    .eq("id", offerId)
+    .single()
+  if (!offer) return
+  const { data: webhook } = await supabase.from("discord_webhooks").select("*").eq("name", "trades").single()
+  if (!webhook) return
+  const receiving = (offer as any).receiving_team?.name ?? "the other team"
+  await postWebhook(
+    webhook.webhook_url,
+    `❌ **Trade Rejected**\n\nYour trade offer to **${receiving}** was rejected.`
+  )
+}
+
+/** Notify league/commissioner that an offer was accepted (pending approval). */
+export async function notifyLeagueTradeAccepted(offerId: string) {
+  const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY || "")
+  const { data: offer } = await supabase
+    .from("league_trade_offers")
+    .select("offering_team:teams!offering_team_id(name), receiving_team:teams!receiving_team_id(name)")
+    .eq("id", offerId)
+    .single()
+  if (!offer) return
+  const { data: webhook } = await supabase.from("discord_webhooks").select("*").eq("name", "trades").single()
+  if (!webhook) return
+  const offering = (offer as any).offering_team?.name ?? "Team A"
+  const receiving = (offer as any).receiving_team?.name ?? "Team B"
+  await postWebhook(
+    webhook.webhook_url,
+    `✅ **Trade Accepted – Commissioner Approval Needed**\n\n**${offering}** and **${receiving}** have agreed to a trade. League management: please approve or deny on the app.`
+  )
+}
+
+/** Notify both coaches that the trade was approved (scheduled for Monday midnight). */
+export async function notifyLeagueTradeApproved(offerId: string) {
+  const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY || "")
+  const { data: offer } = await supabase
+    .from("league_trade_offers")
+    .select("offering_team:teams!offering_team_id(name), receiving_team:teams!receiving_team_id(name)")
+    .eq("id", offerId)
+    .single()
+  if (!offer) return
+  const { data: webhook } = await supabase.from("discord_webhooks").select("*").eq("name", "trades").single()
+  if (!webhook) return
+  const offering = (offer as any).offering_team?.name ?? "Team A"
+  const receiving = (offer as any).receiving_team?.name ?? "Team B"
+  await postWebhook(
+    webhook.webhook_url,
+    `🏆 **Trade Approved**\n\nTrade between **${offering}** and **${receiving}** has been approved and will execute at 12:00 AM Monday EST.`
+  )
+}
+
+/** Notify both coaches that the trade was denied. */
+export async function notifyLeagueTradeDenied(offerId: string) {
+  const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY || "")
+  const { data: offer } = await supabase
+    .from("league_trade_offers")
+    .select("offering_team:teams!offering_team_id(name), receiving_team:teams!receiving_team_id(name)")
+    .eq("id", offerId)
+    .single()
+  if (!offer) return
+  const { data: webhook } = await supabase.from("discord_webhooks").select("*").eq("name", "trades").single()
+  if (!webhook) return
+  const offering = (offer as any).offering_team?.name ?? "Team A"
+  const receiving = (offer as any).receiving_team?.name ?? "Team B"
+  await postWebhook(
+    webhook.webhook_url,
+    `🚫 **Trade Denied**\n\nThe trade between **${offering}** and **${receiving}** was denied by league management.`
+  )
+}
+
 export async function notifyDraftBoardSync(
   stats: { synced: number; failed: number },
   changes: Array<{ pokemon_name: string; change_type: string }> = []

@@ -1,43 +1,42 @@
 /**
- * Standard API response helpers
- * Use for consistent error shape and logging across API routes
+ * Standard API response helpers (POKE MNKY v3)
+ * Delegates to lib/api-error.ts for consistent shape: { error: { code, message, details? } }
  */
 
-import { NextResponse } from "next/server"
+import {
+  apiError as apiErrorBase,
+  internalError,
+  API_ERROR_CODES,
+} from "@/lib/api-error"
+import type { ApiErrorBody, ApiErrorCode } from "@/lib/api-error"
+import { logger } from "@/lib/logger"
 
-export interface ApiErrorBody {
-  ok: false
-  error: string
-  code?: string
-  details?: unknown
-}
+export type { ApiErrorBody }
 
 /**
- * Return a standard JSON error response
+ * Return a standard JSON error response (legacy signature for backward compatibility).
+ * Prefer using helpers from lib/api-error.ts directly (unauthorized(), badRequest(), etc.).
  */
 export function apiError(
   message: string,
   statusCode: number = 500,
   options?: { code?: string; details?: unknown }
-): NextResponse<ApiErrorBody> {
-  const body: ApiErrorBody = {
-    ok: false,
-    error: message,
-    ...(options?.code && { code: options.code }),
-    ...(options?.details !== undefined && { details: options.details }),
-  }
-  return NextResponse.json(body, { status: statusCode })
+) {
+  const code = options?.code ?? "INTERNAL_ERROR"
+  const codeKey = Object.values(API_ERROR_CODES).includes(code as ApiErrorCode)
+    ? (code as ApiErrorCode)
+    : API_ERROR_CODES.INTERNAL_ERROR
+  return apiErrorBase(codeKey, message, {
+    status: statusCode,
+    details: options?.details,
+  })
 }
 
 /**
- * Log and return a standard 500 error (for catch blocks)
+ * Log and return a standard 500 error (for catch blocks).
  */
-export function apiErrorInternal(error: unknown, logContext?: string): NextResponse<ApiErrorBody> {
+export function apiErrorInternal(error: unknown, logContext?: string) {
   const message = error instanceof Error ? error.message : "Internal server error"
-  if (logContext) {
-    console.error(`[API] ${logContext}:`, error)
-  } else {
-    console.error("[API] Error:", error)
-  }
-  return apiError(message, 500, { code: "INTERNAL_ERROR" })
+  logger.error(message, { route: logContext, error: String(error) })
+  return internalError(message, process.env.NODE_ENV === "development" ? error : undefined)
 }

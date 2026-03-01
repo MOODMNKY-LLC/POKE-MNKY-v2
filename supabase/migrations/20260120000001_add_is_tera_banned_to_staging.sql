@@ -5,10 +5,10 @@
 ALTER TABLE public.sheets_draft_pool 
 ADD COLUMN IF NOT EXISTS is_tera_banned BOOLEAN DEFAULT false NOT NULL;
 
--- Create index for filtering Tera banned Pokemon
+-- Create index for filtering Tera banned Pokemon (cast for compatibility if column is text)
 CREATE INDEX IF NOT EXISTS idx_sheets_draft_pool_tera_banned 
 ON public.sheets_draft_pool(is_tera_banned) 
-WHERE is_tera_banned = true;
+WHERE (is_tera_banned::text IN ('true', 't'));
 
 -- Add comment explaining the column
 COMMENT ON COLUMN public.sheets_draft_pool.is_tera_banned IS 

@@ -17,6 +17,9 @@ import { NextRequest, NextResponse } from "next/server"
 import crypto from "crypto"
 import { createClient } from "@supabase/supabase-js"
 import { syncNotionToSupabase } from "@/lib/sync/notion-sync-worker"
+import { unauthorized, badRequest, internalError } from "@/lib/api-error"
+import { notionWebhookPayloadSchema } from "@/lib/validation/notion-webhook"
+import { logger } from "@/lib/logger"
 
 const DRAFT_BOARD_DATABASE_ID = "5e58ccd73ceb44ed83de826b51cf5c36"
 
@@ -60,61 +63,39 @@ function verifyNotionSignature(
       Buffer.from(expectedSignature)
     )
   } catch (error) {
-    console.error("[Notion Webhook] Signature verification error:", error)
+    logger.error("Notion webhook signature verification error", { route: "webhooks/notion", error: String(error) })
     return false
   }
 }
 
 export async function POST(request: NextRequest) {
   const requestId = `req_${Date.now()}_${Math.random().toString(36).substring(7)}`
-  console.log(`[Notion Webhook ${requestId}] Received webhook request`)
-  
+  logger.debug("Notion webhook received", { requestId, route: "webhooks/notion" })
+
   try {
-    // Read raw body first (needed for signature verification and parsing)
     const body = await request.text()
-    console.log(`[Notion Webhook ${requestId}] Body length: ${body.length} bytes`)
-    
-    // Handle empty body requests (health checks, retries, etc.)
+    logger.debug("Notion webhook body length", { requestId, bodyLength: body.length })
+
     if (!body || body.length === 0) {
-      console.log(`[Notion Webhook ${requestId}] Empty body received - likely health check or retry`)
       return NextResponse.json({ success: true, message: "Empty body acknowledged" }, { status: 200 })
     }
-    
-    // Log headers for debugging
-    const headers = Object.fromEntries(request.headers.entries())
-    console.log(`[Notion Webhook ${requestId}] Headers:`, {
-      'content-type': headers['content-type'],
-      'x-notion-signature': headers['x-notion-signature'] ? 'present' : 'missing',
-      'user-agent': headers['user-agent'],
-    })
 
-    // Handle verification token request (initial subscription setup)
     try {
       const verificationPayload = JSON.parse(body)
       if (verificationPayload.verification_token) {
-        // Store verification token for future signature verification
-        // For now, we'll use NOTION_WEBHOOK_SECRET as the verification token
-        // In production, you should store this token securely
-        console.log(`[Notion Webhook ${requestId}] Verification token received:`, verificationPayload.verification_token.substring(0, 20) + "...")
-        
-        // Return success to Notion (they'll verify this token in their UI)
+        logger.debug("Notion webhook verification token received", { requestId })
         return NextResponse.json({
           verification_token: verificationPayload.verification_token,
         }, { status: 200 })
       }
-    } catch (parseError) {
+    } catch {
       // Not a verification request, continue with normal webhook processing
-      console.log(`[Notion Webhook ${requestId}] Not a verification request, parsing as webhook event`)
     }
 
     // Get webhook secret/verification token from environment
     const webhookSecret = process.env.NOTION_WEBHOOK_SECRET
     if (!webhookSecret) {
-      console.error("[Notion Webhook] NOTION_WEBHOOK_SECRET not configured")
-      return NextResponse.json(
-        { error: "Webhook secret not configured" },
-        { status: 500 }
-      )
+      return internalError("Webhook secret not configured")
     }
 
     // Get signature from headers
@@ -122,43 +103,31 @@ export async function POST(request: NextRequest) {
 
     // Verify signature (skip for verification requests, already handled above)
     if (signature && !verifyNotionSignature(body, signature, webhookSecret)) {
-      console.warn("[Notion Webhook] Invalid signature")
-      return NextResponse.json(
-        { error: "Invalid signature" },
-        { status: 401 }
-      )
+      return unauthorized("Invalid signature")
     }
 
-    // Parse webhook payload
-    let payload: any
+    // Parse and validate webhook payload
+    let payload: { type?: string; data?: { database_id?: string }; database_id?: string }
     try {
-      payload = JSON.parse(body)
-      console.log(`[Notion Webhook ${requestId}] Parsed payload:`, {
-        type: payload.type,
-        database_id: payload.data?.database_id || payload.database_id,
-        has_data: !!payload.data,
-      })
-    } catch (error) {
-      console.error(`[Notion Webhook ${requestId}] Failed to parse JSON:`, error)
-      return NextResponse.json(
-        { error: "Invalid JSON payload" },
-        { status: 400 }
-      )
+      const raw = JSON.parse(body)
+      const parsed = notionWebhookPayloadSchema.safeParse(raw)
+      if (!parsed.success) {
+        return badRequest("Invalid webhook payload structure", parsed.error.errors)
+      }
+      payload = parsed.data
+    } catch {
+      return badRequest("Invalid JSON payload")
     }
 
     // Extract event type and database ID
     const eventType = payload.type
     const databaseId = payload.data?.database_id || payload.database_id
 
-    // Only process Draft Board database events
     if (databaseId !== DRAFT_BOARD_DATABASE_ID) {
-      console.log(
-        `[Notion Webhook] Ignoring event for database ${databaseId} (not Draft Board)`
-      )
+      logger.debug("Notion webhook ignored: wrong database", { requestId, databaseId })
       return NextResponse.json({ success: true, message: "Ignored" })
     }
 
-    // Process relevant events
     const relevantEvents = [
       "database.content_updated",
       "page.properties_updated",
@@ -166,23 +135,18 @@ export async function POST(request: NextRequest) {
     ]
 
     if (!relevantEvents.includes(eventType)) {
-      console.log(`[Notion Webhook] Ignoring event type: ${eventType}`)
+      logger.debug("Notion webhook ignored: event type", { requestId, eventType })
       return NextResponse.json({ success: true, message: "Event type ignored" })
     }
 
-    console.log(
-      `[Notion Webhook ${requestId}] Processing ${eventType} for Draft Board database`
-    )
+    logger.info("Notion webhook processing", { requestId, eventType, route: "webhooks/notion" })
 
     // Trigger incremental sync
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
     if (!supabaseUrl || !serviceRoleKey) {
-      return NextResponse.json(
-        { error: "Supabase configuration missing" },
-        { status: 500 }
-      )
+      return internalError("Supabase configuration missing")
     }
 
     // Create sync job record
@@ -215,7 +179,7 @@ export async function POST(request: NextRequest) {
     if (jobError) {
       // If constraint error, try with 'manual' as fallback
       if (jobError.message.includes("sync_jobs_triggered_by_check")) {
-        console.warn("[Notion Webhook] Constraint error, using 'manual' as fallback")
+        logger.warn("Notion webhook constraint error, using manual fallback", { requestId })
         const { data: fallbackJob, error: fallbackError } = await supabase
           .from("sync_jobs")
           .insert({
@@ -240,7 +204,7 @@ export async function POST(request: NextRequest) {
           job = fallbackJob
         }
       } else {
-        console.error("[Notion Webhook] Failed to create sync job:", jobError)
+        logger.error("Notion webhook failed to create sync job", { requestId, error: String(jobError) })
         // Continue anyway - don't block webhook response
       }
     } else {
@@ -271,12 +235,14 @@ export async function POST(request: NextRequest) {
             })
             .eq("job_id", job.job_id)
 
-          console.log(
-            `[Notion Webhook] Sync completed: ${result.stats.draft_board?.synced || 0} synced, ${result.stats.draft_board?.failed || 0} failed`
-          )
+          logger.info("Notion webhook sync completed", {
+            requestId,
+            synced: result.stats.draft_board?.synced ?? 0,
+            failed: result.stats.draft_board?.failed ?? 0,
+          })
         })
         .catch(async (error) => {
-          console.error("[Notion Webhook] Sync job error:", error)
+          logger.error("Notion webhook sync job error", { requestId, error: String(error) })
           await supabase
             .from("sync_jobs")
             .update({
@@ -293,26 +259,20 @@ export async function POST(request: NextRequest) {
         incremental: true,
         since: new Date(Date.now() - 5 * 60 * 1000),
       }).catch((error) => {
-        console.error("[Notion Webhook] Sync error (no job):", error)
+        logger.error("Notion webhook sync error (no job)", { requestId, error: String(error) })
       })
     }
 
     // Return immediately (sync runs async)
     // Notion expects a simple 200 OK response - keep it simple
-    console.log(`[Notion Webhook ${requestId}] Returning success response`)
+    logger.debug("Notion webhook returning success", { requestId })
     return NextResponse.json({
       success: true,
     }, { status: 200 })
-  } catch (error: any) {
-    console.error(`[Notion Webhook ${requestId}] Error:`, {
-      message: error.message,
-      stack: error.stack,
-      name: error.name,
-    })
-    return NextResponse.json(
-      { error: error.message || "Internal server error" },
-      { status: 500 }
-    )
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error(String(err))
+    logger.error("Notion webhook error", { requestId, message: error.message })
+    return internalError(error.message, process.env.NODE_ENV === "development" ? err : undefined)
   }
 }
 

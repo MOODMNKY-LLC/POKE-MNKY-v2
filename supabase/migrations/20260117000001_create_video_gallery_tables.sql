@@ -114,13 +114,16 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Triggers for updated_at
+-- Triggers for updated_at (idempotent)
+DROP TRIGGER IF EXISTS update_videos_updated_at ON public.videos;
 CREATE TRIGGER update_videos_updated_at BEFORE UPDATE ON public.videos
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_video_feedback_updated_at ON public.video_feedback;
 CREATE TRIGGER update_video_feedback_updated_at BEFORE UPDATE ON public.video_feedback
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_youtube_channels_updated_at ON public.youtube_channels;
 CREATE TRIGGER update_youtube_channels_updated_at BEFORE UPDATE ON public.youtube_channels
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
@@ -133,53 +136,64 @@ ALTER TABLE public.video_tags ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.video_views ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.youtube_channels ENABLE ROW LEVEL SECURITY;
 
--- Videos: Public read, authenticated write
+-- Videos: Public read, authenticated write (idempotent)
+DROP POLICY IF EXISTS "Videos are viewable by everyone" ON public.videos;
 CREATE POLICY "Videos are viewable by everyone" ON public.videos
   FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Videos can be created by authenticated users" ON public.videos;
 CREATE POLICY "Videos can be created by authenticated users" ON public.videos
   FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Videos can be updated by authenticated users" ON public.videos;
 CREATE POLICY "Videos can be updated by authenticated users" ON public.videos
   FOR UPDATE USING (auth.role() = 'authenticated');
 
--- Video feedback: Users can read all, but only modify their own
+DROP POLICY IF EXISTS "Video feedback is viewable by everyone" ON public.video_feedback;
 CREATE POLICY "Video feedback is viewable by everyone" ON public.video_feedback
   FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Users can create their own feedback" ON public.video_feedback;
 CREATE POLICY "Users can create their own feedback" ON public.video_feedback
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update their own feedback" ON public.video_feedback;
 CREATE POLICY "Users can update their own feedback" ON public.video_feedback
   FOR UPDATE USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can delete their own feedback" ON public.video_feedback;
 CREATE POLICY "Users can delete their own feedback" ON public.video_feedback
   FOR DELETE USING (auth.uid() = user_id);
 
--- Video tags: Users can read all, but only create/delete their own tags
+DROP POLICY IF EXISTS "Video tags are viewable by everyone" ON public.video_tags;
 CREATE POLICY "Video tags are viewable by everyone" ON public.video_tags
   FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Users can create tags" ON public.video_tags;
 CREATE POLICY "Users can create tags" ON public.video_tags
   FOR INSERT WITH CHECK (auth.uid() = tagged_by_user_id);
 
+DROP POLICY IF EXISTS "Users can delete tags they created" ON public.video_tags;
 CREATE POLICY "Users can delete tags they created" ON public.video_tags
   FOR DELETE USING (auth.uid() = tagged_by_user_id);
 
--- Video views: Users can read all, create their own
+DROP POLICY IF EXISTS "Video views are viewable by everyone" ON public.video_views;
 CREATE POLICY "Video views are viewable by everyone" ON public.video_views
   FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Anyone can create video views" ON public.video_views;
 CREATE POLICY "Anyone can create video views" ON public.video_views
   FOR INSERT WITH CHECK (true);
 
--- YouTube channels: Public read, authenticated write
+DROP POLICY IF EXISTS "YouTube channels are viewable by everyone" ON public.youtube_channels;
 CREATE POLICY "YouTube channels are viewable by everyone" ON public.youtube_channels
   FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "YouTube channels can be created by authenticated users" ON public.youtube_channels;
 CREATE POLICY "YouTube channels can be created by authenticated users" ON public.youtube_channels
   FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "YouTube channels can be updated by authenticated users" ON public.youtube_channels;
 CREATE POLICY "YouTube channels can be updated by authenticated users" ON public.youtube_channels
   FOR UPDATE USING (auth.role() = 'authenticated');
 
@@ -205,18 +219,23 @@ CREATE INDEX IF NOT EXISTS idx_video_comments_created_at ON public.video_comment
 -- RLS for video_comments
 ALTER TABLE public.video_comments ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Video comments are viewable by everyone" ON public.video_comments;
 CREATE POLICY "Video comments are viewable by everyone" ON public.video_comments
   FOR SELECT USING (is_deleted = FALSE);
 
+DROP POLICY IF EXISTS "Users can create comments" ON public.video_comments;
 CREATE POLICY "Users can create comments" ON public.video_comments
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update their own comments" ON public.video_comments;
 CREATE POLICY "Users can update their own comments" ON public.video_comments
   FOR UPDATE USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can delete their own comments" ON public.video_comments;
 CREATE POLICY "Users can delete their own comments" ON public.video_comments
   FOR DELETE USING (auth.uid() = user_id);
 
 -- Trigger for video_comments updated_at
+DROP TRIGGER IF EXISTS update_video_comments_updated_at ON public.video_comments;
 CREATE TRIGGER update_video_comments_updated_at BEFORE UPDATE ON public.video_comments
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

@@ -5,7 +5,7 @@ import { createBrowserClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { Database, Calendar, Trophy, Users, RefreshCw, Settings, MessageSquare, ClipboardList, FileText, ChevronDown, ChevronUp, Music } from "lucide-react"
+import { Database, Calendar, Trophy, Users, RefreshCw, Settings, MessageSquare, ClipboardList, FileText, ChevronDown, ChevronUp, Music, ArrowRightLeft } from "lucide-react"
 import { SupabaseManager } from "@/components/platform/supabase-manager"
 // PokepediaSyncStatusNew removed - sync system deleted
 import { ShowdownPokedexSync } from "@/components/admin/showdown-pokedex-sync"
@@ -169,6 +169,34 @@ export default function AdminPage() {
               </p>
               <Button asChild variant="outline" className="w-full bg-transparent">
                 <Link href="/admin/league">Manage League</Link>
+              </Button>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <ArrowRightLeft className="mb-2 h-8 w-8 text-chart-2" />
+              <CardTitle>Trade approval</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-4 text-sm text-muted-foreground">
+                Approve or deny trades accepted by both coaches. Executes at midnight Monday EST.
+              </p>
+              <Button asChild variant="outline" className="w-full bg-transparent">
+                <Link href="/admin/trades">Review trades</Link>
+              </Button>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <ClipboardList className="mb-2 h-8 w-8 text-chart-3" />
+              <CardTitle>Draft pool & rules</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-4 text-sm text-muted-foreground">
+                Set season rules and build draft pool from pokemon_master (filter by game, generation, legendary/mythical/paradox).
+              </p>
+              <Button asChild variant="outline" className="w-full bg-transparent">
+                <Link href="/admin/draft-pool-rules">Draft pool & rules</Link>
               </Button>
             </CardContent>
           </Card>

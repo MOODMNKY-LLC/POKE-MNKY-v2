@@ -1,0 +1,24 @@
+---
+description: Shopify Liquid fundamentals and safe editing patterns
+globs: "**/*.liquid"
+alwaysApply: false
+---
+
+# Shopify Liquid — Safe Editing Rules
+
+## Do
+- Preserve existing Liquid control flow and variables unless necessary.
+- Use snippets for repeated markup.
+- Keep forms intact, especially product and cart forms.
+- When adding settings-driven classes, gate them cleanly:
+  - `class="{% if section.settings.foo %}has-foo{% endif %}"`
+
+## Don't
+- Don't rename or remove section/block identifiers used by JS.
+- Don't move `{% schema %}` out of a section file.
+- Don't convert JSON schema to "almost JSON" (must be strict JSON).
+
+## When you change a Liquid file
+1) Identify the template/section/snippet role
+2) Make a minimal patch
+3) Note what storefront + editor behaviors to retest

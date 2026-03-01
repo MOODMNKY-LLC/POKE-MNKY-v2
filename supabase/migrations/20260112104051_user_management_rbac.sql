@@ -77,23 +77,24 @@ CREATE TRIGGER on_profile_updated
 -- Row Level Security (RLS) Policies
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
--- Everyone can view public profile information
+-- Everyone can view public profile information (idempotent)
+DROP POLICY IF EXISTS "Public profiles are viewable by everyone" ON public.profiles;
 CREATE POLICY "Public profiles are viewable by everyone"
   ON public.profiles FOR SELECT
   USING (true);
 
--- Users can insert their own profile (handled by trigger)
+DROP POLICY IF EXISTS "Users can insert their own profile" ON public.profiles;
 CREATE POLICY "Users can insert their own profile"
   ON public.profiles FOR INSERT
   WITH CHECK (auth.uid() = id);
 
--- Users can update their own profile
+DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
 CREATE POLICY "Users can update own profile"
   ON public.profiles FOR UPDATE
   USING (auth.uid() = id)
   WITH CHECK (auth.uid() = id);
 
--- Admins can update any profile
+DROP POLICY IF EXISTS "Admins can update any profile" ON public.profiles;
 CREATE POLICY "Admins can update any profile"
   ON public.profiles FOR UPDATE
   USING (
@@ -103,7 +104,7 @@ CREATE POLICY "Admins can update any profile"
     )
   );
 
--- Admins can delete profiles
+DROP POLICY IF EXISTS "Admins can delete profiles" ON public.profiles;
 CREATE POLICY "Admins can delete profiles"
   ON public.profiles FOR DELETE
   USING (
@@ -123,26 +124,44 @@ CREATE TABLE IF NOT EXISTS public.role_permissions (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Insert default role permissions
-INSERT INTO public.role_permissions (role, permissions, description) VALUES
-  ('admin', '["*"]'::jsonb, 'Full system access - can manage users, settings, and all league data'),
-  ('commissioner', '["manage:league", "manage:teams", "manage:matches", "manage:trades", "view:analytics"]'::jsonb, 'League management - can manage teams, matches, and league operations'),
-  ('coach', '["manage:own_team", "submit:results", "propose:trades", "view:league"]'::jsonb, 'Team management - can manage own team roster and submit match results'),
-  ('viewer', '["view:league", "view:standings", "view:schedule"]'::jsonb, 'Read-only access to league information')
-ON CONFLICT (role) DO UPDATE SET
-  permissions = EXCLUDED.permissions,
-  description = EXCLUDED.description,
-  updated_at = NOW();
+-- Insert default role permissions (idempotent: skip rows that violate existing check constraint)
+DO $$
+BEGIN
+  BEGIN
+    INSERT INTO public.role_permissions (role, permissions, description) VALUES
+      ('admin', '["*"]'::jsonb, 'Full system access - can manage users, settings, and all league data')
+    ON CONFLICT (role) DO UPDATE SET permissions = EXCLUDED.permissions, description = EXCLUDED.description, updated_at = NOW();
+  EXCEPTION WHEN check_violation THEN NULL;
+  END;
+  BEGIN
+    INSERT INTO public.role_permissions (role, permissions, description) VALUES
+      ('commissioner', '["manage:league", "manage:teams", "manage:matches", "manage:trades", "view:analytics"]'::jsonb, 'League management - can manage teams, matches, and league operations')
+    ON CONFLICT (role) DO UPDATE SET permissions = EXCLUDED.permissions, description = EXCLUDED.description, updated_at = NOW();
+  EXCEPTION WHEN check_violation THEN NULL;
+  END;
+  BEGIN
+    INSERT INTO public.role_permissions (role, permissions, description) VALUES
+      ('coach', '["manage:own_team", "submit:results", "propose:trades", "view:league"]'::jsonb, 'Team management - can manage own team roster and submit match results')
+    ON CONFLICT (role) DO UPDATE SET permissions = EXCLUDED.permissions, description = EXCLUDED.description, updated_at = NOW();
+  EXCEPTION WHEN check_violation THEN NULL;
+  END;
+  BEGIN
+    INSERT INTO public.role_permissions (role, permissions, description) VALUES
+      ('viewer', '["view:league", "view:standings", "view:schedule"]'::jsonb, 'Read-only access to league information')
+    ON CONFLICT (role) DO UPDATE SET permissions = EXCLUDED.permissions, description = EXCLUDED.description, updated_at = NOW();
+  EXCEPTION WHEN check_violation THEN NULL;
+  END;
+END $$;
 
 -- Enable RLS on role_permissions
 ALTER TABLE public.role_permissions ENABLE ROW LEVEL SECURITY;
 
--- Everyone can view role permissions
+DROP POLICY IF EXISTS "Public role permissions are viewable" ON public.role_permissions;
 CREATE POLICY "Public role permissions are viewable"
   ON public.role_permissions FOR SELECT
   USING (true);
 
--- Only admins can modify role permissions
+DROP POLICY IF EXISTS "Admins can modify role permissions" ON public.role_permissions;
 CREATE POLICY "Admins can modify role permissions"
   ON public.role_permissions FOR ALL
   USING (
@@ -168,12 +187,12 @@ CREATE TABLE IF NOT EXISTS public.user_activity_log (
 -- Enable RLS on activity log
 ALTER TABLE public.user_activity_log ENABLE ROW LEVEL SECURITY;
 
--- Users can view their own activity
+DROP POLICY IF EXISTS "Users can view own activity" ON public.user_activity_log;
 CREATE POLICY "Users can view own activity"
   ON public.user_activity_log FOR SELECT
   USING (auth.uid() = user_id);
 
--- Admins can view all activity
+DROP POLICY IF EXISTS "Admins can view all activity" ON public.user_activity_log;
 CREATE POLICY "Admins can view all activity"
   ON public.user_activity_log FOR SELECT
   USING (
@@ -183,7 +202,7 @@ CREATE POLICY "Admins can view all activity"
     )
   );
 
--- System can insert activity logs
+DROP POLICY IF EXISTS "Authenticated users can log activity" ON public.user_activity_log;
 CREATE POLICY "Authenticated users can log activity"
   ON public.user_activity_log FOR INSERT
   WITH CHECK (auth.role() = 'authenticated');

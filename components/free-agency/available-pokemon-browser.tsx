@@ -11,18 +11,21 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 
 interface AvailablePokemonBrowserProps {
   seasonId: string
+  weekNumber?: number | null
   onSelectPokemon?: (pokemonId: string) => void
 }
 
 export function AvailablePokemonBrowser({
   seasonId,
+  weekNumber,
   onSelectPokemon,
 }: AvailablePokemonBrowserProps) {
   const [pokemon, setPokemon] = useState<Array<{
     pokemon_id: string
     pokemon_name: string
     point_value: number
-    generation: number | null
+    generation?: number | null
+    status?: "available" | "scheduled" | "rostered"
   }>>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
@@ -32,25 +35,35 @@ export function AvailablePokemonBrowser({
 
   useEffect(() => {
     loadPokemon()
-  }, [seasonId, search, minPoints, maxPoints, generation])
+  }, [seasonId, weekNumber, search, minPoints, maxPoints, generation])
 
   const loadPokemon = async () => {
     setLoading(true)
     try {
-      const params = new URLSearchParams({
-        season_id: seasonId,
-        limit: "200",
-      })
-      if (search) params.append("search", search)
-      if (minPoints) params.append("min_points", minPoints.toString())
-      if (maxPoints) params.append("max_points", maxPoints.toString())
-      if (generation) params.append("generation", generation.toString())
-
-      const response = await fetch(`/api/free-agency/available?${params}`)
-      const data = await response.json()
-
-      if (data.success) {
-        setPokemon(data.pokemon || [])
+      if (weekNumber != null && weekNumber >= 1) {
+        const response = await fetch(
+          `/api/free-agency/available-by-week?season_id=${seasonId}&week_number=${weekNumber}`
+        )
+        const data = await response.json()
+        if (data.success && data.pokemon) {
+          let list = data.pokemon
+          if (search) {
+            const s = search.toLowerCase()
+            list = list.filter((p: any) => (p.pokemon_name ?? "").toLowerCase().includes(s))
+          }
+          if (minPoints != null) list = list.filter((p: any) => (p.point_value ?? 0) >= minPoints)
+          if (maxPoints != null) list = list.filter((p: any) => (p.point_value ?? 0) <= maxPoints)
+          setPokemon(list)
+        }
+      } else {
+        const params = new URLSearchParams({ season_id: seasonId, limit: "200" })
+        if (search) params.append("search", search)
+        if (minPoints) params.append("min_points", minPoints.toString())
+        if (maxPoints) params.append("max_points", maxPoints.toString())
+        if (generation) params.append("generation", generation.toString())
+        const response = await fetch(`/api/free-agency/available?${params}`)
+        const data = await response.json()
+        if (data.success) setPokemon(data.pokemon || [])
       }
     } catch (error) {
       console.error("Error loading available Pokemon:", error)
@@ -63,7 +76,9 @@ export function AvailablePokemonBrowser({
     <Card>
       <CardHeader>
         <CardTitle>Available Pokemon</CardTitle>
-        <CardDescription>Browse Pokemon available for free agency</CardDescription>
+        <CardDescription>
+          Browse Pokemon. Use week selector on the page for status by week (Available / Scheduled / Rostered).
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Filters */}
@@ -138,18 +153,24 @@ export function AvailablePokemonBrowser({
                   key={p.pokemon_id}
                   className={`p-3 border rounded-lg cursor-pointer hover:bg-muted transition-colors ${
                     onSelectPokemon ? "" : "cursor-default"
-                  }`}
+                  } ${p.status === "rostered" ? "opacity-60" : ""}`}
                   onClick={() => onSelectPokemon?.(p.pokemon_id)}
                 >
                   <div className="font-medium text-sm">{p.pokemon_name}</div>
-                  <div className="flex items-center gap-2 mt-1">
+                  <div className="flex flex-wrap items-center gap-2 mt-1">
                     <Badge variant="secondary" className="text-xs">
                       {p.point_value}pts
                     </Badge>
-                    {p.generation && (
+                    {p.generation != null && (
                       <Badge variant="outline" className="text-xs">
                         Gen {p.generation}
                       </Badge>
+                    )}
+                    {p.status === "scheduled" && (
+                      <Badge variant="outline" className="text-xs bg-amber-500/20">Scheduled</Badge>
+                    )}
+                    {p.status === "rostered" && (
+                      <Badge variant="outline" className="text-xs text-muted-foreground">Rostered</Badge>
                     )}
                   </div>
                 </div>

@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+.pnpm-store/
 
 # next.js
 /.next/
@@ -55,3 +56,4 @@ temp/pokepaste-repo/
 
 .vercel
 .cursor/mcp.json
+.env*.local

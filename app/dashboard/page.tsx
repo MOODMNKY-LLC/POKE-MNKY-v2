@@ -16,7 +16,7 @@ import { getCurrentUserProfile, type DiscordRole } from "@/lib/rbac"
 import { DISCORD_TO_APP_ROLE_MAP } from "@/lib/discord-role-mappings"
 import { redirect } from "next/navigation"
 import Link from "next/link"
-import { Trophy, Users, Calendar, BarChart3, Sword, BookOpen, ClipboardList } from "lucide-react"
+import { Trophy, Users, Calendar, BarChart3, Sword, BookOpen, ClipboardList, UserPlus } from "lucide-react"
 import { CoachCard as DefaultCoachCard } from "@/components/draft/coach-card"
 import { CoachCard as ConfigurableCoachCard } from "@/components/profile/coach-card"
 
@@ -189,6 +189,28 @@ export default async function DashboardPage() {
               </div>
             </div>
 
+            {(profile.role !== "coach" || !profile.team_id) && (
+              <Card className="touch-manipulation border-primary/50 bg-primary/5">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                    <UserPlus className="h-4 w-4" />
+                    Become a coach
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Start the coach onboarding to learn how to register as a coach and use the team builder and league features.
+                  </p>
+                  <Link
+                    href="/dashboard/onboarding"
+                    className="inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground h-9 px-4 py-2 hover:bg-primary/90"
+                  >
+                    Start coach onboarding
+                  </Link>
+                </CardContent>
+              </Card>
+            )}
+
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               <Card className="touch-manipulation">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -297,6 +319,12 @@ export default async function DashboardPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
+                    <Link
+                      href="/dashboard/guides"
+                      className="text-sm text-primary hover:underline min-h-[44px] flex items-center touch-manipulation"
+                    >
+                      Guides
+                    </Link>
                     <Link
                       href="/pokedex"
                       className="text-sm text-primary hover:underline min-h-[44px] flex items-center touch-manipulation"

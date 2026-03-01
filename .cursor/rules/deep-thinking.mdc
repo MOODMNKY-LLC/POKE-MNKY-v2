@@ -1,6 +1,5 @@
 ---
 description: when deep research is requested or needed
-globs: 
 alwaysApply: false
 ---
 \`\`\`yaml

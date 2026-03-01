@@ -1,6 +1,6 @@
 {
-  "name": "my-v0-project",
-  "version": "0.1.0",
+  "name": "poke-mnky-v3",
+  "version": "3.0.0",
   "private": true,
   "scripts": {
     "build": "next build",
@@ -8,6 +8,10 @@
     "dev:webpack": "next dev --webpack --disable-source-maps",
     "lint": "eslint .",
     "start": "next start",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
     "test:e2e:api": "tsx scripts/test-e2e-with-server.ts",
     "docs:dev": "cd docs && powershell -ExecutionPolicy Bypass -File run-mintlify.ps1",
     "docs:dev:direct": "cd docs && mint dev --port 3333",
@@ -136,6 +140,9 @@
   },
   "devDependencies": {
     "@orval/core": "^8.0.1",
+    "vite-tsconfig-paths": "^5.1.2",
+    "vitest": "^3.2.4",
+    "@playwright/test": "^1.49.0",
     "@tailwindcss/postcss": "^4.1.9",
     "@types/node": "^22",
     "@types/react": "^19",

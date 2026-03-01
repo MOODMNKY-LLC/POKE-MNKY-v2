@@ -76,7 +76,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Trigger to auto-update updated_at
+-- Trigger to auto-update updated_at (idempotent)
+DROP TRIGGER IF EXISTS trigger_update_showdown_teams_updated_at ON public.showdown_teams;
 CREATE TRIGGER trigger_update_showdown_teams_updated_at
   BEFORE UPDATE ON public.showdown_teams
   FOR EACH ROW
@@ -91,7 +92,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Trigger to auto-calculate pokemon_count
+-- Trigger to auto-calculate pokemon_count (idempotent)
+DROP TRIGGER IF EXISTS trigger_calculate_showdown_team_pokemon_count ON public.showdown_teams;
 CREATE TRIGGER trigger_calculate_showdown_team_pokemon_count
   BEFORE INSERT OR UPDATE OF pokemon_data ON public.showdown_teams
   FOR EACH ROW
@@ -109,8 +111,8 @@ COMMENT ON COLUMN public.showdown_teams.validation_errors IS 'Array of validatio
 -- Enable Row Level Security
 ALTER TABLE public.showdown_teams ENABLE ROW LEVEL SECURITY;
 
--- RLS Policies
--- Users can view their own teams and public teams
+-- RLS Policies (idempotent: drop if exists)
+DROP POLICY IF EXISTS "Users can view own teams" ON public.showdown_teams;
 CREATE POLICY "Users can view own teams"
   ON public.showdown_teams
   FOR SELECT
@@ -121,7 +123,7 @@ CREATE POLICY "Users can view own teams"
     )
   );
 
--- Users can insert their own teams
+DROP POLICY IF EXISTS "Users can insert own teams" ON public.showdown_teams;
 CREATE POLICY "Users can insert own teams"
   ON public.showdown_teams
   FOR INSERT
@@ -129,7 +131,7 @@ CREATE POLICY "Users can insert own teams"
     coach_id IN (SELECT id FROM public.coaches WHERE user_id = auth.uid())
   );
 
--- Users can update their own teams
+DROP POLICY IF EXISTS "Users can update own teams" ON public.showdown_teams;
 CREATE POLICY "Users can update own teams"
   ON public.showdown_teams
   FOR UPDATE
@@ -138,7 +140,7 @@ CREATE POLICY "Users can update own teams"
     coach_id IN (SELECT id FROM public.coaches WHERE user_id = auth.uid())
   );
 
--- Users can delete their own teams (soft delete)
+DROP POLICY IF EXISTS "Users can delete own teams" ON public.showdown_teams;
 CREATE POLICY "Users can delete own teams"
   ON public.showdown_teams
   FOR UPDATE

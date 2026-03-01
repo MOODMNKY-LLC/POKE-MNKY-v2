@@ -1,12 +1,12 @@
-create type "public"."draft_pool_status" as enum ('available', 'drafted', 'banned', 'unavailable');
+do $$ begin if not exists (select 1 from pg_type where typname = 'draft_pool_status' and typnamespace = (select oid from pg_namespace where nspname = 'public')) then create type "public"."draft_pool_status" as enum ('available', 'drafted', 'banned', 'unavailable'); end if; end $$;
 
-alter table "public"."draft_pool" drop constraint "draft_pool_generation_check";
+alter table "public"."draft_pool" drop constraint if exists "draft_pool_generation_check";
 
-alter table "public"."draft_pool" drop constraint "draft_pool_sheet_name_pokemon_name_point_value_key";
+alter table "public"."draft_pool" drop constraint if exists "draft_pool_sheet_name_pokemon_name_point_value_key";
 
-alter table "public"."binary_data" drop constraint "CHK_binary_data_sourceType";
+alter table "public"."binary_data" drop constraint if exists "CHK_binary_data_sourceType";
 
-alter table "public"."workflow_publish_history" drop constraint "CHK_workflow_publish_history_event";
+alter table "public"."workflow_publish_history" drop constraint if exists "CHK_workflow_publish_history_event";
 
 drop function if exists "public"."get_available_pokemon_for_free_agency"(p_season_id uuid, p_min_points integer, p_max_points integer, p_generation integer, p_search text);
 
@@ -19,7 +19,7 @@ drop index if exists "public"."idx_draft_pool_generation";
 drop index if exists "public"."idx_draft_pool_sheet_name";
 
 
-  create table "public"."sheets_draft_pool" (
+  create table if not exists "public"."sheets_draft_pool" (
     "id" uuid not null default extensions.uuid_generate_v4(),
     "pokemon_name" text not null,
     "point_value" integer not null,
@@ -37,29 +37,30 @@ drop index if exists "public"."idx_draft_pool_sheet_name";
 
 alter table "public"."sheets_draft_pool" enable row level security;
 
-alter table "public"."draft_pool" drop column "extracted_at";
+alter table "public"."draft_pool" drop column if exists "extracted_at";
 
-alter table "public"."draft_pool" drop column "generation";
+drop view if exists public.draft_pool_enriched cascade;
+alter table "public"."draft_pool" drop column if exists "generation";
 
-alter table "public"."draft_pool" drop column "sheet_column";
+alter table "public"."draft_pool" drop column if exists "sheet_column";
 
-alter table "public"."draft_pool" drop column "sheet_name";
+alter table "public"."draft_pool" drop column if exists "sheet_name";
 
-alter table "public"."draft_pool" drop column "sheet_row";
+alter table "public"."draft_pool" drop column if exists "sheet_row";
 
-alter table "public"."draft_pool" add column "banned_reason" text;
+do $$ begin if not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'draft_pool' and column_name = 'banned_reason') then alter table "public"."draft_pool" add column "banned_reason" text; end if; end $$;
 
-alter table "public"."draft_pool" add column "draft_pick_number" integer;
+do $$ begin if not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'draft_pool' and column_name = 'draft_pick_number') then alter table "public"."draft_pool" add column "draft_pick_number" integer; end if; end $$;
 
-alter table "public"."draft_pool" add column "draft_round" integer;
+do $$ begin if not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'draft_pool' and column_name = 'draft_round') then alter table "public"."draft_pool" add column "draft_round" integer; end if; end $$;
 
-alter table "public"."draft_pool" add column "drafted_at" timestamp with time zone;
+do $$ begin if not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'draft_pool' and column_name = 'drafted_at') then alter table "public"."draft_pool" add column "drafted_at" timestamp with time zone; end if; end $$;
 
-alter table "public"."draft_pool" add column "drafted_by_team_id" uuid;
+do $$ begin if not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'draft_pool' and column_name = 'drafted_by_team_id') then alter table "public"."draft_pool" add column "drafted_by_team_id" uuid; end if; end $$;
 
-alter table "public"."draft_pool" add column "season_id" uuid not null;
+do $$ begin if not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'draft_pool' and column_name = 'season_id') then alter table "public"."draft_pool" add column "season_id" uuid not null; end if; end $$;
 
-alter table "public"."draft_pool" add column "status" public.draft_pool_status default 'available'::public.draft_pool_status;
+do $$ begin if not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'draft_pool' and column_name = 'status') then alter table "public"."draft_pool" add column "status" public.draft_pool_status default 'available'::public.draft_pool_status; end if; end $$;
 
 alter table "public"."draft_pool" alter column "created_at" set not null;
 
@@ -78,15 +79,15 @@ END $$;
 
 alter table "public"."draft_pool" alter column "updated_at" set not null;
 
-CREATE UNIQUE INDEX draft_pool_pokemon_name_point_value_key ON public.draft_pool USING btree (pokemon_name, point_value);
+CREATE UNIQUE INDEX IF NOT EXISTS draft_pool_pokemon_name_point_value_key ON public.draft_pool USING btree (pokemon_name, point_value);
 
-CREATE UNIQUE INDEX draft_pool_season_pokemon_unique ON public.draft_pool USING btree (season_id, pokemon_name);
+CREATE UNIQUE INDEX IF NOT EXISTS draft_pool_season_pokemon_unique ON public.draft_pool USING btree (season_id, pokemon_name);
 
-CREATE INDEX idx_draft_pool_draft_pick ON public.draft_pool USING btree (draft_pick_number) WHERE (draft_pick_number IS NOT NULL);
+CREATE INDEX IF NOT EXISTS idx_draft_pool_draft_pick ON public.draft_pool USING btree (draft_pick_number) WHERE (draft_pick_number IS NOT NULL);
 
-CREATE INDEX idx_draft_pool_draft_round ON public.draft_pool USING btree (draft_round) WHERE (draft_round IS NOT NULL);
+CREATE INDEX IF NOT EXISTS idx_draft_pool_draft_round ON public.draft_pool USING btree (draft_round) WHERE (draft_round IS NOT NULL);
 
-CREATE INDEX idx_draft_pool_drafted_by ON public.draft_pool USING btree (drafted_by_team_id) WHERE (drafted_by_team_id IS NOT NULL);
+CREATE INDEX IF NOT EXISTS idx_draft_pool_drafted_by ON public.draft_pool USING btree (drafted_by_team_id) WHERE (drafted_by_team_id IS NOT NULL);
 
 -- Conditionally create index on is_available (may not exist)
 DO $$ 
@@ -101,65 +102,65 @@ BEGIN
   END IF;
 END $$;
 
-CREATE INDEX idx_draft_pool_season ON public.draft_pool USING btree (season_id);
+CREATE INDEX IF NOT EXISTS idx_draft_pool_season ON public.draft_pool USING btree (season_id);
 
-CREATE INDEX idx_draft_pool_status ON public.draft_pool USING btree (status) WHERE (status = 'available'::public.draft_pool_status);
+CREATE INDEX IF NOT EXISTS idx_draft_pool_status ON public.draft_pool USING btree (status) WHERE (status = 'available'::public.draft_pool_status);
 
-CREATE INDEX idx_sheets_draft_pool_available ON public.sheets_draft_pool USING btree (is_available) WHERE (is_available = true);
+CREATE INDEX IF NOT EXISTS idx_sheets_draft_pool_available ON public.sheets_draft_pool USING btree (is_available) WHERE (is_available = true);
 
-CREATE INDEX idx_sheets_draft_pool_generation ON public.sheets_draft_pool USING btree (generation);
+CREATE INDEX IF NOT EXISTS idx_sheets_draft_pool_generation ON public.sheets_draft_pool USING btree (generation);
 
-CREATE INDEX idx_sheets_draft_pool_point_value ON public.sheets_draft_pool USING btree (point_value);
+CREATE INDEX IF NOT EXISTS idx_sheets_draft_pool_point_value ON public.sheets_draft_pool USING btree (point_value);
 
-CREATE INDEX idx_sheets_draft_pool_pokemon_id ON public.sheets_draft_pool USING btree (pokemon_id) WHERE (pokemon_id IS NOT NULL);
+CREATE INDEX IF NOT EXISTS idx_sheets_draft_pool_pokemon_id ON public.sheets_draft_pool USING btree (pokemon_id) WHERE (pokemon_id IS NOT NULL);
 
-CREATE INDEX idx_sheets_draft_pool_pokemon_name ON public.sheets_draft_pool USING btree (pokemon_name);
+CREATE INDEX IF NOT EXISTS idx_sheets_draft_pool_pokemon_name ON public.sheets_draft_pool USING btree (pokemon_name);
 
-CREATE INDEX idx_sheets_draft_pool_sheet_name ON public.sheets_draft_pool USING btree (sheet_name);
+CREATE INDEX IF NOT EXISTS idx_sheets_draft_pool_sheet_name ON public.sheets_draft_pool USING btree (sheet_name);
 
-CREATE UNIQUE INDEX sheets_draft_pool_pkey ON public.sheets_draft_pool USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS sheets_draft_pool_pkey ON public.sheets_draft_pool USING btree (id);
 
-CREATE UNIQUE INDEX sheets_draft_pool_sheet_name_pokemon_name_point_value_key ON public.sheets_draft_pool USING btree (sheet_name, pokemon_name, point_value);
+CREATE UNIQUE INDEX IF NOT EXISTS sheets_draft_pool_sheet_name_pokemon_name_point_value_key ON public.sheets_draft_pool USING btree (sheet_name, pokemon_name, point_value);
 
-alter table "public"."sheets_draft_pool" add constraint "sheets_draft_pool_pkey" PRIMARY KEY using index "sheets_draft_pool_pkey";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'sheets_draft_pool_pkey') then alter table "public"."sheets_draft_pool" add constraint "sheets_draft_pool_pkey" PRIMARY KEY using index "sheets_draft_pool_pkey"; end if; end $$;
 
-alter table "public"."draft_pool" add constraint "draft_pool_draft_pick_number_check" CHECK ((draft_pick_number >= 1)) not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'draft_pool_draft_pick_number_check') then alter table "public"."draft_pool" add constraint "draft_pool_draft_pick_number_check" CHECK ((draft_pick_number >= 1)) not valid; end if; end $$;
 
 alter table "public"."draft_pool" validate constraint "draft_pool_draft_pick_number_check";
 
-alter table "public"."draft_pool" add constraint "draft_pool_draft_round_check" CHECK ((draft_round >= 1)) not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'draft_pool_draft_round_check') then alter table "public"."draft_pool" add constraint "draft_pool_draft_round_check" CHECK ((draft_round >= 1)) not valid; end if; end $$;
 
 alter table "public"."draft_pool" validate constraint "draft_pool_draft_round_check";
 
-alter table "public"."draft_pool" add constraint "draft_pool_drafted_by_team_id_fkey" FOREIGN KEY (drafted_by_team_id) REFERENCES public.teams(id) ON DELETE SET NULL not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'draft_pool_drafted_by_team_id_fkey') then alter table "public"."draft_pool" add constraint "draft_pool_drafted_by_team_id_fkey" FOREIGN KEY (drafted_by_team_id) REFERENCES public.teams(id) ON DELETE SET NULL not valid; end if; end $$;
 
 alter table "public"."draft_pool" validate constraint "draft_pool_drafted_by_team_id_fkey";
 
-alter table "public"."draft_pool" add constraint "draft_pool_season_id_fkey" FOREIGN KEY (season_id) REFERENCES public.seasons(id) ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'draft_pool_season_id_fkey') then alter table "public"."draft_pool" add constraint "draft_pool_season_id_fkey" FOREIGN KEY (season_id) REFERENCES public.seasons(id) ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."draft_pool" validate constraint "draft_pool_season_id_fkey";
 
-alter table "public"."draft_pool" add constraint "draft_pool_season_pokemon_unique" UNIQUE using index "draft_pool_season_pokemon_unique";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'draft_pool_season_pokemon_unique') then alter table "public"."draft_pool" add constraint "draft_pool_season_pokemon_unique" UNIQUE using index "draft_pool_season_pokemon_unique"; end if; end $$;
 
-alter table "public"."sheets_draft_pool" add constraint "sheets_draft_pool_generation_check" CHECK (((generation >= 1) AND (generation <= 9))) not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'sheets_draft_pool_generation_check') then alter table "public"."sheets_draft_pool" add constraint "sheets_draft_pool_generation_check" CHECK (((generation >= 1) AND (generation <= 9))) not valid; end if; end $$;
 
 alter table "public"."sheets_draft_pool" validate constraint "sheets_draft_pool_generation_check";
 
-alter table "public"."sheets_draft_pool" add constraint "sheets_draft_pool_point_value_check" CHECK (((point_value >= 1) AND (point_value <= 20))) not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'sheets_draft_pool_point_value_check') then alter table "public"."sheets_draft_pool" add constraint "sheets_draft_pool_point_value_check" CHECK (((point_value >= 1) AND (point_value <= 20))) not valid; end if; end $$;
 
 alter table "public"."sheets_draft_pool" validate constraint "sheets_draft_pool_point_value_check";
 
-alter table "public"."sheets_draft_pool" add constraint "sheets_draft_pool_pokemon_id_fkey" FOREIGN KEY (pokemon_id) REFERENCES public.pokemon_cache(pokemon_id) ON DELETE SET NULL not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'sheets_draft_pool_pokemon_id_fkey') then alter table "public"."sheets_draft_pool" add constraint "sheets_draft_pool_pokemon_id_fkey" FOREIGN KEY (pokemon_id) REFERENCES public.pokemon_cache(pokemon_id) ON DELETE SET NULL not valid; end if; end $$;
 
 alter table "public"."sheets_draft_pool" validate constraint "sheets_draft_pool_pokemon_id_fkey";
 
-alter table "public"."sheets_draft_pool" add constraint "sheets_draft_pool_sheet_name_pokemon_name_point_value_key" UNIQUE using index "sheets_draft_pool_sheet_name_pokemon_name_point_value_key";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'sheets_draft_pool_sheet_name_pokemon_name_point_value_key') then alter table "public"."sheets_draft_pool" add constraint "sheets_draft_pool_sheet_name_pokemon_name_point_value_key" UNIQUE using index "sheets_draft_pool_sheet_name_pokemon_name_point_value_key"; end if; end $$;
 
-alter table "public"."binary_data" add constraint "CHK_binary_data_sourceType" CHECK ((("sourceType")::text = ANY ((ARRAY['execution'::character varying, 'chat_message_attachment'::character varying])::text[]))) not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'CHK_binary_data_sourceType') then alter table "public"."binary_data" add constraint "CHK_binary_data_sourceType" CHECK ((("sourceType")::text = ANY ((ARRAY['execution'::character varying, 'chat_message_attachment'::character varying])::text[]))) not valid; end if; end $$;
 
 alter table "public"."binary_data" validate constraint "CHK_binary_data_sourceType";
 
-alter table "public"."workflow_publish_history" add constraint "CHK_workflow_publish_history_event" CHECK (((event)::text = ANY ((ARRAY['activated'::character varying, 'deactivated'::character varying])::text[]))) not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'CHK_workflow_publish_history_event') then alter table "public"."workflow_publish_history" add constraint "CHK_workflow_publish_history_event" CHECK (((event)::text = ANY ((ARRAY['activated'::character varying, 'deactivated'::character varying])::text[]))) not valid; end if; end $$;
 
 alter table "public"."workflow_publish_history" validate constraint "CHK_workflow_publish_history_event";
 
@@ -258,6 +259,7 @@ grant truncate on table "public"."sheets_draft_pool" to "service_role";
 grant update on table "public"."sheets_draft_pool" to "service_role";
 
 
+  drop policy if exists "Sheets draft pool is deletable by service role" on "public"."sheets_draft_pool";
   create policy "Sheets draft pool is deletable by service role"
   on "public"."sheets_draft_pool"
   as permissive
@@ -267,6 +269,7 @@ using (true);
 
 
 
+  drop policy if exists "Sheets draft pool is insertable by service role" on "public"."sheets_draft_pool";
   create policy "Sheets draft pool is insertable by service role"
   on "public"."sheets_draft_pool"
   as permissive
@@ -276,6 +279,7 @@ with check (true);
 
 
 
+  drop policy if exists "Sheets draft pool is updatable by service role" on "public"."sheets_draft_pool";
   create policy "Sheets draft pool is updatable by service role"
   on "public"."sheets_draft_pool"
   as permissive
@@ -286,6 +290,7 @@ with check (true);
 
 
 
+  drop policy if exists "Sheets draft pool is viewable by authenticated users" on "public"."sheets_draft_pool";
   create policy "Sheets draft pool is viewable by authenticated users"
   on "public"."sheets_draft_pool"
   as permissive

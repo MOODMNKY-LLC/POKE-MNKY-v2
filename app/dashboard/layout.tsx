@@ -4,6 +4,7 @@ import {
   SidebarProvider,
 } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
+import { TeraAssignmentModal } from "@/components/dashboard/tera-assignment-modal"
 
 export default function DashboardLayout({
   children,
@@ -17,6 +18,7 @@ export default function DashboardLayout({
         {children}
       </SidebarInset>
       <DashboardDock />
+      <TeraAssignmentModal />
     </SidebarProvider>
   )
 }
