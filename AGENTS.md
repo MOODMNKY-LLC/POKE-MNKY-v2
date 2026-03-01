@@ -1,4 +1,4 @@
-# POKE MNKY - Agent Instructions
+# POKE MNKY v3 - Agent Instructions
 
 ## OpenAI Developer Documentation
 

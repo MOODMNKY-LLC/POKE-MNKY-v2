@@ -1,0 +1,21 @@
+---
+description: Standards for theme assets: CSS and JS changes without regressions
+globs: "**/assets/**/*.{css,js,ts}"
+alwaysApply: false
+---
+
+# Assets (CSS/JS) Standards
+
+## CSS
+- Prefer extending existing utility/patterns used by the theme.
+- Avoid !important unless absolutely necessary.
+- Keep selectors scoped (prefer section root class hooks).
+
+## JS
+- Avoid heavy new dependencies unless requested.
+- Do not break existing event listeners (cart drawer, variant selectors).
+- Prefer progressive enhancement; don't assume JS always runs.
+
+## Performance
+- Avoid adding blocking scripts.
+- Avoid layout thrash: batch DOM reads/writes.

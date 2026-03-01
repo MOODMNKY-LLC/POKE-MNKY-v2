@@ -16,6 +16,7 @@ CREATE INDEX IF NOT EXISTS idx_storage_track_playlist_filename ON storage_track_
 CREATE INDEX IF NOT EXISTS idx_storage_track_playlist_enabled ON storage_track_playlist_status(is_playlist_enabled);
 
 -- Updated_at trigger
+DROP TRIGGER IF EXISTS update_storage_track_playlist_status_updated_at ON storage_track_playlist_status;
 CREATE TRIGGER update_storage_track_playlist_status_updated_at
   BEFORE UPDATE ON storage_track_playlist_status
   FOR EACH ROW
@@ -25,11 +26,13 @@ CREATE TRIGGER update_storage_track_playlist_status_updated_at
 ALTER TABLE storage_track_playlist_status ENABLE ROW LEVEL SECURITY;
 
 -- Public read access for enabled tracks (users need to see what's in playlist)
+DROP POLICY IF EXISTS "Public can read playlist enabled tracks" ON storage_track_playlist_status;
 CREATE POLICY "Public can read playlist enabled tracks"
 ON storage_track_playlist_status FOR SELECT
 USING (is_playlist_enabled = true);
 
 -- Admin full access
+DROP POLICY IF EXISTS "Admins can manage playlist track status" ON storage_track_playlist_status;
 CREATE POLICY "Admins can manage playlist track status"
 ON storage_track_playlist_status FOR ALL
 USING (

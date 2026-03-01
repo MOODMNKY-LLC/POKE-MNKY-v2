@@ -9,6 +9,8 @@ import { useRouter } from "next/navigation"
 import { TransactionForm } from "@/components/free-agency/transaction-form"
 import { AvailablePokemonBrowser } from "@/components/free-agency/available-pokemon-browser"
 import { TransactionHistory } from "@/components/free-agency/transaction-history"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { FreeAgencyChat } from "@/components/ai/free-agency-chat"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -153,11 +155,31 @@ export default function FreeAgencyPage() {
   return (
     <div className="container mx-auto py-8 max-w-6xl space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Free Agency</h1>
-        <p className="text-muted-foreground">
-          Manage your team roster through free agency transactions
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Free Agency</h1>
+          <p className="text-muted-foreground">
+            Moves are scheduled for 12:00 AM Monday EST. View pool by week below.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Label htmlFor="week">Week</Label>
+          <Select
+            value={weekNumber.toString()}
+            onValueChange={(v) => setWeekNumber(parseInt(v, 10))}
+          >
+            <SelectTrigger id="week" className="w-24">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Array.from({ length: 18 }, (_, i) => i + 1).map((w) => (
+                <SelectItem key={w} value={w.toString()}>
+                  Week {w}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Team Status */}
@@ -261,7 +283,7 @@ export default function FreeAgencyPage() {
         </TabsContent>
 
         <TabsContent value="browse">
-          <AvailablePokemonBrowser seasonId={seasonId} />
+          <AvailablePokemonBrowser seasonId={seasonId} weekNumber={weekNumber} />
         </TabsContent>
 
         <TabsContent value="history">

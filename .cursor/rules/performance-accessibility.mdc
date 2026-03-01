@@ -1,0 +1,18 @@
+---
+description: Performance and accessibility guardrails for storefront UX
+globs: "**/*.{liquid,css,js,ts}"
+alwaysApply: false
+---
+
+# Performance + Accessibility Guardrails
+
+## Performance
+- Prefer minimal DOM additions.
+- Avoid large images without responsive sizing.
+- Keep JS lightweight and non-blocking.
+
+## Accessibility
+- Buttons and links must be keyboard reachable.
+- Form inputs must have labels or aria-label.
+- Ensure focus styles remain visible.
+- If introducing interactive UI, add ARIA roles/states appropriately.

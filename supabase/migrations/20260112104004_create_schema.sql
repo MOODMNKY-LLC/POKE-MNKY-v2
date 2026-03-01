@@ -106,20 +106,32 @@ ALTER TABLE public.matches ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.pokemon_stats ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.sync_log ENABLE ROW LEVEL SECURITY;
 
--- Public read access for all tables (everyone can view)
+-- Public read access for all tables (idempotent: drop if exists)
+DROP POLICY IF EXISTS "Allow public read access on teams" ON public.teams;
 CREATE POLICY "Allow public read access on teams" ON public.teams FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Allow public read access on pokemon" ON public.pokemon;
 CREATE POLICY "Allow public read access on pokemon" ON public.pokemon FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Allow public read access on team_rosters" ON public.team_rosters;
 CREATE POLICY "Allow public read access on team_rosters" ON public.team_rosters FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Allow public read access on matches" ON public.matches;
 CREATE POLICY "Allow public read access on matches" ON public.matches FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Allow public read access on pokemon_stats" ON public.pokemon_stats;
 CREATE POLICY "Allow public read access on pokemon_stats" ON public.pokemon_stats FOR SELECT USING (true);
 
--- Admin-only write access (will implement admin role later)
+-- Admin-only write access (idempotent)
+DROP POLICY IF EXISTS "Allow authenticated insert on teams" ON public.teams;
 CREATE POLICY "Allow authenticated insert on teams" ON public.teams FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "Allow authenticated update on teams" ON public.teams;
 CREATE POLICY "Allow authenticated update on teams" ON public.teams FOR UPDATE USING (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "Allow authenticated insert on matches" ON public.matches;
 CREATE POLICY "Allow authenticated insert on matches" ON public.matches FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "Allow authenticated update on matches" ON public.matches;
 CREATE POLICY "Allow authenticated update on matches" ON public.matches FOR UPDATE USING (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "Allow authenticated insert on pokemon_stats" ON public.pokemon_stats;
 CREATE POLICY "Allow authenticated insert on pokemon_stats" ON public.pokemon_stats FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 
--- Allow sync log writes for authenticated users
+-- Allow sync log writes (idempotent)
+DROP POLICY IF EXISTS "Allow authenticated insert on sync_log" ON public.sync_log;
 CREATE POLICY "Allow authenticated insert on sync_log" ON public.sync_log FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "Allow public read on sync_log" ON public.sync_log;
 CREATE POLICY "Allow public read on sync_log" ON public.sync_log FOR SELECT USING (true);

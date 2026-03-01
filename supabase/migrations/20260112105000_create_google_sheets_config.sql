@@ -39,15 +39,23 @@ CREATE INDEX IF NOT EXISTS idx_sheet_mappings_order ON public.sheet_mappings(con
 ALTER TABLE public.google_sheets_config ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.sheet_mappings ENABLE ROW LEVEL SECURITY;
 
--- Policies: Only authenticated users can read, only admins can write
+-- Policies (idempotent: drop if exists)
+DROP POLICY IF EXISTS "Public read google_sheets_config" ON public.google_sheets_config;
 CREATE POLICY "Public read google_sheets_config" ON public.google_sheets_config FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Authenticated insert google_sheets_config" ON public.google_sheets_config;
 CREATE POLICY "Authenticated insert google_sheets_config" ON public.google_sheets_config FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "Authenticated update google_sheets_config" ON public.google_sheets_config;
 CREATE POLICY "Authenticated update google_sheets_config" ON public.google_sheets_config FOR UPDATE USING (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "Authenticated delete google_sheets_config" ON public.google_sheets_config;
 CREATE POLICY "Authenticated delete google_sheets_config" ON public.google_sheets_config FOR DELETE USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Public read sheet_mappings" ON public.sheet_mappings;
 CREATE POLICY "Public read sheet_mappings" ON public.sheet_mappings FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Authenticated insert sheet_mappings" ON public.sheet_mappings;
 CREATE POLICY "Authenticated insert sheet_mappings" ON public.sheet_mappings FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "Authenticated update sheet_mappings" ON public.sheet_mappings;
 CREATE POLICY "Authenticated update sheet_mappings" ON public.sheet_mappings FOR UPDATE USING (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "Authenticated delete sheet_mappings" ON public.sheet_mappings;
 CREATE POLICY "Authenticated delete sheet_mappings" ON public.sheet_mappings FOR DELETE USING (auth.role() = 'authenticated');
 
 -- Function to update updated_at timestamp
@@ -59,12 +67,14 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Triggers for updated_at
+-- Triggers for updated_at (idempotent)
+DROP TRIGGER IF EXISTS update_google_sheets_config_updated_at ON public.google_sheets_config;
 CREATE TRIGGER update_google_sheets_config_updated_at
   BEFORE UPDATE ON public.google_sheets_config
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_sheet_mappings_updated_at ON public.sheet_mappings;
 CREATE TRIGGER update_sheet_mappings_updated_at
   BEFORE UPDATE ON public.sheet_mappings
   FOR EACH ROW

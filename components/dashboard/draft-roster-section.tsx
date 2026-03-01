@@ -8,12 +8,16 @@ import { BudgetDisplay } from "@/components/draft/budget-display"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export function DraftRosterSection() {
   const [seasonId, setSeasonId] = useState<string | null>(null)
   const [teamId, setTeamId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [userTeam, setUserTeam] = useState<{ id: string; name: string } | null>(null)
+  const [weeks, setWeeks] = useState<{ week_number: number; label: string }[]>([])
+  const [selectedWeek, setSelectedWeek] = useState<number | null>(null)
   const supabase = createBrowserClient()
 
   useEffect(() => {
@@ -39,11 +43,13 @@ export function DraftRosterSection() {
         // Load user's team
         const { data: { user } } = await supabase.auth.getUser()
         if (user) {
-          const { data: teamData } = await supabase
+          const { data: coachRow } = await supabase.from("coaches").select("id").eq("user_id", user.id).maybeSingle()
+        const coachId = (coachRow as any)?.id ?? user.id
+        const { data: teamData } = await supabase
             .from("teams")
             .select("id, name")
-            .eq("coach_id", user.id)
             .eq("season_id", seasonData.id)
+            .eq("coach_id", coachId)
             .maybeSingle()
 
           if (teamData) {
@@ -53,6 +59,16 @@ export function DraftRosterSection() {
             })
             setTeamId(teamData.id)
           }
+          const { data: matchweeks } = await supabase
+            .from("matchweeks")
+            .select("week_number")
+            .eq("season_id", seasonData.id)
+            .order("week_number", { ascending: true })
+          const weekList = (matchweeks ?? []).map((w: any) => ({
+            week_number: w.week_number,
+            label: `Week ${w.week_number}`,
+          }))
+          setWeeks(weekList)
         }
       }
     } catch (error) {
@@ -97,10 +113,35 @@ export function DraftRosterSection() {
         </p>
       </div>
 
+      {weeks.length > 0 && (
+        <div className="flex items-center gap-2">
+          <Label htmlFor="week-select">Roster for week</Label>
+          <Select
+            value={selectedWeek != null ? String(selectedWeek) : "current"}
+            onValueChange={(v) => setSelectedWeek(v === "current" ? null : parseInt(v, 10))}
+          >
+            <SelectTrigger id="week-select" className="w-40">
+              <SelectValue placeholder="Current" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="current">Current (live)</SelectItem>
+              {weeks.map((w) => (
+                <SelectItem key={w.week_number} value={String(w.week_number)}>
+                  {w.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            {selectedWeek != null ? "Snapshot for that week (no changes until Monday midnight)." : "Live roster and pending moves."}
+          </p>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left: Roster */}
         <div>
-          <TeamRosterPanel teamId={teamId} seasonId={seasonId} />
+          <TeamRosterPanel teamId={teamId} seasonId={seasonId} weekNumber={selectedWeek} />
         </div>
 
         {/* Right: Budget and Stats */}

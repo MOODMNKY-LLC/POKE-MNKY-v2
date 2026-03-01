@@ -125,14 +125,19 @@ CREATE INDEX IF NOT EXISTS pokepedia_assets_resource_idx
 
 -- ============================================================================
 -- SUPABASE QUEUES (pgmq)
--- Durable background processing queues
+-- Idempotent: create queues only if they don't exist
 -- ============================================================================
 
--- Queue for resource ingestion (PokéAPI URLs)
-SELECT pgmq.create('pokepedia_ingest');
-
--- Queue for sprite downloads
-SELECT pgmq.create('pokepedia_sprites');
+DO $$
+BEGIN
+  PERFORM pgmq.create('pokepedia_ingest');
+EXCEPTION WHEN OTHERS THEN NULL; -- queue or sequence already exists
+END $$;
+DO $$
+BEGIN
+  PERFORM pgmq.create('pokepedia_sprites');
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
 
 -- ============================================================================
 -- HELPER FUNCTIONS
@@ -227,39 +232,30 @@ ALTER TABLE public.pokeapi_resources ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.pokepedia_pokemon ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.pokepedia_assets ENABLE ROW LEVEL SECURITY;
 
--- Policy: Allow public read access to pokeapi_resources
+-- Policies (idempotent: drop if exists)
+DROP POLICY IF EXISTS "Allow public read access to pokeapi_resources" ON public.pokeapi_resources;
 CREATE POLICY "Allow public read access to pokeapi_resources"
-  ON public.pokeapi_resources
-  FOR SELECT
-  USING (true);
+  ON public.pokeapi_resources FOR SELECT USING (true);
 
--- Policy: Allow public read access to pokepedia_pokemon
+DROP POLICY IF EXISTS "Allow public read access to pokepedia_pokemon" ON public.pokepedia_pokemon;
 CREATE POLICY "Allow public read access to pokepedia_pokemon"
-  ON public.pokepedia_pokemon
-  FOR SELECT
-  USING (true);
+  ON public.pokepedia_pokemon FOR SELECT USING (true);
 
--- Policy: Allow public read access to pokepedia_assets
+DROP POLICY IF EXISTS "Allow public read access to pokepedia_assets" ON public.pokepedia_assets;
 CREATE POLICY "Allow public read access to pokepedia_assets"
-  ON public.pokepedia_assets
-  FOR SELECT
-  USING (true);
+  ON public.pokepedia_assets FOR SELECT USING (true);
 
--- Policy: Service role can write (for edge functions)
+DROP POLICY IF EXISTS "Service role can write pokeapi_resources" ON public.pokeapi_resources;
 CREATE POLICY "Service role can write pokeapi_resources"
-  ON public.pokeapi_resources
-  FOR ALL
-  USING (auth.role() = 'service_role');
+  ON public.pokeapi_resources FOR ALL USING (auth.role() = 'service_role');
 
+DROP POLICY IF EXISTS "Service role can write pokepedia_pokemon" ON public.pokepedia_pokemon;
 CREATE POLICY "Service role can write pokepedia_pokemon"
-  ON public.pokepedia_pokemon
-  FOR ALL
-  USING (auth.role() = 'service_role');
+  ON public.pokepedia_pokemon FOR ALL USING (auth.role() = 'service_role');
 
+DROP POLICY IF EXISTS "Service role can write pokepedia_assets" ON public.pokepedia_assets;
 CREATE POLICY "Service role can write pokepedia_assets"
-  ON public.pokepedia_assets
-  FOR ALL
-  USING (auth.role() = 'service_role');
+  ON public.pokepedia_assets FOR ALL USING (auth.role() = 'service_role');
 
 -- ============================================================================
 -- COMMENTS

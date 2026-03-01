@@ -1,6 +1,5 @@
 ---
 description: Comprehensive MCP tool usage guidelines for all configured servers
-globs: 
 alwaysApply: true
 ---
 
@@ -96,6 +95,21 @@ Our MCP configuration includes 11 servers across multiple categories: search and
 - Use for generating UI components
 - Integrates with design systems
 - No API key required (npx-based)
+
+### 21st.dev Magic MCP (@21st-dev/magic)
+**When to Use**: Natural-language-driven UI component generation, 21st.dev-style components, logos/brand assets, rapid UI iteration from descriptions (e.g. "/ui create a modern navigation bar").
+
+**Capabilities** (tools): `create-ui` (generate components from descriptions), `fetch-ui` (retrieve existing components), `refine-ui` (enhance or modify components), `logo-search` (search logos and brand assets via SVGL).
+
+**Best Practices**:
+- Use for polished, 21st.dev-inspired components when you need quick generation from a text prompt.
+- Combine with shadcn for structure and Magic UI for motion; use 21st.dev Magic when the user wants "generate a component from description" or brand/logo search.
+- Generated components are added to the project and are fully editable (TypeScript, Tailwind).
+- For complex UIs, break into smaller components and generate in steps.
+
+**Configuration**: Requires `MAGIC_21ST_API_KEY` in environment variables. Generate at [21st.dev Magic Console](https://21st.dev/magic/console). Store in `.env` (gitignored); reference in mcp.json as `"API_KEY": "${env:MAGIC_21ST_API_KEY}"`.
+
+**Decision Guide**: Use shadcn MCP for adding/customizing shadcn primitives; Magic UI Design MCP for animated/high-impact blocks; 21st.dev Magic for natural-language "create this UI" and logo/brand asset search.
 
 ## Version Control Tools
 
@@ -196,6 +210,7 @@ Our MCP configuration includes 11 servers across multiple categories: search and
 2. Use GitHub MCP for version control operations
 3. Use Notion MCP for documentation and project management
 4. Use search tools for troubleshooting and research
+5. Use 21st.dev Magic for natural-language UI component generation when building or refining interfaces
 
 ## Error Handling
 

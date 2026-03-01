@@ -21,9 +21,11 @@ CREATE INDEX IF NOT EXISTS idx_sync_jobs_started_at ON public.sync_jobs(started_
 -- Enable RLS
 ALTER TABLE public.sync_jobs ENABLE ROW LEVEL SECURITY;
 
--- Public read access
+-- Public read access (idempotent)
+DROP POLICY IF EXISTS "Public read sync_jobs" ON public.sync_jobs;
 CREATE POLICY "Public read sync_jobs" ON public.sync_jobs FOR SELECT USING (true);
 
--- Authenticated users can insert/update sync jobs
+DROP POLICY IF EXISTS "Authenticated insert sync_jobs" ON public.sync_jobs;
+DROP POLICY IF EXISTS "Authenticated update sync_jobs" ON public.sync_jobs;
 CREATE POLICY "Authenticated insert sync_jobs" ON public.sync_jobs FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 CREATE POLICY "Authenticated update sync_jobs" ON public.sync_jobs FOR UPDATE USING (auth.role() = 'authenticated');

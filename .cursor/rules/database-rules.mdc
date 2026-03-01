@@ -1,11 +1,5 @@
 ---
-description: 
-globs: 
-alwaysApply: true
----
----
-description: 
-globs: 
+description: Supabase/Postgres usage; dev-only; no destructive changes without confirmation
 alwaysApply: true
 ---
 ## Supabase (Postgres MCP - Development Only)

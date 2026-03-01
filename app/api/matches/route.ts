@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
-import { apiError, apiErrorInternal } from "@/lib/api-response"
+import { getMatchesQuerySchema } from "@/lib/validation/matches"
+import { validationError, internalError } from "@/lib/api-error"
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -10,7 +11,13 @@ const supabase = createClient(
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
-    const weekParam = searchParams.get("week")
+    const parsed = getMatchesQuerySchema.safeParse({
+      week: searchParams.get("week") ?? undefined,
+    })
+    if (!parsed.success) {
+      return validationError("Invalid query", parsed.error.errors)
+    }
+    const { week } = parsed.data
 
     let query = supabase
       .from("matches")
@@ -25,25 +32,23 @@ export async function GET(request: Request) {
       .order("week", { ascending: true })
       .order("created_at", { ascending: true })
 
-    if (weekParam) {
-      const week = parseInt(weekParam, 10)
-      if (Number.isNaN(week)) {
-        return apiError("Invalid week parameter", 400, { code: "INVALID_WEEK" })
-      }
+    if (week !== undefined) {
       query = query.eq("week", week)
     }
 
     const { data: matches, error } = await query
 
     if (error) {
-      console.error("[Matches] Fetch error:", error)
-      return apiError(error.message, 500, { code: "DB_ERROR" })
+      return internalError(error.message)
     }
 
     return NextResponse.json({
       matches: matches || [],
     })
-  } catch (error) {
-    return apiErrorInternal(error, "Matches GET")
+  } catch (err) {
+    return internalError(
+      err instanceof Error ? err.message : "Internal server error",
+      process.env.NODE_ENV === "development" ? err : undefined
+    )
   }
 }

@@ -33,10 +33,10 @@ COMMENT ON TABLE public.pokeapi_resource_cache IS 'ETag cache for PokéAPI resou
 -- Enable RLS (optional, but good practice)
 ALTER TABLE public.pokeapi_resource_cache ENABLE ROW LEVEL SECURITY;
 
--- Policy: Allow service role full access
+DROP POLICY IF EXISTS "Service role can manage cache" ON public.pokeapi_resource_cache;
 CREATE POLICY "Service role can manage cache" ON public.pokeapi_resource_cache
   FOR ALL USING (auth.role() = 'service_role');
 
--- Policy: Allow authenticated users to read cache
+DROP POLICY IF EXISTS "Authenticated users can read cache" ON public.pokeapi_resource_cache;
 CREATE POLICY "Authenticated users can read cache" ON public.pokeapi_resource_cache
   FOR SELECT USING (auth.role() = 'authenticated');

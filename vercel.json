@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/sync-pokemon",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/execute-transactions",
+      "schedule": "0 5 * * 1"
+    }
+  ]
+}

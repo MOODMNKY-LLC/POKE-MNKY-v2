@@ -38,7 +38,7 @@ POKE MNKY is a sophisticated distributed ecosystem that combines **self-hosted b
 
 ### Current Status
 
-**Version**: v2 → v3 Transition  
+**Version**: v3  
 **Progress**: ~85% Complete  
 **Status**: Production-ready foundation with core functionality operational
 
@@ -333,19 +333,18 @@ See [Environment Setup](#environment-setup) section for detailed instructions.
 
 ## 📚 Documentation
 
-### Comprehensive Documentation
+### Core docs (in repo)
 
-- **[v3 First Principles Report](./POKE-MNKY-V3-FIRST-PRINCIPLES-REPORT.md)** - Complete ecosystem analysis
-- **[Project Roadmap](./PROJECT-ROADMAP.md)** - Development roadmap and vision
-- **[Local Development Guide](./LOCAL-DEVELOPMENT.md)** - Local setup instructions
-- **[Scripts Guide](./SCRIPTS-GUIDE.md)** - Utility scripts documentation
+- **[Changelog](./CHANGELOG.md)** - Version history and v3 release notes
+- **[Design System](./docs/DESIGN-SYSTEM.md)** - Tokens, components, motion
+- **[RLS and Auth Testing](./docs/RLS-AND-AUTH-TESTING.md)** - RLS test matrix and Discord OAuth
 
-### Detailed Guides
+### Detailed guides
 
-- **Database**: See `supabase/migrations/` for schema evolution
-- **API**: See `app/api/` for endpoint implementations
-- **Components**: See `components/` for reusable UI components
-- **Server Services**: See `docs/` for server infrastructure details
+- **Database**: `supabase/migrations/` for schema evolution
+- **API**: `app/api/` for endpoint implementations
+- **Components**: `components/` for reusable UI components
+- **Server and guides**: `docs/` for infrastructure and feature docs
 
 ---
 

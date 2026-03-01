@@ -14,6 +14,7 @@ import { createClient } from "@/lib/supabase/client"
 interface TeamRosterPanelProps {
   teamId: string | null
   seasonId: string
+  weekNumber?: number | null
 }
 
 interface RosterPick {
@@ -24,7 +25,7 @@ interface RosterPick {
   draft_round: number
 }
 
-export function TeamRosterPanel({ teamId, seasonId }: TeamRosterPanelProps) {
+export function TeamRosterPanel({ teamId, seasonId, weekNumber }: TeamRosterPanelProps) {
   const [roster, setRoster] = useState<RosterPick[]>([])
   const [budget, setBudget] = useState({ total: 120, spent: 0, remaining: 120 })
   const [loading, setLoading] = useState(true)
@@ -46,7 +47,6 @@ export function TeamRosterPanel({ teamId, seasonId }: TeamRosterPanelProps) {
   useEffect(() => {
     if (!teamId || !supabase) {
       if (!supabase) {
-        // Still waiting for Supabase client
         return
       }
       setLoading(false)
@@ -56,10 +56,31 @@ export function TeamRosterPanel({ teamId, seasonId }: TeamRosterPanelProps) {
     async function fetchRoster() {
       try {
         setLoading(true)
-        
-        // Fetch team roster
-        // Note: team_rosters doesn't have season_id, but teams do
-        // We filter by team_id which is already scoped to the season
+
+        if (weekNumber != null && seasonId) {
+          const res = await fetch(
+            `/api/teams/${teamId}/roster-by-week?seasonId=${encodeURIComponent(seasonId)}&week_number=${weekNumber}`
+          )
+          const data = await res.json()
+          if (!res.ok) {
+            setRoster([])
+            setLoading(false)
+            return
+          }
+          const picks: RosterPick[] = (data.roster ?? []).map((r: any, i: number) => ({
+            id: `${r.pokemon_id}-${i}`,
+            pokemon_name: r.pokemon_name ?? "Unknown",
+            pokemon_id: r.pokemon_id,
+            point_value: r.point_value ?? 0,
+            draft_round: i + 1,
+          }))
+          setRoster(picks)
+          const spent = picks.reduce((sum, p) => sum + p.point_value, 0)
+          setBudget({ total: 120, spent, remaining: 120 - spent })
+          setLoading(false)
+          return
+        }
+
         const { data: rosterData, error: rosterError } = await supabase
           .from("team_rosters")
           .select(`
@@ -84,8 +105,8 @@ export function TeamRosterPanel({ teamId, seasonId }: TeamRosterPanelProps) {
 
         if (rosterData) {
           const picks: RosterPick[] = rosterData
-            .filter(r => r.pokemon)
-            .map(r => ({
+            .filter((r) => r.pokemon)
+            .map((r) => ({
               id: r.id,
               pokemon_name: (r.pokemon as any)?.name || "Unknown",
               pokemon_id: r.pokemon_id,
@@ -94,7 +115,6 @@ export function TeamRosterPanel({ teamId, seasonId }: TeamRosterPanelProps) {
             }))
 
           setRoster(picks)
-          
           const spent = picks.reduce((sum, p) => sum + p.point_value, 0)
           setBudget({
             total: 120,
@@ -111,7 +131,9 @@ export function TeamRosterPanel({ teamId, seasonId }: TeamRosterPanelProps) {
 
     fetchRoster()
 
-    // Subscribe to roster changes
+    if (weekNumber != null) {
+      return
+    }
     const channel = supabase
       .channel(`team-roster:${teamId}`)
       .on(
@@ -131,7 +153,7 @@ export function TeamRosterPanel({ teamId, seasonId }: TeamRosterPanelProps) {
     return () => {
       channel.unsubscribe()
     }
-  }, [teamId, seasonId, supabase])
+  }, [teamId, seasonId, supabase, weekNumber])
 
   // Show loading state while Supabase client initializes
   if (!supabase) {

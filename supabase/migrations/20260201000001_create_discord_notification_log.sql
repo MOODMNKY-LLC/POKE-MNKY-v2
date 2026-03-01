@@ -26,12 +26,14 @@ CREATE INDEX IF NOT EXISTS idx_discord_notification_log_success
 ALTER TABLE public.discord_notification_log ENABLE ROW LEVEL SECURITY;
 
 -- Public read access
+DROP POLICY IF EXISTS "Public read discord_notification_log" ON public.discord_notification_log;
 CREATE POLICY "Public read discord_notification_log" 
   ON public.discord_notification_log 
   FOR SELECT 
   USING (true);
 
 -- Authenticated users can insert notification logs
+DROP POLICY IF EXISTS "Authenticated insert discord_notification_log" ON public.discord_notification_log;
 CREATE POLICY "Authenticated insert discord_notification_log" 
   ON public.discord_notification_log 
   FOR INSERT 

@@ -28,17 +28,20 @@ CREATE INDEX IF NOT EXISTS idx_notion_webhook_subscriptions_created_at
 ALTER TABLE public.notion_webhook_subscriptions ENABLE ROW LEVEL SECURITY;
 
 -- Public read access
+DROP POLICY IF EXISTS "Public read notion_webhook_subscriptions" ON public.notion_webhook_subscriptions;
 CREATE POLICY "Public read notion_webhook_subscriptions" 
   ON public.notion_webhook_subscriptions 
   FOR SELECT 
   USING (true);
 
 -- Authenticated users can insert/update webhook subscriptions
+DROP POLICY IF EXISTS "Authenticated insert notion_webhook_subscriptions" ON public.notion_webhook_subscriptions;
 CREATE POLICY "Authenticated insert notion_webhook_subscriptions" 
   ON public.notion_webhook_subscriptions 
   FOR INSERT 
   WITH CHECK (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Authenticated update notion_webhook_subscriptions" ON public.notion_webhook_subscriptions;
 CREATE POLICY "Authenticated update notion_webhook_subscriptions" 
   ON public.notion_webhook_subscriptions 
   FOR UPDATE 

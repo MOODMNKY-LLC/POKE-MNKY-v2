@@ -59,7 +59,7 @@ WHERE is_tera_banned IS NULL;
 -- Create index if it doesn't exist
 CREATE INDEX IF NOT EXISTS idx_sheets_draft_pool_tera_banned 
 ON public.sheets_draft_pool(is_tera_banned) 
-WHERE is_tera_banned = true;
+WHERE (is_tera_banned::text IN ('true', 't'));
 
 -- Add comment explaining the column
 COMMENT ON COLUMN public.sheets_draft_pool.is_tera_banned IS 

@@ -11,7 +11,8 @@
  *      }]
  *    }
  *
- * 2. Set CRON_SECRET in Vercel environment variables
+ * 2. Generate a random secret and set CRON_SECRET in Vercel (see docs/CRON-SECRET-SETUP.md).
+ *    Vercel sends it automatically as Authorization: Bearer <CRON_SECRET> when invoking the cron.
  */
 
 import { NextResponse } from "next/server"
@@ -66,7 +67,8 @@ async function getExpiredPokemon(): Promise<number[]> {
 export async function GET(request: Request) {
   // Verify cron secret
   const authHeader = request.headers.get("authorization")
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  const secret = process.env.CRON_SECRET?.trim()
+  if (!secret || authHeader !== `Bearer ${secret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 

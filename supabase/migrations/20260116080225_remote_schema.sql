@@ -109,7 +109,7 @@ BEGIN
   END IF;
 END $$;
 
-  create table "public"."replayplayers" (
+  create table if not exists "public"."replayplayers" (
     "playerid" character varying(45) not null,
     "formatid" character varying(45) not null,
     "id" character varying(255) not null,
@@ -125,7 +125,7 @@ END $$;
 alter table "public"."replayplayers" enable row level security;
 
 
-  create table "public"."replays" (
+  create table if not exists "public"."replays" (
     "id" character varying(255) not null,
     "format" character varying(45) not null,
     "players" character varying(255) not null,
@@ -143,7 +143,7 @@ alter table "public"."replayplayers" enable row level security;
 alter table "public"."replays" enable row level security;
 
 
-  create table "public"."showdown_client_teams" (
+  create table if not exists "public"."showdown_client_teams" (
     "teamid" text not null,
     "ownerid" text not null,
     "team" text not null,
@@ -160,7 +160,7 @@ alter table "public"."replays" enable row level security;
 alter table "public"."showdown_client_teams" enable row level security;
 
 
-  create table "public"."team_categories" (
+  create table if not exists "public"."team_categories" (
     "category_id" text not null,
     "category_name" text not null,
     "description" text,
@@ -176,7 +176,7 @@ alter table "public"."showdown_client_teams" enable row level security;
 alter table "public"."team_categories" enable row level security;
 
 
-  create table "public"."team_formats" (
+  create table if not exists "public"."team_formats" (
     "format_id" text not null,
     "format_name" text not null,
     "generation" integer,
@@ -193,7 +193,7 @@ alter table "public"."team_categories" enable row level security;
 alter table "public"."team_formats" enable row level security;
 
 
-  create table "public"."team_tag_assignments" (
+  create table if not exists "public"."team_tag_assignments" (
     "teamid" text not null,
     "tag_id" text not null,
     "created_at" timestamp with time zone not null default now()
@@ -203,7 +203,7 @@ alter table "public"."team_formats" enable row level security;
 alter table "public"."team_tag_assignments" enable row level security;
 
 
-  create table "public"."team_tags" (
+  create table if not exists "public"."team_tags" (
     "tag_id" text not null,
     "tag_name" text not null,
     "tag_type" text not null,
@@ -216,82 +216,73 @@ alter table "public"."team_tag_assignments" enable row level security;
 
 alter table "public"."team_tags" enable row level security;
 
-CREATE INDEX idx_replayplayers_formatid_playerid_rating ON public.replayplayers USING btree (formatid, playerid, rating);
+CREATE INDEX IF NOT EXISTS idx_replayplayers_formatid_playerid_rating ON public.replayplayers USING btree (formatid, playerid, rating);
 
-CREATE INDEX idx_replayplayers_formatid_playerid_uploadtime ON public.replayplayers USING btree (formatid, playerid, uploadtime);
+CREATE INDEX IF NOT EXISTS idx_replayplayers_formatid_playerid_uploadtime ON public.replayplayers USING btree (formatid, playerid, uploadtime);
 
-CREATE INDEX idx_replayplayers_playerid_rating ON public.replayplayers USING btree (playerid, rating);
+CREATE INDEX IF NOT EXISTS idx_replayplayers_playerid_rating ON public.replayplayers USING btree (playerid, rating);
 
-CREATE INDEX idx_replayplayers_playerid_uploadtime ON public.replayplayers USING btree (playerid, uploadtime);
+CREATE INDEX IF NOT EXISTS idx_replayplayers_playerid_uploadtime ON public.replayplayers USING btree (playerid, uploadtime);
 
-CREATE INDEX idx_replays_log_gin ON public.replays USING gin (to_tsvector('english'::regconfig, log));
+CREATE INDEX IF NOT EXISTS idx_replays_log_gin ON public.replays USING gin (to_tsvector('english'::regconfig, log));
 
-CREATE INDEX idx_replays_private_formatid_rating ON public.replays USING btree (private, formatid, rating);
+CREATE INDEX IF NOT EXISTS idx_replays_private_formatid_rating ON public.replays USING btree (private, formatid, rating);
 
-CREATE INDEX idx_replays_private_formatid_uploadtime ON public.replays USING btree (private, formatid, uploadtime);
+CREATE INDEX IF NOT EXISTS idx_replays_private_formatid_uploadtime ON public.replays USING btree (private, formatid, uploadtime);
 
-CREATE INDEX idx_replays_private_uploadtime ON public.replays USING btree (private, uploadtime);
+CREATE INDEX IF NOT EXISTS idx_replays_private_uploadtime ON public.replays USING btree (private, uploadtime);
 
-CREATE INDEX idx_showdown_client_teams_date ON public.showdown_client_teams USING btree (date DESC);
+CREATE INDEX IF NOT EXISTS idx_showdown_client_teams_date ON public.showdown_client_teams USING btree (date DESC);
 
-CREATE INDEX idx_showdown_client_teams_format ON public.showdown_client_teams USING btree (format);
+CREATE INDEX IF NOT EXISTS idx_showdown_client_teams_format ON public.showdown_client_teams USING btree (format);
 
-CREATE INDEX idx_showdown_client_teams_ownerid ON public.showdown_client_teams USING btree (ownerid);
+CREATE INDEX IF NOT EXISTS idx_showdown_client_teams_ownerid ON public.showdown_client_teams USING btree (ownerid);
 
-CREATE INDEX idx_team_categories_featured ON public.team_categories USING btree (is_featured);
+CREATE INDEX IF NOT EXISTS idx_team_categories_featured ON public.team_categories USING btree (is_featured);
 
-CREATE INDEX idx_team_categories_sort ON public.team_categories USING btree (sort_order);
+CREATE INDEX IF NOT EXISTS idx_team_categories_sort ON public.team_categories USING btree (sort_order);
 
-CREATE INDEX idx_team_formats_active ON public.team_formats USING btree (is_active);
+CREATE INDEX IF NOT EXISTS idx_team_formats_active ON public.team_formats USING btree (is_active);
 
-CREATE INDEX idx_team_formats_category ON public.team_formats USING btree (category);
+CREATE INDEX IF NOT EXISTS idx_team_formats_category ON public.team_formats USING btree (category);
 
-CREATE INDEX idx_team_formats_generation ON public.team_formats USING btree (generation);
+CREATE INDEX IF NOT EXISTS idx_team_formats_generation ON public.team_formats USING btree (generation);
 
-CREATE INDEX idx_team_formats_tier ON public.team_formats USING btree (tier);
+CREATE INDEX IF NOT EXISTS idx_team_formats_tier ON public.team_formats USING btree (tier);
 
-CREATE INDEX idx_team_tag_assignments_tag ON public.team_tag_assignments USING btree (tag_id);
+CREATE INDEX IF NOT EXISTS idx_team_tag_assignments_tag ON public.team_tag_assignments USING btree (tag_id);
 
-CREATE INDEX idx_team_tag_assignments_teamid ON public.team_tag_assignments USING btree (teamid);
+CREATE INDEX IF NOT EXISTS idx_team_tag_assignments_teamid ON public.team_tag_assignments USING btree (teamid);
 
-CREATE INDEX idx_team_tags_name ON public.team_tags USING btree (tag_name);
+CREATE INDEX IF NOT EXISTS idx_team_tags_name ON public.team_tags USING btree (tag_name);
 
-CREATE INDEX idx_team_tags_type ON public.team_tags USING btree (tag_type);
+CREATE INDEX IF NOT EXISTS idx_team_tags_type ON public.team_tags USING btree (tag_type);
 
-CREATE UNIQUE INDEX replayplayers_pkey ON public.replayplayers USING btree (id, playerid);
+CREATE UNIQUE INDEX IF NOT EXISTS replayplayers_pkey ON public.replayplayers USING btree (id, playerid);
 
-CREATE UNIQUE INDEX replays_pkey ON public.replays USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS replays_pkey ON public.replays USING btree (id);
 
-CREATE UNIQUE INDEX showdown_client_teams_pkey ON public.showdown_client_teams USING btree (teamid);
+CREATE UNIQUE INDEX IF NOT EXISTS showdown_client_teams_pkey ON public.showdown_client_teams USING btree (teamid);
 
-CREATE UNIQUE INDEX team_categories_pkey ON public.team_categories USING btree (category_id);
+CREATE UNIQUE INDEX IF NOT EXISTS team_categories_pkey ON public.team_categories USING btree (category_id);
 
-CREATE UNIQUE INDEX team_formats_pkey ON public.team_formats USING btree (format_id);
+CREATE UNIQUE INDEX IF NOT EXISTS team_formats_pkey ON public.team_formats USING btree (format_id);
 
-CREATE UNIQUE INDEX team_tag_assignments_pkey ON public.team_tag_assignments USING btree (teamid, tag_id);
+CREATE UNIQUE INDEX IF NOT EXISTS team_tag_assignments_pkey ON public.team_tag_assignments USING btree (teamid, tag_id);
 
-CREATE UNIQUE INDEX team_tags_pkey ON public.team_tags USING btree (tag_id);
+CREATE UNIQUE INDEX IF NOT EXISTS team_tags_pkey ON public.team_tags USING btree (tag_id);
 
-alter table "public"."replayplayers" add constraint "replayplayers_pkey" PRIMARY KEY using index "replayplayers_pkey";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'replayplayers_pkey') then alter table "public"."replayplayers" add constraint "replayplayers_pkey" PRIMARY KEY using index "replayplayers_pkey"; end if; end $$;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'replays_pkey') then alter table "public"."replays" add constraint "replays_pkey" PRIMARY KEY using index "replays_pkey"; end if; end $$;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'showdown_client_teams_pkey') then alter table "public"."showdown_client_teams" add constraint "showdown_client_teams_pkey" PRIMARY KEY using index "showdown_client_teams_pkey"; end if; end $$;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'team_categories_pkey') then alter table "public"."team_categories" add constraint "team_categories_pkey" PRIMARY KEY using index "team_categories_pkey"; end if; end $$;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'team_formats_pkey') then alter table "public"."team_formats" add constraint "team_formats_pkey" PRIMARY KEY using index "team_formats_pkey"; end if; end $$;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'team_tag_assignments_pkey') then alter table "public"."team_tag_assignments" add constraint "team_tag_assignments_pkey" PRIMARY KEY using index "team_tag_assignments_pkey"; end if; end $$;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'team_tags_pkey') then alter table "public"."team_tags" add constraint "team_tags_pkey" PRIMARY KEY using index "team_tags_pkey"; end if; end $$;
 
-alter table "public"."replays" add constraint "replays_pkey" PRIMARY KEY using index "replays_pkey";
-
-alter table "public"."showdown_client_teams" add constraint "showdown_client_teams_pkey" PRIMARY KEY using index "showdown_client_teams_pkey";
-
-alter table "public"."team_categories" add constraint "team_categories_pkey" PRIMARY KEY using index "team_categories_pkey";
-
-alter table "public"."team_formats" add constraint "team_formats_pkey" PRIMARY KEY using index "team_formats_pkey";
-
-alter table "public"."team_tag_assignments" add constraint "team_tag_assignments_pkey" PRIMARY KEY using index "team_tag_assignments_pkey";
-
-alter table "public"."team_tags" add constraint "team_tags_pkey" PRIMARY KEY using index "team_tags_pkey";
-
-alter table "public"."team_tag_assignments" add constraint "team_tag_assignments_tag_id_fkey" FOREIGN KEY (tag_id) REFERENCES public.team_tags(tag_id) ON DELETE CASCADE not valid;
-
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'team_tag_assignments_tag_id_fkey') then alter table "public"."team_tag_assignments" add constraint "team_tag_assignments_tag_id_fkey" FOREIGN KEY (tag_id) REFERENCES public.team_tags(tag_id) ON DELETE CASCADE not valid; end if; end $$;
 alter table "public"."team_tag_assignments" validate constraint "team_tag_assignments_tag_id_fkey";
-
-alter table "public"."team_tag_assignments" add constraint "team_tag_assignments_teamid_fkey" FOREIGN KEY (teamid) REFERENCES public.showdown_client_teams(teamid) ON DELETE CASCADE not valid;
-
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'team_tag_assignments_teamid_fkey') then alter table "public"."team_tag_assignments" add constraint "team_tag_assignments_teamid_fkey" FOREIGN KEY (teamid) REFERENCES public.showdown_client_teams(teamid) ON DELETE CASCADE not valid; end if; end $$;
 alter table "public"."team_tag_assignments" validate constraint "team_tag_assignments_teamid_fkey";
 
 set check_function_bodies = off;
@@ -649,6 +640,7 @@ grant truncate on table "public"."team_tags" to "service_role";
 grant update on table "public"."team_tags" to "service_role";
 
 
+  drop policy if exists "Allow insert replayplayers" on "public"."replayplayers";
   create policy "Allow insert replayplayers"
   on "public"."replayplayers"
   as permissive
@@ -658,6 +650,7 @@ with check (true);
 
 
 
+  drop policy if exists "Allow read non-private replayplayers" on "public"."replayplayers";
   create policy "Allow read non-private replayplayers"
   on "public"."replayplayers"
   as permissive
@@ -667,6 +660,7 @@ using ((private = 0));
 
 
 
+  drop policy if exists "Allow insert replays" on "public"."replays";
   create policy "Allow insert replays"
   on "public"."replays"
   as permissive
@@ -676,6 +670,7 @@ with check (true);
 
 
 
+  drop policy if exists "Allow read non-private replays" on "public"."replays";
   create policy "Allow read non-private replays"
   on "public"."replays"
   as permissive
@@ -685,6 +680,7 @@ using ((private = 0));
 
 
 
+  drop policy if exists "Allow update replays" on "public"."replays";
   create policy "Allow update replays"
   on "public"."replays"
   as permissive
@@ -695,6 +691,7 @@ with check (true);
 
 
 
+  drop policy if exists "Allow all client team operations" on "public"."showdown_client_teams";
   create policy "Allow all client team operations"
   on "public"."showdown_client_teams"
   as permissive
@@ -705,6 +702,7 @@ with check (true);
 
 
 
+  drop policy if exists "Allow all category operations" on "public"."team_categories";
   create policy "Allow all category operations"
   on "public"."team_categories"
   as permissive
@@ -715,6 +713,7 @@ with check (true);
 
 
 
+  drop policy if exists "Allow all format operations" on "public"."team_formats";
   create policy "Allow all format operations"
   on "public"."team_formats"
   as permissive
@@ -725,6 +724,7 @@ with check (true);
 
 
 
+  drop policy if exists "Allow all tag assignment operations" on "public"."team_tag_assignments";
   create policy "Allow all tag assignment operations"
   on "public"."team_tag_assignments"
   as permissive
@@ -735,6 +735,7 @@ with check (true);
 
 
 
+  drop policy if exists "Allow all tag operations" on "public"."team_tags";
   create policy "Allow all tag operations"
   on "public"."team_tags"
   as permissive
@@ -744,11 +745,15 @@ using (true)
 with check (true);
 
 
+DROP TRIGGER IF EXISTS trigger_update_showdown_client_teams_updated_at ON public.showdown_client_teams;
 CREATE TRIGGER trigger_update_showdown_client_teams_updated_at BEFORE UPDATE ON public.showdown_client_teams FOR EACH ROW EXECUTE FUNCTION public.update_showdown_client_teams_updated_at();
 
+DROP TRIGGER IF EXISTS trigger_update_team_categories_updated_at ON public.team_categories;
 CREATE TRIGGER trigger_update_team_categories_updated_at BEFORE UPDATE ON public.team_categories FOR EACH ROW EXECUTE FUNCTION public.update_team_categories_updated_at();
 
+DROP TRIGGER IF EXISTS trigger_update_team_formats_updated_at ON public.team_formats;
 CREATE TRIGGER trigger_update_team_formats_updated_at BEFORE UPDATE ON public.team_formats FOR EACH ROW EXECUTE FUNCTION public.update_team_formats_updated_at();
 
+DROP TRIGGER IF EXISTS trigger_update_team_tags_updated_at ON public.team_tags;
 CREATE TRIGGER trigger_update_team_tags_updated_at BEFORE UPDATE ON public.team_tags FOR EACH ROW EXECUTE FUNCTION public.update_team_tags_updated_at();
 

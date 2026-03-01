@@ -63,16 +63,19 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Triggers for updated_at
+DROP TRIGGER IF EXISTS update_music_tracks_updated_at ON music_tracks;
 CREATE TRIGGER update_music_tracks_updated_at
   BEFORE UPDATE ON music_tracks
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_music_playlists_updated_at ON music_playlists;
 CREATE TRIGGER update_music_playlists_updated_at
   BEFORE UPDATE ON music_playlists
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_user_music_preferences_updated_at ON user_music_preferences;
 CREATE TRIGGER update_user_music_preferences_updated_at
   BEFORE UPDATE ON user_music_preferences
   FOR EACH ROW
@@ -86,11 +89,13 @@ ALTER TABLE user_music_preferences ENABLE ROW LEVEL SECURITY;
 -- RLS Policies
 
 -- Public read access for active tracks
+DROP POLICY IF EXISTS "Public can read active tracks" ON music_tracks;
 CREATE POLICY "Public can read active tracks"
 ON music_tracks FOR SELECT
 USING (is_active = true);
 
 -- Admin full access to tracks
+DROP POLICY IF EXISTS "Admins can manage tracks" ON music_tracks;
 CREATE POLICY "Admins can manage tracks"
 ON music_tracks FOR ALL
 USING (
@@ -102,11 +107,13 @@ USING (
 );
 
 -- Public read access for active playlists
+DROP POLICY IF EXISTS "Public can read active playlists" ON music_playlists;
 CREATE POLICY "Public can read active playlists"
 ON music_playlists FOR SELECT
 USING (is_active = true);
 
 -- Admin full access to playlists
+DROP POLICY IF EXISTS "Admins can manage playlists" ON music_playlists;
 CREATE POLICY "Admins can manage playlists"
 ON music_playlists FOR ALL
 USING (
@@ -118,11 +125,13 @@ USING (
 );
 
 -- Users can manage own preferences
+DROP POLICY IF EXISTS "Users can manage own preferences" ON user_music_preferences;
 CREATE POLICY "Users can manage own preferences"
 ON user_music_preferences FOR ALL
 USING (auth.uid() = user_id);
 
 -- Users can read own preferences
+DROP POLICY IF EXISTS "Users can read own preferences" ON user_music_preferences;
 CREATE POLICY "Users can read own preferences"
 ON user_music_preferences FOR SELECT
 USING (auth.uid() = user_id);

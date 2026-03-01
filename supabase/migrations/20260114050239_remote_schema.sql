@@ -1,12 +1,21 @@
-drop policy "Public insert pokemon_cache" on "public"."pokemon_cache";
+drop policy if exists "Public insert pokemon_cache" on "public"."pokemon_cache";
 
-drop policy "Public update pokemon_cache" on "public"."pokemon_cache";
+drop policy if exists "Public update pokemon_cache" on "public"."pokemon_cache";
 
-alter table "public"."pokemon_cache" add column "base_experience" integer;
+do $$ begin
+  if not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'pokemon_cache' and column_name = 'base_experience') then
+    alter table "public"."pokemon_cache" add column "base_experience" integer;
+  end if; end $$;
 
-alter table "public"."pokemon_cache" add column "height" integer;
+do $$ begin
+  if not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'pokemon_cache' and column_name = 'height') then
+    alter table "public"."pokemon_cache" add column "height" integer;
+  end if; end $$;
 
-alter table "public"."pokemon_cache" add column "weight" integer;
+do $$ begin
+  if not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'pokemon_cache' and column_name = 'weight') then
+    alter table "public"."pokemon_cache" add column "weight" integer;
+  end if; end $$;
 
 set check_function_bodies = off;
 
@@ -150,6 +159,7 @@ $function$
 ;
 
 
+  drop policy if exists "Service role or authenticated insert pokemon_cache" on "public"."pokemon_cache";
   create policy "Service role or authenticated insert pokemon_cache"
   on "public"."pokemon_cache"
   as permissive
@@ -157,8 +167,7 @@ $function$
   to public
 with check (((auth.role() = 'service_role'::text) OR (auth.role() = 'authenticated'::text)));
 
-
-
+  drop policy if exists "Service role or authenticated update pokemon_cache" on "public"."pokemon_cache";
   create policy "Service role or authenticated update pokemon_cache"
   on "public"."pokemon_cache"
   as permissive

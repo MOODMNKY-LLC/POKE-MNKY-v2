@@ -5,7 +5,8 @@
 -- Drop existing authenticated-only policy
 DROP POLICY IF EXISTS "Draft sessions are viewable by authenticated users" ON public.draft_sessions;
 
--- Create public read policy
+-- Create public read policy (idempotent)
+DROP POLICY IF EXISTS "Draft sessions are viewable by everyone" ON public.draft_sessions;
 CREATE POLICY "Draft sessions are viewable by everyone"
   ON public.draft_sessions
   FOR SELECT

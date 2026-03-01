@@ -259,6 +259,20 @@ export class FreeAgencySystem {
     }
   }
 
+  /** Grace period: 5 days after draft close; no transaction cost or cap during this window. */
+  private async isWithinGracePeriod(seasonId: string): Promise<boolean> {
+    const { data: season } = await this.supabase
+      .from("seasons")
+      .select("draft_close_at")
+      .eq("id", seasonId)
+      .single()
+    const closeAt = (season as any)?.draft_close_at
+    if (!closeAt) return false
+    const end = new Date(closeAt)
+    end.setDate(end.getDate() + 5)
+    return new Date() < end
+  }
+
   /**
    * Validate a transaction before submission
    */
@@ -340,7 +354,8 @@ export class FreeAgencySystem {
       errors.push(`Roster size would be ${newRosterSize}, maximum is 10`)
     }
 
-    if (teamStatus.transactionCount >= 10) {
+    const inGracePeriod = await this.isWithinGracePeriod(seasonId)
+    if (!inGracePeriod && teamStatus.transactionCount >= 10) {
       errors.push("Transaction limit reached (10 F/A moves per season)")
     }
 

@@ -31,17 +31,12 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Protect admin routes
-  if (request.nextUrl.pathname.startsWith("/admin") && !user) {
-    const url = request.nextUrl.clone()
-    url.pathname = "/auth/login"
-    return NextResponse.redirect(url)
-  }
+  const pathname = request.nextUrl.pathname
+  const isProtected = pathname.startsWith("/admin") || pathname.startsWith("/dashboard")
 
-  // Protect dashboard routes (member-only, requires authentication)
-  if (request.nextUrl.pathname.startsWith("/dashboard") && !user) {
-    const url = request.nextUrl.clone()
-    url.pathname = "/auth/login"
+  if (isProtected && !user) {
+    const url = new URL("/auth/login", request.url)
+    url.searchParams.set("next", pathname)
     return NextResponse.redirect(url)
   }
 

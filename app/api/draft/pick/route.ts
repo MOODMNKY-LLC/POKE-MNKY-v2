@@ -22,6 +22,12 @@ import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { draftPickSchema } from "@/lib/validation/draft"
 import { mapRPCError } from "@/lib/supabase/rpc-error-map"
+import {
+  validationError,
+  internalError,
+  apiError,
+  API_ERROR_CODES,
+} from "@/lib/api-error"
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,14 +36,7 @@ export async function POST(request: NextRequest) {
     // Validate request body
     const validationResult = draftPickSchema.safeParse(body)
     if (!validationResult.success) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "Validation failed",
-          details: validationResult.error.errors,
-        },
-        { status: 400 }
-      )
+      return validationError("Validation failed", validationResult.error.errors)
     }
 
     const {
@@ -54,10 +53,7 @@ export async function POST(request: NextRequest) {
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
     if (!supabaseUrl || !serviceRoleKey) {
-      return NextResponse.json(
-        { ok: false, error: "Supabase configuration missing" },
-        { status: 500 }
-      )
+      return internalError("Supabase configuration missing")
     }
 
     // Use service role client for RPC call (bypasses RLS)
@@ -80,26 +76,27 @@ export async function POST(request: NextRequest) {
     })
 
     if (error) {
-      console.error("RPC draft pick error:", error)
       const errorMapping = mapRPCError(error)
-      return NextResponse.json(
-        {
-          ok: false,
-          error: errorMapping.message,
-          code: errorMapping.code,
-        },
-        { status: errorMapping.statusCode }
-      )
+      const statusToCode: Record<number, import("@/lib/api-error").ApiErrorCode> = {
+        401: API_ERROR_CODES.UNAUTHORIZED,
+        403: API_ERROR_CODES.FORBIDDEN,
+        404: API_ERROR_CODES.NOT_FOUND,
+        400: API_ERROR_CODES.BAD_REQUEST,
+        422: API_ERROR_CODES.VALIDATION_ERROR,
+        409: API_ERROR_CODES.CONFLICT,
+      }
+      const code = statusToCode[errorMapping.statusCode] ?? API_ERROR_CODES.INTERNAL_ERROR
+      return apiError(code, errorMapping.message, {
+        status: errorMapping.statusCode,
+        details: errorMapping.code ? { rpc_code: errorMapping.code } : undefined,
+      })
     }
 
     // RPC returns a table, get first row
     const result = Array.isArray(data) && data.length > 0 ? data[0] : data
 
     if (!result) {
-      return NextResponse.json(
-        { ok: false, error: "RPC function did not return expected data" },
-        { status: 500 }
-      )
+      return internalError("RPC function did not return expected data")
     }
 
     return NextResponse.json({
@@ -113,11 +110,10 @@ export async function POST(request: NextRequest) {
         slots_remaining: result.slots_remaining,
       },
     })
-  } catch (error: any) {
-    console.error("Draft pick endpoint error:", error)
-    return NextResponse.json(
-      { ok: false, error: error.message || "Internal server error" },
-      { status: 500 }
+  } catch (err) {
+    return internalError(
+      err instanceof Error ? err.message : "Internal server error",
+      process.env.NODE_ENV === "development" ? err : undefined
     )
   }
 }

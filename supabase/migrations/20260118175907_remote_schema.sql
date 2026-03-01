@@ -1,23 +1,16 @@
 create extension if not exists "vector" with schema "public";
 
-create sequence "public"."auth_provider_sync_history_id_seq";
-
-create sequence "public"."document_id_seq";
-
-create sequence "public"."execution_annotations_id_seq";
-
-create sequence "public"."execution_entity_id_seq";
-
-create sequence "public"."execution_metadata_temp_id_seq";
-
-create sequence "public"."migratehistory_id_seq";
-
-create sequence "public"."migrations_id_seq";
-
-create sequence "public"."prompt_id_seq";
+do $$ begin if not exists (select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and c.relname = 'auth_provider_sync_history_id_seq' and c.relkind = 'S') then create sequence "public"."auth_provider_sync_history_id_seq"; end if; end $$;
+do $$ begin if not exists (select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and c.relname = 'document_id_seq' and c.relkind = 'S') then create sequence "public"."document_id_seq"; end if; end $$;
+do $$ begin if not exists (select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and c.relname = 'execution_annotations_id_seq' and c.relkind = 'S') then create sequence "public"."execution_annotations_id_seq"; end if; end $$;
+do $$ begin if not exists (select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and c.relname = 'execution_entity_id_seq' and c.relkind = 'S') then create sequence "public"."execution_entity_id_seq"; end if; end $$;
+do $$ begin if not exists (select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and c.relname = 'execution_metadata_temp_id_seq' and c.relkind = 'S') then create sequence "public"."execution_metadata_temp_id_seq"; end if; end $$;
+do $$ begin if not exists (select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and c.relname = 'migratehistory_id_seq' and c.relkind = 'S') then create sequence "public"."migratehistory_id_seq"; end if; end $$;
+do $$ begin if not exists (select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and c.relname = 'migrations_id_seq' and c.relkind = 'S') then create sequence "public"."migrations_id_seq"; end if; end $$;
+do $$ begin if not exists (select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and c.relname = 'prompt_id_seq' and c.relkind = 'S') then create sequence "public"."prompt_id_seq"; end if; end $$;
 
 
-  create table "public"."annotation_tag_entity" (
+  create table if not exists "public"."annotation_tag_entity" (
     "id" character varying(16) not null,
     "name" character varying(24) not null,
     "createdAt" timestamp(3) with time zone not null default CURRENT_TIMESTAMP(3),
@@ -26,7 +19,7 @@ create sequence "public"."prompt_id_seq";
 
 
 
-  create table "public"."auth" (
+  create table if not exists "public"."auth" (
     "id" character varying(255) not null,
     "email" character varying(255) not null,
     "password" text not null,
@@ -35,7 +28,7 @@ create sequence "public"."prompt_id_seq";
 
 
 
-  create table "public"."auth_identity" (
+  create table if not exists "public"."auth_identity" (
     "userId" uuid,
     "providerId" character varying(64) not null,
     "providerType" character varying(32) not null,
@@ -45,7 +38,7 @@ create sequence "public"."prompt_id_seq";
 
 
 
-  create table "public"."auth_provider_sync_history" (
+  create table if not exists "public"."auth_provider_sync_history" (
     "id" integer not null default nextval('public.auth_provider_sync_history_id_seq'::regclass),
     "providerType" character varying(32) not null,
     "runMode" text not null,
@@ -61,7 +54,7 @@ create sequence "public"."prompt_id_seq";
 
 
 
-  create table "public"."binary_data" (
+  create table if not exists "public"."binary_data" (
     "fileId" uuid not null,
     "sourceType" character varying(50) not null,
     "sourceId" character varying(255) not null,
@@ -75,7 +68,7 @@ create sequence "public"."prompt_id_seq";
 
 
 
-  create table "public"."bulbapedia_mechanics" (
+  create table if not exists "public"."bulbapedia_mechanics" (
     "id" uuid not null default gen_random_uuid(),
     "resource_type" text not null,
     "resource_name" text not null,
@@ -91,7 +84,7 @@ create sequence "public"."prompt_id_seq";
 
 
 
-  create table "public"."canonical_league_config" (
+  create table if not exists "public"."canonical_league_config" (
     "id" uuid not null default gen_random_uuid(),
     "season_id" uuid,
     "intra_divisional_weight" numeric(3,2) not null default 1.5,
@@ -116,7 +109,7 @@ create sequence "public"."prompt_id_seq";
 alter table "public"."canonical_league_config" enable row level security;
 
 
-  create table "public"."chat" (
+  create table if not exists "public"."chat" (
     "id" character varying(255) not null,
     "user_id" character varying(255) not null,
     "title" text not null,
@@ -129,7 +122,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."chat_hub_agents" (
+  create table if not exists "public"."chat_hub_agents" (
     "id" uuid not null,
     "name" character varying(256) not null,
     "description" character varying(512),
@@ -146,7 +139,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."chat_hub_messages" (
+  create table if not exists "public"."chat_hub_messages" (
     "id" uuid not null,
     "sessionId" uuid not null,
     "previousMessageId" uuid,
@@ -168,7 +161,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."chat_hub_sessions" (
+  create table if not exists "public"."chat_hub_sessions" (
     "id" uuid not null,
     "title" character varying(256) not null,
     "ownerId" uuid not null,
@@ -186,7 +179,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."chatidtag" (
+  create table if not exists "public"."chatidtag" (
     "id" character varying(255) not null,
     "tag_name" character varying(255) not null,
     "chat_id" character varying(255) not null,
@@ -196,7 +189,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."credentials_entity" (
+  create table if not exists "public"."credentials_entity" (
     "name" character varying(128) not null,
     "data" text not null,
     "type" character varying(128) not null,
@@ -212,7 +205,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."data_table" (
+  create table if not exists "public"."data_table" (
     "id" character varying(36) not null,
     "name" character varying(128) not null,
     "projectId" character varying(36) not null,
@@ -222,7 +215,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."data_table_column" (
+  create table if not exists "public"."data_table_column" (
     "id" character varying(36) not null,
     "name" character varying(128) not null,
     "type" character varying(32) not null,
@@ -234,7 +227,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."document" (
+  create table if not exists "public"."document" (
     "id" integer not null default nextval('public.document_id_seq'::regclass),
     "collection_name" character varying(255) not null,
     "name" character varying(255) not null,
@@ -247,7 +240,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."dynamic_credential_entry" (
+  create table if not exists "public"."dynamic_credential_entry" (
     "credential_id" character varying(16) not null,
     "subject_id" character varying(16) not null,
     "resolver_id" character varying(16) not null,
@@ -258,7 +251,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."dynamic_credential_resolver" (
+  create table if not exists "public"."dynamic_credential_resolver" (
     "id" character varying(16) not null,
     "name" character varying(128) not null,
     "type" character varying(128) not null,
@@ -269,7 +262,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."event_destinations" (
+  create table if not exists "public"."event_destinations" (
     "id" uuid not null,
     "destination" jsonb not null,
     "createdAt" timestamp(3) with time zone not null default CURRENT_TIMESTAMP(3),
@@ -278,14 +271,14 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."execution_annotation_tags" (
+  create table if not exists "public"."execution_annotation_tags" (
     "annotationId" integer not null,
     "tagId" character varying(24) not null
       );
 
 
 
-  create table "public"."execution_annotations" (
+  create table if not exists "public"."execution_annotations" (
     "id" integer not null default nextval('public.execution_annotations_id_seq'::regclass),
     "executionId" integer not null,
     "vote" character varying(6),
@@ -296,7 +289,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."execution_data" (
+  create table if not exists "public"."execution_data" (
     "executionId" integer not null,
     "workflowData" json not null,
     "data" text not null,
@@ -305,7 +298,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."execution_entity" (
+  create table if not exists "public"."execution_entity" (
     "id" integer not null default nextval('public.execution_entity_id_seq'::regclass),
     "finished" boolean not null,
     "mode" character varying not null,
@@ -322,7 +315,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."execution_metadata" (
+  create table if not exists "public"."execution_metadata" (
     "id" integer not null default nextval('public.execution_metadata_temp_id_seq'::regclass),
     "executionId" integer not null,
     "key" character varying(255) not null,
@@ -331,7 +324,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."file" (
+  create table if not exists "public"."file" (
     "id" text not null,
     "user_id" text not null,
     "filename" text not null,
@@ -341,7 +334,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."folder" (
+  create table if not exists "public"."folder" (
     "id" character varying(36) not null,
     "name" character varying(128) not null,
     "parentFolderId" character varying(36),
@@ -352,14 +345,14 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."folder_tag" (
+  create table if not exists "public"."folder_tag" (
     "folderId" character varying(36) not null,
     "tagId" character varying(36) not null
       );
 
 
 
-  create table "public"."function" (
+  create table if not exists "public"."function" (
     "id" text not null,
     "user_id" text not null,
     "name" text not null,
@@ -375,7 +368,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."insights_by_period" (
+  create table if not exists "public"."insights_by_period" (
     "id" integer generated by default as identity not null,
     "metaId" integer not null,
     "type" integer not null,
@@ -386,7 +379,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."insights_metadata" (
+  create table if not exists "public"."insights_metadata" (
     "metaId" integer generated by default as identity not null,
     "workflowId" character varying(36),
     "projectId" character varying(36),
@@ -396,7 +389,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."insights_raw" (
+  create table if not exists "public"."insights_raw" (
     "id" integer generated by default as identity not null,
     "metaId" integer not null,
     "type" integer not null,
@@ -406,7 +399,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."installed_nodes" (
+  create table if not exists "public"."installed_nodes" (
     "name" character varying(200) not null,
     "type" character varying(200) not null,
     "latestVersion" integer not null default 1,
@@ -415,7 +408,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."installed_packages" (
+  create table if not exists "public"."installed_packages" (
     "packageName" character varying(214) not null,
     "installedVersion" character varying(50) not null,
     "authorName" character varying(70),
@@ -426,14 +419,14 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."invalid_auth_token" (
+  create table if not exists "public"."invalid_auth_token" (
     "token" character varying(512) not null,
     "expiresAt" timestamp(3) with time zone not null
       );
 
 
 
-  create table "public"."memory" (
+  create table if not exists "public"."memory" (
     "id" character varying(255) not null,
     "user_id" character varying(255) not null,
     "content" text not null,
@@ -443,7 +436,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."migratehistory" (
+  create table if not exists "public"."migratehistory" (
     "id" integer not null default nextval('public.migratehistory_id_seq'::regclass),
     "name" character varying(255) not null,
     "migrated_at" timestamp without time zone not null
@@ -451,7 +444,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."migrations" (
+  create table if not exists "public"."migrations" (
     "id" integer not null default nextval('public.migrations_id_seq'::regclass),
     "timestamp" bigint not null,
     "name" character varying not null
@@ -459,7 +452,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."model" (
+  create table if not exists "public"."model" (
     "id" text not null,
     "user_id" text not null,
     "base_model_id" text,
@@ -472,7 +465,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."oauth_access_tokens" (
+  create table if not exists "public"."oauth_access_tokens" (
     "token" character varying not null,
     "clientId" character varying not null,
     "userId" uuid not null
@@ -480,7 +473,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."oauth_authorization_codes" (
+  create table if not exists "public"."oauth_authorization_codes" (
     "code" character varying(255) not null,
     "clientId" character varying not null,
     "userId" uuid not null,
@@ -496,7 +489,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."oauth_clients" (
+  create table if not exists "public"."oauth_clients" (
     "id" character varying not null,
     "name" character varying(255) not null,
     "redirectUris" json not null,
@@ -510,7 +503,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."oauth_refresh_tokens" (
+  create table if not exists "public"."oauth_refresh_tokens" (
     "token" character varying(255) not null,
     "clientId" character varying not null,
     "userId" uuid not null,
@@ -521,7 +514,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."oauth_user_consents" (
+  create table if not exists "public"."oauth_user_consents" (
     "id" integer generated by default as identity not null,
     "userId" uuid not null,
     "clientId" character varying not null,
@@ -530,7 +523,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."processed_data" (
+  create table if not exists "public"."processed_data" (
     "workflowId" character varying(36) not null,
     "context" character varying(255) not null,
     "createdAt" timestamp(3) with time zone not null default CURRENT_TIMESTAMP(3),
@@ -540,7 +533,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."project" (
+  create table if not exists "public"."project" (
     "id" character varying(36) not null,
     "name" character varying(255) not null,
     "type" character varying(36) not null,
@@ -553,7 +546,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."project_relation" (
+  create table if not exists "public"."project_relation" (
     "projectId" character varying(36) not null,
     "userId" uuid not null,
     "role" character varying not null,
@@ -563,7 +556,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."prompt" (
+  create table if not exists "public"."prompt" (
     "id" integer not null default nextval('public.prompt_id_seq'::regclass),
     "command" character varying(255) not null,
     "user_id" character varying(255) not null,
@@ -574,7 +567,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."role" (
+  create table if not exists "public"."role" (
     "slug" character varying(128) not null,
     "displayName" text,
     "description" text,
@@ -586,14 +579,14 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."role_scope" (
+  create table if not exists "public"."role_scope" (
     "roleSlug" character varying(128) not null,
     "scopeSlug" character varying(128) not null
       );
 
 
 
-  create table "public"."scope" (
+  create table if not exists "public"."scope" (
     "slug" character varying(128) not null,
     "displayName" text,
     "description" text
@@ -601,7 +594,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."settings" (
+  create table if not exists "public"."settings" (
     "key" character varying(255) not null,
     "value" text not null,
     "loadOnStartup" boolean not null default false
@@ -609,7 +602,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."shared_credentials" (
+  create table if not exists "public"."shared_credentials" (
     "credentialsId" character varying(36) not null,
     "projectId" character varying(36) not null,
     "role" text not null,
@@ -619,7 +612,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."shared_workflow" (
+  create table if not exists "public"."shared_workflow" (
     "workflowId" character varying(36) not null,
     "projectId" character varying(36) not null,
     "role" text not null,
@@ -629,7 +622,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."smogon_meta_snapshot" (
+  create table if not exists "public"."smogon_meta_snapshot" (
     "id" uuid not null default gen_random_uuid(),
     "pokemon_name" text not null,
     "format" text not null,
@@ -650,7 +643,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."tag" (
+  create table if not exists "public"."tag" (
     "id" character varying(255) not null,
     "name" character varying(255) not null,
     "user_id" character varying(255) not null,
@@ -659,7 +652,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."tag_entity" (
+  create table if not exists "public"."tag_entity" (
     "name" character varying(24) not null,
     "createdAt" timestamp(3) with time zone not null default CURRENT_TIMESTAMP(3),
     "updatedAt" timestamp(3) with time zone not null default CURRENT_TIMESTAMP(3),
@@ -668,7 +661,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."test_case_execution" (
+  create table if not exists "public"."test_case_execution" (
     "id" character varying(36) not null,
     "testRunId" character varying(36) not null,
     "executionId" integer,
@@ -686,7 +679,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."test_run" (
+  create table if not exists "public"."test_run" (
     "id" character varying(36) not null,
     "workflowId" character varying(36) not null,
     "status" character varying not null,
@@ -701,7 +694,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."tool" (
+  create table if not exists "public"."tool" (
     "id" text not null,
     "user_id" text not null,
     "name" text not null,
@@ -715,7 +708,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."user" (
+  create table if not exists "public"."user" (
     "id" uuid not null default gen_random_uuid(),
     "email" character varying(255),
     "firstName" character varying(32),
@@ -741,7 +734,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."user_api_keys" (
+  create table if not exists "public"."user_api_keys" (
     "id" character varying(36) not null,
     "userId" uuid not null,
     "label" character varying(100) not null,
@@ -754,7 +747,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."variables" (
+  create table if not exists "public"."variables" (
     "key" character varying(50) not null,
     "type" character varying(50) not null default 'string'::character varying,
     "value" character varying(255),
@@ -764,7 +757,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."webhook_entity" (
+  create table if not exists "public"."webhook_entity" (
     "webhookPath" character varying not null,
     "method" character varying not null,
     "node" character varying not null,
@@ -775,7 +768,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."workflow_dependency" (
+  create table if not exists "public"."workflow_dependency" (
     "id" integer generated by default as identity not null,
     "workflowId" character varying(36) not null,
     "workflowVersionId" integer not null,
@@ -788,7 +781,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."workflow_entity" (
+  create table if not exists "public"."workflow_entity" (
     "name" character varying(128) not null,
     "active" boolean not null,
     "nodes" json not null,
@@ -811,7 +804,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."workflow_history" (
+  create table if not exists "public"."workflow_history" (
     "versionId" character varying(36) not null,
     "workflowId" character varying(36) not null,
     "authors" character varying(255) not null,
@@ -826,7 +819,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."workflow_publish_history" (
+  create table if not exists "public"."workflow_publish_history" (
     "id" integer generated by default as identity not null,
     "workflowId" character varying(36) not null,
     "versionId" character varying(36) not null,
@@ -837,7 +830,7 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."workflow_statistics" (
+  create table if not exists "public"."workflow_statistics" (
     "count" integer default 0,
     "latestEvent" timestamp(3) with time zone,
     "name" character varying(128) not null,
@@ -847,57 +840,13 @@ alter table "public"."canonical_league_config" enable row level security;
 
 
 
-  create table "public"."workflows_tags" (
+  create table if not exists "public"."workflows_tags" (
     "workflowId" character varying(36) not null,
     "tagId" character varying(36) not null
       );
 
 
-alter table "public"."abilities" add column "effect_changes" jsonb;
-
-alter table "public"."generations" add column "names" jsonb;
-
-alter table "public"."generations" add column "version_groups" jsonb;
-
-alter table "public"."items" add column "baby_trigger_for" jsonb;
-
-alter table "public"."items" add column "machines" jsonb;
-
-alter table "public"."items" add column "names" jsonb;
-
-alter table "public"."moves" add column "contest_combos" jsonb;
-
-alter table "public"."moves" add column "contest_effect_id" integer;
-
-alter table "public"."moves" add column "contest_type_id" integer;
-
-alter table "public"."moves" add column "effect_changes" jsonb;
-
-alter table "public"."moves" add column "machines" jsonb;
-
-alter table "public"."moves" add column "names" jsonb;
-
-alter table "public"."moves" add column "past_values" jsonb;
-
-alter table "public"."moves" add column "super_contest_effect_id" integer;
-
-alter table "public"."stats" add column "affecting_moves" jsonb;
-
-alter table "public"."stats" add column "affecting_natures" jsonb;
-
-alter table "public"."stats" add column "characteristics" jsonb;
-
-alter table "public"."stats" add column "names" jsonb;
-
-alter table "public"."types" add column "moves" jsonb;
-
-alter table "public"."types" add column "names" jsonb;
-
-alter table "public"."types" add column "past_damage_relations" jsonb;
-
-alter table "public"."types" add column "pokemon" jsonb;
-
-alter table "public"."types" add column "sprites" jsonb;
+do $$ begin begin alter table "public"."abilities" add column "effect_changes" jsonb; exception when duplicate_column then null; end; begin alter table "public"."generations" add column "names" jsonb; exception when duplicate_column then null; end; begin alter table "public"."generations" add column "version_groups" jsonb; exception when duplicate_column then null; end; begin alter table "public"."items" add column "baby_trigger_for" jsonb; exception when duplicate_column then null; end; begin alter table "public"."items" add column "machines" jsonb; exception when duplicate_column then null; end; begin alter table "public"."items" add column "names" jsonb; exception when duplicate_column then null; end; begin alter table "public"."moves" add column "contest_combos" jsonb; exception when duplicate_column then null; end; begin alter table "public"."moves" add column "contest_effect_id" integer; exception when duplicate_column then null; end; begin alter table "public"."moves" add column "contest_type_id" integer; exception when duplicate_column then null; end; begin alter table "public"."moves" add column "effect_changes" jsonb; exception when duplicate_column then null; end; begin alter table "public"."moves" add column "machines" jsonb; exception when duplicate_column then null; end; begin alter table "public"."moves" add column "names" jsonb; exception when duplicate_column then null; end; begin alter table "public"."moves" add column "past_values" jsonb; exception when duplicate_column then null; end; begin alter table "public"."moves" add column "super_contest_effect_id" integer; exception when duplicate_column then null; end; begin alter table "public"."stats" add column "affecting_moves" jsonb; exception when duplicate_column then null; end; begin alter table "public"."stats" add column "affecting_natures" jsonb; exception when duplicate_column then null; end; begin alter table "public"."stats" add column "characteristics" jsonb; exception when duplicate_column then null; end; begin alter table "public"."stats" add column "names" jsonb; exception when duplicate_column then null; end; begin alter table "public"."types" add column "moves" jsonb; exception when duplicate_column then null; end; begin alter table "public"."types" add column "names" jsonb; exception when duplicate_column then null; end; begin alter table "public"."types" add column "past_damage_relations" jsonb; exception when duplicate_column then null; end; begin alter table "public"."types" add column "pokemon" jsonb; exception when duplicate_column then null; end; begin alter table "public"."types" add column "sprites" jsonb; exception when duplicate_column then null; end; end $$;
 
 alter sequence "public"."auth_provider_sync_history_id_seq" owned by "public"."auth_provider_sync_history"."id";
 
@@ -915,721 +864,721 @@ alter sequence "public"."migrations_id_seq" owned by "public"."migrations"."id";
 
 alter sequence "public"."prompt_id_seq" owned by "public"."prompt"."id";
 
-CREATE INDEX "IDX_070b5de842ece9ccdda0d9738b" ON public.workflow_publish_history USING btree ("workflowId", "versionId");
+CREATE INDEX IF NOT EXISTS "IDX_070b5de842ece9ccdda0d9738b" ON public.workflow_publish_history USING btree ("workflowId", "versionId");
 
-CREATE UNIQUE INDEX "IDX_14f68deffaf858465715995508" ON public.folder USING btree ("projectId", id);
+CREATE UNIQUE INDEX IF NOT EXISTS "IDX_14f68deffaf858465715995508" ON public.folder USING btree ("projectId", id);
 
-CREATE UNIQUE INDEX "IDX_1d8ab99d5861c9388d2dc1cf73" ON public.insights_metadata USING btree ("workflowId");
+CREATE UNIQUE INDEX IF NOT EXISTS "IDX_1d8ab99d5861c9388d2dc1cf73" ON public.insights_metadata USING btree ("workflowId");
 
-CREATE INDEX "IDX_1e31657f5fe46816c34be7c1b4" ON public.workflow_history USING btree ("workflowId");
+CREATE INDEX IF NOT EXISTS "IDX_1e31657f5fe46816c34be7c1b4" ON public.workflow_history USING btree ("workflowId");
 
-CREATE UNIQUE INDEX "IDX_1ef35bac35d20bdae979d917a3" ON public.user_api_keys USING btree ("apiKey");
+CREATE UNIQUE INDEX IF NOT EXISTS "IDX_1ef35bac35d20bdae979d917a3" ON public.user_api_keys USING btree ("apiKey");
 
-CREATE INDEX "IDX_56900edc3cfd16612e2ef2c6a8" ON public.binary_data USING btree ("sourceType", "sourceId");
+CREATE INDEX IF NOT EXISTS "IDX_56900edc3cfd16612e2ef2c6a8" ON public.binary_data USING btree ("sourceType", "sourceId");
 
-CREATE INDEX "IDX_5f0643f6717905a05164090dde" ON public.project_relation USING btree ("userId");
+CREATE INDEX IF NOT EXISTS "IDX_5f0643f6717905a05164090dde" ON public.project_relation USING btree ("userId");
 
-CREATE UNIQUE INDEX "IDX_60b6a84299eeb3f671dfec7693" ON public.insights_by_period USING btree ("periodStart", type, "periodUnit", "metaId");
+CREATE UNIQUE INDEX IF NOT EXISTS "IDX_60b6a84299eeb3f671dfec7693" ON public.insights_by_period USING btree ("periodStart", type, "periodUnit", "metaId");
 
-CREATE INDEX "IDX_61448d56d61802b5dfde5cdb00" ON public.project_relation USING btree ("projectId");
+CREATE INDEX IF NOT EXISTS "IDX_61448d56d61802b5dfde5cdb00" ON public.project_relation USING btree ("projectId");
 
-CREATE UNIQUE INDEX "IDX_63d7bbae72c767cf162d459fcc" ON public.user_api_keys USING btree ("userId", label);
+CREATE UNIQUE INDEX IF NOT EXISTS "IDX_63d7bbae72c767cf162d459fcc" ON public.user_api_keys USING btree ("userId", label);
 
-CREATE INDEX "IDX_8e4b4774db42f1e6dda3452b2a" ON public.test_case_execution USING btree ("testRunId");
+CREATE INDEX IF NOT EXISTS "IDX_8e4b4774db42f1e6dda3452b2a" ON public.test_case_execution USING btree ("testRunId");
 
-CREATE UNIQUE INDEX "IDX_97f863fa83c4786f1956508496" ON public.execution_annotations USING btree ("executionId");
+CREATE UNIQUE INDEX IF NOT EXISTS "IDX_97f863fa83c4786f1956508496" ON public.execution_annotations USING btree ("executionId");
 
-CREATE INDEX "IDX_99b3e329d13b7bb2fa9b6a43f5" ON public.dynamic_credential_entry USING btree (subject_id);
+CREATE INDEX IF NOT EXISTS "IDX_99b3e329d13b7bb2fa9b6a43f5" ON public.dynamic_credential_entry USING btree (subject_id);
 
-CREATE INDEX "IDX_9c9ee9df586e60bb723234e499" ON public.dynamic_credential_resolver USING btree (type);
+CREATE INDEX IF NOT EXISTS "IDX_9c9ee9df586e60bb723234e499" ON public.dynamic_credential_resolver USING btree (type);
 
-CREATE UNIQUE INDEX "IDX_UniqueRoleDisplayName" ON public.role USING btree ("displayName");
+CREATE UNIQUE INDEX IF NOT EXISTS "IDX_UniqueRoleDisplayName" ON public.role USING btree ("displayName");
 
-CREATE INDEX "IDX_a3697779b366e131b2bbdae297" ON public.execution_annotation_tags USING btree ("tagId");
+CREATE INDEX IF NOT EXISTS "IDX_a3697779b366e131b2bbdae297" ON public.execution_annotation_tags USING btree ("tagId");
 
-CREATE INDEX "IDX_a4ff2d9b9628ea988fa9e7d0bf" ON public.workflow_dependency USING btree ("workflowId");
+CREATE INDEX IF NOT EXISTS "IDX_a4ff2d9b9628ea988fa9e7d0bf" ON public.workflow_dependency USING btree ("workflowId");
 
-CREATE UNIQUE INDEX "IDX_ae51b54c4bb430cf92f48b623f" ON public.annotation_tag_entity USING btree (name);
+CREATE UNIQUE INDEX IF NOT EXISTS "IDX_ae51b54c4bb430cf92f48b623f" ON public.annotation_tag_entity USING btree (name);
 
-CREATE INDEX "IDX_c1519757391996eb06064f0e7c" ON public.execution_annotation_tags USING btree ("annotationId");
+CREATE INDEX IF NOT EXISTS "IDX_c1519757391996eb06064f0e7c" ON public.execution_annotation_tags USING btree ("annotationId");
 
-CREATE UNIQUE INDEX "IDX_cec8eea3bf49551482ccb4933e" ON public.execution_metadata USING btree ("executionId", key);
+CREATE UNIQUE INDEX IF NOT EXISTS "IDX_cec8eea3bf49551482ccb4933e" ON public.execution_metadata USING btree ("executionId", key);
 
-CREATE INDEX "IDX_chat_hub_messages_sessionId" ON public.chat_hub_messages USING btree ("sessionId");
+CREATE INDEX IF NOT EXISTS "IDX_chat_hub_messages_sessionId" ON public.chat_hub_messages USING btree ("sessionId");
 
-CREATE INDEX "IDX_chat_hub_sessions_owner_lastmsg_id" ON public.chat_hub_sessions USING btree ("ownerId", "lastMessageAt" DESC, id);
+CREATE INDEX IF NOT EXISTS "IDX_chat_hub_sessions_owner_lastmsg_id" ON public.chat_hub_sessions USING btree ("ownerId", "lastMessageAt" DESC, id);
 
-CREATE INDEX "IDX_d57808fe08b77464f6a88a2549" ON public.dynamic_credential_entry USING btree (resolver_id);
+CREATE INDEX IF NOT EXISTS "IDX_d57808fe08b77464f6a88a2549" ON public.dynamic_credential_entry USING btree (resolver_id);
 
-CREATE INDEX "IDX_d6870d3b6e4c185d33926f423c" ON public.test_run USING btree ("workflowId");
+CREATE INDEX IF NOT EXISTS "IDX_d6870d3b6e4c185d33926f423c" ON public.test_run USING btree ("workflowId");
 
-CREATE INDEX "IDX_e48a201071ab85d9d09119d640" ON public.workflow_dependency USING btree ("dependencyKey");
+CREATE INDEX IF NOT EXISTS "IDX_e48a201071ab85d9d09119d640" ON public.workflow_dependency USING btree ("dependencyKey");
 
-CREATE INDEX "IDX_e7fe1cfda990c14a445937d0b9" ON public.workflow_dependency USING btree ("dependencyType");
+CREATE INDEX IF NOT EXISTS "IDX_e7fe1cfda990c14a445937d0b9" ON public.workflow_dependency USING btree ("dependencyType");
 
-CREATE INDEX "IDX_execution_entity_deletedAt" ON public.execution_entity USING btree ("deletedAt");
+CREATE INDEX IF NOT EXISTS "IDX_execution_entity_deletedAt" ON public.execution_entity USING btree ("deletedAt");
 
-CREATE INDEX "IDX_role_scope_scopeSlug" ON public.role_scope USING btree ("scopeSlug");
+CREATE INDEX IF NOT EXISTS "IDX_role_scope_scopeSlug" ON public.role_scope USING btree ("scopeSlug");
 
-CREATE INDEX "IDX_workflow_entity_name" ON public.workflow_entity USING btree (name);
+CREATE INDEX IF NOT EXISTS "IDX_workflow_entity_name" ON public.workflow_entity USING btree (name);
 
-CREATE UNIQUE INDEX "PK_011c050f566e9db509a0fadb9b9" ON public.test_run USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS "PK_011c050f566e9db509a0fadb9b9" ON public.test_run USING btree (id);
 
-CREATE UNIQUE INDEX "PK_08cc9197c39b028c1e9beca225940576fd1a5804" ON public.installed_packages USING btree ("packageName");
+CREATE UNIQUE INDEX IF NOT EXISTS "PK_08cc9197c39b028c1e9beca225940576fd1a5804" ON public.installed_packages USING btree ("packageName");
 
-CREATE UNIQUE INDEX "PK_17a0b6284f8d626aae88e1c16e4" ON public.execution_metadata USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS "PK_17a0b6284f8d626aae88e1c16e4" ON public.execution_metadata USING btree (id);
 
-CREATE UNIQUE INDEX "PK_1caaa312a5d7184a003be0f0cb6" ON public.project_relation USING btree ("projectId", "userId");
+CREATE UNIQUE INDEX IF NOT EXISTS "PK_1caaa312a5d7184a003be0f0cb6" ON public.project_relation USING btree ("projectId", "userId");
 
-CREATE UNIQUE INDEX "PK_1eafef1273c70e4464fec703412" ON public.chat_hub_sessions USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS "PK_1eafef1273c70e4464fec703412" ON public.chat_hub_sessions USING btree (id);
 
-CREATE UNIQUE INDEX "PK_27e4e00852f6b06a925a4d83a3e" ON public.folder_tag USING btree ("folderId", "tagId");
+CREATE UNIQUE INDEX IF NOT EXISTS "PK_27e4e00852f6b06a925a4d83a3e" ON public.folder_tag USING btree ("folderId", "tagId");
 
-CREATE UNIQUE INDEX "PK_35c9b140caaf6da09cfabb0d675" ON public.role USING btree (slug);
+CREATE UNIQUE INDEX IF NOT EXISTS "PK_35c9b140caaf6da09cfabb0d675" ON public.role USING btree (slug);
 
-CREATE UNIQUE INDEX "PK_4d68b1358bb5b766d3e78f32f57" ON public.project USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS "PK_4d68b1358bb5b766d3e78f32f57" ON public.project USING btree (id);
 
-CREATE UNIQUE INDEX "PK_52325e34cd7a2f0f67b0f3cad65" ON public.workflow_dependency USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS "PK_52325e34cd7a2f0f67b0f3cad65" ON public.workflow_dependency USING btree (id);
 
-CREATE UNIQUE INDEX "PK_5779069b7235b256d91f7af1a15" ON public.invalid_auth_token USING btree (token);
+CREATE UNIQUE INDEX IF NOT EXISTS "PK_5779069b7235b256d91f7af1a15" ON public.invalid_auth_token USING btree (token);
 
-CREATE UNIQUE INDEX "PK_5ba87620386b847201c9531c58f" ON public.shared_workflow USING btree ("workflowId", "projectId");
+CREATE UNIQUE INDEX IF NOT EXISTS "PK_5ba87620386b847201c9531c58f" ON public.shared_workflow USING btree ("workflowId", "projectId");
 
-CREATE UNIQUE INDEX "PK_6278a41a706740c94c02e288df8" ON public.folder USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS "PK_6278a41a706740c94c02e288df8" ON public.folder USING btree (id);
 
-CREATE UNIQUE INDEX "PK_673cb121ee4a8a5e27850c72c51" ON public.data_table_column USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS "PK_673cb121ee4a8a5e27850c72c51" ON public.data_table_column USING btree (id);
 
-CREATE UNIQUE INDEX "PK_69dfa041592c30bbc0d4b84aa00" ON public.annotation_tag_entity USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS "PK_69dfa041592c30bbc0d4b84aa00" ON public.annotation_tag_entity USING btree (id);
 
-CREATE UNIQUE INDEX "PK_74abaed0b30711b6532598b0392" ON public.oauth_refresh_tokens USING btree (token);
+CREATE UNIQUE INDEX IF NOT EXISTS "PK_74abaed0b30711b6532598b0392" ON public.oauth_refresh_tokens USING btree (token);
 
-CREATE UNIQUE INDEX "PK_7704a5add6baed43eef835f0bfb" ON public.chat_hub_messages USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS "PK_7704a5add6baed43eef835f0bfb" ON public.chat_hub_messages USING btree (id);
 
-CREATE UNIQUE INDEX "PK_7afcf93ffa20c4252869a7c6a23" ON public.execution_annotations USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS "PK_7afcf93ffa20c4252869a7c6a23" ON public.execution_annotations USING btree (id);
 
-CREATE UNIQUE INDEX "PK_7bc73da3b8be7591696e14809d5" ON public.dynamic_credential_entry USING btree (credential_id, subject_id, resolver_id);
+CREATE UNIQUE INDEX IF NOT EXISTS "PK_7bc73da3b8be7591696e14809d5" ON public.dynamic_credential_entry USING btree (credential_id, subject_id, resolver_id);
 
-CREATE UNIQUE INDEX "PK_85b9ada746802c8993103470f05" ON public.oauth_user_consents USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS "PK_85b9ada746802c8993103470f05" ON public.oauth_user_consents USING btree (id);
 
-CREATE UNIQUE INDEX "PK_8c82d7f526340ab734260ea46be" ON public.migrations USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS "PK_8c82d7f526340ab734260ea46be" ON public.migrations USING btree (id);
 
-CREATE UNIQUE INDEX "PK_8ebd28194e4f792f96b5933423fc439df97d9689" ON public.installed_nodes USING btree (name);
+CREATE UNIQUE INDEX IF NOT EXISTS "PK_8ebd28194e4f792f96b5933423fc439df97d9689" ON public.installed_nodes USING btree (name);
 
-CREATE UNIQUE INDEX "PK_8ef3a59796a228913f251779cff" ON public.shared_credentials USING btree ("credentialsId", "projectId");
+CREATE UNIQUE INDEX IF NOT EXISTS "PK_8ef3a59796a228913f251779cff" ON public.shared_credentials USING btree ("credentialsId", "projectId");
 
-CREATE UNIQUE INDEX "PK_90c121f77a78a6580e94b794bce" ON public.test_case_execution USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS "PK_90c121f77a78a6580e94b794bce" ON public.test_case_execution USING btree (id);
 
-CREATE UNIQUE INDEX "PK_978fa5caa3468f463dac9d92e69" ON public.user_api_keys USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS "PK_978fa5caa3468f463dac9d92e69" ON public.user_api_keys USING btree (id);
 
-CREATE UNIQUE INDEX "PK_979ec03d31294cca484be65d11f" ON public.execution_annotation_tags USING btree ("annotationId", "tagId");
+CREATE UNIQUE INDEX IF NOT EXISTS "PK_979ec03d31294cca484be65d11f" ON public.execution_annotation_tags USING btree ("annotationId", "tagId");
 
-CREATE UNIQUE INDEX "PK_b21ace2e13596ccd87dc9bf4ea6" ON public.webhook_entity USING btree ("webhookPath", method);
+CREATE UNIQUE INDEX IF NOT EXISTS "PK_b21ace2e13596ccd87dc9bf4ea6" ON public.webhook_entity USING btree ("webhookPath", method);
 
-CREATE UNIQUE INDEX "PK_b606942249b90cc39b0265f0575" ON public.insights_by_period USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS "PK_b606942249b90cc39b0265f0575" ON public.insights_by_period USING btree (id);
 
-CREATE UNIQUE INDEX "PK_b6572dd6173e4cd06fe79937b58" ON public.workflow_history USING btree ("versionId");
+CREATE UNIQUE INDEX IF NOT EXISTS "PK_b6572dd6173e4cd06fe79937b58" ON public.workflow_history USING btree ("versionId");
 
-CREATE UNIQUE INDEX "PK_b76cfb088dcdaf5275e9980bb64" ON public.dynamic_credential_resolver USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS "PK_b76cfb088dcdaf5275e9980bb64" ON public.dynamic_credential_resolver USING btree (id);
 
-CREATE UNIQUE INDEX "PK_bfc45df0481abd7f355d6187da1" ON public.scope USING btree (slug);
+CREATE UNIQUE INDEX IF NOT EXISTS "PK_bfc45df0481abd7f355d6187da1" ON public.scope USING btree (slug);
 
-CREATE UNIQUE INDEX "PK_c4759172d3431bae6f04e678e0d" ON public.oauth_clients USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS "PK_c4759172d3431bae6f04e678e0d" ON public.oauth_clients USING btree (id);
 
-CREATE UNIQUE INDEX "PK_c788f7caf88e91e365c97d6d04a" ON public.workflow_publish_history USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS "PK_c788f7caf88e91e365c97d6d04a" ON public.workflow_publish_history USING btree (id);
 
-CREATE UNIQUE INDEX "PK_ca04b9d8dc72de268fe07a65773" ON public.processed_data USING btree ("workflowId", context);
+CREATE UNIQUE INDEX IF NOT EXISTS "PK_ca04b9d8dc72de268fe07a65773" ON public.processed_data USING btree ("workflowId", context);
 
-CREATE UNIQUE INDEX "PK_dc0fe14e6d9943f268e7b119f69ab8bd" ON public.settings USING btree (key);
+CREATE UNIQUE INDEX IF NOT EXISTS "PK_dc0fe14e6d9943f268e7b119f69ab8bd" ON public.settings USING btree (key);
 
-CREATE UNIQUE INDEX "PK_dcd71f96a5d5f4bf79e67d322bf" ON public.oauth_access_tokens USING btree (token);
+CREATE UNIQUE INDEX IF NOT EXISTS "PK_dcd71f96a5d5f4bf79e67d322bf" ON public.oauth_access_tokens USING btree (token);
 
-CREATE UNIQUE INDEX "PK_e226d0001b9e6097cbfe70617cb" ON public.data_table USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS "PK_e226d0001b9e6097cbfe70617cb" ON public.data_table USING btree (id);
 
-CREATE UNIQUE INDEX "PK_ea8f538c94b6e352418254ed6474a81f" ON public."user" USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS "PK_ea8f538c94b6e352418254ed6474a81f" ON public."user" USING btree (id);
 
-CREATE UNIQUE INDEX "PK_ec15125755151e3a7e00e00014f" ON public.insights_raw USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS "PK_ec15125755151e3a7e00e00014f" ON public.insights_raw USING btree (id);
 
-CREATE UNIQUE INDEX "PK_f39a3b36bbdf0e2979ddb21cf78" ON public.chat_hub_agents USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS "PK_f39a3b36bbdf0e2979ddb21cf78" ON public.chat_hub_agents USING btree (id);
 
-CREATE UNIQUE INDEX "PK_f448a94c35218b6208ce20cf5a1" ON public.insights_metadata USING btree ("metaId");
+CREATE UNIQUE INDEX IF NOT EXISTS "PK_f448a94c35218b6208ce20cf5a1" ON public.insights_metadata USING btree ("metaId");
 
-CREATE UNIQUE INDEX "PK_fb91ab932cfbd694061501cc20f" ON public.oauth_authorization_codes USING btree (code);
+CREATE UNIQUE INDEX IF NOT EXISTS "PK_fb91ab932cfbd694061501cc20f" ON public.oauth_authorization_codes USING btree (code);
 
-CREATE UNIQUE INDEX "PK_fc3691585b39408bb0551122af6" ON public.binary_data USING btree ("fileId");
+CREATE UNIQUE INDEX IF NOT EXISTS "PK_fc3691585b39408bb0551122af6" ON public.binary_data USING btree ("fileId");
 
-CREATE UNIQUE INDEX "PK_role_scope" ON public.role_scope USING btree ("roleSlug", "scopeSlug");
+CREATE UNIQUE INDEX IF NOT EXISTS "PK_role_scope" ON public.role_scope USING btree ("roleSlug", "scopeSlug");
 
-CREATE UNIQUE INDEX "UQ_083721d99ce8db4033e2958ebb4" ON public.oauth_user_consents USING btree ("userId", "clientId");
+CREATE UNIQUE INDEX IF NOT EXISTS "UQ_083721d99ce8db4033e2958ebb4" ON public.oauth_user_consents USING btree ("userId", "clientId");
 
-CREATE UNIQUE INDEX "UQ_8082ec4890f892f0bc77473a123" ON public.data_table_column USING btree ("dataTableId", name);
+CREATE UNIQUE INDEX IF NOT EXISTS "UQ_8082ec4890f892f0bc77473a123" ON public.data_table_column USING btree ("dataTableId", name);
 
-CREATE UNIQUE INDEX "UQ_b23096ef747281ac944d28e8b0d" ON public.data_table USING btree ("projectId", name);
+CREATE UNIQUE INDEX IF NOT EXISTS "UQ_b23096ef747281ac944d28e8b0d" ON public.data_table USING btree ("projectId", name);
 
-CREATE UNIQUE INDEX "UQ_e12875dfb3b1d92d7d7c5377e2" ON public."user" USING btree (email);
+CREATE UNIQUE INDEX IF NOT EXISTS "UQ_e12875dfb3b1d92d7d7c5377e2" ON public."user" USING btree (email);
 
-CREATE UNIQUE INDEX auth_id ON public.auth USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS auth_id ON public.auth USING btree (id);
 
-CREATE UNIQUE INDEX auth_identity_pkey ON public.auth_identity USING btree ("providerId", "providerType");
+CREATE UNIQUE INDEX IF NOT EXISTS auth_identity_pkey ON public.auth_identity USING btree ("providerId", "providerType");
 
-CREATE UNIQUE INDEX auth_provider_sync_history_pkey ON public.auth_provider_sync_history USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS auth_provider_sync_history_pkey ON public.auth_provider_sync_history USING btree (id);
 
-CREATE UNIQUE INDEX bulbapedia_mechanics_pkey ON public.bulbapedia_mechanics USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS bulbapedia_mechanics_pkey ON public.bulbapedia_mechanics USING btree (id);
 
-CREATE UNIQUE INDEX bulbapedia_mechanics_resource_type_resource_name_key ON public.bulbapedia_mechanics USING btree (resource_type, resource_name);
+CREATE UNIQUE INDEX IF NOT EXISTS bulbapedia_mechanics_resource_type_resource_name_key ON public.bulbapedia_mechanics USING btree (resource_type, resource_name);
 
-CREATE UNIQUE INDEX canonical_league_config_pkey ON public.canonical_league_config USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS canonical_league_config_pkey ON public.canonical_league_config USING btree (id);
 
-CREATE UNIQUE INDEX chat_id ON public.chat USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS chat_id ON public.chat USING btree (id);
 
-CREATE UNIQUE INDEX chat_share_id ON public.chat USING btree (share_id);
+CREATE UNIQUE INDEX IF NOT EXISTS chat_share_id ON public.chat USING btree (share_id);
 
-CREATE UNIQUE INDEX chatidtag_id ON public.chatidtag USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS chatidtag_id ON public.chatidtag USING btree (id);
 
-CREATE UNIQUE INDEX credentials_entity_pkey ON public.credentials_entity USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS credentials_entity_pkey ON public.credentials_entity USING btree (id);
 
-CREATE UNIQUE INDEX document_collection_name ON public.document USING btree (collection_name);
+CREATE UNIQUE INDEX IF NOT EXISTS document_collection_name ON public.document USING btree (collection_name);
 
-CREATE UNIQUE INDEX document_name ON public.document USING btree (name);
+CREATE UNIQUE INDEX IF NOT EXISTS document_name ON public.document USING btree (name);
 
-CREATE UNIQUE INDEX document_pkey ON public.document USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS document_pkey ON public.document USING btree (id);
 
-CREATE UNIQUE INDEX event_destinations_pkey ON public.event_destinations USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS event_destinations_pkey ON public.event_destinations USING btree (id);
 
-CREATE UNIQUE INDEX execution_data_pkey ON public.execution_data USING btree ("executionId");
+CREATE UNIQUE INDEX IF NOT EXISTS execution_data_pkey ON public.execution_data USING btree ("executionId");
 
-CREATE UNIQUE INDEX file_id ON public.file USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS file_id ON public.file USING btree (id);
 
-CREATE UNIQUE INDEX function_id ON public.function USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS function_id ON public.function USING btree (id);
 
-CREATE INDEX idx_07fde106c0b471d8cc80a64fc8 ON public.credentials_entity USING btree (type);
+CREATE INDEX IF NOT EXISTS idx_07fde106c0b471d8cc80a64fc8 ON public.credentials_entity USING btree (type);
 
-CREATE INDEX idx_16f4436789e804e3e1c9eeb240 ON public.webhook_entity USING btree ("webhookId", method, "pathLength");
+CREATE INDEX IF NOT EXISTS idx_16f4436789e804e3e1c9eeb240 ON public.webhook_entity USING btree ("webhookId", method, "pathLength");
 
-CREATE UNIQUE INDEX idx_812eb05f7451ca757fb98444ce ON public.tag_entity USING btree (name);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_812eb05f7451ca757fb98444ce ON public.tag_entity USING btree (name);
 
-CREATE INDEX idx_bulbapedia_content_search ON public.bulbapedia_mechanics USING gin (to_tsvector('english'::regconfig, content));
+CREATE INDEX IF NOT EXISTS idx_bulbapedia_content_search ON public.bulbapedia_mechanics USING gin (to_tsvector('english'::regconfig, content));
 
-CREATE INDEX idx_bulbapedia_generation ON public.bulbapedia_mechanics USING btree (generation);
+CREATE INDEX IF NOT EXISTS idx_bulbapedia_generation ON public.bulbapedia_mechanics USING btree (generation);
 
-CREATE INDEX idx_bulbapedia_resource_type ON public.bulbapedia_mechanics USING btree (resource_type);
+CREATE INDEX IF NOT EXISTS idx_bulbapedia_resource_type ON public.bulbapedia_mechanics USING btree (resource_type);
 
-CREATE INDEX idx_bulbapedia_tags ON public.bulbapedia_mechanics USING gin (tags);
+CREATE INDEX IF NOT EXISTS idx_bulbapedia_tags ON public.bulbapedia_mechanics USING gin (tags);
 
-CREATE INDEX idx_bulbapedia_type_name ON public.bulbapedia_mechanics USING btree (resource_type, resource_name);
+CREATE INDEX IF NOT EXISTS idx_bulbapedia_type_name ON public.bulbapedia_mechanics USING btree (resource_type, resource_name);
 
-CREATE INDEX idx_canonical_league_config_active ON public.canonical_league_config USING btree (is_active) WHERE (is_active = true);
+CREATE INDEX IF NOT EXISTS idx_canonical_league_config_active ON public.canonical_league_config USING btree (is_active) WHERE (is_active = true);
 
-CREATE UNIQUE INDEX idx_canonical_league_config_one_active_per_season ON public.canonical_league_config USING btree (season_id) WHERE (is_active = true);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_canonical_league_config_one_active_per_season ON public.canonical_league_config USING btree (season_id) WHERE (is_active = true);
 
-CREATE INDEX idx_canonical_league_config_season ON public.canonical_league_config USING btree (season_id);
+CREATE INDEX IF NOT EXISTS idx_canonical_league_config_season ON public.canonical_league_config USING btree (season_id);
 
-CREATE INDEX idx_execution_entity_stopped_at_status_deleted_at ON public.execution_entity USING btree ("stoppedAt", status, "deletedAt") WHERE (("stoppedAt" IS NOT NULL) AND ("deletedAt" IS NULL));
+CREATE INDEX IF NOT EXISTS idx_execution_entity_stopped_at_status_deleted_at ON public.execution_entity USING btree ("stoppedAt", status, "deletedAt") WHERE (("stoppedAt" IS NOT NULL) AND ("deletedAt" IS NULL));
 
-CREATE INDEX idx_execution_entity_wait_till_status_deleted_at ON public.execution_entity USING btree ("waitTill", status, "deletedAt") WHERE (("waitTill" IS NOT NULL) AND ("deletedAt" IS NULL));
+CREATE INDEX IF NOT EXISTS idx_execution_entity_wait_till_status_deleted_at ON public.execution_entity USING btree ("waitTill", status, "deletedAt") WHERE (("waitTill" IS NOT NULL) AND ("deletedAt" IS NULL));
 
-CREATE INDEX idx_execution_entity_workflow_id_started_at ON public.execution_entity USING btree ("workflowId", "startedAt") WHERE (("startedAt" IS NOT NULL) AND ("deletedAt" IS NULL));
+CREATE INDEX IF NOT EXISTS idx_execution_entity_workflow_id_started_at ON public.execution_entity USING btree ("workflowId", "startedAt") WHERE (("startedAt" IS NOT NULL) AND ("deletedAt" IS NULL));
 
-CREATE INDEX idx_moves_contest_effect ON public.moves USING btree (contest_effect_id) WHERE (contest_effect_id IS NOT NULL);
+CREATE INDEX IF NOT EXISTS idx_moves_contest_effect ON public.moves USING btree (contest_effect_id) WHERE (contest_effect_id IS NOT NULL);
 
-CREATE INDEX idx_moves_contest_type ON public.moves USING btree (contest_type_id) WHERE (contest_type_id IS NOT NULL);
+CREATE INDEX IF NOT EXISTS idx_moves_contest_type ON public.moves USING btree (contest_type_id) WHERE (contest_type_id IS NOT NULL);
 
-CREATE INDEX idx_moves_super_contest_effect ON public.moves USING btree (super_contest_effect_id) WHERE (super_contest_effect_id IS NOT NULL);
+CREATE INDEX IF NOT EXISTS idx_moves_super_contest_effect ON public.moves USING btree (super_contest_effect_id) WHERE (super_contest_effect_id IS NOT NULL);
 
-CREATE INDEX idx_smogon_meta_abilities ON public.smogon_meta_snapshot USING gin (common_abilities);
+CREATE INDEX IF NOT EXISTS idx_smogon_meta_abilities ON public.smogon_meta_snapshot USING gin (common_abilities);
 
-CREATE INDEX idx_smogon_meta_checks ON public.smogon_meta_snapshot USING gin (checks);
+CREATE INDEX IF NOT EXISTS idx_smogon_meta_checks ON public.smogon_meta_snapshot USING gin (checks);
 
-CREATE INDEX idx_smogon_meta_counters ON public.smogon_meta_snapshot USING gin (counters);
+CREATE INDEX IF NOT EXISTS idx_smogon_meta_counters ON public.smogon_meta_snapshot USING gin (counters);
 
-CREATE INDEX idx_smogon_meta_format ON public.smogon_meta_snapshot USING btree (format, generation);
+CREATE INDEX IF NOT EXISTS idx_smogon_meta_format ON public.smogon_meta_snapshot USING btree (format, generation);
 
-CREATE INDEX idx_smogon_meta_items ON public.smogon_meta_snapshot USING gin (common_items);
+CREATE INDEX IF NOT EXISTS idx_smogon_meta_items ON public.smogon_meta_snapshot USING gin (common_items);
 
-CREATE INDEX idx_smogon_meta_moves ON public.smogon_meta_snapshot USING gin (common_moves);
+CREATE INDEX IF NOT EXISTS idx_smogon_meta_moves ON public.smogon_meta_snapshot USING gin (common_moves);
 
-CREATE INDEX idx_smogon_meta_pokemon ON public.smogon_meta_snapshot USING btree (pokemon_name);
+CREATE INDEX IF NOT EXISTS idx_smogon_meta_pokemon ON public.smogon_meta_snapshot USING btree (pokemon_name);
 
-CREATE INDEX idx_smogon_meta_roles ON public.smogon_meta_snapshot USING gin (roles);
+CREATE INDEX IF NOT EXISTS idx_smogon_meta_roles ON public.smogon_meta_snapshot USING gin (roles);
 
-CREATE INDEX idx_smogon_meta_source_date ON public.smogon_meta_snapshot USING btree (source_date DESC);
+CREATE INDEX IF NOT EXISTS idx_smogon_meta_source_date ON public.smogon_meta_snapshot USING btree (source_date DESC);
 
-CREATE INDEX idx_smogon_meta_tier ON public.smogon_meta_snapshot USING btree (tier);
+CREATE INDEX IF NOT EXISTS idx_smogon_meta_tier ON public.smogon_meta_snapshot USING btree (tier);
 
-CREATE INDEX idx_workflows_tags_workflow_id ON public.workflows_tags USING btree ("workflowId");
+CREATE INDEX IF NOT EXISTS idx_workflows_tags_workflow_id ON public.workflows_tags USING btree ("workflowId");
 
-CREATE UNIQUE INDEX memory_id ON public.memory USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS memory_id ON public.memory USING btree (id);
 
-CREATE UNIQUE INDEX migratehistory_pkey ON public.migratehistory USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS migratehistory_pkey ON public.migratehistory USING btree (id);
 
-CREATE UNIQUE INDEX model_id ON public.model USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS model_id ON public.model USING btree (id);
 
-CREATE UNIQUE INDEX pk_credentials_entity_id ON public.credentials_entity USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS pk_credentials_entity_id ON public.credentials_entity USING btree (id);
 
-CREATE UNIQUE INDEX pk_e3e63bbf986767844bbe1166d4e ON public.execution_entity USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS pk_e3e63bbf986767844bbe1166d4e ON public.execution_entity USING btree (id);
 
-CREATE UNIQUE INDEX pk_tag_entity_id ON public.tag_entity USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS pk_tag_entity_id ON public.tag_entity USING btree (id);
 
-CREATE UNIQUE INDEX pk_workflow_entity_id ON public.workflow_entity USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS pk_workflow_entity_id ON public.workflow_entity USING btree (id);
 
-CREATE UNIQUE INDEX pk_workflow_statistics ON public.workflow_statistics USING btree ("workflowId", name);
+CREATE UNIQUE INDEX IF NOT EXISTS pk_workflow_statistics ON public.workflow_statistics USING btree ("workflowId", name);
 
-CREATE UNIQUE INDEX pk_workflows_tags ON public.workflows_tags USING btree ("workflowId", "tagId");
+CREATE UNIQUE INDEX IF NOT EXISTS pk_workflows_tags ON public.workflows_tags USING btree ("workflowId", "tagId");
 
-CREATE INDEX project_relation_role_idx ON public.project_relation USING btree (role);
+CREATE INDEX IF NOT EXISTS project_relation_role_idx ON public.project_relation USING btree (role);
 
-CREATE INDEX project_relation_role_project_idx ON public.project_relation USING btree ("projectId", role);
+CREATE INDEX IF NOT EXISTS project_relation_role_project_idx ON public.project_relation USING btree ("projectId", role);
 
-CREATE UNIQUE INDEX prompt_command ON public.prompt USING btree (command);
+CREATE UNIQUE INDEX IF NOT EXISTS prompt_command ON public.prompt USING btree (command);
 
-CREATE UNIQUE INDEX prompt_pkey ON public.prompt USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS prompt_pkey ON public.prompt USING btree (id);
 
-CREATE UNIQUE INDEX smogon_meta_snapshot_pkey ON public.smogon_meta_snapshot USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS smogon_meta_snapshot_pkey ON public.smogon_meta_snapshot USING btree (id);
 
-CREATE UNIQUE INDEX smogon_meta_snapshot_pokemon_name_format_source_date_key ON public.smogon_meta_snapshot USING btree (pokemon_name, format, source_date);
+CREATE UNIQUE INDEX IF NOT EXISTS smogon_meta_snapshot_pokemon_name_format_source_date_key ON public.smogon_meta_snapshot USING btree (pokemon_name, format, source_date);
 
-CREATE UNIQUE INDEX tag_entity_pkey ON public.tag_entity USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS tag_entity_pkey ON public.tag_entity USING btree (id);
 
-CREATE UNIQUE INDEX tag_id ON public.tag USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS tag_id ON public.tag USING btree (id);
 
-CREATE UNIQUE INDEX tool_id ON public.tool USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS tool_id ON public.tool USING btree (id);
 
-CREATE UNIQUE INDEX user_api_key ON public."user" USING btree (api_key);
+CREATE UNIQUE INDEX IF NOT EXISTS user_api_key ON public."user" USING btree (api_key);
 
-CREATE UNIQUE INDEX user_id ON public."user" USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS user_id ON public."user" USING btree (id);
 
-CREATE UNIQUE INDEX user_oauth_sub ON public."user" USING btree (oauth_sub);
+CREATE UNIQUE INDEX IF NOT EXISTS user_oauth_sub ON public."user" USING btree (oauth_sub);
 
-CREATE INDEX user_role_idx ON public."user" USING btree ("roleSlug");
+CREATE INDEX IF NOT EXISTS user_role_idx ON public."user" USING btree ("roleSlug");
 
-CREATE UNIQUE INDEX variables_global_key_unique ON public.variables USING btree (key) WHERE ("projectId" IS NULL);
+CREATE UNIQUE INDEX IF NOT EXISTS variables_global_key_unique ON public.variables USING btree (key) WHERE ("projectId" IS NULL);
 
-CREATE UNIQUE INDEX variables_pkey ON public.variables USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS variables_pkey ON public.variables USING btree (id);
 
-CREATE UNIQUE INDEX variables_project_key_unique ON public.variables USING btree ("projectId", key) WHERE ("projectId" IS NOT NULL);
+CREATE UNIQUE INDEX IF NOT EXISTS variables_project_key_unique ON public.variables USING btree ("projectId", key) WHERE ("projectId" IS NOT NULL);
 
-CREATE UNIQUE INDEX workflow_entity_pkey ON public.workflow_entity USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS workflow_entity_pkey ON public.workflow_entity USING btree (id);
 
-alter table "public"."annotation_tag_entity" add constraint "PK_69dfa041592c30bbc0d4b84aa00" PRIMARY KEY using index "PK_69dfa041592c30bbc0d4b84aa00";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'PK_69dfa041592c30bbc0d4b84aa00') then alter table "public"."annotation_tag_entity" add constraint "PK_69dfa041592c30bbc0d4b84aa00" PRIMARY KEY using index "PK_69dfa041592c30bbc0d4b84aa00"; end if; end $$;
 
-alter table "public"."auth_identity" add constraint "auth_identity_pkey" PRIMARY KEY using index "auth_identity_pkey";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'auth_identity_pkey') then alter table "public"."auth_identity" add constraint "auth_identity_pkey" PRIMARY KEY using index "auth_identity_pkey"; end if; end $$;
 
-alter table "public"."auth_provider_sync_history" add constraint "auth_provider_sync_history_pkey" PRIMARY KEY using index "auth_provider_sync_history_pkey";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'auth_provider_sync_history_pkey') then alter table "public"."auth_provider_sync_history" add constraint "auth_provider_sync_history_pkey" PRIMARY KEY using index "auth_provider_sync_history_pkey"; end if; end $$;
 
-alter table "public"."binary_data" add constraint "PK_fc3691585b39408bb0551122af6" PRIMARY KEY using index "PK_fc3691585b39408bb0551122af6";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'PK_fc3691585b39408bb0551122af6') then alter table "public"."binary_data" add constraint "PK_fc3691585b39408bb0551122af6" PRIMARY KEY using index "PK_fc3691585b39408bb0551122af6"; end if; end $$;
 
-alter table "public"."bulbapedia_mechanics" add constraint "bulbapedia_mechanics_pkey" PRIMARY KEY using index "bulbapedia_mechanics_pkey";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'bulbapedia_mechanics_pkey') then alter table "public"."bulbapedia_mechanics" add constraint "bulbapedia_mechanics_pkey" PRIMARY KEY using index "bulbapedia_mechanics_pkey"; end if; end $$;
 
-alter table "public"."canonical_league_config" add constraint "canonical_league_config_pkey" PRIMARY KEY using index "canonical_league_config_pkey";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'canonical_league_config_pkey') then alter table "public"."canonical_league_config" add constraint "canonical_league_config_pkey" PRIMARY KEY using index "canonical_league_config_pkey"; end if; end $$;
 
-alter table "public"."chat_hub_agents" add constraint "PK_f39a3b36bbdf0e2979ddb21cf78" PRIMARY KEY using index "PK_f39a3b36bbdf0e2979ddb21cf78";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'PK_f39a3b36bbdf0e2979ddb21cf78') then alter table "public"."chat_hub_agents" add constraint "PK_f39a3b36bbdf0e2979ddb21cf78" PRIMARY KEY using index "PK_f39a3b36bbdf0e2979ddb21cf78"; end if; end $$;
 
-alter table "public"."chat_hub_messages" add constraint "PK_7704a5add6baed43eef835f0bfb" PRIMARY KEY using index "PK_7704a5add6baed43eef835f0bfb";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'PK_7704a5add6baed43eef835f0bfb') then alter table "public"."chat_hub_messages" add constraint "PK_7704a5add6baed43eef835f0bfb" PRIMARY KEY using index "PK_7704a5add6baed43eef835f0bfb"; end if; end $$;
 
-alter table "public"."chat_hub_sessions" add constraint "PK_1eafef1273c70e4464fec703412" PRIMARY KEY using index "PK_1eafef1273c70e4464fec703412";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'PK_1eafef1273c70e4464fec703412') then alter table "public"."chat_hub_sessions" add constraint "PK_1eafef1273c70e4464fec703412" PRIMARY KEY using index "PK_1eafef1273c70e4464fec703412"; end if; end $$;
 
-alter table "public"."credentials_entity" add constraint "credentials_entity_pkey" PRIMARY KEY using index "credentials_entity_pkey";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'credentials_entity_pkey') then alter table "public"."credentials_entity" add constraint "credentials_entity_pkey" PRIMARY KEY using index "credentials_entity_pkey"; end if; end $$;
 
-alter table "public"."data_table" add constraint "PK_e226d0001b9e6097cbfe70617cb" PRIMARY KEY using index "PK_e226d0001b9e6097cbfe70617cb";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'PK_e226d0001b9e6097cbfe70617cb') then alter table "public"."data_table" add constraint "PK_e226d0001b9e6097cbfe70617cb" PRIMARY KEY using index "PK_e226d0001b9e6097cbfe70617cb"; end if; end $$;
 
-alter table "public"."data_table_column" add constraint "PK_673cb121ee4a8a5e27850c72c51" PRIMARY KEY using index "PK_673cb121ee4a8a5e27850c72c51";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'PK_673cb121ee4a8a5e27850c72c51') then alter table "public"."data_table_column" add constraint "PK_673cb121ee4a8a5e27850c72c51" PRIMARY KEY using index "PK_673cb121ee4a8a5e27850c72c51"; end if; end $$;
 
-alter table "public"."document" add constraint "document_pkey" PRIMARY KEY using index "document_pkey";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'document_pkey') then alter table "public"."document" add constraint "document_pkey" PRIMARY KEY using index "document_pkey"; end if; end $$;
 
-alter table "public"."dynamic_credential_entry" add constraint "PK_7bc73da3b8be7591696e14809d5" PRIMARY KEY using index "PK_7bc73da3b8be7591696e14809d5";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'PK_7bc73da3b8be7591696e14809d5') then alter table "public"."dynamic_credential_entry" add constraint "PK_7bc73da3b8be7591696e14809d5" PRIMARY KEY using index "PK_7bc73da3b8be7591696e14809d5"; end if; end $$;
 
-alter table "public"."dynamic_credential_resolver" add constraint "PK_b76cfb088dcdaf5275e9980bb64" PRIMARY KEY using index "PK_b76cfb088dcdaf5275e9980bb64";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'PK_b76cfb088dcdaf5275e9980bb64') then alter table "public"."dynamic_credential_resolver" add constraint "PK_b76cfb088dcdaf5275e9980bb64" PRIMARY KEY using index "PK_b76cfb088dcdaf5275e9980bb64"; end if; end $$;
 
-alter table "public"."event_destinations" add constraint "event_destinations_pkey" PRIMARY KEY using index "event_destinations_pkey";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'event_destinations_pkey') then alter table "public"."event_destinations" add constraint "event_destinations_pkey" PRIMARY KEY using index "event_destinations_pkey"; end if; end $$;
 
-alter table "public"."execution_annotation_tags" add constraint "PK_979ec03d31294cca484be65d11f" PRIMARY KEY using index "PK_979ec03d31294cca484be65d11f";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'PK_979ec03d31294cca484be65d11f') then alter table "public"."execution_annotation_tags" add constraint "PK_979ec03d31294cca484be65d11f" PRIMARY KEY using index "PK_979ec03d31294cca484be65d11f"; end if; end $$;
 
-alter table "public"."execution_annotations" add constraint "PK_7afcf93ffa20c4252869a7c6a23" PRIMARY KEY using index "PK_7afcf93ffa20c4252869a7c6a23";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'PK_7afcf93ffa20c4252869a7c6a23') then alter table "public"."execution_annotations" add constraint "PK_7afcf93ffa20c4252869a7c6a23" PRIMARY KEY using index "PK_7afcf93ffa20c4252869a7c6a23"; end if; end $$;
 
-alter table "public"."execution_data" add constraint "execution_data_pkey" PRIMARY KEY using index "execution_data_pkey";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'execution_data_pkey') then alter table "public"."execution_data" add constraint "execution_data_pkey" PRIMARY KEY using index "execution_data_pkey"; end if; end $$;
 
-alter table "public"."execution_entity" add constraint "pk_e3e63bbf986767844bbe1166d4e" PRIMARY KEY using index "pk_e3e63bbf986767844bbe1166d4e";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'pk_e3e63bbf986767844bbe1166d4e') then alter table "public"."execution_entity" add constraint "pk_e3e63bbf986767844bbe1166d4e" PRIMARY KEY using index "pk_e3e63bbf986767844bbe1166d4e"; end if; end $$;
 
-alter table "public"."execution_metadata" add constraint "PK_17a0b6284f8d626aae88e1c16e4" PRIMARY KEY using index "PK_17a0b6284f8d626aae88e1c16e4";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'PK_17a0b6284f8d626aae88e1c16e4') then alter table "public"."execution_metadata" add constraint "PK_17a0b6284f8d626aae88e1c16e4" PRIMARY KEY using index "PK_17a0b6284f8d626aae88e1c16e4"; end if; end $$;
 
-alter table "public"."folder" add constraint "PK_6278a41a706740c94c02e288df8" PRIMARY KEY using index "PK_6278a41a706740c94c02e288df8";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'PK_6278a41a706740c94c02e288df8') then alter table "public"."folder" add constraint "PK_6278a41a706740c94c02e288df8" PRIMARY KEY using index "PK_6278a41a706740c94c02e288df8"; end if; end $$;
 
-alter table "public"."folder_tag" add constraint "PK_27e4e00852f6b06a925a4d83a3e" PRIMARY KEY using index "PK_27e4e00852f6b06a925a4d83a3e";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'PK_27e4e00852f6b06a925a4d83a3e') then alter table "public"."folder_tag" add constraint "PK_27e4e00852f6b06a925a4d83a3e" PRIMARY KEY using index "PK_27e4e00852f6b06a925a4d83a3e"; end if; end $$;
 
-alter table "public"."insights_by_period" add constraint "PK_b606942249b90cc39b0265f0575" PRIMARY KEY using index "PK_b606942249b90cc39b0265f0575";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'PK_b606942249b90cc39b0265f0575') then alter table "public"."insights_by_period" add constraint "PK_b606942249b90cc39b0265f0575" PRIMARY KEY using index "PK_b606942249b90cc39b0265f0575"; end if; end $$;
 
-alter table "public"."insights_metadata" add constraint "PK_f448a94c35218b6208ce20cf5a1" PRIMARY KEY using index "PK_f448a94c35218b6208ce20cf5a1";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'PK_f448a94c35218b6208ce20cf5a1') then alter table "public"."insights_metadata" add constraint "PK_f448a94c35218b6208ce20cf5a1" PRIMARY KEY using index "PK_f448a94c35218b6208ce20cf5a1"; end if; end $$;
 
-alter table "public"."insights_raw" add constraint "PK_ec15125755151e3a7e00e00014f" PRIMARY KEY using index "PK_ec15125755151e3a7e00e00014f";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'PK_ec15125755151e3a7e00e00014f') then alter table "public"."insights_raw" add constraint "PK_ec15125755151e3a7e00e00014f" PRIMARY KEY using index "PK_ec15125755151e3a7e00e00014f"; end if; end $$;
 
-alter table "public"."installed_nodes" add constraint "PK_8ebd28194e4f792f96b5933423fc439df97d9689" PRIMARY KEY using index "PK_8ebd28194e4f792f96b5933423fc439df97d9689";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'PK_8ebd28194e4f792f96b5933423fc439df97d9689') then alter table "public"."installed_nodes" add constraint "PK_8ebd28194e4f792f96b5933423fc439df97d9689" PRIMARY KEY using index "PK_8ebd28194e4f792f96b5933423fc439df97d9689"; end if; end $$;
 
-alter table "public"."installed_packages" add constraint "PK_08cc9197c39b028c1e9beca225940576fd1a5804" PRIMARY KEY using index "PK_08cc9197c39b028c1e9beca225940576fd1a5804";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'PK_08cc9197c39b028c1e9beca225940576fd1a5804') then alter table "public"."installed_packages" add constraint "PK_08cc9197c39b028c1e9beca225940576fd1a5804" PRIMARY KEY using index "PK_08cc9197c39b028c1e9beca225940576fd1a5804"; end if; end $$;
 
-alter table "public"."invalid_auth_token" add constraint "PK_5779069b7235b256d91f7af1a15" PRIMARY KEY using index "PK_5779069b7235b256d91f7af1a15";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'PK_5779069b7235b256d91f7af1a15') then alter table "public"."invalid_auth_token" add constraint "PK_5779069b7235b256d91f7af1a15" PRIMARY KEY using index "PK_5779069b7235b256d91f7af1a15"; end if; end $$;
 
-alter table "public"."migratehistory" add constraint "migratehistory_pkey" PRIMARY KEY using index "migratehistory_pkey";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'migratehistory_pkey') then alter table "public"."migratehistory" add constraint "migratehistory_pkey" PRIMARY KEY using index "migratehistory_pkey"; end if; end $$;
 
-alter table "public"."migrations" add constraint "PK_8c82d7f526340ab734260ea46be" PRIMARY KEY using index "PK_8c82d7f526340ab734260ea46be";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'PK_8c82d7f526340ab734260ea46be') then alter table "public"."migrations" add constraint "PK_8c82d7f526340ab734260ea46be" PRIMARY KEY using index "PK_8c82d7f526340ab734260ea46be"; end if; end $$;
 
-alter table "public"."oauth_access_tokens" add constraint "PK_dcd71f96a5d5f4bf79e67d322bf" PRIMARY KEY using index "PK_dcd71f96a5d5f4bf79e67d322bf";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'PK_dcd71f96a5d5f4bf79e67d322bf') then alter table "public"."oauth_access_tokens" add constraint "PK_dcd71f96a5d5f4bf79e67d322bf" PRIMARY KEY using index "PK_dcd71f96a5d5f4bf79e67d322bf"; end if; end $$;
 
-alter table "public"."oauth_authorization_codes" add constraint "PK_fb91ab932cfbd694061501cc20f" PRIMARY KEY using index "PK_fb91ab932cfbd694061501cc20f";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'PK_fb91ab932cfbd694061501cc20f') then alter table "public"."oauth_authorization_codes" add constraint "PK_fb91ab932cfbd694061501cc20f" PRIMARY KEY using index "PK_fb91ab932cfbd694061501cc20f"; end if; end $$;
 
-alter table "public"."oauth_clients" add constraint "PK_c4759172d3431bae6f04e678e0d" PRIMARY KEY using index "PK_c4759172d3431bae6f04e678e0d";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'PK_c4759172d3431bae6f04e678e0d') then alter table "public"."oauth_clients" add constraint "PK_c4759172d3431bae6f04e678e0d" PRIMARY KEY using index "PK_c4759172d3431bae6f04e678e0d"; end if; end $$;
 
-alter table "public"."oauth_refresh_tokens" add constraint "PK_74abaed0b30711b6532598b0392" PRIMARY KEY using index "PK_74abaed0b30711b6532598b0392";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'PK_74abaed0b30711b6532598b0392') then alter table "public"."oauth_refresh_tokens" add constraint "PK_74abaed0b30711b6532598b0392" PRIMARY KEY using index "PK_74abaed0b30711b6532598b0392"; end if; end $$;
 
-alter table "public"."oauth_user_consents" add constraint "PK_85b9ada746802c8993103470f05" PRIMARY KEY using index "PK_85b9ada746802c8993103470f05";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'PK_85b9ada746802c8993103470f05') then alter table "public"."oauth_user_consents" add constraint "PK_85b9ada746802c8993103470f05" PRIMARY KEY using index "PK_85b9ada746802c8993103470f05"; end if; end $$;
 
-alter table "public"."processed_data" add constraint "PK_ca04b9d8dc72de268fe07a65773" PRIMARY KEY using index "PK_ca04b9d8dc72de268fe07a65773";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'PK_ca04b9d8dc72de268fe07a65773') then alter table "public"."processed_data" add constraint "PK_ca04b9d8dc72de268fe07a65773" PRIMARY KEY using index "PK_ca04b9d8dc72de268fe07a65773"; end if; end $$;
 
-alter table "public"."project" add constraint "PK_4d68b1358bb5b766d3e78f32f57" PRIMARY KEY using index "PK_4d68b1358bb5b766d3e78f32f57";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'PK_4d68b1358bb5b766d3e78f32f57') then alter table "public"."project" add constraint "PK_4d68b1358bb5b766d3e78f32f57" PRIMARY KEY using index "PK_4d68b1358bb5b766d3e78f32f57"; end if; end $$;
 
-alter table "public"."project_relation" add constraint "PK_1caaa312a5d7184a003be0f0cb6" PRIMARY KEY using index "PK_1caaa312a5d7184a003be0f0cb6";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'PK_1caaa312a5d7184a003be0f0cb6') then alter table "public"."project_relation" add constraint "PK_1caaa312a5d7184a003be0f0cb6" PRIMARY KEY using index "PK_1caaa312a5d7184a003be0f0cb6"; end if; end $$;
 
-alter table "public"."prompt" add constraint "prompt_pkey" PRIMARY KEY using index "prompt_pkey";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'prompt_pkey') then alter table "public"."prompt" add constraint "prompt_pkey" PRIMARY KEY using index "prompt_pkey"; end if; end $$;
 
-alter table "public"."role" add constraint "PK_35c9b140caaf6da09cfabb0d675" PRIMARY KEY using index "PK_35c9b140caaf6da09cfabb0d675";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'PK_35c9b140caaf6da09cfabb0d675') then alter table "public"."role" add constraint "PK_35c9b140caaf6da09cfabb0d675" PRIMARY KEY using index "PK_35c9b140caaf6da09cfabb0d675"; end if; end $$;
 
-alter table "public"."role_scope" add constraint "PK_role_scope" PRIMARY KEY using index "PK_role_scope";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'PK_role_scope') then alter table "public"."role_scope" add constraint "PK_role_scope" PRIMARY KEY using index "PK_role_scope"; end if; end $$;
 
-alter table "public"."scope" add constraint "PK_bfc45df0481abd7f355d6187da1" PRIMARY KEY using index "PK_bfc45df0481abd7f355d6187da1";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'PK_bfc45df0481abd7f355d6187da1') then alter table "public"."scope" add constraint "PK_bfc45df0481abd7f355d6187da1" PRIMARY KEY using index "PK_bfc45df0481abd7f355d6187da1"; end if; end $$;
 
-alter table "public"."settings" add constraint "PK_dc0fe14e6d9943f268e7b119f69ab8bd" PRIMARY KEY using index "PK_dc0fe14e6d9943f268e7b119f69ab8bd";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'PK_dc0fe14e6d9943f268e7b119f69ab8bd') then alter table "public"."settings" add constraint "PK_dc0fe14e6d9943f268e7b119f69ab8bd" PRIMARY KEY using index "PK_dc0fe14e6d9943f268e7b119f69ab8bd"; end if; end $$;
 
-alter table "public"."shared_credentials" add constraint "PK_8ef3a59796a228913f251779cff" PRIMARY KEY using index "PK_8ef3a59796a228913f251779cff";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'PK_8ef3a59796a228913f251779cff') then alter table "public"."shared_credentials" add constraint "PK_8ef3a59796a228913f251779cff" PRIMARY KEY using index "PK_8ef3a59796a228913f251779cff"; end if; end $$;
 
-alter table "public"."shared_workflow" add constraint "PK_5ba87620386b847201c9531c58f" PRIMARY KEY using index "PK_5ba87620386b847201c9531c58f";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'PK_5ba87620386b847201c9531c58f') then alter table "public"."shared_workflow" add constraint "PK_5ba87620386b847201c9531c58f" PRIMARY KEY using index "PK_5ba87620386b847201c9531c58f"; end if; end $$;
 
-alter table "public"."smogon_meta_snapshot" add constraint "smogon_meta_snapshot_pkey" PRIMARY KEY using index "smogon_meta_snapshot_pkey";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'smogon_meta_snapshot_pkey') then alter table "public"."smogon_meta_snapshot" add constraint "smogon_meta_snapshot_pkey" PRIMARY KEY using index "smogon_meta_snapshot_pkey"; end if; end $$;
 
-alter table "public"."tag_entity" add constraint "tag_entity_pkey" PRIMARY KEY using index "tag_entity_pkey";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'tag_entity_pkey') then alter table "public"."tag_entity" add constraint "tag_entity_pkey" PRIMARY KEY using index "tag_entity_pkey"; end if; end $$;
 
-alter table "public"."test_case_execution" add constraint "PK_90c121f77a78a6580e94b794bce" PRIMARY KEY using index "PK_90c121f77a78a6580e94b794bce";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'PK_90c121f77a78a6580e94b794bce') then alter table "public"."test_case_execution" add constraint "PK_90c121f77a78a6580e94b794bce" PRIMARY KEY using index "PK_90c121f77a78a6580e94b794bce"; end if; end $$;
 
-alter table "public"."test_run" add constraint "PK_011c050f566e9db509a0fadb9b9" PRIMARY KEY using index "PK_011c050f566e9db509a0fadb9b9";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'PK_011c050f566e9db509a0fadb9b9') then alter table "public"."test_run" add constraint "PK_011c050f566e9db509a0fadb9b9" PRIMARY KEY using index "PK_011c050f566e9db509a0fadb9b9"; end if; end $$;
 
-alter table "public"."user" add constraint "PK_ea8f538c94b6e352418254ed6474a81f" PRIMARY KEY using index "PK_ea8f538c94b6e352418254ed6474a81f";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'PK_ea8f538c94b6e352418254ed6474a81f') then alter table "public"."user" add constraint "PK_ea8f538c94b6e352418254ed6474a81f" PRIMARY KEY using index "PK_ea8f538c94b6e352418254ed6474a81f"; end if; end $$;
 
-alter table "public"."user_api_keys" add constraint "PK_978fa5caa3468f463dac9d92e69" PRIMARY KEY using index "PK_978fa5caa3468f463dac9d92e69";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'PK_978fa5caa3468f463dac9d92e69') then alter table "public"."user_api_keys" add constraint "PK_978fa5caa3468f463dac9d92e69" PRIMARY KEY using index "PK_978fa5caa3468f463dac9d92e69"; end if; end $$;
 
-alter table "public"."variables" add constraint "variables_pkey" PRIMARY KEY using index "variables_pkey";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'variables_pkey') then alter table "public"."variables" add constraint "variables_pkey" PRIMARY KEY using index "variables_pkey"; end if; end $$;
 
-alter table "public"."webhook_entity" add constraint "PK_b21ace2e13596ccd87dc9bf4ea6" PRIMARY KEY using index "PK_b21ace2e13596ccd87dc9bf4ea6";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'PK_b21ace2e13596ccd87dc9bf4ea6') then alter table "public"."webhook_entity" add constraint "PK_b21ace2e13596ccd87dc9bf4ea6" PRIMARY KEY using index "PK_b21ace2e13596ccd87dc9bf4ea6"; end if; end $$;
 
-alter table "public"."workflow_dependency" add constraint "PK_52325e34cd7a2f0f67b0f3cad65" PRIMARY KEY using index "PK_52325e34cd7a2f0f67b0f3cad65";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'PK_52325e34cd7a2f0f67b0f3cad65') then alter table "public"."workflow_dependency" add constraint "PK_52325e34cd7a2f0f67b0f3cad65" PRIMARY KEY using index "PK_52325e34cd7a2f0f67b0f3cad65"; end if; end $$;
 
-alter table "public"."workflow_entity" add constraint "workflow_entity_pkey" PRIMARY KEY using index "workflow_entity_pkey";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'workflow_entity_pkey') then alter table "public"."workflow_entity" add constraint "workflow_entity_pkey" PRIMARY KEY using index "workflow_entity_pkey"; end if; end $$;
 
-alter table "public"."workflow_history" add constraint "PK_b6572dd6173e4cd06fe79937b58" PRIMARY KEY using index "PK_b6572dd6173e4cd06fe79937b58";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'PK_b6572dd6173e4cd06fe79937b58') then alter table "public"."workflow_history" add constraint "PK_b6572dd6173e4cd06fe79937b58" PRIMARY KEY using index "PK_b6572dd6173e4cd06fe79937b58"; end if; end $$;
 
-alter table "public"."workflow_publish_history" add constraint "PK_c788f7caf88e91e365c97d6d04a" PRIMARY KEY using index "PK_c788f7caf88e91e365c97d6d04a";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'PK_c788f7caf88e91e365c97d6d04a') then alter table "public"."workflow_publish_history" add constraint "PK_c788f7caf88e91e365c97d6d04a" PRIMARY KEY using index "PK_c788f7caf88e91e365c97d6d04a"; end if; end $$;
 
-alter table "public"."workflow_statistics" add constraint "pk_workflow_statistics" PRIMARY KEY using index "pk_workflow_statistics";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'pk_workflow_statistics') then alter table "public"."workflow_statistics" add constraint "pk_workflow_statistics" PRIMARY KEY using index "pk_workflow_statistics"; end if; end $$;
 
-alter table "public"."workflows_tags" add constraint "pk_workflows_tags" PRIMARY KEY using index "pk_workflows_tags";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'pk_workflows_tags') then alter table "public"."workflows_tags" add constraint "pk_workflows_tags" PRIMARY KEY using index "pk_workflows_tags"; end if; end $$;
 
-alter table "public"."auth_identity" add constraint "auth_identity_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."user"(id) not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'auth_identity_userId_fkey') then alter table "public"."auth_identity" add constraint "auth_identity_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."user"(id) not valid; end if; end $$;
 
 alter table "public"."auth_identity" validate constraint "auth_identity_userId_fkey";
 
-alter table "public"."binary_data" add constraint "CHK_binary_data_sourceType" CHECK ((("sourceType")::text = ANY ((ARRAY['execution'::character varying, 'chat_message_attachment'::character varying])::text[]))) not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'CHK_binary_data_sourceType') then alter table "public"."binary_data" add constraint "CHK_binary_data_sourceType" CHECK ((("sourceType")::text = ANY ((ARRAY['execution'::character varying, 'chat_message_attachment'::character varying])::text[]))) not valid; end if; end $$;
 
 alter table "public"."binary_data" validate constraint "CHK_binary_data_sourceType";
 
-alter table "public"."bulbapedia_mechanics" add constraint "bulbapedia_mechanics_resource_type_resource_name_key" UNIQUE using index "bulbapedia_mechanics_resource_type_resource_name_key";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'bulbapedia_mechanics_resource_type_resource_name_key') then alter table "public"."bulbapedia_mechanics" add constraint "bulbapedia_mechanics_resource_type_resource_name_key" UNIQUE using index "bulbapedia_mechanics_resource_type_resource_name_key"; end if; end $$;
 
-alter table "public"."canonical_league_config" add constraint "canonical_league_config_season_id_fkey" FOREIGN KEY (season_id) REFERENCES public.seasons(id) not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'canonical_league_config_season_id_fkey') then alter table "public"."canonical_league_config" add constraint "canonical_league_config_season_id_fkey" FOREIGN KEY (season_id) REFERENCES public.seasons(id) not valid; end if; end $$;
 
 alter table "public"."canonical_league_config" validate constraint "canonical_league_config_season_id_fkey";
 
-alter table "public"."chat_hub_agents" add constraint "FK_441ba2caba11e077ce3fbfa2cd8" FOREIGN KEY ("ownerId") REFERENCES public."user"(id) ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_441ba2caba11e077ce3fbfa2cd8') then alter table "public"."chat_hub_agents" add constraint "FK_441ba2caba11e077ce3fbfa2cd8" FOREIGN KEY ("ownerId") REFERENCES public."user"(id) ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."chat_hub_agents" validate constraint "FK_441ba2caba11e077ce3fbfa2cd8";
 
-alter table "public"."chat_hub_agents" add constraint "FK_9c61ad497dcbae499c96a6a78ba" FOREIGN KEY ("credentialId") REFERENCES public.credentials_entity(id) ON DELETE SET NULL not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_9c61ad497dcbae499c96a6a78ba') then alter table "public"."chat_hub_agents" add constraint "FK_9c61ad497dcbae499c96a6a78ba" FOREIGN KEY ("credentialId") REFERENCES public.credentials_entity(id) ON DELETE SET NULL not valid; end if; end $$;
 
 alter table "public"."chat_hub_agents" validate constraint "FK_9c61ad497dcbae499c96a6a78ba";
 
-alter table "public"."chat_hub_messages" add constraint "FK_1f4998c8a7dec9e00a9ab15550e" FOREIGN KEY ("revisionOfMessageId") REFERENCES public.chat_hub_messages(id) ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_1f4998c8a7dec9e00a9ab15550e') then alter table "public"."chat_hub_messages" add constraint "FK_1f4998c8a7dec9e00a9ab15550e" FOREIGN KEY ("revisionOfMessageId") REFERENCES public.chat_hub_messages(id) ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."chat_hub_messages" validate constraint "FK_1f4998c8a7dec9e00a9ab15550e";
 
-alter table "public"."chat_hub_messages" add constraint "FK_25c9736e7f769f3a005eef4b372" FOREIGN KEY ("retryOfMessageId") REFERENCES public.chat_hub_messages(id) ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_25c9736e7f769f3a005eef4b372') then alter table "public"."chat_hub_messages" add constraint "FK_25c9736e7f769f3a005eef4b372" FOREIGN KEY ("retryOfMessageId") REFERENCES public.chat_hub_messages(id) ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."chat_hub_messages" validate constraint "FK_25c9736e7f769f3a005eef4b372";
 
-alter table "public"."chat_hub_messages" add constraint "FK_6afb260449dd7a9b85355d4e0c9" FOREIGN KEY ("executionId") REFERENCES public.execution_entity(id) ON DELETE SET NULL not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_6afb260449dd7a9b85355d4e0c9') then alter table "public"."chat_hub_messages" add constraint "FK_6afb260449dd7a9b85355d4e0c9" FOREIGN KEY ("executionId") REFERENCES public.execution_entity(id) ON DELETE SET NULL not valid; end if; end $$;
 
 alter table "public"."chat_hub_messages" validate constraint "FK_6afb260449dd7a9b85355d4e0c9";
 
-alter table "public"."chat_hub_messages" add constraint "FK_acf8926098f063cdbbad8497fd1" FOREIGN KEY ("workflowId") REFERENCES public.workflow_entity(id) ON DELETE SET NULL not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_acf8926098f063cdbbad8497fd1') then alter table "public"."chat_hub_messages" add constraint "FK_acf8926098f063cdbbad8497fd1" FOREIGN KEY ("workflowId") REFERENCES public.workflow_entity(id) ON DELETE SET NULL not valid; end if; end $$;
 
 alter table "public"."chat_hub_messages" validate constraint "FK_acf8926098f063cdbbad8497fd1";
 
-alter table "public"."chat_hub_messages" add constraint "FK_chat_hub_messages_agentId" FOREIGN KEY ("agentId") REFERENCES public.chat_hub_agents(id) ON DELETE SET NULL not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_chat_hub_messages_agentId') then alter table "public"."chat_hub_messages" add constraint "FK_chat_hub_messages_agentId" FOREIGN KEY ("agentId") REFERENCES public.chat_hub_agents(id) ON DELETE SET NULL not valid; end if; end $$;
 
 alter table "public"."chat_hub_messages" validate constraint "FK_chat_hub_messages_agentId";
 
-alter table "public"."chat_hub_messages" add constraint "FK_e22538eb50a71a17954cd7e076c" FOREIGN KEY ("sessionId") REFERENCES public.chat_hub_sessions(id) ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_e22538eb50a71a17954cd7e076c') then alter table "public"."chat_hub_messages" add constraint "FK_e22538eb50a71a17954cd7e076c" FOREIGN KEY ("sessionId") REFERENCES public.chat_hub_sessions(id) ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."chat_hub_messages" validate constraint "FK_e22538eb50a71a17954cd7e076c";
 
-alter table "public"."chat_hub_messages" add constraint "FK_e5d1fa722c5a8d38ac204746662" FOREIGN KEY ("previousMessageId") REFERENCES public.chat_hub_messages(id) ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_e5d1fa722c5a8d38ac204746662') then alter table "public"."chat_hub_messages" add constraint "FK_e5d1fa722c5a8d38ac204746662" FOREIGN KEY ("previousMessageId") REFERENCES public.chat_hub_messages(id) ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."chat_hub_messages" validate constraint "FK_e5d1fa722c5a8d38ac204746662";
 
-alter table "public"."chat_hub_sessions" add constraint "FK_7bc13b4c7e6afbfaf9be326c189" FOREIGN KEY ("credentialId") REFERENCES public.credentials_entity(id) ON DELETE SET NULL not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_7bc13b4c7e6afbfaf9be326c189') then alter table "public"."chat_hub_sessions" add constraint "FK_7bc13b4c7e6afbfaf9be326c189" FOREIGN KEY ("credentialId") REFERENCES public.credentials_entity(id) ON DELETE SET NULL not valid; end if; end $$;
 
 alter table "public"."chat_hub_sessions" validate constraint "FK_7bc13b4c7e6afbfaf9be326c189";
 
-alter table "public"."chat_hub_sessions" add constraint "FK_9f9293d9f552496c40e0d1a8f80" FOREIGN KEY ("workflowId") REFERENCES public.workflow_entity(id) ON DELETE SET NULL not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_9f9293d9f552496c40e0d1a8f80') then alter table "public"."chat_hub_sessions" add constraint "FK_9f9293d9f552496c40e0d1a8f80" FOREIGN KEY ("workflowId") REFERENCES public.workflow_entity(id) ON DELETE SET NULL not valid; end if; end $$;
 
 alter table "public"."chat_hub_sessions" validate constraint "FK_9f9293d9f552496c40e0d1a8f80";
 
-alter table "public"."chat_hub_sessions" add constraint "FK_chat_hub_sessions_agentId" FOREIGN KEY ("agentId") REFERENCES public.chat_hub_agents(id) ON DELETE SET NULL not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_chat_hub_sessions_agentId') then alter table "public"."chat_hub_sessions" add constraint "FK_chat_hub_sessions_agentId" FOREIGN KEY ("agentId") REFERENCES public.chat_hub_agents(id) ON DELETE SET NULL not valid; end if; end $$;
 
 alter table "public"."chat_hub_sessions" validate constraint "FK_chat_hub_sessions_agentId";
 
-alter table "public"."chat_hub_sessions" add constraint "FK_e9ecf8ede7d989fcd18790fe36a" FOREIGN KEY ("ownerId") REFERENCES public."user"(id) ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_e9ecf8ede7d989fcd18790fe36a') then alter table "public"."chat_hub_sessions" add constraint "FK_e9ecf8ede7d989fcd18790fe36a" FOREIGN KEY ("ownerId") REFERENCES public."user"(id) ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."chat_hub_sessions" validate constraint "FK_e9ecf8ede7d989fcd18790fe36a";
 
-alter table "public"."credentials_entity" add constraint "credentials_entity_resolverId_foreign" FOREIGN KEY ("resolverId") REFERENCES public.dynamic_credential_resolver(id) ON DELETE SET NULL not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'credentials_entity_resolverId_foreign') then alter table "public"."credentials_entity" add constraint "credentials_entity_resolverId_foreign" FOREIGN KEY ("resolverId") REFERENCES public.dynamic_credential_resolver(id) ON DELETE SET NULL not valid; end if; end $$;
 
 alter table "public"."credentials_entity" validate constraint "credentials_entity_resolverId_foreign";
 
-alter table "public"."data_table" add constraint "FK_c2a794257dee48af7c9abf681de" FOREIGN KEY ("projectId") REFERENCES public.project(id) ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_c2a794257dee48af7c9abf681de') then alter table "public"."data_table" add constraint "FK_c2a794257dee48af7c9abf681de" FOREIGN KEY ("projectId") REFERENCES public.project(id) ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."data_table" validate constraint "FK_c2a794257dee48af7c9abf681de";
 
-alter table "public"."data_table" add constraint "UQ_b23096ef747281ac944d28e8b0d" UNIQUE using index "UQ_b23096ef747281ac944d28e8b0d";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'UQ_b23096ef747281ac944d28e8b0d') then alter table "public"."data_table" add constraint "UQ_b23096ef747281ac944d28e8b0d" UNIQUE using index "UQ_b23096ef747281ac944d28e8b0d"; end if; end $$;
 
-alter table "public"."data_table_column" add constraint "FK_930b6e8faaf88294cef23484160" FOREIGN KEY ("dataTableId") REFERENCES public.data_table(id) ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_930b6e8faaf88294cef23484160') then alter table "public"."data_table_column" add constraint "FK_930b6e8faaf88294cef23484160" FOREIGN KEY ("dataTableId") REFERENCES public.data_table(id) ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."data_table_column" validate constraint "FK_930b6e8faaf88294cef23484160";
 
-alter table "public"."data_table_column" add constraint "UQ_8082ec4890f892f0bc77473a123" UNIQUE using index "UQ_8082ec4890f892f0bc77473a123";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'UQ_8082ec4890f892f0bc77473a123') then alter table "public"."data_table_column" add constraint "UQ_8082ec4890f892f0bc77473a123" UNIQUE using index "UQ_8082ec4890f892f0bc77473a123"; end if; end $$;
 
-alter table "public"."dynamic_credential_entry" add constraint "FK_d57808fe08b77464f6a88a25494" FOREIGN KEY (resolver_id) REFERENCES public.dynamic_credential_resolver(id) ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_d57808fe08b77464f6a88a25494') then alter table "public"."dynamic_credential_entry" add constraint "FK_d57808fe08b77464f6a88a25494" FOREIGN KEY (resolver_id) REFERENCES public.dynamic_credential_resolver(id) ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."dynamic_credential_entry" validate constraint "FK_d57808fe08b77464f6a88a25494";
 
-alter table "public"."dynamic_credential_entry" add constraint "FK_e97db563e505ae5f57ca33ef221" FOREIGN KEY (credential_id) REFERENCES public.credentials_entity(id) ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_e97db563e505ae5f57ca33ef221') then alter table "public"."dynamic_credential_entry" add constraint "FK_e97db563e505ae5f57ca33ef221" FOREIGN KEY (credential_id) REFERENCES public.credentials_entity(id) ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."dynamic_credential_entry" validate constraint "FK_e97db563e505ae5f57ca33ef221";
 
-alter table "public"."execution_annotation_tags" add constraint "FK_a3697779b366e131b2bbdae2976" FOREIGN KEY ("tagId") REFERENCES public.annotation_tag_entity(id) ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_a3697779b366e131b2bbdae2976') then alter table "public"."execution_annotation_tags" add constraint "FK_a3697779b366e131b2bbdae2976" FOREIGN KEY ("tagId") REFERENCES public.annotation_tag_entity(id) ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."execution_annotation_tags" validate constraint "FK_a3697779b366e131b2bbdae2976";
 
-alter table "public"."execution_annotation_tags" add constraint "FK_c1519757391996eb06064f0e7c8" FOREIGN KEY ("annotationId") REFERENCES public.execution_annotations(id) ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_c1519757391996eb06064f0e7c8') then alter table "public"."execution_annotation_tags" add constraint "FK_c1519757391996eb06064f0e7c8" FOREIGN KEY ("annotationId") REFERENCES public.execution_annotations(id) ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."execution_annotation_tags" validate constraint "FK_c1519757391996eb06064f0e7c8";
 
-alter table "public"."execution_annotations" add constraint "FK_97f863fa83c4786f19565084960" FOREIGN KEY ("executionId") REFERENCES public.execution_entity(id) ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_97f863fa83c4786f19565084960') then alter table "public"."execution_annotations" add constraint "FK_97f863fa83c4786f19565084960" FOREIGN KEY ("executionId") REFERENCES public.execution_entity(id) ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."execution_annotations" validate constraint "FK_97f863fa83c4786f19565084960";
 
-alter table "public"."execution_data" add constraint "execution_data_fk" FOREIGN KEY ("executionId") REFERENCES public.execution_entity(id) ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'execution_data_fk') then alter table "public"."execution_data" add constraint "execution_data_fk" FOREIGN KEY ("executionId") REFERENCES public.execution_entity(id) ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."execution_data" validate constraint "execution_data_fk";
 
-alter table "public"."execution_entity" add constraint "fk_execution_entity_workflow_id" FOREIGN KEY ("workflowId") REFERENCES public.workflow_entity(id) ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'fk_execution_entity_workflow_id') then alter table "public"."execution_entity" add constraint "fk_execution_entity_workflow_id" FOREIGN KEY ("workflowId") REFERENCES public.workflow_entity(id) ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."execution_entity" validate constraint "fk_execution_entity_workflow_id";
 
-alter table "public"."execution_metadata" add constraint "FK_31d0b4c93fb85ced26f6005cda3" FOREIGN KEY ("executionId") REFERENCES public.execution_entity(id) ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_31d0b4c93fb85ced26f6005cda3') then alter table "public"."execution_metadata" add constraint "FK_31d0b4c93fb85ced26f6005cda3" FOREIGN KEY ("executionId") REFERENCES public.execution_entity(id) ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."execution_metadata" validate constraint "FK_31d0b4c93fb85ced26f6005cda3";
 
-alter table "public"."folder" add constraint "FK_804ea52f6729e3940498bd54d78" FOREIGN KEY ("parentFolderId") REFERENCES public.folder(id) ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_804ea52f6729e3940498bd54d78') then alter table "public"."folder" add constraint "FK_804ea52f6729e3940498bd54d78" FOREIGN KEY ("parentFolderId") REFERENCES public.folder(id) ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."folder" validate constraint "FK_804ea52f6729e3940498bd54d78";
 
-alter table "public"."folder" add constraint "FK_a8260b0b36939c6247f385b8221" FOREIGN KEY ("projectId") REFERENCES public.project(id) ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_a8260b0b36939c6247f385b8221') then alter table "public"."folder" add constraint "FK_a8260b0b36939c6247f385b8221" FOREIGN KEY ("projectId") REFERENCES public.project(id) ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."folder" validate constraint "FK_a8260b0b36939c6247f385b8221";
 
-alter table "public"."folder_tag" add constraint "FK_94a60854e06f2897b2e0d39edba" FOREIGN KEY ("folderId") REFERENCES public.folder(id) ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_94a60854e06f2897b2e0d39edba') then alter table "public"."folder_tag" add constraint "FK_94a60854e06f2897b2e0d39edba" FOREIGN KEY ("folderId") REFERENCES public.folder(id) ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."folder_tag" validate constraint "FK_94a60854e06f2897b2e0d39edba";
 
-alter table "public"."folder_tag" add constraint "FK_dc88164176283de80af47621746" FOREIGN KEY ("tagId") REFERENCES public.tag_entity(id) ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_dc88164176283de80af47621746') then alter table "public"."folder_tag" add constraint "FK_dc88164176283de80af47621746" FOREIGN KEY ("tagId") REFERENCES public.tag_entity(id) ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."folder_tag" validate constraint "FK_dc88164176283de80af47621746";
 
-alter table "public"."insights_by_period" add constraint "FK_6414cfed98daabbfdd61a1cfbc0" FOREIGN KEY ("metaId") REFERENCES public.insights_metadata("metaId") ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_6414cfed98daabbfdd61a1cfbc0') then alter table "public"."insights_by_period" add constraint "FK_6414cfed98daabbfdd61a1cfbc0" FOREIGN KEY ("metaId") REFERENCES public.insights_metadata("metaId") ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."insights_by_period" validate constraint "FK_6414cfed98daabbfdd61a1cfbc0";
 
-alter table "public"."insights_metadata" add constraint "FK_1d8ab99d5861c9388d2dc1cf733" FOREIGN KEY ("workflowId") REFERENCES public.workflow_entity(id) ON DELETE SET NULL not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_1d8ab99d5861c9388d2dc1cf733') then alter table "public"."insights_metadata" add constraint "FK_1d8ab99d5861c9388d2dc1cf733" FOREIGN KEY ("workflowId") REFERENCES public.workflow_entity(id) ON DELETE SET NULL not valid; end if; end $$;
 
 alter table "public"."insights_metadata" validate constraint "FK_1d8ab99d5861c9388d2dc1cf733";
 
-alter table "public"."insights_metadata" add constraint "FK_2375a1eda085adb16b24615b69c" FOREIGN KEY ("projectId") REFERENCES public.project(id) ON DELETE SET NULL not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_2375a1eda085adb16b24615b69c') then alter table "public"."insights_metadata" add constraint "FK_2375a1eda085adb16b24615b69c" FOREIGN KEY ("projectId") REFERENCES public.project(id) ON DELETE SET NULL not valid; end if; end $$;
 
 alter table "public"."insights_metadata" validate constraint "FK_2375a1eda085adb16b24615b69c";
 
-alter table "public"."insights_raw" add constraint "FK_6e2e33741adef2a7c5d66befa4e" FOREIGN KEY ("metaId") REFERENCES public.insights_metadata("metaId") ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_6e2e33741adef2a7c5d66befa4e') then alter table "public"."insights_raw" add constraint "FK_6e2e33741adef2a7c5d66befa4e" FOREIGN KEY ("metaId") REFERENCES public.insights_metadata("metaId") ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."insights_raw" validate constraint "FK_6e2e33741adef2a7c5d66befa4e";
 
-alter table "public"."installed_nodes" add constraint "FK_73f857fc5dce682cef8a99c11dbddbc969618951" FOREIGN KEY (package) REFERENCES public.installed_packages("packageName") ON UPDATE CASCADE ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_73f857fc5dce682cef8a99c11dbddbc969618951') then alter table "public"."installed_nodes" add constraint "FK_73f857fc5dce682cef8a99c11dbddbc969618951" FOREIGN KEY (package) REFERENCES public.installed_packages("packageName") ON UPDATE CASCADE ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."installed_nodes" validate constraint "FK_73f857fc5dce682cef8a99c11dbddbc969618951";
 
-alter table "public"."oauth_access_tokens" add constraint "FK_7234a36d8e49a1fa85095328845" FOREIGN KEY ("userId") REFERENCES public."user"(id) ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_7234a36d8e49a1fa85095328845') then alter table "public"."oauth_access_tokens" add constraint "FK_7234a36d8e49a1fa85095328845" FOREIGN KEY ("userId") REFERENCES public."user"(id) ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."oauth_access_tokens" validate constraint "FK_7234a36d8e49a1fa85095328845";
 
-alter table "public"."oauth_access_tokens" add constraint "FK_78b26968132b7e5e45b75876481" FOREIGN KEY ("clientId") REFERENCES public.oauth_clients(id) ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_78b26968132b7e5e45b75876481') then alter table "public"."oauth_access_tokens" add constraint "FK_78b26968132b7e5e45b75876481" FOREIGN KEY ("clientId") REFERENCES public.oauth_clients(id) ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."oauth_access_tokens" validate constraint "FK_78b26968132b7e5e45b75876481";
 
-alter table "public"."oauth_authorization_codes" add constraint "FK_64d965bd072ea24fb6da55468cd" FOREIGN KEY ("clientId") REFERENCES public.oauth_clients(id) ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_64d965bd072ea24fb6da55468cd') then alter table "public"."oauth_authorization_codes" add constraint "FK_64d965bd072ea24fb6da55468cd" FOREIGN KEY ("clientId") REFERENCES public.oauth_clients(id) ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."oauth_authorization_codes" validate constraint "FK_64d965bd072ea24fb6da55468cd";
 
-alter table "public"."oauth_authorization_codes" add constraint "FK_aa8d3560484944c19bdf79ffa16" FOREIGN KEY ("userId") REFERENCES public."user"(id) ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_aa8d3560484944c19bdf79ffa16') then alter table "public"."oauth_authorization_codes" add constraint "FK_aa8d3560484944c19bdf79ffa16" FOREIGN KEY ("userId") REFERENCES public."user"(id) ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."oauth_authorization_codes" validate constraint "FK_aa8d3560484944c19bdf79ffa16";
 
-alter table "public"."oauth_refresh_tokens" add constraint "FK_a699f3ed9fd0c1b19bc2608ac53" FOREIGN KEY ("userId") REFERENCES public."user"(id) ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_a699f3ed9fd0c1b19bc2608ac53') then alter table "public"."oauth_refresh_tokens" add constraint "FK_a699f3ed9fd0c1b19bc2608ac53" FOREIGN KEY ("userId") REFERENCES public."user"(id) ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."oauth_refresh_tokens" validate constraint "FK_a699f3ed9fd0c1b19bc2608ac53";
 
-alter table "public"."oauth_refresh_tokens" add constraint "FK_b388696ce4d8be7ffbe8d3e4b69" FOREIGN KEY ("clientId") REFERENCES public.oauth_clients(id) ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_b388696ce4d8be7ffbe8d3e4b69') then alter table "public"."oauth_refresh_tokens" add constraint "FK_b388696ce4d8be7ffbe8d3e4b69" FOREIGN KEY ("clientId") REFERENCES public.oauth_clients(id) ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."oauth_refresh_tokens" validate constraint "FK_b388696ce4d8be7ffbe8d3e4b69";
 
-alter table "public"."oauth_user_consents" add constraint "FK_21e6c3c2d78a097478fae6aaefa" FOREIGN KEY ("userId") REFERENCES public."user"(id) ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_21e6c3c2d78a097478fae6aaefa') then alter table "public"."oauth_user_consents" add constraint "FK_21e6c3c2d78a097478fae6aaefa" FOREIGN KEY ("userId") REFERENCES public."user"(id) ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."oauth_user_consents" validate constraint "FK_21e6c3c2d78a097478fae6aaefa";
 
-alter table "public"."oauth_user_consents" add constraint "FK_a651acea2f6c97f8c4514935486" FOREIGN KEY ("clientId") REFERENCES public.oauth_clients(id) ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_a651acea2f6c97f8c4514935486') then alter table "public"."oauth_user_consents" add constraint "FK_a651acea2f6c97f8c4514935486" FOREIGN KEY ("clientId") REFERENCES public.oauth_clients(id) ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."oauth_user_consents" validate constraint "FK_a651acea2f6c97f8c4514935486";
 
-alter table "public"."oauth_user_consents" add constraint "UQ_083721d99ce8db4033e2958ebb4" UNIQUE using index "UQ_083721d99ce8db4033e2958ebb4";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'UQ_083721d99ce8db4033e2958ebb4') then alter table "public"."oauth_user_consents" add constraint "UQ_083721d99ce8db4033e2958ebb4" UNIQUE using index "UQ_083721d99ce8db4033e2958ebb4"; end if; end $$;
 
-alter table "public"."processed_data" add constraint "FK_06a69a7032c97a763c2c7599464" FOREIGN KEY ("workflowId") REFERENCES public.workflow_entity(id) ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_06a69a7032c97a763c2c7599464') then alter table "public"."processed_data" add constraint "FK_06a69a7032c97a763c2c7599464" FOREIGN KEY ("workflowId") REFERENCES public.workflow_entity(id) ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."processed_data" validate constraint "FK_06a69a7032c97a763c2c7599464";
 
-alter table "public"."project" add constraint "projects_creatorId_foreign" FOREIGN KEY ("creatorId") REFERENCES public."user"(id) ON DELETE SET NULL not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'projects_creatorId_foreign') then alter table "public"."project" add constraint "projects_creatorId_foreign" FOREIGN KEY ("creatorId") REFERENCES public."user"(id) ON DELETE SET NULL not valid; end if; end $$;
 
 alter table "public"."project" validate constraint "projects_creatorId_foreign";
 
-alter table "public"."project_relation" add constraint "FK_5f0643f6717905a05164090dde7" FOREIGN KEY ("userId") REFERENCES public."user"(id) ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_5f0643f6717905a05164090dde7') then alter table "public"."project_relation" add constraint "FK_5f0643f6717905a05164090dde7" FOREIGN KEY ("userId") REFERENCES public."user"(id) ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."project_relation" validate constraint "FK_5f0643f6717905a05164090dde7";
 
-alter table "public"."project_relation" add constraint "FK_61448d56d61802b5dfde5cdb002" FOREIGN KEY ("projectId") REFERENCES public.project(id) ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_61448d56d61802b5dfde5cdb002') then alter table "public"."project_relation" add constraint "FK_61448d56d61802b5dfde5cdb002" FOREIGN KEY ("projectId") REFERENCES public.project(id) ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."project_relation" validate constraint "FK_61448d56d61802b5dfde5cdb002";
 
-alter table "public"."project_relation" add constraint "FK_c6b99592dc96b0d836d7a21db91" FOREIGN KEY (role) REFERENCES public.role(slug) not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_c6b99592dc96b0d836d7a21db91') then alter table "public"."project_relation" add constraint "FK_c6b99592dc96b0d836d7a21db91" FOREIGN KEY (role) REFERENCES public.role(slug) not valid; end if; end $$;
 
 alter table "public"."project_relation" validate constraint "FK_c6b99592dc96b0d836d7a21db91";
 
-alter table "public"."role_scope" add constraint "FK_role" FOREIGN KEY ("roleSlug") REFERENCES public.role(slug) ON UPDATE CASCADE ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_role') then alter table "public"."role_scope" add constraint "FK_role" FOREIGN KEY ("roleSlug") REFERENCES public.role(slug) ON UPDATE CASCADE ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."role_scope" validate constraint "FK_role";
 
-alter table "public"."role_scope" add constraint "FK_scope" FOREIGN KEY ("scopeSlug") REFERENCES public.scope(slug) ON UPDATE CASCADE ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_scope') then alter table "public"."role_scope" add constraint "FK_scope" FOREIGN KEY ("scopeSlug") REFERENCES public.scope(slug) ON UPDATE CASCADE ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."role_scope" validate constraint "FK_scope";
 
-alter table "public"."shared_credentials" add constraint "FK_416f66fc846c7c442970c094ccf" FOREIGN KEY ("credentialsId") REFERENCES public.credentials_entity(id) ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_416f66fc846c7c442970c094ccf') then alter table "public"."shared_credentials" add constraint "FK_416f66fc846c7c442970c094ccf" FOREIGN KEY ("credentialsId") REFERENCES public.credentials_entity(id) ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."shared_credentials" validate constraint "FK_416f66fc846c7c442970c094ccf";
 
-alter table "public"."shared_credentials" add constraint "FK_812c2852270da1247756e77f5a4" FOREIGN KEY ("projectId") REFERENCES public.project(id) ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_812c2852270da1247756e77f5a4') then alter table "public"."shared_credentials" add constraint "FK_812c2852270da1247756e77f5a4" FOREIGN KEY ("projectId") REFERENCES public.project(id) ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."shared_credentials" validate constraint "FK_812c2852270da1247756e77f5a4";
 
-alter table "public"."shared_workflow" add constraint "FK_a45ea5f27bcfdc21af9b4188560" FOREIGN KEY ("projectId") REFERENCES public.project(id) ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_a45ea5f27bcfdc21af9b4188560') then alter table "public"."shared_workflow" add constraint "FK_a45ea5f27bcfdc21af9b4188560" FOREIGN KEY ("projectId") REFERENCES public.project(id) ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."shared_workflow" validate constraint "FK_a45ea5f27bcfdc21af9b4188560";
 
-alter table "public"."shared_workflow" add constraint "FK_daa206a04983d47d0a9c34649ce" FOREIGN KEY ("workflowId") REFERENCES public.workflow_entity(id) ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_daa206a04983d47d0a9c34649ce') then alter table "public"."shared_workflow" add constraint "FK_daa206a04983d47d0a9c34649ce" FOREIGN KEY ("workflowId") REFERENCES public.workflow_entity(id) ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."shared_workflow" validate constraint "FK_daa206a04983d47d0a9c34649ce";
 
-alter table "public"."smogon_meta_snapshot" add constraint "smogon_meta_snapshot_pokemon_name_format_source_date_key" UNIQUE using index "smogon_meta_snapshot_pokemon_name_format_source_date_key";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'smogon_meta_snapshot_pokemon_name_format_source_date_key') then alter table "public"."smogon_meta_snapshot" add constraint "smogon_meta_snapshot_pokemon_name_format_source_date_key" UNIQUE using index "smogon_meta_snapshot_pokemon_name_format_source_date_key"; end if; end $$;
 
-alter table "public"."test_case_execution" add constraint "FK_8e4b4774db42f1e6dda3452b2af" FOREIGN KEY ("testRunId") REFERENCES public.test_run(id) ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_8e4b4774db42f1e6dda3452b2af') then alter table "public"."test_case_execution" add constraint "FK_8e4b4774db42f1e6dda3452b2af" FOREIGN KEY ("testRunId") REFERENCES public.test_run(id) ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."test_case_execution" validate constraint "FK_8e4b4774db42f1e6dda3452b2af";
 
-alter table "public"."test_case_execution" add constraint "FK_e48965fac35d0f5b9e7f51d8c44" FOREIGN KEY ("executionId") REFERENCES public.execution_entity(id) ON DELETE SET NULL not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_e48965fac35d0f5b9e7f51d8c44') then alter table "public"."test_case_execution" add constraint "FK_e48965fac35d0f5b9e7f51d8c44" FOREIGN KEY ("executionId") REFERENCES public.execution_entity(id) ON DELETE SET NULL not valid; end if; end $$;
 
 alter table "public"."test_case_execution" validate constraint "FK_e48965fac35d0f5b9e7f51d8c44";
 
-alter table "public"."test_run" add constraint "FK_d6870d3b6e4c185d33926f423c8" FOREIGN KEY ("workflowId") REFERENCES public.workflow_entity(id) ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_d6870d3b6e4c185d33926f423c8') then alter table "public"."test_run" add constraint "FK_d6870d3b6e4c185d33926f423c8" FOREIGN KEY ("workflowId") REFERENCES public.workflow_entity(id) ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."test_run" validate constraint "FK_d6870d3b6e4c185d33926f423c8";
 
-alter table "public"."user" add constraint "FK_eaea92ee7bfb9c1b6cd01505d56" FOREIGN KEY ("roleSlug") REFERENCES public.role(slug) not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_eaea92ee7bfb9c1b6cd01505d56') then alter table "public"."user" add constraint "FK_eaea92ee7bfb9c1b6cd01505d56" FOREIGN KEY ("roleSlug") REFERENCES public.role(slug) not valid; end if; end $$;
 
 alter table "public"."user" validate constraint "FK_eaea92ee7bfb9c1b6cd01505d56";
 
-alter table "public"."user" add constraint "UQ_e12875dfb3b1d92d7d7c5377e2" UNIQUE using index "UQ_e12875dfb3b1d92d7d7c5377e2";
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'UQ_e12875dfb3b1d92d7d7c5377e2') then alter table "public"."user" add constraint "UQ_e12875dfb3b1d92d7d7c5377e2" UNIQUE using index "UQ_e12875dfb3b1d92d7d7c5377e2"; end if; end $$;
 
-alter table "public"."user_api_keys" add constraint "FK_e131705cbbc8fb589889b02d457" FOREIGN KEY ("userId") REFERENCES public."user"(id) ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_e131705cbbc8fb589889b02d457') then alter table "public"."user_api_keys" add constraint "FK_e131705cbbc8fb589889b02d457" FOREIGN KEY ("userId") REFERENCES public."user"(id) ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."user_api_keys" validate constraint "FK_e131705cbbc8fb589889b02d457";
 
-alter table "public"."variables" add constraint "FK_42f6c766f9f9d2edcc15bdd6e9b" FOREIGN KEY ("projectId") REFERENCES public.project(id) ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_42f6c766f9f9d2edcc15bdd6e9b') then alter table "public"."variables" add constraint "FK_42f6c766f9f9d2edcc15bdd6e9b" FOREIGN KEY ("projectId") REFERENCES public.project(id) ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."variables" validate constraint "FK_42f6c766f9f9d2edcc15bdd6e9b";
 
-alter table "public"."webhook_entity" add constraint "fk_webhook_entity_workflow_id" FOREIGN KEY ("workflowId") REFERENCES public.workflow_entity(id) ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'fk_webhook_entity_workflow_id') then alter table "public"."webhook_entity" add constraint "fk_webhook_entity_workflow_id" FOREIGN KEY ("workflowId") REFERENCES public.workflow_entity(id) ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."webhook_entity" validate constraint "fk_webhook_entity_workflow_id";
 
-alter table "public"."workflow_dependency" add constraint "FK_a4ff2d9b9628ea988fa9e7d0bf8" FOREIGN KEY ("workflowId") REFERENCES public.workflow_entity(id) ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_a4ff2d9b9628ea988fa9e7d0bf8') then alter table "public"."workflow_dependency" add constraint "FK_a4ff2d9b9628ea988fa9e7d0bf8" FOREIGN KEY ("workflowId") REFERENCES public.workflow_entity(id) ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."workflow_dependency" validate constraint "FK_a4ff2d9b9628ea988fa9e7d0bf8";
 
-alter table "public"."workflow_entity" add constraint "FK_08d6c67b7f722b0039d9d5ed620" FOREIGN KEY ("activeVersionId") REFERENCES public.workflow_history("versionId") ON DELETE RESTRICT not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_08d6c67b7f722b0039d9d5ed620') then alter table "public"."workflow_entity" add constraint "FK_08d6c67b7f722b0039d9d5ed620" FOREIGN KEY ("activeVersionId") REFERENCES public.workflow_history("versionId") ON DELETE RESTRICT not valid; end if; end $$;
 
 alter table "public"."workflow_entity" validate constraint "FK_08d6c67b7f722b0039d9d5ed620";
 
-alter table "public"."workflow_entity" add constraint "fk_workflow_parent_folder" FOREIGN KEY ("parentFolderId") REFERENCES public.folder(id) ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'fk_workflow_parent_folder') then alter table "public"."workflow_entity" add constraint "fk_workflow_parent_folder" FOREIGN KEY ("parentFolderId") REFERENCES public.folder(id) ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."workflow_entity" validate constraint "fk_workflow_parent_folder";
 
-alter table "public"."workflow_history" add constraint "FK_1e31657f5fe46816c34be7c1b4b" FOREIGN KEY ("workflowId") REFERENCES public.workflow_entity(id) ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_1e31657f5fe46816c34be7c1b4b') then alter table "public"."workflow_history" add constraint "FK_1e31657f5fe46816c34be7c1b4b" FOREIGN KEY ("workflowId") REFERENCES public.workflow_entity(id) ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."workflow_history" validate constraint "FK_1e31657f5fe46816c34be7c1b4b";
 
-alter table "public"."workflow_publish_history" add constraint "CHK_workflow_publish_history_event" CHECK (((event)::text = ANY ((ARRAY['activated'::character varying, 'deactivated'::character varying])::text[]))) not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'CHK_workflow_publish_history_event') then alter table "public"."workflow_publish_history" add constraint "CHK_workflow_publish_history_event" CHECK (((event)::text = ANY ((ARRAY['activated'::character varying, 'deactivated'::character varying])::text[]))) not valid; end if; end $$;
 
 alter table "public"."workflow_publish_history" validate constraint "CHK_workflow_publish_history_event";
 
-alter table "public"."workflow_publish_history" add constraint "FK_6eab5bd9eedabe9c54bd879fc40" FOREIGN KEY ("userId") REFERENCES public."user"(id) ON DELETE SET NULL not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_6eab5bd9eedabe9c54bd879fc40') then alter table "public"."workflow_publish_history" add constraint "FK_6eab5bd9eedabe9c54bd879fc40" FOREIGN KEY ("userId") REFERENCES public."user"(id) ON DELETE SET NULL not valid; end if; end $$;
 
 alter table "public"."workflow_publish_history" validate constraint "FK_6eab5bd9eedabe9c54bd879fc40";
 
-alter table "public"."workflow_publish_history" add constraint "FK_b4cfbc7556d07f36ca177f5e473" FOREIGN KEY ("versionId") REFERENCES public.workflow_history("versionId") ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_b4cfbc7556d07f36ca177f5e473') then alter table "public"."workflow_publish_history" add constraint "FK_b4cfbc7556d07f36ca177f5e473" FOREIGN KEY ("versionId") REFERENCES public.workflow_history("versionId") ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."workflow_publish_history" validate constraint "FK_b4cfbc7556d07f36ca177f5e473";
 
-alter table "public"."workflow_publish_history" add constraint "FK_c01316f8c2d7101ec4fa9809267" FOREIGN KEY ("workflowId") REFERENCES public.workflow_entity(id) ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'FK_c01316f8c2d7101ec4fa9809267') then alter table "public"."workflow_publish_history" add constraint "FK_c01316f8c2d7101ec4fa9809267" FOREIGN KEY ("workflowId") REFERENCES public.workflow_entity(id) ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."workflow_publish_history" validate constraint "FK_c01316f8c2d7101ec4fa9809267";
 
-alter table "public"."workflow_statistics" add constraint "fk_workflow_statistics_workflow_id" FOREIGN KEY ("workflowId") REFERENCES public.workflow_entity(id) ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'fk_workflow_statistics_workflow_id') then alter table "public"."workflow_statistics" add constraint "fk_workflow_statistics_workflow_id" FOREIGN KEY ("workflowId") REFERENCES public.workflow_entity(id) ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."workflow_statistics" validate constraint "fk_workflow_statistics_workflow_id";
 
-alter table "public"."workflows_tags" add constraint "fk_workflows_tags_tag_id" FOREIGN KEY ("tagId") REFERENCES public.tag_entity(id) ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'fk_workflows_tags_tag_id') then alter table "public"."workflows_tags" add constraint "fk_workflows_tags_tag_id" FOREIGN KEY ("tagId") REFERENCES public.tag_entity(id) ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."workflows_tags" validate constraint "fk_workflows_tags_tag_id";
 
-alter table "public"."workflows_tags" add constraint "fk_workflows_tags_workflow_id" FOREIGN KEY ("workflowId") REFERENCES public.workflow_entity(id) ON DELETE CASCADE not valid;
+do $$ begin if not exists (select 1 from pg_constraint where conname = 'fk_workflows_tags_workflow_id') then alter table "public"."workflows_tags" add constraint "fk_workflows_tags_workflow_id" FOREIGN KEY ("workflowId") REFERENCES public.workflow_entity(id) ON DELETE CASCADE not valid; end if; end $$;
 
 alter table "public"."workflows_tags" validate constraint "fk_workflows_tags_workflow_id";
 
@@ -4957,6 +4906,7 @@ grant truncate on table "public"."workflows_tags" to "service_role";
 grant update on table "public"."workflows_tags" to "service_role";
 
 
+  drop policy if exists "Canonical league config is manageable by service role" on "public"."canonical_league_config";
   create policy "Canonical league config is manageable by service role"
   on "public"."canonical_league_config"
   as permissive
@@ -4967,6 +4917,7 @@ with check (true);
 
 
 
+  drop policy if exists "Canonical league config is viewable by authenticated users" on "public"."canonical_league_config";
   create policy "Canonical league config is viewable by authenticated users"
   on "public"."canonical_league_config"
   as permissive
@@ -4975,12 +4926,16 @@ with check (true);
 using (true);
 
 
+DROP TRIGGER IF EXISTS trigger_update_bulbapedia_mechanics_updated_at ON public.bulbapedia_mechanics;
 CREATE TRIGGER trigger_update_bulbapedia_mechanics_updated_at BEFORE UPDATE ON public.bulbapedia_mechanics FOR EACH ROW EXECUTE FUNCTION public.update_bulbapedia_mechanics_updated_at();
 
+DROP TRIGGER IF EXISTS canonical_league_config_updated_at ON public.canonical_league_config;
 CREATE TRIGGER canonical_league_config_updated_at BEFORE UPDATE ON public.canonical_league_config FOR EACH ROW EXECUTE FUNCTION public.update_canonical_league_config_updated_at();
 
+DROP TRIGGER IF EXISTS trigger_update_smogon_meta_snapshot_updated_at ON public.smogon_meta_snapshot;
 CREATE TRIGGER trigger_update_smogon_meta_snapshot_updated_at BEFORE UPDATE ON public.smogon_meta_snapshot FOR EACH ROW EXECUTE FUNCTION public.update_smogon_meta_snapshot_updated_at();
 
+DROP TRIGGER IF EXISTS workflow_version_increment ON public.workflow_entity;
 CREATE TRIGGER workflow_version_increment BEFORE UPDATE ON public.workflow_entity FOR EACH ROW EXECUTE FUNCTION public.increment_workflow_version();
 
 

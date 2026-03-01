@@ -75,18 +75,21 @@ ALTER TABLE public.pokemon_showdown_types ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.pokemon_showdown_abilities ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies: Readable by authenticated users, writable by service_role
+DROP POLICY IF EXISTS "Showdown pokedex raw is viewable by authenticated users" ON public.showdown_pokedex_raw;
 CREATE POLICY "Showdown pokedex raw is viewable by authenticated users"
   ON public.showdown_pokedex_raw
   FOR SELECT
   TO authenticated
   USING (true);
 
+DROP POLICY IF EXISTS "Showdown pokedex raw is insertable by service role" ON public.showdown_pokedex_raw;
 CREATE POLICY "Showdown pokedex raw is insertable by service role"
   ON public.showdown_pokedex_raw
   FOR INSERT
   TO service_role
   WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Showdown pokedex raw is updatable by service role" ON public.showdown_pokedex_raw;
 CREATE POLICY "Showdown pokedex raw is updatable by service role"
   ON public.showdown_pokedex_raw
   FOR UPDATE
@@ -94,18 +97,21 @@ CREATE POLICY "Showdown pokedex raw is updatable by service role"
   USING (true)
   WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Pokemon Showdown is viewable by authenticated users" ON public.pokemon_showdown;
 CREATE POLICY "Pokemon Showdown is viewable by authenticated users"
   ON public.pokemon_showdown
   FOR SELECT
   TO authenticated
   USING (true);
 
+DROP POLICY IF EXISTS "Pokemon Showdown is insertable by service role" ON public.pokemon_showdown;
 CREATE POLICY "Pokemon Showdown is insertable by service role"
   ON public.pokemon_showdown
   FOR INSERT
   TO service_role
   WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Pokemon Showdown is updatable by service role" ON public.pokemon_showdown;
 CREATE POLICY "Pokemon Showdown is updatable by service role"
   ON public.pokemon_showdown
   FOR UPDATE
@@ -113,18 +119,21 @@ CREATE POLICY "Pokemon Showdown is updatable by service role"
   USING (true)
   WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Pokemon Showdown types is viewable by authenticated users" ON public.pokemon_showdown_types;
 CREATE POLICY "Pokemon Showdown types is viewable by authenticated users"
   ON public.pokemon_showdown_types
   FOR SELECT
   TO authenticated
   USING (true);
 
+DROP POLICY IF EXISTS "Pokemon Showdown types is insertable by service role" ON public.pokemon_showdown_types;
 CREATE POLICY "Pokemon Showdown types is insertable by service role"
   ON public.pokemon_showdown_types
   FOR INSERT
   TO service_role
   WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Pokemon Showdown types is updatable by service role" ON public.pokemon_showdown_types;
 CREATE POLICY "Pokemon Showdown types is updatable by service role"
   ON public.pokemon_showdown_types
   FOR UPDATE
@@ -132,18 +141,21 @@ CREATE POLICY "Pokemon Showdown types is updatable by service role"
   USING (true)
   WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Pokemon Showdown abilities is viewable by authenticated users" ON public.pokemon_showdown_abilities;
 CREATE POLICY "Pokemon Showdown abilities is viewable by authenticated users"
   ON public.pokemon_showdown_abilities
   FOR SELECT
   TO authenticated
   USING (true);
 
+DROP POLICY IF EXISTS "Pokemon Showdown abilities is insertable by service role" ON public.pokemon_showdown_abilities;
 CREATE POLICY "Pokemon Showdown abilities is insertable by service role"
   ON public.pokemon_showdown_abilities
   FOR INSERT
   TO service_role
   WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Pokemon Showdown abilities is updatable by service role" ON public.pokemon_showdown_abilities;
 CREATE POLICY "Pokemon Showdown abilities is updatable by service role"
   ON public.pokemon_showdown_abilities
   FOR UPDATE

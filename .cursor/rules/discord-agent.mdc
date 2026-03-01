@@ -1,0 +1,32 @@
+---
+description: Discord development and integration — use Discord MCP, Discord API (Context7), Supabase, Notion, and project Discord docs together; keep docs updated.
+alwaysApply: false
+globs: ["**/discord*", "**/DISCORD*", "services/discord-bots/**", "scripts/*discord*", "apps/web/app/api/discord/**"]
+---
+
+# Discord Agent Rule
+
+When working on Discord bots, server structure, onboarding, slash commands, or app integration (gamification, agent-reply, events):
+
+## Tool orchestration
+
+- **Discord MCP** (project or plugin): Use `discord_get_server_info` for current guild/channel layout; use `discord_send` only for plain-text messages (no embeds). For embeds, channel moves, or onboarding API use scripts with the bot token (see scripts in repo root and [docs/DISCORD-PHASE2-WALKTHROUGH.md](docs/DISCORD-PHASE2-WALKTHROUGH.md)).
+- **Context7 / Discord API docs**: Use for up-to-date Discord API (interactions, slash commands, guild/channel endpoints, embeds, onboarding). Prefer Context7 plugin when resolving API shape or rate limits.
+- **Supabase plugin**: Use for `agent_profiles` (bot system instructions, slugs), `discord_event_ledger` or related tables, and any Discord-linked app data. Development only; do not alter production data without confirmation.
+- **Notion plugin**: Use when capturing Discord restructure plans, onboarding flows, or community docs that live in Notion. Link from or to [docs/DISCORD-*](docs/) as needed.
+- **Deep-thinking rule** (`.cursor/rules/deep-thinking.mdc`): Use for deep research on Discord API capabilities, Community Server onboarding, or multi-step restructure planning when the user requests research or a thorough plan.
+
+## Project documentation (reference and update)
+
+- **Canonical map:** [docs/DISCORD-SERVER-MAP.md](docs/DISCORD-SERVER-MAP.md) — refresh with `scripts/fetch-discord-server-map.mjs` after channel/category changes; keep Category IDs and channel list current.
+- **Bot design:** [docs/DISCORD-MNKY-VERSE-BOT-DESIGN.md](docs/DISCORD-MNKY-VERSE-BOT-DESIGN.md), [docs/DISCORD-INTEGRATION-PLAN.md](docs/DISCORD-INTEGRATION-PLAN.md), [docs/DISCORD-SERVER-RESTRUCTURE.md](docs/DISCORD-SERVER-RESTRUCTURE.md).
+- **Onboarding and welcome:** [docs/DISCORD-ONBOARDING.md](docs/DISCORD-ONBOARDING.md), [docs/DISCORD-PHASE2-WALKTHROUGH.md](docs/DISCORD-PHASE2-WALKTHROUGH.md).
+- **Setup and env:** [docs/DISCORD-BOTS-SETUP.md](docs/DISCORD-BOTS-SETUP.md), [docs/DISCORD-BOTS-ENV.md](docs/DISCORD-BOTS-ENV.md).
+
+When you change server structure, bot behavior, or onboarding flow: update the relevant doc and, if the server map is affected, run or instruct running the fetch script and replacing the map section in DISCORD-SERVER-MAP.md.
+
+## Boundaries
+
+- Do not commit or log bot tokens; scripts use `DISCORD_BOT_TOKEN_MNKY_VERSE` or per-bot tokens from env (see .env.example). `mcp.json` is gitignored.
+- Discord MCP cannot move channels or post embeds; use REST API scripts (e.g. `post-discord-welcome-embed.mjs`, `move-discord-channels-phase2.mjs`) with the appropriate bot token.
+- For brand voice or structure decisions on welcome/onboarding copy, defer to or align with mood-mnky and sage-mnky agents/rules.

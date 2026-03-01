@@ -183,20 +183,17 @@ CREATE TABLE IF NOT EXISTS public.pokemon_forms (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Add foreign key constraint conditionally (only if pokemon_comprehensive exists)
+-- Add FK only if table exists and constraint missing; skip if data would violate
 DO $$
 BEGIN
-  IF EXISTS (
-    SELECT 1 FROM information_schema.tables 
-    WHERE table_schema = 'public' AND table_name = 'pokemon_comprehensive'
-    AND EXISTS (
-      SELECT 1 FROM information_schema.columns 
-      WHERE table_schema = 'public' AND table_name = 'pokemon_comprehensive' AND column_name = 'pokemon_id'
-    )
-  ) THEN
-    ALTER TABLE public.pokemon_forms 
-    ADD CONSTRAINT fk_pokemon_forms_pokemon 
-    FOREIGN KEY (pokemon_id) REFERENCES public.pokemon_comprehensive(pokemon_id);
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'pokemon_comprehensive')
+    AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'pokemon_comprehensive' AND column_name = 'pokemon_id')
+    AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_pokemon_forms_pokemon' AND conrelid = 'public.pokemon_forms'::regclass)
+  THEN
+    BEGIN
+      ALTER TABLE public.pokemon_forms ADD CONSTRAINT fk_pokemon_forms_pokemon FOREIGN KEY (pokemon_id) REFERENCES public.pokemon_comprehensive(pokemon_id);
+    EXCEPTION WHEN foreign_key_violation THEN NULL;
+    END;
   END IF;
 END $$;
 
@@ -215,20 +212,17 @@ CREATE TABLE IF NOT EXISTS public.pokemon_abilities (
   UNIQUE(pokemon_id, ability_id, slot)
 );
 
--- Add foreign key constraint conditionally
+-- Add FK only if table exists and constraint missing; skip if data would violate
 DO $$
 BEGIN
-  IF EXISTS (
-    SELECT 1 FROM information_schema.tables 
-    WHERE table_schema = 'public' AND table_name = 'pokemon_comprehensive'
-    AND EXISTS (
-      SELECT 1 FROM information_schema.columns 
-      WHERE table_schema = 'public' AND table_name = 'pokemon_comprehensive' AND column_name = 'pokemon_id'
-    )
-  ) THEN
-    ALTER TABLE public.pokemon_abilities 
-    ADD CONSTRAINT fk_pokemon_abilities_pokemon 
-    FOREIGN KEY (pokemon_id) REFERENCES public.pokemon_comprehensive(pokemon_id);
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'pokemon_comprehensive')
+    AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'pokemon_comprehensive' AND column_name = 'pokemon_id')
+    AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_pokemon_abilities_pokemon' AND conrelid = 'public.pokemon_abilities'::regclass)
+  THEN
+    BEGIN
+      ALTER TABLE public.pokemon_abilities ADD CONSTRAINT fk_pokemon_abilities_pokemon FOREIGN KEY (pokemon_id) REFERENCES public.pokemon_comprehensive(pokemon_id);
+    EXCEPTION WHEN foreign_key_violation THEN NULL;
+    END;
   END IF;
 END $$;
 
@@ -255,20 +249,17 @@ CREATE TABLE IF NOT EXISTS public.pokemon_types (
   UNIQUE(pokemon_id, type_id, slot)
 );
 
--- Add foreign key constraint conditionally
+-- Add FK only if table exists and constraint missing; skip if data would violate
 DO $$
 BEGIN
-  IF EXISTS (
-    SELECT 1 FROM information_schema.tables 
-    WHERE table_schema = 'public' AND table_name = 'pokemon_comprehensive'
-    AND EXISTS (
-      SELECT 1 FROM information_schema.columns 
-      WHERE table_schema = 'public' AND table_name = 'pokemon_comprehensive' AND column_name = 'pokemon_id'
-    )
-  ) THEN
-    ALTER TABLE public.pokemon_types 
-    ADD CONSTRAINT fk_pokemon_types_pokemon 
-    FOREIGN KEY (pokemon_id) REFERENCES public.pokemon_comprehensive(pokemon_id);
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'pokemon_comprehensive')
+    AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'pokemon_comprehensive' AND column_name = 'pokemon_id')
+    AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_pokemon_types_pokemon' AND conrelid = 'public.pokemon_types'::regclass)
+  THEN
+    BEGIN
+      ALTER TABLE public.pokemon_types ADD CONSTRAINT fk_pokemon_types_pokemon FOREIGN KEY (pokemon_id) REFERENCES public.pokemon_comprehensive(pokemon_id);
+    EXCEPTION WHEN foreign_key_violation THEN NULL;
+    END;
   END IF;
 END $$;
 
@@ -282,20 +273,17 @@ CREATE TABLE IF NOT EXISTS public.pokemon_items (
   UNIQUE(pokemon_id, item_id)
 );
 
--- Add foreign key constraint conditionally
+-- Add FK only if table exists and constraint missing; skip if data would violate
 DO $$
 BEGIN
-  IF EXISTS (
-    SELECT 1 FROM information_schema.tables 
-    WHERE table_schema = 'public' AND table_name = 'pokemon_comprehensive'
-    AND EXISTS (
-      SELECT 1 FROM information_schema.columns 
-      WHERE table_schema = 'public' AND table_name = 'pokemon_comprehensive' AND column_name = 'pokemon_id'
-    )
-  ) THEN
-    ALTER TABLE public.pokemon_items 
-    ADD CONSTRAINT fk_pokemon_items_pokemon 
-    FOREIGN KEY (pokemon_id) REFERENCES public.pokemon_comprehensive(pokemon_id);
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'pokemon_comprehensive')
+    AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'pokemon_comprehensive' AND column_name = 'pokemon_id')
+    AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_pokemon_items_pokemon' AND conrelid = 'public.pokemon_items'::regclass)
+  THEN
+    BEGIN
+      ALTER TABLE public.pokemon_items ADD CONSTRAINT fk_pokemon_items_pokemon FOREIGN KEY (pokemon_id) REFERENCES public.pokemon_comprehensive(pokemon_id);
+    EXCEPTION WHEN foreign_key_violation THEN NULL;
+    END;
   END IF;
 END $$;
 
@@ -305,7 +293,7 @@ DO $$
 BEGIN
   -- Create pokemon_stats_new first
   CREATE TABLE IF NOT EXISTS public.pokemon_stats_new (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     pokemon_id INTEGER NOT NULL, -- Will reference pokemon.pokemon_id after table creation
     stat_id INTEGER REFERENCES public.stats(stat_id),
     base_stat INTEGER NOT NULL,
@@ -418,20 +406,34 @@ BEGIN
   END IF;
 END $$;
 
--- Public read access for all Pokemon data
+-- Public read access for all Pokemon data (idempotent: drop if exists)
+DROP POLICY IF EXISTS "Pokemon data is viewable by everyone" ON public.pokemon;
 CREATE POLICY "Pokemon data is viewable by everyone" ON public.pokemon FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Pokemon species is viewable by everyone" ON public.pokemon_species;
 CREATE POLICY "Pokemon species is viewable by everyone" ON public.pokemon_species FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Abilities are viewable by everyone" ON public.abilities;
 CREATE POLICY "Abilities are viewable by everyone" ON public.abilities FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Moves are viewable by everyone" ON public.moves;
 CREATE POLICY "Moves are viewable by everyone" ON public.moves FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Types are viewable by everyone" ON public.types;
 CREATE POLICY "Types are viewable by everyone" ON public.types FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Items are viewable by everyone" ON public.items;
 CREATE POLICY "Items are viewable by everyone" ON public.items FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Stats are viewable by everyone" ON public.stats;
 CREATE POLICY "Stats are viewable by everyone" ON public.stats FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Generations are viewable by everyone" ON public.generations;
 CREATE POLICY "Generations are viewable by everyone" ON public.generations FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Evolution chains are viewable by everyone" ON public.evolution_chains;
 CREATE POLICY "Evolution chains are viewable by everyone" ON public.evolution_chains FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Pokemon forms are viewable by everyone" ON public.pokemon_forms;
 CREATE POLICY "Pokemon forms are viewable by everyone" ON public.pokemon_forms FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Pokemon abilities are viewable by everyone" ON public.pokemon_abilities;
 CREATE POLICY "Pokemon abilities are viewable by everyone" ON public.pokemon_abilities FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Pokemon moves are viewable by everyone" ON public.pokemon_moves;
 CREATE POLICY "Pokemon moves are viewable by everyone" ON public.pokemon_moves FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Pokemon types are viewable by everyone" ON public.pokemon_types;
 CREATE POLICY "Pokemon types are viewable by everyone" ON public.pokemon_types FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Pokemon items are viewable by everyone" ON public.pokemon_items;
 CREATE POLICY "Pokemon items are viewable by everyone" ON public.pokemon_items FOR SELECT USING (true);
 -- Conditional policy for pokemon_stats (table may not exist)
 DO $$
@@ -464,18 +466,31 @@ BEGIN
     CREATE POLICY "Service role can manage Pokemon data" ON public.pokemon_comprehensive FOR ALL TO service_role USING (true) WITH CHECK (true);
   END IF;
 END $$;
+DROP POLICY IF EXISTS "Service role can manage Pokemon species" ON public.pokemon_species;
 CREATE POLICY "Service role can manage Pokemon species" ON public.pokemon_species FOR ALL TO service_role USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Service role can manage abilities" ON public.abilities;
 CREATE POLICY "Service role can manage abilities" ON public.abilities FOR ALL TO service_role USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Service role can manage moves" ON public.moves;
 CREATE POLICY "Service role can manage moves" ON public.moves FOR ALL TO service_role USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Service role can manage types" ON public.types;
 CREATE POLICY "Service role can manage types" ON public.types FOR ALL TO service_role USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Service role can manage items" ON public.items;
 CREATE POLICY "Service role can manage items" ON public.items FOR ALL TO service_role USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Service role can manage stats" ON public.stats;
 CREATE POLICY "Service role can manage stats" ON public.stats FOR ALL TO service_role USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Service role can manage generations" ON public.generations;
 CREATE POLICY "Service role can manage generations" ON public.generations FOR ALL TO service_role USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Service role can manage evolution chains" ON public.evolution_chains;
 CREATE POLICY "Service role can manage evolution chains" ON public.evolution_chains FOR ALL TO service_role USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Service role can manage Pokemon forms" ON public.pokemon_forms;
 CREATE POLICY "Service role can manage Pokemon forms" ON public.pokemon_forms FOR ALL TO service_role USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Service role can manage Pokemon abilities" ON public.pokemon_abilities;
 CREATE POLICY "Service role can manage Pokemon abilities" ON public.pokemon_abilities FOR ALL TO service_role USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Service role can manage Pokemon moves" ON public.pokemon_moves;
 CREATE POLICY "Service role can manage Pokemon moves" ON public.pokemon_moves FOR ALL TO service_role USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Service role can manage Pokemon types" ON public.pokemon_types;
 CREATE POLICY "Service role can manage Pokemon types" ON public.pokemon_types FOR ALL TO service_role USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Service role can manage Pokemon items" ON public.pokemon_items;
 CREATE POLICY "Service role can manage Pokemon items" ON public.pokemon_items FOR ALL TO service_role USING (true) WITH CHECK (true);
 -- Conditional policy for pokemon_stats (table may not exist)
 DO $$

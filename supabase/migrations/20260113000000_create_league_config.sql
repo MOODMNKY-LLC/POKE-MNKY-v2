@@ -38,23 +38,24 @@ CREATE TABLE IF NOT EXISTS public.league_config (
 CREATE INDEX IF NOT EXISTS idx_league_config_type ON public.league_config(config_type);
 CREATE INDEX IF NOT EXISTS idx_league_config_section_type ON public.league_config(section_type);
 
--- Add RLS policies (allow read for authenticated users, write for admins)
+-- Add RLS policies (idempotent: drop if exists)
 ALTER TABLE public.league_config ENABLE ROW LEVEL SECURITY;
 
--- Policy: Anyone authenticated can read league config
+DROP POLICY IF EXISTS "League config is viewable by authenticated users" ON public.league_config;
 CREATE POLICY "League config is viewable by authenticated users"
   ON public.league_config
   FOR SELECT
   TO authenticated
   USING (true);
 
--- Policy: Only service role can insert/update (via backend)
+DROP POLICY IF EXISTS "League config is insertable by service role" ON public.league_config;
 CREATE POLICY "League config is insertable by service role"
   ON public.league_config
   FOR INSERT
   TO service_role
   WITH CHECK (true);
 
+DROP POLICY IF EXISTS "League config is updatable by service role" ON public.league_config;
 CREATE POLICY "League config is updatable by service role"
   ON public.league_config
   FOR UPDATE
