@@ -12,9 +12,15 @@ interface Cursor {
 
 export function RealtimeCursor({ channel }: { channel: string }) {
   const [cursors, setCursors] = useState<Record<string, Cursor>>({})
-  const supabase = createBrowserClient()
+  const [supabase, setSupabase] = useState<ReturnType<typeof createBrowserClient> | null>(null)
 
   useEffect(() => {
+    if (typeof window === "undefined") return
+    setSupabase(createBrowserClient())
+  }, [])
+
+  useEffect(() => {
+    if (!supabase) return
     const cursorChannel = supabase
       .channel(channel)
       .on("broadcast", { event: "cursor" }, ({ payload }) => {
@@ -45,7 +51,7 @@ export function RealtimeCursor({ channel }: { channel: string }) {
       window.removeEventListener("mousemove", handleMouseMove)
       cursorChannel.unsubscribe()
     }
-  }, [channel])
+  }, [supabase, channel])
 
   return (
     <>

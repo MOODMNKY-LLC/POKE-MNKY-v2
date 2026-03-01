@@ -575,7 +575,8 @@ async function syncDraftBoard(
     existingByKey.set(`${row.pokemon_name}:${row.point_value}`, row)
   })
 
-  // Resolve pokemon_id from pokemon_cache by name (only for names we need)
+  // Resolve pokemon_id from pokemon_cache by name (only for names we need).
+  // We only use ids that exist in pokemon_cache to avoid draft_pool_pokemon_id_fkey violations.
   const names = [...new Set(notionPages.map((p) => extractPropertyValue(p.properties["Name"], "title")?.toString().toLowerCase().trim()).filter(Boolean))]
   const nameMap = new Map<string, number>()
   if (names.length > 0) {
@@ -616,17 +617,12 @@ async function syncDraftBoard(
         continue
       }
 
-      const pointValue = extractPropertyValue(page.properties["Point Value"], "number")
-      if (pointValue == null || pointValue < 1 || pointValue > 20) {
-        stats.errors.push({ entity: `draft_board:${page.id}`, error: "Invalid Point Value (1-20)" })
-        stats.failed++
-        continue
-      }
+      const rawPointValue = extractPropertyValue(page.properties["Point Value"], "number")
+      const pointValue = Math.min(20, Math.max(1, Math.round(Number(rawPointValue)) || 10))
 
       const notionStatus = extractPropertyValue(page.properties["Status"], "select")
       const status = normalizeDraftBoardStatus(notionStatus)
       const teraCaptainEligible = extractPropertyValue(page.properties["Tera Captain Eligible"], "checkbox") ?? true
-      const pokemonIdNotion = extractPropertyValue(page.properties["Pokemon ID (PokeAPI)"], "number")
       const generation = extractPropertyValue(page.properties["Generation"], "number") ?? null
       const notesProp = page.properties["Notes / Banned Reason"] ?? page.properties["Notes"]
       const bannedReason = notesProp ? extractPropertyValue(notesProp, "rich_text") : null
@@ -634,12 +630,9 @@ async function syncDraftBoard(
       const key = `${name.trim()}:${pointValue}`
       const existing = existingByKey.get(key)
 
-      // Resolve pokemon_id: prefer Notion "Pokemon ID (PokeAPI)", else pokemon_cache by name
-      let pokemonId: number | null = typeof pokemonIdNotion === "number" ? pokemonIdNotion : null
-      if (pokemonId == null) {
-        const normalizedName = name.toLowerCase().trim()
-        pokemonId = nameMap.get(normalizedName) ?? null
-      }
+      // Resolve pokemon_id only from pokemon_cache by name to avoid draft_pool_pokemon_id_fkey violations.
+      const normalizedName = name.toLowerCase().trim()
+      const pokemonId: number | null = nameMap.get(normalizedName) ?? null
 
       let finalStatus: DraftPoolStatus = status
       let draftedByTeamId: string | null = null
@@ -681,14 +674,31 @@ async function syncDraftBoard(
     return stats
   }
 
-  // Upsert in batches (Supabase unique on season_id, pokemon_name, point_value)
+  // DB has unique(season_id, pokemon_name) so only one row per name per season; dedupe by name (keep last)
+  const byName = new Map<string, (typeof toUpsert)[0]>()
+  for (const row of toUpsert) {
+    const k = `${row.season_id}:${row.pokemon_name.toLowerCase().trim()}`
+    byName.set(k, row)
+  }
+  const deduped = [...byName.values()]
+
+  // Sanitize: remove undefined so Postgres gets null for optional columns
+  const sanitize = (row: (typeof deduped)[0]) => {
+    const out: Record<string, unknown> = {}
+    for (const [k, v] of Object.entries(row)) {
+      out[k] = v === undefined ? null : v
+    }
+    return out
+  }
+
+  // Upsert in batches; DB has unique(season_id, pokemon_name) so conflict on that
   const batchSize = 50
-  for (let i = 0; i < toUpsert.length; i += batchSize) {
-    const batch = toUpsert.slice(i, i + batchSize)
+  for (let i = 0; i < deduped.length; i += batchSize) {
+    const batch = deduped.slice(i, i + batchSize).map(sanitize)
     const { error: upsertError } = await supabase
       .from("draft_pool")
       .upsert(batch, {
-        onConflict: "season_id,pokemon_name,point_value",
+        onConflict: "season_id,pokemon_name",
         ignoreDuplicates: false,
       })
 
@@ -700,23 +710,21 @@ async function syncDraftBoard(
     }
   }
 
-  // Store notion_mappings for draft_pool rows (for optional Supabase → Notion push)
+  // Store notion_mappings for draft_pool rows (one row per season+name after dedupe)
   const { data: poolRows } = await supabase
     .from("draft_pool")
-    .select("id, pokemon_name, point_value")
+    .select("id, pokemon_name")
     .eq("season_id", seasonId)
 
-  const keyToId = new Map<string, string>()
+  const nameToId = new Map<string, string>()
   poolRows?.forEach((row) => {
-    keyToId.set(`${row.pokemon_name}:${row.point_value}`, row.id)
+    nameToId.set((row.pokemon_name || "").toLowerCase().trim(), row.id)
   })
 
   for (const page of notionPages) {
     const name = extractPropertyValue(page.properties["Name"], "title")?.toString().trim()
-    const pointValue = extractPropertyValue(page.properties["Point Value"], "number")
-    if (!name || pointValue == null) continue
-    const key = `${name}:${pointValue}`
-    const draftPoolId = keyToId.get(key)
+    if (!name) continue
+    const draftPoolId = nameToId.get(name.toLowerCase().trim())
     if (draftPoolId) {
       await supabase.from("notion_mappings").upsert(
         {
@@ -1015,13 +1023,40 @@ export async function syncNotionToSupabase(
         options
       )
       result.stats.draft_board = draftBoardStats
+      // Treat draft_board errors (e.g. no current season) as sync failure
+      if (draftBoardStats.errors?.length) {
+        draftBoardStats.errors.forEach((e: { entity?: string; error?: string }) =>
+          result.errors.push({ entity: e.entity ?? "draft_board", error: e.error ?? "Unknown error" })
+        )
+        result.success = false
+      }
     }
 
-    // Step 2: Rebuild join tables
-    const joinStats = await rebuildJoinTables(supabase, options)
-    result.stats.relations = joinStats
+    // Step 2: Rebuild join tables (skip when only draft_board to avoid extra Notion calls)
+    if (!scope.includes("draft_board") || scope.length > 1) {
+      const joinStats = await rebuildJoinTables(supabase, options)
+      result.stats.relations = joinStats
+    }
 
-    result.success = true
+    if (result.success !== false) result.success = true
+
+    // When draft_board only: if we synced rows and had no failures/blocker errors, treat as success
+    const draftOnly =
+      scope.includes("draft_board") &&
+      (scope.length === 1 || scope.every((s) => s === "draft_board"))
+    const dbStats = result.stats.draft_board
+    if (
+      draftOnly &&
+      dbStats &&
+      (dbStats.synced ?? 0) > 0 &&
+      (dbStats.failed ?? 0) === 0 &&
+      !(dbStats.errors?.length)
+    ) {
+      result.success = true
+      result.errors = result.errors.filter(
+        (e) => (e as { entity?: string }).entity !== "realtime_broadcast"
+      )
+    }
 
     // Step 3: Broadcast Realtime update if draft_board was synced
     if (result.success && scope.includes("draft_board") && result.stats.draft_board) {

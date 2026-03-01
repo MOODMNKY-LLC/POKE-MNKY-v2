@@ -18,11 +18,17 @@ export function DraftRosterSection() {
   const [userTeam, setUserTeam] = useState<{ id: string; name: string } | null>(null)
   const [weeks, setWeeks] = useState<{ week_number: number; label: string }[]>([])
   const [selectedWeek, setSelectedWeek] = useState<number | null>(null)
-  const supabase = createBrowserClient()
+  const [supabase, setSupabase] = useState<ReturnType<typeof createBrowserClient> | null>(null)
 
   useEffect(() => {
-    loadData()
+    if (typeof window === "undefined") return
+    setSupabase(createBrowserClient())
   }, [])
+
+  useEffect(() => {
+    if (!supabase) return
+    loadData()
+  }, [supabase])
 
   async function loadData() {
     if (!supabase) return

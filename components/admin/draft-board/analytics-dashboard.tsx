@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { createBrowserClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -31,13 +31,15 @@ export function AnalyticsDashboard() {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
   const [loading, setLoading] = useState(true)
   const [seasonId, setSeasonId] = useState<string | null>(null)
-  const supabase = createBrowserClient()
+  const [supabase, setSupabase] = useState<ReturnType<typeof createBrowserClient> | null>(null)
 
   useEffect(() => {
-    loadAnalytics()
-  }, [seasonId])
+    if (typeof window === "undefined") return
+    setSupabase(createBrowserClient())
+  }, [])
 
-  async function loadAnalytics() {
+  const loadAnalytics = useCallback(async () => {
+    if (!supabase) return
     try {
       // Get current season
       const { data: season } = await supabase
@@ -141,7 +143,12 @@ export function AnalyticsDashboard() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [supabase])
+
+  useEffect(() => {
+    if (!supabase) return
+    loadAnalytics()
+  }, [supabase, loadAnalytics])
 
   if (loading) {
     return (

@@ -40,6 +40,24 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
+  // One-time sync: if onboarding was completed before profiles sync existed, set profile flag
+  if (data?.completed_at) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("onboarding_completed")
+      .eq("id", user.id)
+      .single()
+    if (profile && !profile.onboarding_completed) {
+      await supabase
+        .from("profiles")
+        .update({
+          onboarding_completed: true,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", user.id)
+    }
+  }
+
   return NextResponse.json({
     current_step: data?.current_step ?? "welcome",
     completed_steps: (data?.completed_steps as string[]) ?? [],
@@ -97,6 +115,23 @@ export async function PATCH(request: NextRequest) {
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  // Sync completion to profiles so dashboard and RBAC can use onboarding_completed
+  if (completedAt) {
+    await supabase
+      .from("profiles")
+      .update({
+        onboarding_completed: true,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", user.id)
+    await supabase.from("user_activity_log").insert({
+      user_id: user.id,
+      action: "onboarding_completed",
+      resource_type: "coach_onboarding",
+      metadata: { step: updated.current_step },
+    })
   }
 
   return NextResponse.json({

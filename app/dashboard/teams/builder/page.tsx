@@ -149,7 +149,7 @@ export default function TeamBuilderPage() {
       const data = await response.json();
 
       if (response.ok) {
-        toast.success('Team saved successfully!');
+        toast.success("Team saved to your library. View it in My Teams.");
         // Broadcast the new team so other components can update optimistically
         try {
           if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {

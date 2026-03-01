@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { createServiceRoleClient } from "@/lib/supabase/service"
 import { getCurrentUserProfile } from "@/lib/rbac"
 import { redirect } from "next/navigation"
 import {
@@ -28,10 +29,9 @@ export default async function TeamLibraryPage() {
     redirect("/auth/login")
   }
 
-  // Fetch all stock teams
-  // Note: RLS policy allows authenticated users to view stock teams
-  // Using count to verify query works
-  const { data: stockTeams, error: stockTeamsError, count } = await supabase
+  // Fetch stock teams with service role so RLS/session issues don't hide them (stock teams are public for all authenticated users)
+  const serviceSupabase = createServiceRoleClient()
+  const { data: stockTeams, error: stockTeamsError, count } = await serviceSupabase
     .from("showdown_teams")
     .select("*", { count: "exact" })
     .eq("is_stock", true)
@@ -147,6 +147,12 @@ export default async function TeamLibraryPage() {
                 </p>
                 <p className="text-sm text-muted-foreground mb-4">
                   Found {count || stockTeams?.length || 0} stock teams in database.
+                </p>
+                <p className="text-xs text-muted-foreground mb-2 max-w-md mx-auto">
+                  To populate stock teams, run <code className="rounded bg-muted px-1">npm run db:seed:showdown</code> or <code className="rounded bg-muted px-1">npm run db:seed:showdown:ts</code>. See docs/STOCK-TEAMS.md.
+                </p>
+                <p className="text-xs text-muted-foreground mb-4 max-w-md mx-auto">
+                  If you already ran the seed: ensure the app uses the <strong>same database</strong>. Open Debug Query and check <code className="rounded bg-muted px-1">appDatabase</code>; use that project&apos;s connection string as <code className="rounded bg-muted px-1">POSTGRES_URL</code> when seeding.
                 </p>
                 <div className="flex gap-2 justify-center">
                   <Button asChild variant="outline" size="sm">

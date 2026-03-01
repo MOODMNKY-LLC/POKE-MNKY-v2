@@ -1,6 +1,22 @@
-# Coach Onboarding – Notion “View full guide” feature
+# Coach Onboarding – Notion and Supabase integration
 
-The coach onboarding flow (Dashboard → Onboarding) can show a **“View full guide in Notion”** button when a Notion page is configured. The app fetches the page URL (and title) from the Notion API and links to it.
+The coach onboarding flow (Dashboard → Onboarding) is fully hooked up to **Supabase** (progress and profile sync) and optionally to **Notion** (full guide link).
+
+## Supabase integration
+
+- **Table**: `coach_onboarding` stores per-user progress (`current_step`, `completed_steps`, `completed_at`). RLS allows authenticated users to select/insert/update only their own row.
+- **API**: `GET /api/coach-onboarding` returns current step and completed steps; `PATCH /api/coach-onboarding` updates step and optionally marks onboarding complete.
+- **Profile sync**: When the user marks onboarding complete (or reaches step `complete` with `mark_complete: true`), the API sets `profiles.onboarding_completed = true` for that user. The dashboard uses this to show a “Finish coach onboarding” card for coaches who have a team but have not completed onboarding. A one-time sync on GET ensures existing completed onboarding rows also set `profiles.onboarding_completed`.
+- **Navigation**: Dashboard sidebar includes an “Onboarding” link under Dashboard. The dashboard shows “Continue onboarding” for coaches with a team and `onboarding_completed === false`.
+
+## Team Builder hookup
+
+- On the **Team builder intro** step, the onboarding page shows **“Open Team Builder”** (primary) and **“Coach & team builder guide”** (outline). Both link to `/dashboard/teams/builder` and `/dashboard/guides/coach-and-team-builder` respectively.
+- On the **Complete** step, the page shows **“Open Team Builder”** and **“View all guides”** so users can go straight to the builder or browse guides.
+
+## Notion “View full guide” feature
+
+The coach onboarding flow can show a **“View full guide in Notion”** button when a Notion page is configured. The app fetches the page URL (and title) from the Notion API and links to it.
 
 ## Environment variables
 

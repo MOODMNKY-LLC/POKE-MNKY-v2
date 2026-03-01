@@ -103,19 +103,37 @@ export async function POST(request: NextRequest) {
     // Don't await - let it run async and update job status when done
     syncNotionToSupabase(supabaseUrl, serviceRoleKey, syncOptions)
       .then(async (result) => {
-        // Update job status
+        const scope = syncOptions.scope || []
+        const isDraftBoardOnly = scope.includes("draft_board") && (scope.length === 1 || scope.every((s) => s === "draft_board"))
+        const pokemonSynced = isDraftBoardOnly && result.stats.draft_board
+          ? (result.stats.draft_board.synced ?? 0)
+          : result.stats.pokemon.created + result.stats.pokemon.updated
+        const pokemonFailed = isDraftBoardOnly && result.stats.draft_board
+          ? (result.stats.draft_board.failed ?? 0)
+          : result.stats.pokemon.failed
+        const errorMessage = result.errors?.length
+          ? result.errors.map((e: { entity?: string; error?: string }) => e.error).filter(Boolean).join("; ") || undefined
+          : undefined
+        const updatePayload: Record<string, unknown> = {
+          status: result.success ? "completed" : "failed",
+          completed_at: new Date().toISOString(),
+          pokemon_synced: pokemonSynced,
+          pokemon_failed: pokemonFailed,
+          config: {
+            ...syncOptions,
+            result,
+          },
+        }
+        if (errorMessage) {
+          updatePayload.error_log = { error: errorMessage, details: result.errors }
+        } else if (!result.success) {
+          updatePayload.error_log = { error: "Sync failed", details: result.errors }
+        } else {
+          updatePayload.error_log = null
+        }
         await supabase
           .from("sync_jobs")
-          .update({
-            status: result.success ? "completed" : "failed",
-            completed_at: new Date().toISOString(),
-            pokemon_synced: result.stats.pokemon.created + result.stats.pokemon.updated,
-            pokemon_failed: result.stats.pokemon.failed,
-            config: {
-              ...syncOptions,
-              result,
-            },
-          })
+          .update(updatePayload)
           .eq("job_id", job.job_id)
       })
       .catch(async (error) => {

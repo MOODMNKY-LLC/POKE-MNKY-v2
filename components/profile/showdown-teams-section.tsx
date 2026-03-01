@@ -26,11 +26,17 @@ export function ShowdownTeamsSection({ userId }: ShowdownTeamsSectionProps) {
   const [teams, setTeams] = useState<ShowdownTeam[]>([])
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState<string | null>(null)
-  const supabase = createBrowserClient()
+  const [supabase, setSupabase] = useState<ReturnType<typeof createBrowserClient> | null>(null)
 
   useEffect(() => {
+    if (typeof window === "undefined") return
+    setSupabase(createBrowserClient())
+  }, [])
+
+  useEffect(() => {
+    if (!supabase) return
     loadTeams()
-  }, [userId])
+  }, [supabase, userId])
 
   // Listen for broadcasted team-created events to update optimistically
   useEffect(() => {
@@ -72,6 +78,7 @@ export function ShowdownTeamsSection({ userId }: ShowdownTeamsSectionProps) {
   }, [])
 
   async function loadTeams() {
+    if (!supabase) return
     setLoading(true)
     try {
       // Get coach_id from coaches table
@@ -107,7 +114,7 @@ export function ShowdownTeamsSection({ userId }: ShowdownTeamsSectionProps) {
   }
 
   async function deleteTeam(teamId: string) {
-    if (!confirm("Are you sure you want to delete this team?")) return
+    if (!supabase || !confirm("Are you sure you want to delete this team?")) return
 
     setDeleting(teamId)
     try {

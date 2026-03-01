@@ -17,6 +17,8 @@ import { DISCORD_TO_APP_ROLE_MAP } from "@/lib/discord-role-mappings"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { Trophy, Users, Calendar, BarChart3, Sword, BookOpen, ClipboardList, UserPlus } from "lucide-react"
+import { CoachStatusTicker } from "@/components/dashboard/coach-status-ticker"
+import { RecentActivityCard } from "@/components/dashboard/recent-activity-card"
 import { CoachCard as DefaultCoachCard } from "@/components/draft/coach-card"
 import { CoachCard as ConfigurableCoachCard } from "@/components/profile/coach-card"
 
@@ -63,6 +65,8 @@ export default async function DashboardPage() {
     team_record?: { wins: number; losses: number; differential: number }
     draft_budget?: { total: number; spent: number; remaining: number }
     roster_count?: number
+    trade_block_count?: number
+    pending_offers_count?: number
     next_match?: {
       match_id: string
       week: number
@@ -132,8 +136,36 @@ export default async function DashboardPage() {
           status: nextMatch.status,
         }
       }
+      const { count: tradeBlockCount } = await supabase
+        .from("trade_block_entries")
+        .select("*", { count: "exact", head: true })
+        .eq("team_id", profile.team_id)
+        .eq("active", true)
+      overviewStats.trade_block_count = tradeBlockCount ?? 0
+      const { count: pendingOffersCount } = await supabase
+        .from("league_trade_offers")
+        .select("*", { count: "exact", head: true })
+        .eq("receiving_team_id", profile.team_id)
+        .eq("status", "pending")
+      overviewStats.pending_offers_count = pendingOffersCount ?? 0
     }
   }
+
+  // Recent activity for dashboard card (with realtime updates via client)
+  const { data: activityRows } = await supabase
+    .from("user_activity_log")
+    .select("id, action, resource_type, resource_id, metadata, created_at")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(20)
+  const initialActivities = (activityRows ?? []).map((r) => ({
+    id: r.id,
+    action: r.action,
+    resource_type: r.resource_type,
+    resource_id: r.resource_id,
+    metadata: r.metadata as Record<string, unknown> | null,
+    created_at: r.created_at,
+  }))
 
   return (
     <>
@@ -189,7 +221,7 @@ export default async function DashboardPage() {
               </div>
             </div>
 
-            {(profile.role !== "coach" || !profile.team_id) && (
+            {(profile.role !== "coach" || !profile.team_id) && !profile.onboarding_completed && (
               <Card className="touch-manipulation border-primary/50 bg-primary/5">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -210,6 +242,30 @@ export default async function DashboardPage() {
                 </CardContent>
               </Card>
             )}
+
+            {profile.role === "coach" && profile.team_id && !profile.onboarding_completed && (
+              <Card className="touch-manipulation border-primary/50 bg-primary/5">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                    <BookOpen className="h-4 w-4" />
+                    Finish coach onboarding
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Complete the short onboarding to learn how to use the Team Builder, free agency, and weekly matches.
+                  </p>
+                  <Link
+                    href="/dashboard/onboarding"
+                    className="inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground h-9 px-4 py-2 hover:bg-primary/90"
+                  >
+                    Continue onboarding
+                  </Link>
+                </CardContent>
+              </Card>
+            )}
+
+            {profile.onboarding_completed && <CoachStatusTicker />}
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               <Card className="touch-manipulation">
@@ -320,7 +376,7 @@ export default async function DashboardPage() {
                 <CardContent>
                   <div className="space-y-2">
                     <Link
-                      href="/dashboard/guides"
+                      href="/dashboard/settings?tab=guides"
                       className="text-sm text-primary hover:underline min-h-[44px] flex items-center touch-manipulation"
                     >
                       Guides
@@ -343,17 +399,7 @@ export default async function DashboardPage() {
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
-              <Card className="touch-manipulation">
-                <CardHeader>
-                  <CardTitle className="text-base sm:text-lg">Recent Activity</CardTitle>
-                  <CardDescription className="text-xs sm:text-sm">Your recent actions and updates</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">
-                    Activity tracking coming soon...
-                  </p>
-                </CardContent>
-              </Card>
+              <RecentActivityCard initialActivities={initialActivities} userId={user.id} />
 
               <Card className="touch-manipulation">
                 <CardHeader>
@@ -396,6 +442,28 @@ export default async function DashboardPage() {
                             className="font-medium text-primary hover:underline"
                           >
                             Week {overviewStats.next_match.week} vs {overviewStats.next_match.opponent_name ?? overviewStats.next_match.opponent_coach ?? "TBD"}
+                          </Link>
+                        </div>
+                      )}
+                      {(overviewStats.trade_block_count ?? 0) > 0 && (
+                        <div>
+                          <span className="text-muted-foreground">Trade block: </span>
+                          <Link
+                            href="/dashboard/trade-block"
+                            className="font-medium text-primary hover:underline"
+                          >
+                            {overviewStats.trade_block_count} Pokémon listed
+                          </Link>
+                        </div>
+                      )}
+                      {(overviewStats.pending_offers_count ?? 0) > 0 && (
+                        <div>
+                          <span className="text-muted-foreground">Action needed: </span>
+                          <Link
+                            href="/dashboard/trade-block"
+                            className="font-medium text-primary hover:underline"
+                          >
+                            {overviewStats.pending_offers_count} trade offer(s) to respond to
                           </Link>
                         </div>
                       )}

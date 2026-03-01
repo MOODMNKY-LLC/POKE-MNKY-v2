@@ -13,9 +13,15 @@ interface RealtimeAvatarStackProps {
 
 export function RealtimeAvatarStack({ channel, maxAvatars = 5 }: RealtimeAvatarStackProps) {
   const [activeUsers, setActiveUsers] = useState<User[]>([])
-  const supabase = createBrowserClient()
+  const [supabase, setSupabase] = useState<ReturnType<typeof createBrowserClient> | null>(null)
 
   useEffect(() => {
+    if (typeof window === "undefined") return
+    setSupabase(createBrowserClient())
+  }, [])
+
+  useEffect(() => {
+    if (!supabase) return
     const presenceChannel = supabase
       .channel(channel)
       .on("presence", { event: "sync" }, () => {
@@ -37,7 +43,7 @@ export function RealtimeAvatarStack({ channel, maxAvatars = 5 }: RealtimeAvatarS
     return () => {
       presenceChannel.unsubscribe()
     }
-  }, [channel, maxAvatars])
+  }, [supabase, channel, maxAvatars])
 
   if (activeUsers.length === 0) return null
 

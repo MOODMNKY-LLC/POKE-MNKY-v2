@@ -32,7 +32,7 @@ interface Tag {
 }
 
 export function VideoTags({ videoId }: VideoTagsProps) {
-  const supabase = createClient();
+  const [supabase, setSupabase] = useState<ReturnType<typeof createClient> | null>(null);
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [tags, setTags] = useState<Tag[]>([]);
@@ -41,12 +41,19 @@ export function VideoTags({ videoId }: VideoTagsProps) {
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [tagNote, setTagNote] = useState('');
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    setSupabase(createClient());
+  }, []);
+
   // Load tags
   useEffect(() => {
+    if (!supabase) return;
     loadTags();
-  }, [videoId]);
+  }, [supabase, videoId]);
 
   async function loadTags() {
+    if (!supabase) return;
     try {
       // Get video ID from Supabase
       const { data: video } = await supabase

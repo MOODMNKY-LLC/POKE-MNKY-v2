@@ -247,6 +247,16 @@ export function DraftPlanningSection() {
         </div>
       </div>
 
+      {/* No season configured */}
+      {!loading && !season && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            No season is configured. Add a season in the database and mark one as current, or contact an administrator.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Status Alert */}
       {season && (
         <Alert>
