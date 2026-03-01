@@ -4,15 +4,10 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import {
   Home,
-  User,
   Users,
   Trophy,
-  Calendar,
-  BarChart3,
   Settings,
-  LogOut,
   Sword,
-  BookOpen,
   Sparkles,
   ClipboardList,
 } from "lucide-react"
@@ -59,6 +54,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           url: "/dashboard",
         },
         {
+          title: "Onboarding",
+          url: "/dashboard/onboarding",
+        },
+        {
           title: "My Stats",
           url: "/dashboard/stats",
         },
@@ -87,6 +86,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       {
         title: "Create Team",
         url: "/dashboard/teams/create",
+      },
+      {
+        title: "Upload Team",
+        url: "/dashboard/teams/upload",
       },
       {
         title: "Team Builder",
@@ -148,24 +151,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     ],
   })
 
-  // Add Guides section (player dashboard guides)
-  navItems.push({
-    title: "Guides",
-    url: "/dashboard/guides",
-    icon: BookOpen,
-    items: [
-      {
-        title: "All guides",
-        url: "/dashboard/guides",
-      },
-      {
-        title: "Coach & team builder",
-        url: "/dashboard/guides/coach-and-team-builder",
-      },
-    ],
-  })
-
-  // Add calculator link (available to all users)
+  // Add calculator link (available to all users; Guides moved to Settings)
   navItems.push({
     title: "Damage Calculator",
     url: "/calc",
@@ -209,6 +195,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         {
           title: "Preferences",
           url: "/dashboard/settings#preferences",
+        },
+        {
+          title: "Guides",
+          url: "/dashboard/settings?tab=guides",
         },
       ],
     }

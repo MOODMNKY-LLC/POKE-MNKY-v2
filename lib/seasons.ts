@@ -1,6 +1,6 @@
 /**
  * Season utility functions
- * Provides app-wide default season resolution with fallback to Season 6
+ * Provides app-wide default season resolution with fallback to Season 7
  */
 
 import { createClient } from "@/lib/supabase/client"
@@ -15,14 +15,14 @@ export interface Season {
 }
 
 /**
- * Get the current season with fallback to Season 6
+ * Get the current season with fallback to Season 7
  * This ensures there's always a default season available app-wide
- * 
+ *
  * Priority:
  * 1. Season with is_current = true
- * 2. Season 6 (by name or season_id)
+ * 2. Season 7 (by name or season_id)
  * 3. Most recent season by created_at
- * 
+ *
  * @param supabase - Supabase client instance
  * @returns Season object or null if no seasons exist
  */
@@ -41,16 +41,16 @@ export async function getCurrentSeasonWithFallback(
       return currentSeason as Season
     }
 
-    // Fallback 1: Try to get Season 6 by name or season_id
-    const { data: season6, error: season6Error } = await supabase
+    // Fallback 1: Try to get Season 7 by name or season_id
+    const { data: season7, error: season7Error } = await supabase
       .from("seasons")
       .select("id, name, season_id, is_current, start_date, end_date")
-      .or("name.eq.Season 6,season_id.eq.AABPBL-Season-6-2026")
+      .or("name.eq.Season 7,season_id.eq.AABPBL-Season-7-2027")
       .maybeSingle()
 
-    if (!season6Error && season6) {
-      console.log("[getCurrentSeasonWithFallback] Using Season 6 as fallback:", season6.id)
-      return season6 as Season
+    if (!season7Error && season7) {
+      console.log("[getCurrentSeasonWithFallback] Using Season 7 as fallback:", season7.id)
+      return season7 as Season
     }
 
     // Fallback 2: Get most recent season
@@ -66,7 +66,7 @@ export async function getCurrentSeasonWithFallback(
       return recentSeason as Season
     }
 
-    console.error("[getCurrentSeasonWithFallback] No seasons found in database")
+    // No seasons in DB is valid (e.g. fresh install); callers should handle null
     return null
   } catch (error) {
     console.error("[getCurrentSeasonWithFallback] Error fetching season:", error)

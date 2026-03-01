@@ -22,11 +22,16 @@ export function QuickEditPanel() {
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [seasonId, setSeasonId] = useState<string | null>(null)
+  const [supabase, setSupabase] = useState<ReturnType<typeof createBrowserClient> | null>(null)
   const { toast } = useToast()
-  const supabase = createBrowserClient()
 
   useEffect(() => {
-    // Get current season
+    if (typeof window === "undefined") return
+    setSupabase(createBrowserClient())
+  }, [])
+
+  useEffect(() => {
+    if (!supabase) return
     supabase
       .from("seasons")
       .select("id")
@@ -35,7 +40,7 @@ export function QuickEditPanel() {
       .then(({ data }) => {
         if (data) setSeasonId(data.id)
       })
-  }, [])
+  }, [supabase])
 
   async function searchPokemon() {
     if (!searchQuery.trim() || !seasonId) return
@@ -80,7 +85,7 @@ export function QuickEditPanel() {
   }
 
   async function saveChanges() {
-    if (!pokemon || !seasonId) return
+    if (!supabase || !pokemon || !seasonId) return
 
     setSaving(true)
     try {

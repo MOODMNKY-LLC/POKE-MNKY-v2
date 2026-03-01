@@ -153,7 +153,8 @@ export default function AdminPokemonPage() {
   const [seasonId, setSeasonId] = useState<string | null>(null)
   const [seasonName, setSeasonName] = useState<string | null>(null)
   const [seasonIdentifier, setSeasonIdentifier] = useState<string | null>(null) // AABPBL-Season-6-2026 format
-  const [seasons, setSeasons] = useState<Array<{ id: string; name: string; season_id: string | null }>>([])
+  const [seasons, setSeasons] = useState<Array<{ id: string; name: string; season_id: string | null; is_current?: boolean }>>([])
+  const [settingCurrent, setSettingCurrent] = useState(false)
   const [editingSeason, setEditingSeason] = useState(false)
   const [newSeasonName, setNewSeasonName] = useState("")
   const [newSeasonId, setNewSeasonId] = useState("")
@@ -186,11 +187,11 @@ export default function AdminPokemonPage() {
         // Fallback: fetch without season_id
         const { data: fallbackData } = await supabase
           .from("seasons")
-          .select("id, name")
+          .select("id, name, is_current")
           .order("start_date", { ascending: false })
         
         if (fallbackData) {
-          setSeasons(fallbackData.map((s: any) => ({ ...s, season_id: null })))
+          setSeasons(fallbackData.map((s: any) => ({ ...s, season_id: null, is_current: s.is_current })))
           
           // Set current season as default
           const currentSeason = fallbackData.find((s: any) => s.is_current) || fallbackData[0]
@@ -479,7 +480,12 @@ export default function AdminPokemonPage() {
                   <SelectContent>
                     {seasons.map((season) => (
                       <SelectItem key={season.id} value={season.id}>
-                        {season.name} {season.season_id && `(${season.season_id})`}
+                        <span className="flex items-center gap-2">
+                          {season.name} {season.season_id && `(${season.season_id})`}
+                          {season.is_current && (
+                            <Badge variant="secondary" className="text-xs">Current</Badge>
+                          )}
+                        </span>
                       </SelectItem>
                     ))}
                     <SelectItem value="__create__">
@@ -488,6 +494,43 @@ export default function AdminPokemonPage() {
                   </SelectContent>
                 </Select>
               )}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={!seasonId || !!seasons.find((s) => s.id === seasonId)?.is_current || settingCurrent}
+                onClick={async () => {
+                  if (!seasonId) return
+                  setSettingCurrent(true)
+                  try {
+                    const res = await fetch("/api/admin/seasons/set-current", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ season_id: seasonId }),
+                    })
+                    const data = await res.json()
+                    if (!res.ok) throw new Error(data.error || "Failed to set current season")
+                    setSeasons((prev) =>
+                      prev.map((s) => ({ ...s, is_current: s.id === seasonId }))
+                    )
+                    toast({
+                      title: "Success",
+                      description: `"${data.current_season?.name ?? "Season"}" is now the current season.`,
+                    })
+                    await loadPokemon()
+                  } catch (err: unknown) {
+                    toast({
+                      title: "Error",
+                      description: err instanceof Error ? err.message : "Failed to set current season",
+                      variant: "destructive",
+                    })
+                  } finally {
+                    setSettingCurrent(false)
+                  }
+                }}
+              >
+                {settingCurrent ? <Loader2 className="h-4 w-4 animate-spin" /> : "Set as current"}
+              </Button>
               <Select
                 value={selectedGeneration.toString()}
                 onValueChange={(v) => setSelectedGeneration(v === "all" ? "all" : parseInt(v))}

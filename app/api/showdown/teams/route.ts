@@ -165,17 +165,34 @@ export async function POST(request: NextRequest) {
     const result = await createShowdownTeam(input, coach.id);
 
     if (result.errors.length > 0) {
+      const message = result.errors[0] || 'Failed to create team';
       return NextResponse.json({
-        error: 'Failed to create team',
+        error: message,
         errors: result.errors
       }, { status: 400 });
     }
 
+    if (!result.team) {
+      return NextResponse.json(
+        { error: 'Team was not created. Please try again.' },
+        { status: 500 }
+      );
+    }
+
+    await supabase.from("user_activity_log").insert({
+      user_id: user.id,
+      action: "team_created",
+      resource_type: "showdown_team",
+      resource_id: result.team.id,
+      metadata: { name: result.team.team_name ?? undefined },
+    })
+
     return NextResponse.json({ team: result.team });
   } catch (error) {
     console.error('[Showdown] Create team error:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Unknown error' },
+      { error: message },
       { status: 500 }
     );
   }

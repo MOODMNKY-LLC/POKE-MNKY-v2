@@ -1,13 +1,14 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { createBrowserClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useToast } from "@/hooks/use-toast"
-import { RefreshCw, CheckCircle2, XCircle, Clock, Loader2, ExternalLink } from "lucide-react"
+import { RefreshCw, CheckCircle2, XCircle, Clock, Loader2 } from "lucide-react"
+import Link from "next/link"
 
 interface SyncJob {
   job_id: string
@@ -22,26 +23,30 @@ interface SyncJob {
   error_log: any | null
 }
 
+function isNoCurrentSeasonError(errorLog: SyncJob["error_log"]): boolean {
+  if (!errorLog || typeof errorLog !== "object") return false
+  const msg = (errorLog.error ?? "").toString().toLowerCase()
+  return msg.includes("current season") || msg.includes("is_current")
+}
+
 export function SyncStatus() {
   const [syncJobs, setSyncJobs] = useState<SyncJob[]>([])
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
+  const [supabase, setSupabase] = useState<ReturnType<typeof createBrowserClient> | null>(null)
+  const syncJobsRef = useRef<SyncJob[]>([])
   const { toast } = useToast()
-  const supabase = createBrowserClient()
 
+  syncJobsRef.current = syncJobs
+
+  // Create Supabase client only on the client after mount (avoids SSR error)
   useEffect(() => {
-    loadSyncJobs()
-    // Refresh every 5 seconds when there's a running job
-    const interval = setInterval(() => {
-      const hasRunning = syncJobs.some((job) => job.status === "running")
-      if (hasRunning) {
-        loadSyncJobs()
-      }
-    }, 5000)
-    return () => clearInterval(interval)
-  }, [syncJobs.length])
+    if (typeof window === "undefined") return
+    setSupabase(createBrowserClient())
+  }, [])
 
-  async function loadSyncJobs() {
+  const loadSyncJobs = useCallback(async () => {
+    if (!supabase) return
     try {
       // Query sync jobs that include draft_board in scope
       // config is JSONB, so we check if it contains draft_board in scope array
@@ -80,7 +85,18 @@ export function SyncStatus() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [supabase, toast])
+
+  useEffect(() => {
+    if (!supabase) return
+    loadSyncJobs()
+    const interval = setInterval(() => {
+      if (syncJobsRef.current.some((job) => job.status === "running")) {
+        loadSyncJobs()
+      }
+    }, 5000)
+    return () => clearInterval(interval)
+  }, [supabase, loadSyncJobs])
 
   async function triggerSync() {
     setSyncing(true)
@@ -190,8 +206,29 @@ export function SyncStatus() {
                 )}
                 {latestJob.error_log && (
                   <Alert variant="destructive">
-                    <AlertDescription className="text-xs">
-                      {latestJob.error_log.error || "Sync error occurred"}
+                    <AlertDescription className="text-xs space-y-2">
+                      <span className="block">
+                        {latestJob.error_log.error || "Sync error occurred"}
+                      </span>
+                      {isNoCurrentSeasonError(latestJob.error_log) && (
+                        <span className="block mt-2">
+                          Set a current season in{" "}
+                          <Link
+                            href="/admin/league"
+                            className="underline font-medium text-primary-foreground hover:no-underline"
+                          >
+                            Admin → League
+                          </Link>
+                          {" "}(one row in <code className="text-[10px] bg-muted px-1 rounded">seasons</code> must have <code className="text-[10px] bg-muted px-1 rounded">is_current = true</code>).
+                        </span>
+                      )}
+                      {latestJob.status === "failed" &&
+                        (latestJob.pokemon_synced ?? 0) > 0 &&
+                        (latestJob.pokemon_failed ?? 0) === 0 && (
+                          <span className="block mt-2 text-muted-foreground">
+                            Data was synced successfully; the job was marked failed due to a non-blocking issue. Trigger sync again to get a clean run.
+                          </span>
+                        )}
                     </AlertDescription>
                   </Alert>
                 )}

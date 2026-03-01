@@ -36,7 +36,12 @@ export function CoachCard({ team, userId }: CoachCardProps) {
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [currentTeam, setCurrentTeam] = useState<Team | null>(team)
-  const supabase = createBrowserClient()
+  const [supabase, setSupabase] = useState<ReturnType<typeof createBrowserClient> | null>(null)
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    setSupabase(createBrowserClient())
+  }, [])
 
   // Update local state when team prop changes
   useEffect(() => {
@@ -45,7 +50,7 @@ export function CoachCard({ team, userId }: CoachCardProps) {
   }, [team])
 
   const handleSaveName = async () => {
-    if (!currentTeam) return
+    if (!supabase || !currentTeam) return
 
     setSaving(true)
     const { error } = await supabase
@@ -71,7 +76,7 @@ export function CoachCard({ team, userId }: CoachCardProps) {
   }
 
   const handleAvatarUpload = async (url: string) => {
-    if (!currentTeam) return
+    if (!supabase || !currentTeam) return
 
     setUploading(true)
     const { error } = await supabase

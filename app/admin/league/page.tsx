@@ -3,12 +3,13 @@
 import { useState, useEffect, Suspense } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-import { Users, Calendar, BarChart3, RefreshCw } from "lucide-react"
+import { Users, Calendar, BarChart3, RefreshCw, ArrowRightLeft, CalendarDays } from "lucide-react"
 import Link from "next/link"
 import { LeagueTeamsTab } from "@/components/admin/league/league-teams-tab"
 import { LeagueMatchesTab } from "@/components/admin/league/league-matches-tab"
 import { LeagueStatisticsTab } from "@/components/admin/league/league-statistics-tab"
 import { LeagueSyncLogsTab } from "@/components/admin/league/league-sync-logs-tab"
+import { LeagueSeasonsTab } from "@/components/admin/league/league-seasons-tab"
 
 function LeagueManagementContent() {
   const [mounted, setMounted] = useState(false)
@@ -17,7 +18,7 @@ function LeagueManagementContent() {
   const getInitialTab = () => {
     if (typeof window !== "undefined") {
       const hash = window.location.hash.slice(1)
-      if (hash && ["teams", "matches", "statistics", "sync-logs"].includes(hash)) {
+      if (hash && ["teams", "matches", "statistics", "sync-logs", "seasons"].includes(hash)) {
         return hash
       }
     }
@@ -37,7 +38,7 @@ function LeagueManagementContent() {
     
     const handleHashChange = () => {
       const hash = window.location.hash.slice(1)
-      if (hash && ["teams", "matches", "statistics", "sync-logs"].includes(hash)) {
+      if (hash && ["teams", "matches", "statistics", "sync-logs", "seasons"].includes(hash)) {
         setActiveTab(hash)
       }
     }
@@ -74,9 +75,17 @@ function LeagueManagementContent() {
             Manage teams, matches, statistics, and sync logs
           </p>
         </div>
-        <Button asChild variant="outline">
-          <Link href="/admin">Back to Dashboard</Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline" size="sm">
+            <Link href="/admin/trades" className="gap-2">
+              <ArrowRightLeft className="h-4 w-4" />
+              Trade approval
+            </Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href="/admin">Back to Dashboard</Link>
+          </Button>
+        </div>
       </div>
 
       {/* Unified Tabs */}
@@ -114,6 +123,9 @@ function LeagueManagementContent() {
 
         <TabsContent value="sync-logs" className="mt-6">
           <LeagueSyncLogsTab />
+        </TabsContent>
+        <TabsContent value="seasons" className="mt-6">
+          <LeagueSeasonsTab />
         </TabsContent>
       </Tabs>
     </div>

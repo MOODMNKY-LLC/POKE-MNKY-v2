@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { createBrowserClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -23,7 +22,6 @@ export function WebhookStatus() {
   const [subscriptions, setSubscriptions] = useState<WebhookSubscription[]>([])
   const [loading, setLoading] = useState(true)
   const { toast } = useToast()
-  const supabase = createBrowserClient()
 
   useEffect(() => {
     loadSubscriptions()

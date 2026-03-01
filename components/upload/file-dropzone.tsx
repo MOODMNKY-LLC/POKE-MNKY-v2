@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { createBrowserClient } from "@/lib/supabase/client"
 import { Card } from "@/components/ui/card"
 import { Upload, Check } from "lucide-react"
@@ -26,9 +26,15 @@ export function FileDropzone({
   const [uploading, setUploading] = useState(false)
   const [uploaded, setUploaded] = useState(false)
   const [dragOver, setDragOver] = useState(false)
-  const supabase = createBrowserClient()
+  const [supabase, setSupabase] = useState<ReturnType<typeof createBrowserClient> | null>(null)
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    setSupabase(createBrowserClient())
+  }, [])
 
   const uploadFile = async (file: File) => {
+    if (!supabase) return
     if (file.size > maxSize) {
       toast.error(`File size must be less than ${maxSize / 1024 / 1024}MB`)
       return

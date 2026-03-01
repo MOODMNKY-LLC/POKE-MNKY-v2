@@ -29,18 +29,15 @@ export default async function TeamsPage() {
   }
 
   // Fetch user's teams from showdown_teams
-  // Get coach_id if user is a coach
-  let coachId: string | null = null
-  if (profile.role === "coach") {
-    const { data: coach } = await supabase
-      .from("coaches")
-      .select("id")
-      .eq("user_id", user.id)
-      .single()
-    coachId = coach?.id || null
-  }
+  // Look up coach by user_id for any user (API creates coach on first team save; profile.role may not be "coach" yet)
+  const { data: coach } = await supabase
+    .from("coaches")
+    .select("id")
+    .eq("user_id", user.id)
+    .single()
+  const coachId = coach?.id ?? null
 
-  // Fetch user's teams
+  // Fetch user's teams (RLS allows SELECT where coach_id matches current user's coach)
   const { data: userTeams } = coachId
     ? await supabase
         .from("showdown_teams")

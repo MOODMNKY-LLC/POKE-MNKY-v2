@@ -32,6 +32,7 @@
     "db:migrate": "echo 'Supabase CLI not installed. Install with: scoop install supabase'",
     "db:diff": "echo 'Supabase CLI not installed. Install with: scoop install supabase'",
     "db:seed:showdown": "psql \"$POSTGRES_URL\" -f supabase/seeds/seed_showdown_stock_teams.sql",
+    "db:seed:showdown:ts": "tsx scripts/seed-stock-teams.ts",
     "db:seed:test-draft": "psql \"$POSTGRES_URL\" -f supabase/seeds/seed_test_draft_pool.sql",
     "cleanup:dummy-coaches": "tsx scripts/cleanup-dummy-coaches.ts",
     "check:admin-role": "tsx scripts/check-and-fix-admin-role.ts",

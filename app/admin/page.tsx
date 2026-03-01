@@ -16,7 +16,9 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 
 export default function AdminPage() {
   const [user, setUser] = useState<any>(null)
+  const [profile, setProfile] = useState<{ role?: string } | null>(null)
   const [stats, setStats] = useState({ teams: 0, matches: 0, pokemon: 0 })
+  const [pendingTradesCount, setPendingTradesCount] = useState<number>(0)
   const [lastSync, setLastSync] = useState<any>(null)
   const [platformOpen, setPlatformOpen] = useState(false)
   const [pokemonSyncOpen, setPokemonSyncOpen] = useState(false)
@@ -25,11 +27,13 @@ export default function AdminPage() {
 
   useEffect(() => {
     const supabase = createBrowserClient()
-    supabase.auth.getUser().then(({ data, error }) => {
+    supabase.auth.getUser().then(async ({ data, error }) => {
       if (error || !data.user) {
         router.push("/auth/login")
       } else {
         setUser(data.user)
+        const { data: profileData } = await supabase.from("profiles").select("role").eq("id", data.user.id).single()
+        setProfile(profileData ?? null)
       }
     })
 
@@ -60,6 +64,16 @@ export default function AdminPage() {
       } catch (error) {
         // Silently ignore sync_log errors (table might not exist or RLS might block access)
         console.debug("Could not fetch sync_log:", error)
+      }
+
+      try {
+        const res = await fetch("/api/league-trade-offers?status=accepted_pending_commissioner")
+        if (res.ok) {
+          const data = await res.json()
+          setPendingTradesCount(Array.isArray(data.offers) ? data.offers.length : 0)
+        }
+      } catch {
+        // ignore
       }
     }
 
@@ -175,7 +189,14 @@ export default function AdminPage() {
           <Card>
             <CardHeader>
               <ArrowRightLeft className="mb-2 h-8 w-8 text-chart-2" />
-              <CardTitle>Trade approval</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                Trade approval
+                {(profile?.role === "admin" || profile?.role === "commissioner") && pendingTradesCount > 0 && (
+                  <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground">
+                    {pendingTradesCount} pending
+                  </span>
+                )}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <p className="mb-4 text-sm text-muted-foreground">

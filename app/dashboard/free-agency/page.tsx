@@ -21,6 +21,7 @@ export default function FreeAgencyPage() {
   const [availablePokemon, setAvailablePokemon] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [seasonId, setSeasonId] = useState<string | null>(null)
+  const [weekNumber, setWeekNumber] = useState(1)
   const router = useRouter()
 
   useEffect(() => {
@@ -79,30 +80,27 @@ export default function FreeAgencyPage() {
         .eq("is_current", true)
         .single()
 
-      if (!season) {
-        console.error("No current season found")
-        return
-      }
+      if (season) {
+        setSeasonId(season.id)
 
-      setSeasonId(season.id)
+        // Get team status if user is a coach
+        if (userProfile.role === "coach" && userProfile.team_id) {
+          const statusResponse = await fetch(
+            `/api/free-agency/team-status?team_id=${userProfile.team_id}&season_id=${season.id}`
+          )
+          const statusData = await statusResponse.json()
+          if (statusData.success) {
+            setTeamStatus(statusData.status)
+          }
 
-      // Get team status if user is a coach
-      if (userProfile.role === "coach" && userProfile.team_id) {
-        const statusResponse = await fetch(
-          `/api/free-agency/team-status?team_id=${userProfile.team_id}&season_id=${season.id}`
-        )
-        const statusData = await statusResponse.json()
-        if (statusData.success) {
-          setTeamStatus(statusData.status)
-        }
-
-        // Load available Pokemon
-        const pokemonResponse = await fetch(
-          `/api/free-agency/available?season_id=${season.id}&limit=200`
-        )
-        const pokemonData = await pokemonResponse.json()
-        if (pokemonData.success) {
-          setAvailablePokemon(pokemonData.pokemon || [])
+          // Load available Pokemon
+          const pokemonResponse = await fetch(
+            `/api/free-agency/available?season_id=${season.id}&limit=200`
+          )
+          const pokemonData = await pokemonResponse.json()
+          if (pokemonData.success) {
+            setAvailablePokemon(pokemonData.pokemon || [])
+          }
         }
       }
     } catch (error) {
@@ -166,7 +164,7 @@ export default function FreeAgencyPage() {
           <Label htmlFor="week">Week</Label>
           <Select
             value={weekNumber.toString()}
-            onValueChange={(v) => setWeekNumber(parseInt(v, 10))}
+            onValueChange={(v) => setWeekNumber(parseInt(v, 10) || 1)}
           >
             <SelectTrigger id="week" className="w-24">
               <SelectValue />

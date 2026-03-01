@@ -13,11 +13,16 @@ export function RealtimeStatus() {
   const [connected, setConnected] = useState(false)
   const [lastBroadcast, setLastBroadcast] = useState<string | null>(null)
   const [testing, setTesting] = useState(false)
+  const [supabase, setSupabase] = useState<ReturnType<typeof createBrowserClient> | null>(null)
   const { toast } = useToast()
-  const supabase = createBrowserClient()
 
   useEffect(() => {
-    // Subscribe to Realtime channel to test connection
+    if (typeof window === "undefined") return
+    setSupabase(createBrowserClient())
+  }, [])
+
+  useEffect(() => {
+    if (!supabase) return
     const channel = supabase
       .channel("draft-board-updates-test")
       .on(

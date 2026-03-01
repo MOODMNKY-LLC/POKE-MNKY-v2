@@ -14,7 +14,8 @@ import { Separator } from "@/components/ui/separator"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import { CheckCircle2, ChevronRight, Trophy, UserPlus, Link2, Hammer, BookOpen } from "lucide-react"
+import { CheckCircle2, ChevronRight, Trophy, UserPlus, Link2, Hammer, BookOpen, Wrench } from "lucide-react"
+import { toast } from "sonner"
 
 const STEPS = [
   { id: "welcome", title: "Welcome", icon: Trophy },
@@ -60,8 +61,15 @@ export default function CoachOnboardingPage() {
         body: JSON.stringify({ step, mark_complete: markComplete }),
       })
       const data = await res.json()
+      if (!res.ok) {
+        toast.error(data.error ?? "Something went wrong")
+        return
+      }
       if (data.current_step) setCurrentStep(data.current_step)
       if (Array.isArray(data.completed_steps)) setCompletedSteps(data.completed_steps)
+      if (markComplete || step === "complete") {
+        toast.success("Onboarding complete! Your dashboard will reflect this.")
+      }
     } finally {
       setSaving(false)
     }
@@ -128,7 +136,9 @@ export default function CoachOnboardingPage() {
               {currentStep === "team_builder_intro" &&
                 "Use the Team Builder to create and edit battle teams (Pokémon Showdown format). Build teams within the 120-point budget and export for battles."}
               {currentStep === "complete" &&
-                "You have completed the coach onboarding. Check the Guides section for the full walkthrough on registering as a coach and using the Team Builder."}
+                (completedSteps.includes("complete")
+                  ? "You're all set! You've completed the coach onboarding. Your dashboard will no longer show the onboarding prompt. Check the Guides section for the full walkthrough anytime."
+                  : "You have completed the coach onboarding. Check the Guides section for the full walkthrough on registering as a coach and using the Team Builder.")}
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">
@@ -141,20 +151,36 @@ export default function CoachOnboardingPage() {
               </Button>
             )}
             {currentStep === "team_builder_intro" && (
-              <Button asChild variant="default">
-                <Link href="/dashboard/guides/coach-and-team-builder">
-                  <BookOpen className="mr-2 h-4 w-4" />
-                  Open coach & team builder guide
-                </Link>
-              </Button>
+              <>
+                <Button asChild variant="default">
+                  <Link href="/dashboard/teams/builder">
+                    <Wrench className="mr-2 h-4 w-4" />
+                    Open Team Builder
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" size="sm">
+                  <Link href="/dashboard/guides/coach-and-team-builder">
+                    <BookOpen className="mr-2 h-4 w-4" />
+                    Coach & team builder guide
+                  </Link>
+                </Button>
+              </>
             )}
             {currentStep === "complete" && (
-              <Button asChild>
-                <Link href="/dashboard/guides">
-                  <BookOpen className="mr-2 h-4 w-4" />
-                  View all guides
-                </Link>
-              </Button>
+              <>
+                <Button asChild>
+                  <Link href="/dashboard/teams/builder">
+                    <Wrench className="mr-2 h-4 w-4" />
+                    Open Team Builder
+                  </Link>
+                </Button>
+                <Button asChild variant="secondary">
+                  <Link href="/dashboard/guides">
+                    <BookOpen className="mr-2 h-4 w-4" />
+                    View all guides
+                  </Link>
+                </Button>
+              </>
             )}
             {currentIndex >= 0 && currentIndex < STEPS.length - 1 && (
               <Button

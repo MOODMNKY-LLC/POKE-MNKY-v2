@@ -36,7 +36,7 @@ const REACTIONS = [
 ];
 
 export function VideoFeedback({ videoId }: VideoFeedbackProps) {
-  const supabase = createClient();
+  const [supabase, setSupabase] = useState<ReturnType<typeof createClient> | null>(null);
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState<Feedback[]>([]);
@@ -45,12 +45,19 @@ export function VideoFeedback({ videoId }: VideoFeedbackProps) {
   const [comment, setComment] = useState('');
   const [reaction, setReaction] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    setSupabase(createClient());
+  }, []);
+
   // Load feedback
   useEffect(() => {
+    if (!supabase) return;
     loadFeedback();
-  }, [videoId]);
+  }, [supabase, videoId]);
 
   async function loadFeedback() {
+    if (!supabase) return;
     try {
       // Get video ID from Supabase
       const { data: video } = await supabase
