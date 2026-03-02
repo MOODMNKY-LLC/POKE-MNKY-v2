@@ -13,7 +13,7 @@
  * - page.properties_updated - When specific properties change
  */
 
-import { NextRequest, NextResponse } from "next/server"
+import { NextRequest, NextResponse, after } from "next/server"
 import crypto from "crypto"
 import { createClient } from "@supabase/supabase-js"
 import { syncNotionToSupabase } from "@/lib/sync/notion-sync-worker"
@@ -22,6 +22,9 @@ import { notionWebhookPayloadSchema } from "@/lib/validation/notion-webhook"
 import { logger } from "@/lib/logger"
 
 const DRAFT_BOARD_DATABASE_ID = "5e58ccd73ceb44ed83de826b51cf5c36"
+
+// Allow webhook-triggered sync to complete
+export const maxDuration = 120
 
 /**
  * Verify Notion webhook signature
@@ -211,15 +214,17 @@ export async function POST(request: NextRequest) {
       job = jobData
     }
 
-    // Execute sync asynchronously (don't block webhook response)
-    if (job) {
-      syncNotionToSupabase(supabaseUrl, serviceRoleKey, {
-        scope: ["draft_board"],
-        incremental: true,
-        since: new Date(Date.now() - 5 * 60 * 1000), // Last 5 minutes
-      })
-        .then(async (result) => {
-          // Update job status
+    // Execute sync via after() so completion callback runs even after response is sent.
+    // Without this, serverless functions terminate and the job status never updates.
+    const syncOptions = {
+      scope: ["draft_board"] as const,
+      incremental: true,
+      since: new Date(Date.now() - 5 * 60 * 1000), // Last 5 minutes
+    }
+    after(async () => {
+      try {
+        const result = await syncNotionToSupabase(supabaseUrl, serviceRoleKey, syncOptions)
+        if (job) {
           await supabase
             .from("sync_jobs")
             .update({
@@ -240,30 +245,23 @@ export async function POST(request: NextRequest) {
             synced: result.stats.draft_board?.synced ?? 0,
             failed: result.stats.draft_board?.failed ?? 0,
           })
-        })
-        .catch(async (error) => {
-          logger.error("Notion webhook sync job error", { requestId, error: String(error) })
+        }
+      } catch (error) {
+        logger.error("Notion webhook sync job error", { requestId, error: String(error) })
+        if (job) {
           await supabase
             .from("sync_jobs")
             .update({
               status: "failed",
               completed_at: new Date().toISOString(),
-              error_log: { error: error.message, stack: error.stack },
+              error_log: { error: String(error), stack: error instanceof Error ? error.stack : undefined },
             })
             .eq("job_id", job.job_id)
-        })
-    } else {
-      // No job created, but still run sync
-      syncNotionToSupabase(supabaseUrl, serviceRoleKey, {
-        scope: ["draft_board"],
-        incremental: true,
-        since: new Date(Date.now() - 5 * 60 * 1000),
-      }).catch((error) => {
-        logger.error("Notion webhook sync error (no job)", { requestId, error: String(error) })
-      })
-    }
+        }
+      }
+    })
 
-    // Return immediately (sync runs async)
+    // Return immediately (sync runs via after())
     // Notion expects a simple 200 OK response - keep it simple
     logger.debug("Notion webhook returning success", { requestId })
     return NextResponse.json({
