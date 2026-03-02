@@ -210,11 +210,25 @@ export default async function DashboardSettingsPage({
                       — Webhooks, bot commands, channel mapping, what’s working vs. gaps, and how to configure the league Discord server.
                     </li>
                     <li>
+                      <Link href="/dashboard/guides/league-simulation" className="text-primary hover:underline">
+                        League Simulation & Testing Guide
+                      </Link>
+                      {" "}
+                      — End-to-end simulation: seed, draft, schedule, playoffs, and results for testing.
+                    </li>
+                    <li>
+                      <Link href="/dashboard/guides/discord-slash-commands" className="text-primary hover:underline">
+                        Discord Slash Commands Reference
+                      </Link>
+                      {" "}
+                      — Full inventory of slash commands, APIs, status, and E2E testing.
+                    </li>
+                    <li>
                       Dashboard guide (above) — Overview, sidebar, Teams, League, Draft, Weekly Matches.
                     </li>
                   </ul>
                   <p className="text-muted-foreground mt-2 text-xs">
-                    In the project repo: <code className="rounded bg-muted px-1">docs/LEAGUE-FEATURES-GUIDE-V3.md</code>, <code className="rounded bg-muted px-1">docs/DISCORD-INTEGRATION-GUIDE.md</code>, <code className="rounded bg-muted px-1">docs/DISCORD-SERVER-INTEGRATION-REPORT.md</code>, <code className="rounded bg-muted px-1">docs/DISCORD-SERVER-MAP.md</code>, <code className="rounded bg-muted px-1">CHATGPT-V3-UPDATE.md</code>.
+                    In the project repo: <code className="rounded bg-muted px-1">docs/LEAGUE-FEATURES-GUIDE-V3.md</code>, <code className="rounded bg-muted px-1">docs/DISCORD-INTEGRATION-GUIDE.md</code>, <code className="rounded bg-muted px-1">docs/LEAGUE-SIMULATION-AND-TESTING-GUIDE.md</code>, <code className="rounded bg-muted px-1">docs/DISCORD-SLASH-COMMANDS-REFERENCE.md</code>, <code className="rounded bg-muted px-1">docs/DISCORD-SERVER-INTEGRATION-REPORT.md</code>, <code className="rounded bg-muted px-1">docs/DISCORD-SERVER-MAP.md</code>, <code className="rounded bg-muted px-1">CHATGPT-V3-UPDATE.md</code>.
                   </p>
                 </section>
               </CardContent>

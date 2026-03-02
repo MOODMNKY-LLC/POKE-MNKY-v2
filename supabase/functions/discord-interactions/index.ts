@@ -143,6 +143,36 @@ function buildContentFromAppResponse(cmd: string, data: unknown, error?: string)
     case "coverage": {
       return (d?.message as string) ?? "✅ Coverage analysis complete."
     }
+    case "calc": {
+      if (!d?.success) return `❌ ${(d as { error?: string }).error ?? "Calculation failed."}`
+      const pct = (d.percent as number[]) ?? []
+      const dmg = (d.damage as number[]) ?? []
+      const minP = pct[0] ?? 0
+      const maxP = pct[pct.length - 1] ?? 0
+      const minD = dmg[0] ?? 0
+      const maxD = dmg[dmg.length - 1] ?? 0
+      return (
+        `⚡ **Damage:** ${minD}-${maxD}\n` +
+        `📊 **HP %:** ${minP.toFixed(1)}%-${maxP.toFixed(1)}%\n` +
+        (d.desc ? `📝 ${d.desc}` : "")
+      )
+    }
+    case "free-agency-submit": {
+      if (!d?.ok && !d?.success) return `❌ ${(d as { error?: string }).error ?? "Submit failed."}`
+      return (d?.message as string) ?? "✅ Transaction submitted and scheduled for 12:00 AM Monday EST."
+    }
+    case "free-agency-status": {
+      if (!d?.success || !d?.status) return `❌ ${(d as { error?: string }).error ?? "Failed to fetch status."}`
+      const s = d.status as { roster?: unknown[]; budget?: { spent_points?: number; total_points?: number; remaining_points?: number }; transaction_count?: number }
+      const roster = s?.roster ?? []
+      const budget = s?.budget ?? {}
+      const txCount = s?.transaction_count ?? 0
+      return (
+        `📊 **Roster:** ${roster.length}/10\n` +
+        `💰 **Budget:** ${budget.spent_points ?? 0}/${budget.total_points ?? 0} (${budget.remaining_points ?? 0} remaining)\n` +
+        `📋 **Transactions:** ${txCount}/10`
+      )
+    }
     default:
       return typeof d?.message === "string" ? d.message : "✅ Done."
   }
@@ -232,13 +262,31 @@ Deno.serve(async (req: Request) => {
   const userId = payload.member?.user?.id ?? payload.user?.id ?? ""
   const guildId = payload.guild_id ?? ""
 
-  // Autocomplete (e.g. pick pokemon, search query)
+  // Autocomplete (e.g. pick pokemon, search query, calc, free-agency)
   if (hasFocusedOption(options)) {
     const focused = options.find((o) => o.focused)
     const query = (focused?.value && String(focused.value).trim()) || ""
+    const focusedName = focused?.name ?? ""
+
+    if (focusedName === "move" && cmd === "calc") {
+      const commonMoves = [
+        "Thunderbolt", "Flamethrower", "Ice Beam", "Earthquake", "Close Combat",
+        "Shadow Ball", "Psychic", "Surf", "Hyper Beam", "Thunder", "Fire Blast",
+        "Blizzard", "Hydro Pump", "Solar Beam", "Energy Ball", "Dark Pulse",
+        "Dragon Pulse", "Focus Blast", "Aura Sphere", "Giga Impact",
+      ]
+      const filtered = query.length < 2
+        ? commonMoves.slice(0, 10)
+        : commonMoves.filter((m) => m.toLowerCase().includes(query.toLowerCase())).slice(0, 25)
+      const choices = filtered.map((m) => ({ name: m.slice(0, 100), value: m }))
+      return jsonResponse({ type: INTERACTION_RESPONSE_AUTOCOMPLETE, data: { choices } })
+    }
+
     if (query.length < 2) {
       return jsonResponse({ type: INTERACTION_RESPONSE_AUTOCOMPLETE, data: { choices: [] } })
     }
+
+    const useNameAsValue = cmd === "calc" || cmd === "free-agency-submit"
     const seasonId = getOptString(options, "season_id") ?? ""
     const guildParam = guildId ? `&guild_id=${encodeURIComponent(guildId)}` : ""
     const seasonParam = seasonId ? `&season_id=${encodeURIComponent(seasonId)}` : ""
@@ -247,7 +295,7 @@ Deno.serve(async (req: Request) => {
     const results = (result.data as { results?: Array<{ id: string; name: string; display?: string }> })?.results ?? []
     const choices = results.slice(0, 25).map((r) => ({
       name: (r.display || r.name).slice(0, 100),
-      value: r.id,
+      value: useNameAsValue ? (r.display || r.name) : r.id,
     }))
     return jsonResponse({ type: INTERACTION_RESPONSE_AUTOCOMPLETE, data: { choices } })
   }
@@ -402,6 +450,82 @@ Deno.serve(async (req: Request) => {
         checks,
       })
       content = buildContentFromAppResponse("coverage", covRes.data, covRes.error) || covRes.content || "✅ Coverage sent."
+      break
+    }
+    case "calc": {
+      const attacker = getOptString(options, "attacker")
+      const defender = getOptString(options, "defender")
+      const move = getOptString(options, "move")
+      const gen = getOpt(options, "generation") ?? 9
+      if (!attacker || !defender || !move) {
+        content = "❌ Provide attacker, defender, and move."
+        break
+      }
+      const result = await callApp(appBaseUrl, botKey, "POST", "/api/calc", {
+        gen: Number(gen),
+        attackingPokemon: attacker,
+        defendingPokemon: defender,
+        moveName: move,
+        attackingPokemonOptions: {},
+        defendingPokemonOptions: {},
+      })
+      content = buildContentFromAppResponse("calc", result.data, result.error)
+      break
+    }
+    case "free-agency-submit": {
+      const transactionType = getOptString(options, "type")
+      const addName = getOptString(options, "add")
+      const dropName = getOptString(options, "drop")
+      if (!transactionType) {
+        content = "❌ Provide transaction type (replacement, addition, or drop_only)."
+        break
+      }
+      let seasonId = getOptString(options, "season_id")
+      if (!seasonId && guildId) {
+        const cfgRes = await callApp(appBaseUrl, botKey, "GET", `/api/discord/guild/config?guild_id=${encodeURIComponent(guildId)}`)
+        const cfg = cfgRes.data as { default_season_id?: string }
+        seasonId = cfg?.default_season_id
+      }
+      if (!seasonId) {
+        const curRes = await callApp(appBaseUrl, botKey, "GET", "/api/discord/season/current")
+        const cur = curRes.data as { season_id?: string }
+        seasonId = cur?.season_id
+      }
+      if (!seasonId) {
+        content = "❌ No season configured. Use /setseason or pass season_id."
+        break
+      }
+      const body: Record<string, unknown> = {
+        discord_user_id: userId,
+        season_id: seasonId,
+        transaction_type,
+        guild_id: guildId || undefined,
+      }
+      if (addName) body.add_pokemon_name = addName
+      if (dropName) body.drop_pokemon_name = dropName
+      const result = await callApp(appBaseUrl, botKey, "POST", "/api/discord/free-agency/submit", body)
+      content = buildContentFromAppResponse("free-agency-submit", result.data, result.error)
+      break
+    }
+    case "free-agency-status": {
+      let seasonId = getOptString(options, "season_id")
+      if (!seasonId && guildId) {
+        const cfgRes = await callApp(appBaseUrl, botKey, "GET", `/api/discord/guild/config?guild_id=${encodeURIComponent(guildId)}`)
+        const cfg = cfgRes.data as { default_season_id?: string }
+        seasonId = cfg?.default_season_id
+      }
+      if (!seasonId) {
+        const curRes = await callApp(appBaseUrl, botKey, "GET", "/api/discord/season/current")
+        const cur = curRes.data as { season_id?: string }
+        seasonId = cur?.season_id
+      }
+      if (!seasonId) {
+        content = "❌ No season configured. Use /setseason or pass season_id."
+        break
+      }
+      const path = `/api/discord/free-agency/team-status?discord_user_id=${encodeURIComponent(userId)}&season_id=${encodeURIComponent(seasonId)}${guildId ? `&guild_id=${encodeURIComponent(guildId)}` : ""}`
+      const result = await callApp(appBaseUrl, botKey, "GET", path)
+      content = buildContentFromAppResponse("free-agency-status", result.data, result.error)
       break
     }
     default:

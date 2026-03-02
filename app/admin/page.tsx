@@ -5,7 +5,7 @@ import { createBrowserClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { Database, Calendar, Trophy, Users, RefreshCw, Settings, MessageSquare, ClipboardList, FileText, ChevronDown, ChevronUp, Music, ArrowRightLeft } from "lucide-react"
+import { Database, Calendar, Trophy, Users, RefreshCw, Settings, MessageSquare, ClipboardList, FileText, ChevronDown, ChevronUp, Music, ArrowRightLeft, Play, BookOpen } from "lucide-react"
 import { SupabaseManager } from "@/components/platform/supabase-manager"
 // PokepediaSyncStatusNew removed - sync system deleted
 import { ShowdownPokedexSync } from "@/components/admin/showdown-pokedex-sync"
@@ -451,6 +451,21 @@ export default function AdminPage() {
 
             <Card>
               <CardHeader>
+                <Play className="mb-2 h-8 w-8 text-primary" />
+                <CardTitle>League Simulation</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="mb-4 text-sm text-muted-foreground">
+                  Run end-to-end simulation: seed, draft, schedule, playoffs, and results.
+                </p>
+                <Button asChild variant="outline" className="w-full bg-transparent">
+                  <Link href="/admin/simulation">Simulation Control</Link>
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
                 <Music className="mb-2 h-8 w-8 text-primary" />
                 <CardTitle>Music Management</CardTitle>
               </CardHeader>
@@ -461,6 +476,32 @@ export default function AdminPage() {
                 <Button asChild variant="outline" className="w-full bg-transparent">
                   <Link href="/admin/music">Manage Music</Link>
                 </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <BookOpen className="mb-2 h-8 w-8 text-primary" />
+                <CardTitle>Guides</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="mb-4 text-sm text-muted-foreground">
+                  League Simulation, Discord Slash Commands, League Features, Discord Integration.
+                </p>
+                <div className="flex flex-col gap-2">
+                  <Button asChild variant="outline" size="sm" className="w-full justify-start">
+                    <Link href="/dashboard/guides/league-simulation">League Simulation</Link>
+                  </Button>
+                  <Button asChild variant="outline" size="sm" className="w-full justify-start">
+                    <Link href="/dashboard/guides/discord-slash-commands">Discord Slash Commands</Link>
+                  </Button>
+                  <Button asChild variant="outline" size="sm" className="w-full justify-start">
+                    <Link href="/dashboard/guides/league-features-v3">League Features v3</Link>
+                  </Button>
+                  <Button asChild variant="outline" size="sm" className="w-full justify-start">
+                    <Link href="/dashboard/guides/discord-integration">Discord Integration</Link>
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </div>
