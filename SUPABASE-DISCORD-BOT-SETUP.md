@@ -79,6 +79,8 @@ After deployment, set **Interactions Endpoint URL** in the Developer Portal to t
 
 When using **Option A** (Next.js URL), slash commands are handled **in the Next.js route** (`app/api/discord/interactions/route.ts`), which calls app APIs (whoami, draft status, etc.) directly. This avoids a round-trip to the Supabase Edge Function and keeps the response within Discord’s **3 second** limit. If you see “POKE MNKY didn’t respond in time”, ensure the Interactions Endpoint URL is the Next.js URL and that `DISCORD_BOT_API_KEY` and a base URL (`VERCEL_URL` is set automatically on Vercel; or `APP_BASE_URL` / `NEXT_PUBLIC_APP_URL`) are configured.
 
+**If you see “Unauthorized” or “Invalid bot key” in Discord:** The Discord app API routes require the bot key and it must match `DISCORD_BOT_API_KEY`. The interactions route calls these APIs from the same Vercel project; **Vercel can strip the `Authorization` header** on such internal requests. The app therefore also accepts the **`X-Discord-Bot-Key`** header for internal calls. Ensure `DISCORD_BOT_API_KEY` is set in Vercel and redeploy. If the key is missing you may see “Bot not fully configured.”; if it’s wrong you’ll see “Invalid bot key”.
+
 **Debugging with Vercel CLI:** From the project root, run `vercel logs <deployment-url>` (e.g. `vercel logs https://poke-mnky-moodmnky-com.vercel.app`) to stream runtime logs while you trigger a slash command. Use the deployment URL from the Vercel dashboard or `vercel ls`.
 
 ---
