@@ -154,17 +154,14 @@ Deno.serve(async (req: Request) => {
   }
 
   const publicKey = Deno.env.get("DISCORD_PUBLIC_KEY")
-  const botKey = Deno.env.get("DISCORD_BOT_API_KEY")
-  const appBaseUrl = Deno.env.get("APP_BASE_URL") || Deno.env.get("NEXT_PUBLIC_APP_URL") || ""
-
-  if (!publicKey || !botKey || !appBaseUrl) {
-    console.error("Missing DISCORD_PUBLIC_KEY, DISCORD_BOT_API_KEY, or APP_BASE_URL")
-    return jsonResponse({ error: "Server configuration error" }, 500)
-  }
-
   const signature = req.headers.get("x-signature-ed25519")
   const timestamp = req.headers.get("x-signature-timestamp")
   const rawBody = await req.text()
+
+  if (!publicKey) {
+    console.error("Missing DISCORD_PUBLIC_KEY - set it with: supabase secrets set DISCORD_PUBLIC_KEY=<your-app-public-key>")
+    return jsonResponse({ error: "Missing DISCORD_PUBLIC_KEY. Set Supabase secret: supabase secrets set DISCORD_PUBLIC_KEY=<value>" }, 500)
+  }
 
   if (!verifyDiscordRequest(rawBody, signature, timestamp, publicKey)) {
     return new Response("Bad request signature.", { status: 401 })
@@ -177,9 +174,16 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ error: "Invalid JSON" }, 400)
   }
 
-  // PING
+  // PING (Discord sends this when verifying the Interactions Endpoint URL; only publicKey required)
   if (payload.type === INTERACTION_TYPE_PING) {
     return jsonResponse({ type: INTERACTION_RESPONSE_PONG })
+  }
+
+  const botKey = Deno.env.get("DISCORD_BOT_API_KEY")
+  const appBaseUrl = Deno.env.get("APP_BASE_URL") || Deno.env.get("NEXT_PUBLIC_APP_URL") || ""
+  if (!botKey || !appBaseUrl) {
+    console.error("Missing DISCORD_BOT_API_KEY or APP_BASE_URL for command handling")
+    return jsonResponse({ type: INTERACTION_RESPONSE_CHANNEL_MESSAGE, data: { content: "Bot not fully configured.", flags: MESSAGE_FLAG_EPHEMERAL } })
   }
 
   // APPLICATION_COMMAND

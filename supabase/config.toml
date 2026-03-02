@@ -376,6 +376,11 @@ authorization_url_path = "/oauth/consent"
 # Allow dynamic client registration
 allow_dynamic_registration = false
 
+# Discord Interactions Endpoint: must be reachable by Discord without Supabase JWT.
+# We verify the request with Discord's Ed25519 signature inside the function.
+[functions.discord-interactions]
+verify_jwt = false
+
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.

@@ -46,6 +46,21 @@ Replace `<project-ref>` with your Supabase project reference (from Supabase dash
 
 After deployment, set **Interactions Endpoint URL** in the Developer Portal to the function URL. Discord will send a PING; the function must respond with PONG within 3 seconds.
 
+**If Discord says "The specified interactions endpoint url could not be verified":**
+
+1. **JWT must be off** — Discord does not send a Supabase JWT. Either:
+   - Deploy with: `supabase functions deploy discord-interactions --no-verify-jwt`, or
+   - Set in `supabase/config.toml`: `[functions.discord-interactions]` and `verify_jwt = false`, then deploy.
+2. **URL must be exact** — `https://<project-ref>.supabase.co/functions/v1/discord-interactions` (no trailing slash). Get `<project-ref>` from your Supabase project URL in the dashboard.
+3. **At least `DISCORD_PUBLIC_KEY`** must be set as a secret so the function can verify Discord’s request and respond with PONG. Set with: `supabase secrets set DISCORD_PUBLIC_KEY=<your-app-public-key>` (from Developer Portal → your app → General Information → Public Key).
+4. **Redeploy** after changing config or secrets: `supabase functions deploy discord-interactions --no-verify-jwt`.
+
+**Important:** The Interactions Endpoint is a **Supabase Edge Function**. It is **not** deployed by `pnpm build` or by pushing to GitHub. You must run `supabase functions deploy discord-interactions --no-verify-jwt` to deploy or update it. Secrets are set with `supabase secrets set` (or in Supabase Dashboard → Project Settings → Edge Functions → Secrets) and apply to the linked project.
+
+**Step-by-step for project `chmrszrwlfeqovwxyrmt`:** (1) `supabase link --project-ref chmrszrwlfeqovwxyrmt` (2) `supabase secrets set DISCORD_PUBLIC_KEY=bed1d73f9643f9532519c5a2049428dde7913c735e317bff8dd1f1b3d3f8c758` (3) `supabase functions deploy discord-interactions --no-verify-jwt` (4) In Discord set URL to `https://chmrszrwlfeqovwxyrmt.supabase.co/functions/v1/discord-interactions` and Save. **If it still fails:** Supabase Dashboard → Edge Functions → discord-interactions → Logs; click Save in Discord and check logs (no logs = request blocked before function, so redeploy with `--no-verify-jwt`).
+
+**Local testing (same flow as [video](https://www.youtube.com/watch?v=J24Bvo_m7DM)):** Run `supabase functions serve discord-interactions --no-verify-jwt` and pass secrets via `--env-file` (e.g. a local `supabase/functions/discord-interactions/.env` with `DISCORD_PUBLIC_KEY`, `DISCORD_BOT_API_KEY`, `APP_BASE_URL`). Supabase serves functions on port **54321** at `/functions/v1/<function-name>`. Expose with ngrok: `ngrok http 54321`, then set Interactions Endpoint URL in the Developer Portal to `https://<ngrok-host>/functions/v1/discord-interactions`. Use `--no-verify-jwt` so Discord (which does not send a Supabase JWT) can reach the function; verification is done inside the function via the Discord signature.
+
 ---
 
 ## 3. Command → API Mapping
