@@ -18,7 +18,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { createClient } from "@/lib/supabase/server"
-import { getCurrentUserProfile } from "@/lib/rbac"
+import { getCurrentUserProfile, canAccessCoachFeatures } from "@/lib/rbac"
 import { Calendar, ClipboardList, Shield, Swords, Trophy } from "lucide-react"
 import Link from "next/link"
 import { redirect } from "next/navigation"
@@ -58,7 +58,7 @@ export default async function WeeklyMatchesPage({
   const resolvedSearchParams = await Promise.resolve(searchParams)
   const selectedWeek = parseWeek(resolvedSearchParams?.week)
 
-  const isCoach = profile.role === "coach"
+  const isCoach = canAccessCoachFeatures(profile)
   const teamId = isCoach ? profile.team_id : null
 
   // Fetch this coach’s regular-season matches (if any) so we can:

@@ -12,7 +12,7 @@ import {
   ClipboardList,
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
-import { getCurrentUserProfile, type UserProfile } from "@/lib/rbac"
+import { getCurrentUserProfile, canAccessCoachFeatures, type UserProfile } from "@/lib/rbac"
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
 import { TeamSwitcher } from "@/components/team-switcher"
@@ -100,7 +100,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   // Add League Team section (coach-specific - drafted/league teams)
   // League teams are bound by rules, draft picks, and official competition
-  if (userProfile?.role === "coach" && userProfile?.team_id) {
+  if (canAccessCoachFeatures(userProfile)) {
     navItems.push({
       title: "My League Team",
       url: "/dashboard/league-team",
@@ -219,7 +219,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   // Prepare team data for TeamSwitcher (if coach)
   const teamData =
-    userProfile?.role === "coach" && userProfile?.team_id
+    canAccessCoachFeatures(userProfile)
       ? [
           {
             name: userProfile.display_name || "My Team",

@@ -229,8 +229,8 @@ function UsersManagementContent() {
         </Button>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      {/* Stats Cards - synced with in-app RBAC (profiles.role) and Discord (discord_roles) */}
+      <div className="grid gap-4 md:grid-cols-5">
         <Card>
           <CardContent className="flex items-center gap-4 p-6">
             <div className="rounded-full bg-primary/10 p-3">
@@ -242,19 +242,57 @@ function UsersManagementContent() {
             </div>
           </CardContent>
         </Card>
-        {["admin", "commissioner", "coach", "spectator"].map((role) => (
-          <Card key={role}>
-            <CardContent className="flex items-center gap-4 p-6">
-              <div className="rounded-full bg-accent/10 p-3">
-                <Shield className="h-6 w-6 text-accent" />
+        <Card>
+          <CardContent className="flex items-center gap-4 p-6">
+            <div className="rounded-full bg-accent/10 p-3">
+              <Shield className="h-6 w-6 text-accent" />
+            </div>
+            <div>
+              <div className="text-2xl font-bold">{users.filter((u) => u.role === "admin").length}</div>
+              <div className="text-sm text-muted-foreground">Admins</div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-center gap-4 p-6">
+            <div className="rounded-full bg-accent/10 p-3">
+              <Shield className="h-6 w-6 text-accent" />
+            </div>
+            <div>
+              <div className="text-2xl font-bold">{users.filter((u) => u.role === "commissioner").length}</div>
+              <div className="text-sm text-muted-foreground">Commissioners</div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-center gap-4 p-6">
+            <div className="rounded-full bg-accent/10 p-3">
+              <Shield className="h-6 w-6 text-accent" />
+            </div>
+            <div>
+              <div className="text-2xl font-bold">
+                {users.filter((u) => {
+                  if (u.role === "coach") return true
+                  if (u.role === "admin" || u.role === "commissioner") return false
+                  const roles = u.discord_roles as Array<{ name?: string }> | null | undefined
+                  return Array.isArray(roles) && roles.some((r) => r?.name === "Coach")
+                }).length}
               </div>
-              <div>
-                <div className="text-2xl font-bold">{users.filter((u) => u.role === role).length}</div>
-                <div className="text-sm text-muted-foreground capitalize">{role}s</div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              <div className="text-sm text-muted-foreground">Coaches</div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-center gap-4 p-6">
+            <div className="rounded-full bg-accent/10 p-3">
+              <Shield className="h-6 w-6 text-accent" />
+            </div>
+            <div>
+              <div className="text-2xl font-bold">{users.filter((u) => u.role === "spectator").length}</div>
+              <div className="text-sm text-muted-foreground">Spectators</div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Filters */}

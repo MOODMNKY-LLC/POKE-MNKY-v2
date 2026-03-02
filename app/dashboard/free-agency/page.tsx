@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { FreeAgencyChat } from "@/components/ai/free-agency-chat"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { canAccessCoachFeatures } from "@/lib/rbac"
 
 export default function FreeAgencyPage() {
   const [profile, setProfile] = useState<any>(null)
@@ -84,7 +85,7 @@ export default function FreeAgencyPage() {
         setSeasonId(season.id)
 
         // Get team status if user is a coach
-        if (userProfile.role === "coach" && userProfile.team_id) {
+        if (canAccessCoachFeatures(userProfile)) {
           const statusResponse = await fetch(
             `/api/free-agency/team-status?team_id=${userProfile.team_id}&season_id=${season.id}`
           )

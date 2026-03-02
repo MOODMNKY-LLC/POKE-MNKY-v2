@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
-import { getCurrentUserProfile } from "@/lib/rbac"
+import { getCurrentUserProfile, canAccessCoachFeatures } from "@/lib/rbac"
 import { redirect } from "next/navigation"
 import {
   SidebarTrigger,
@@ -133,14 +133,14 @@ export default async function TeamsPage() {
                             showdownTeamId={team.id}
                             submittedForLeagueAt={team.submitted_for_league_at ?? null}
                           />
-                          {profile.role === "coach" && profile.team_id && (
+                          {canAccessCoachFeatures(profile) && (
                             <LinkLeagueTeamButton
                               showdownTeamId={team.id}
                               isLinked={Boolean(team.team_id)}
                               showUseForMatch
                             />
                           )}
-                          {profile.role !== "coach" && team.team_id && (
+                          {!canAccessCoachFeatures(profile) && team.team_id && (
                             <span className="text-xs text-muted-foreground">
                               Linked to League Team
                             </span>

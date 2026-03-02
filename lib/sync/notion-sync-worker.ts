@@ -710,6 +710,26 @@ async function syncDraftBoard(
     }
   }
 
+  // Remove draft_pool rows no longer in Notion (only on full sync - incremental may have partial data)
+  // Never delete drafted Pokémon - they are tied to draft picks
+  if (!options.incremental && existingRows && existingRows.length > 0) {
+    const namesInNotion = new Set(deduped.map((r) => r.pokemon_name.toLowerCase().trim()))
+    const toRemove = existingRows.filter(
+      (row) =>
+        !namesInNotion.has((row.pokemon_name || "").toLowerCase().trim()) && row.status !== "drafted"
+    )
+    if (toRemove.length > 0) {
+      const idsToRemove = toRemove.map((r) => r.id).filter(Boolean)
+      const { error: deleteError } = await supabase.from("draft_pool").delete().in("id", idsToRemove)
+      if (deleteError) {
+        console.warn("[syncDraftBoard] Failed to remove stale draft_pool rows:", deleteError.message)
+        stats.errors.push({ entity: "draft_board", error: `Failed to remove stale rows: ${deleteError.message}` })
+      } else {
+        console.log(`  Removed ${toRemove.length} draft_pool row(s) no longer in Notion`)
+      }
+    }
+  }
+
   // Store notion_mappings for draft_pool rows (one row per season+name after dedupe)
   const { data: poolRows } = await supabase
     .from("draft_pool")
