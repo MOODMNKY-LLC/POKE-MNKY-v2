@@ -140,7 +140,12 @@ export function SyncStatus() {
   }
 
   const latestJob = syncJobs[0]
-  const isRunning = latestJob?.status === "running"
+  const STALE_THRESHOLD_MINUTES = 10
+  const isStale =
+    latestJob?.status === "running" &&
+    latestJob.started_at &&
+    (Date.now() - new Date(latestJob.started_at).getTime()) / (1000 * 60) > STALE_THRESHOLD_MINUTES
+  const isRunning = latestJob?.status === "running" && !isStale
 
   return (
     <Card>
@@ -167,26 +172,33 @@ export function SyncStatus() {
                   <span className="text-sm font-medium">Last Sync</span>
                   <Badge
                     variant={
-                      latestJob.status === "completed"
-                        ? "default"
-                        : latestJob.status === "failed"
-                          ? "destructive"
-                          : "secondary"
+                      isStale
+                        ? "destructive"
+                        : latestJob.status === "completed"
+                          ? "default"
+                          : latestJob.status === "failed"
+                            ? "destructive"
+                            : "secondary"
                     }
                   >
-                    {latestJob.status === "completed" && (
+                    {latestJob.status === "completed" && !isStale && (
                       <CheckCircle2 className="mr-1 h-3 w-3" />
                     )}
                     {latestJob.status === "failed" && (
                       <XCircle className="mr-1 h-3 w-3" />
                     )}
-                    {latestJob.status === "running" && (
+                    {latestJob.status === "running" && !isStale && (
                       <Loader2 className="mr-1 h-3 w-3 animate-spin" />
                     )}
-                    {latestJob.status === "running" && <Clock className="mr-1 h-3 w-3" />}
-                    {latestJob.status}
+                    {latestJob.status === "running" && !isStale && <Clock className="mr-1 h-3 w-3" />}
+                    {isStale ? "stuck" : latestJob.status}
                   </Badge>
                 </div>
+                {isStale && (
+                  <p className="text-xs text-amber-600 dark:text-amber-500">
+                    Sync appears stuck (running for {Math.round((Date.now() - new Date(latestJob.started_at).getTime()) / 60000)} min). You can trigger a new sync.
+                  </p>
+                )}
                 <div className="text-xs text-muted-foreground">
                   {new Date(latestJob.started_at || latestJob.created_at).toLocaleString()}
                   {latestJob.completed_at && (

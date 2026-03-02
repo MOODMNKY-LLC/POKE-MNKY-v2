@@ -16,8 +16,11 @@
  * }
  */
 
-import { NextRequest, NextResponse } from "next/server"
+import { NextRequest, NextResponse, after } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+
+// Allow sync to complete (draft_board sync typically 30-90s)
+export const maxDuration = 120
 import { syncNotionToSupabase } from "@/lib/sync/notion-sync-worker"
 import { notifyDraftBoardSync, notifyDraftBoardError } from "@/lib/discord-notifications"
 
@@ -100,12 +103,13 @@ export async function POST(request: NextRequest) {
       since: since ? new Date(since) : undefined,
     }
 
-    // Run sync in background (in production, use a queue system)
-    // Don't await - let it run async and update job status when done
-    syncNotionToSupabase(supabaseUrl, serviceRoleKey, syncOptions)
-      .then(async (result) => {
-        const scope = syncOptions.scope || []
-        const isDraftBoardOnly = scope.includes("draft_board") && (scope.length === 1 || scope.every((s) => s === "draft_board"))
+    // Use after() so the sync completion callback runs even after the response is sent.
+    // Without this, serverless functions terminate immediately and the job status never updates.
+    after(async () => {
+      try {
+        const result = await syncNotionToSupabase(supabaseUrl, serviceRoleKey, syncOptions)
+        const scopeArr = syncOptions.scope || []
+        const isDraftBoardOnly = scopeArr.includes("draft_board") && (scopeArr.length === 1 || scopeArr.every((s) => s === "draft_board"))
         const pokemonSynced = isDraftBoardOnly && result.stats.draft_board
           ? (result.stats.draft_board.synced ?? 0)
           : result.stats.pokemon.created + result.stats.pokemon.updated
@@ -137,7 +141,7 @@ export async function POST(request: NextRequest) {
           .update(updatePayload)
           .eq("job_id", job.job_id)
 
-        const scopeIncludesDraftBoard = scope && (scope as string[]).includes("draft_board")
+        const scopeIncludesDraftBoard = scopeArr && (scopeArr as string[]).includes("draft_board")
         if (scopeIncludesDraftBoard) {
           const synced = isDraftBoardOnly && result.stats.draft_board ? (result.stats.draft_board.synced ?? 0) : pokemonSynced
           const failed = isDraftBoardOnly && result.stats.draft_board ? (result.stats.draft_board.failed ?? 0) : pokemonFailed
@@ -147,9 +151,7 @@ export async function POST(request: NextRequest) {
             await notifyDraftBoardError(errorMessage ?? "Sync failed", { details: result.errors }).catch((err) => console.error("[Discord] Draft board error notify:", err))
           }
         }
-      })
-      .catch(async (error) => {
-        // Update job status on error
+      } catch (error: any) {
         console.error("Sync job error:", error)
         await supabase
           .from("sync_jobs")
@@ -163,11 +165,8 @@ export async function POST(request: NextRequest) {
         if (scopeIncludesDraftBoard) {
           await notifyDraftBoardError(error.message, { stack: error.stack }).catch((err) => console.error("[Discord] Draft board error notify:", err))
         }
-      })
-      .catch((err) => {
-        // Fallback error handler if job update fails
-        console.error("Failed to update sync job status:", err)
-      })
+      }
+    })
 
     return NextResponse.json({
       success: true,
