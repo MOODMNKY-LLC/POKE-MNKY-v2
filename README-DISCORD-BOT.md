@@ -51,11 +51,24 @@ pnpm run discord-bot:dev
 - Use `docker-compose.discord-bot.yml` for Coolify
 - See `COOLIFY-DEPLOYMENT.md` for details
 
+## ⚡ Activating slash commands
+
+Slash commands must be **registered** with Discord (once per guild, or after adding/changing commands). From the repo root with `DISCORD_BOT_TOKEN`, `DISCORD_CLIENT_ID`, and `DISCORD_GUILD_ID` in `.env.local` or `.env`:
+
+```bash
+pnpm discord:register-commands
+```
+
+To register from the server where the bot runs, see **[docs/DISCORD-SLASH-COMMANDS-ACTIVATION.md](docs/DISCORD-SLASH-COMMANDS-ACTIVATION.md)** (includes SSH steps for `moodmnky@10.3.0.119`).
+
 ## 📚 Documentation
 
-- **LOCAL-DEVELOPMENT.md** - Complete local dev guide
-- **COOLIFY-DEPLOYMENT.md** - Production deployment guide
-- **SCRIPTS-GUIDE.md** - All scripts explained
+- **docs/DISCORD-SLASH-COMMANDS-ACTIVATION.md** — Activate slash commands (local or via SSH)
+- **docs/DISCORD-COMMANDS-REGISTRATION.md** — Command registration and interaction handling
+- **docs/DISCORD-INTEGRATION-GUIDE.md** — Webhooks, bot commands, channel mapping
+- **LOCAL-DEVELOPMENT.md** - Complete local dev guide (if present)
+- **COOLIFY-DEPLOYMENT.md** - Production deployment guide (if present)
+- **SCRIPTS-GUIDE.md** - All scripts explained (if present)
 
 ## ⚡ Tips
 

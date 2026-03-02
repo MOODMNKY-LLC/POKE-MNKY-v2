@@ -105,6 +105,15 @@ export function DiscordWebhooksTab() {
     }
   }
 
+  const recommendedChannels = [
+    { name: "trades", channel: "#trades-and-transactions (AAB Singles)", channelId: "1190520119949021244" },
+    { name: "match_results", channel: "#battle (AAB Singles)", channelId: "1196192255829086298" },
+    { name: "weekly_recap", channel: "#announcements (AAB Singles)", channelId: "1408801974605975553" },
+    { name: "draft_board_sync", channel: "#announcements (AAB Battle League)", channelId: "1461567986329714791" },
+    { name: "draft_board_errors", channel: "#announcements (AAB Battle League)", channelId: "1461567986329714791" },
+    { name: "video_tag", channel: "#video-content (AAB Singles)", channelId: "1357802168031117586" },
+  ]
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -152,6 +161,37 @@ export function DiscordWebhooksTab() {
           </DialogContent>
         </Dialog>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Recommended channel mapping</CardTitle>
+          <CardDescription>
+            Use these webhook <strong>names</strong> when creating webhooks. Create the webhook in the Discord channel below so messages post to the right place. Full server map: <code className="text-xs">docs/DISCORD-SERVER-MAP.md</code>
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Webhook name</TableHead>
+                  <TableHead>Recommended channel</TableHead>
+                  <TableHead className="font-mono text-xs">Channel ID</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {recommendedChannels.map((row) => (
+                  <TableRow key={row.name}>
+                    <TableCell className="font-medium">{row.name}</TableCell>
+                    <TableCell>{row.channel}</TableCell>
+                    <TableCell className="font-mono text-xs text-muted-foreground">{row.channelId}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

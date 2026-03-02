@@ -19,6 +19,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { syncNotionToSupabase } from "@/lib/sync/notion-sync-worker"
+import { notifyDraftBoardSync, notifyDraftBoardError } from "@/lib/discord-notifications"
 
 export async function POST(request: NextRequest) {
   try {
@@ -135,6 +136,17 @@ export async function POST(request: NextRequest) {
           .from("sync_jobs")
           .update(updatePayload)
           .eq("job_id", job.job_id)
+
+        const scopeIncludesDraftBoard = scope && (scope as string[]).includes("draft_board")
+        if (scopeIncludesDraftBoard) {
+          const synced = isDraftBoardOnly && result.stats.draft_board ? (result.stats.draft_board.synced ?? 0) : pokemonSynced
+          const failed = isDraftBoardOnly && result.stats.draft_board ? (result.stats.draft_board.failed ?? 0) : pokemonFailed
+          if (result.success) {
+            await notifyDraftBoardSync({ synced, failed }, []).catch((err) => console.error("[Discord] Draft board sync notify:", err))
+          } else {
+            await notifyDraftBoardError(errorMessage ?? "Sync failed", { details: result.errors }).catch((err) => console.error("[Discord] Draft board error notify:", err))
+          }
+        }
       })
       .catch(async (error) => {
         // Update job status on error
@@ -147,6 +159,10 @@ export async function POST(request: NextRequest) {
             error_log: { error: error.message, stack: error.stack },
           })
           .eq("job_id", job.job_id)
+        const scopeIncludesDraftBoard = syncOptions.scope && syncOptions.scope.includes("draft_board")
+        if (scopeIncludesDraftBoard) {
+          await notifyDraftBoardError(error.message, { stack: error.stack }).catch((err) => console.error("[Discord] Draft board error notify:", err))
+        }
       })
       .catch((err) => {
         // Fallback error handler if job update fails

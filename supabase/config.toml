@@ -113,6 +113,12 @@ public = true
 file_size_limit = "5MiB"
 allowed_mime_types = ["image/png", "image/jpeg", "image/gif", "image/svg+xml", "image/webp"]
 
+# Music tracks (admin uploads; used by in-app music player)
+[storage.buckets.music-tracks]
+public = true
+file_size_limit = "50MiB"
+allowed_mime_types = ["audio/mpeg", "audio/mp3", "audio/ogg", "audio/wav", "audio/webm", "audio/mp4", "audio/x-m4a"]
+
 # Allow connections via S3 compatible clients
 [storage.s3_protocol]
 enabled = true

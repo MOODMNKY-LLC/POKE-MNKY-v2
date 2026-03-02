@@ -382,6 +382,12 @@ export default async function DashboardPage() {
                       Guides
                     </Link>
                     <Link
+                      href="/dashboard/guides/league-features-v3"
+                      className="text-sm text-primary hover:underline min-h-[44px] flex items-center touch-manipulation"
+                    >
+                      League Features Guide (v3)
+                    </Link>
+                    <Link
                       href="/pokedex"
                       className="text-sm text-primary hover:underline min-h-[44px] flex items-center touch-manipulation"
                     >

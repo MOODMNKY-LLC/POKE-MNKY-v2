@@ -143,6 +143,77 @@ export async function notifyLeagueTradeApproved(offerId: string) {
   )
 }
 
+/** Notify coaches that Tera assignment window is open (48h). Posts to trades webhook with Discord mentions when possible. */
+export async function notifyTeraWindowOpened(offerId: string, appBaseUrl?: string): Promise<void> {
+  const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY || "")
+  const { data: offer } = await supabase
+    .from("league_trade_offers")
+    .select("offering_team_id, receiving_team_id, offering_team:teams!offering_team_id(name), receiving_team:teams!receiving_team_id(name)")
+    .eq("id", offerId)
+    .single()
+  if (!offer) return
+  const { data: webhook } = await supabase.from("discord_webhooks").select("webhook_url, enabled").eq("name", "trades").single()
+  if (!webhook?.webhook_url || webhook.enabled === false) return
+  const offeringTeamId = (offer as any).offering_team_id
+  const receivingTeamId = (offer as any).receiving_team_id
+  const { data: teamRows } = await supabase.from("teams").select("coach_id").in("id", [offeringTeamId, receivingTeamId])
+  const coachIds = (teamRows ?? []).map((r: any) => r.coach_id).filter(Boolean)
+  if (coachIds.length === 0) {
+    const offering = (offer as any).offering_team?.name ?? "Team A"
+    const receiving = (offer as any).receiving_team?.name ?? "Team B"
+    await postWebhook(
+      webhook.webhook_url,
+      `⏰ **Tera assignment window** — Coaches for **${offering}** and **${receiving}**: you have 48 hours to assign Tera types in the app (dashboard). Promoting later costs 3 transaction points.`
+    )
+    return
+  }
+  const { data: coaches } = await supabase.from("coaches").select("user_id").in("id", coachIds)
+  const userIds = (coaches ?? []).map((c: any) => c.user_id).filter(Boolean)
+  if (userIds.length === 0) {
+    const offering = (offer as any).offering_team?.name ?? "Team A"
+    const receiving = (offer as any).receiving_team?.name ?? "Team B"
+    await postWebhook(
+      webhook.webhook_url,
+      `⏰ **Tera assignment window** — Coaches for **${offering}** and **${receiving}**: you have 48 hours to assign Tera types in the app (dashboard). Promoting later costs 3 transaction points.`
+    )
+    return
+  }
+  const { data: profiles } = await supabase.from("profiles").select("discord_id").in("id", userIds)
+  const mentions = (profiles ?? []).map((p: any) => p.discord_id).filter(Boolean).map((did: string) => `<@${did}>`)
+  const offering = (offer as any).offering_team?.name ?? "Team A"
+  const receiving = (offer as any).receiving_team?.name ?? "Team B"
+  const mentionLine = mentions.length > 0 ? `${mentions.join(" ")} — ` : ""
+  const dashboardUrl = appBaseUrl ?? process.env.NEXT_PUBLIC_APP_URL ?? ""
+  const linkHint = dashboardUrl ? ` Open your dashboard: ${dashboardUrl}/dashboard` : ""
+  await postWebhook(
+    webhook.webhook_url,
+    `⏰ **Tera assignment window** — ${mentionLine}You have **48 hours** to assign Tera types in the app (dashboard). Promoting later costs 3 transaction points.${linkHint}`
+  )
+}
+
+/** Notify Discord when midnight Monday transaction execution has run (trades + FA). Uses `trades` webhook. */
+export async function notifyTransactionsProcessed(results: Array<{ type: string; status: string; error?: string }>): Promise<void> {
+  if (results.length === 0) return
+  const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY || "")
+  const { data: webhook } = await supabase.from("discord_webhooks").select("webhook_url, enabled").eq("name", "trades").single()
+  if (!webhook?.webhook_url || webhook.enabled === false) return
+  const executed = results.filter((r) => r.status === "executed")
+  const failed = results.filter((r) => r.status === "failed")
+  const trades = executed.filter((r) => r.type === "trade").length
+  const fa = executed.filter((r) => r.type === "free_agency").length
+  const failedCount = failed.length
+  const lines = [
+    `⏰ **Midnight Monday execution completed**`,
+    `• Processed: ${results.length} (${executed.length} executed, ${failedCount} failed)`,
+    `• Trades executed: ${trades}`,
+    `• Free agency moves executed: ${fa}`,
+  ]
+  if (failedCount > 0) {
+    lines.push(`• Failed: ${failed.map((r) => r.error ?? r.type).slice(0, 3).join("; ")}${failedCount > 3 ? "…" : ""}`)
+  }
+  await postWebhook(webhook.webhook_url, lines.join("\n"))
+}
+
 /** Notify both coaches that the trade was denied. */
 export async function notifyLeagueTradeDenied(offerId: string) {
   const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY || "")

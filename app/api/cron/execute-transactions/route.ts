@@ -12,6 +12,7 @@
 
 import { NextResponse } from "next/server"
 import { executePendingTransactions } from "@/lib/league-engine/execute-pending-transactions"
+import { notifyTransactionsProcessed } from "@/lib/discord-notifications"
 
 export const revalidate = 0
 export const maxDuration = 120
@@ -27,6 +28,9 @@ export async function GET(request: Request) {
     const results = await executePendingTransactions()
     const executed = results.filter((r) => r.status === "executed").length
     const failed = results.filter((r) => r.status === "failed")
+    if (results.length > 0) {
+      await notifyTransactionsProcessed(results).catch((err) => console.error("[Discord] Transactions processed notify:", err))
+    }
     return NextResponse.json({
       success: failed.length === 0,
       processed: results.length,
