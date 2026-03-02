@@ -21,7 +21,7 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { User, Shield, History, Gamepad2, CheckCircle2, XCircle, Loader2, RefreshCw } from "lucide-react"
-import { getCurrentUserProfile, type UserProfile, type DiscordRole } from "@/lib/rbac"
+import { getCurrentUserProfile, canAccessCoachFeatures, type UserProfile, type DiscordRole } from "@/lib/rbac"
 import { DISCORD_TO_APP_ROLE_MAP } from "@/lib/discord-role-mappings"
 import { CoachCard } from "@/components/profile/coach-card"
 import { ShowdownTeamsSection } from "@/components/profile/showdown-teams-section"
@@ -266,7 +266,7 @@ export function ProfileSheet({ open, onOpenChange }: ProfileSheetProps) {
               </Card>
 
               {/* Coach Card & Showdown Teams (only for coaches) */}
-              {profile.role === "coach" && (
+              {canAccessCoachFeatures(profile) && (
                 <div className="space-y-4">
                   <CoachCard team={team} userId={profile.id} />
                   <ShowdownTeamsSection userId={profile.id} />

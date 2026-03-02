@@ -20,6 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { TradeBlockSection } from "@/components/dashboard/trade-block-section"
 import { LeagueTradeBlockList } from "@/components/dashboard/league-trade-block-list"
 import { RefreshCw } from "lucide-react"
+import { canAccessCoachFeatures } from "@/lib/rbac"
 
 export default function TradeBlockPage() {
   const router = useRouter()
@@ -42,7 +43,7 @@ export default function TradeBlockPage() {
         .select("role, team_id")
         .eq("id", user.id)
         .single()
-      if (profileData?.role === "coach" && profileData.team_id) {
+      if (canAccessCoachFeatures(profileData)) {
         const { data: team } = await supabase
           .from("teams")
           .select("id, name")

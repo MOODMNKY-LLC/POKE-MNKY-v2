@@ -12,7 +12,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { createClient } from "@/lib/supabase/server"
-import { getCurrentUserProfile, type DiscordRole } from "@/lib/rbac"
+import { getCurrentUserProfile, canAccessCoachFeatures, type DiscordRole } from "@/lib/rbac"
 import { DISCORD_TO_APP_ROLE_MAP } from "@/lib/discord-role-mappings"
 import { redirect } from "next/navigation"
 import Link from "next/link"
@@ -78,7 +78,7 @@ export default async function DashboardPage() {
       status?: string
     }
   } = {}
-  if (profile.role === "coach" && profile.team_id && season) {
+  if (canAccessCoachFeatures(profile) && season) {
     const { data: teamData } = await supabase
       .from("teams")
       .select("id, name, wins, losses, differential, division, conference, avatar_url, logo_url, coach_name")
@@ -238,7 +238,7 @@ export default async function DashboardPage() {
                   <CoachCardWithToggle
                     team={team}
                     userId={profile.id}
-                    isCoach={profile.role === "coach"}
+                    isCoach={canAccessCoachFeatures(profile)}
                     roster={coachRoster}
                     draftBudget={
                       overviewStats.draft_budget
@@ -249,12 +249,12 @@ export default async function DashboardPage() {
                         : undefined
                     }
                   />
-                  {profile.role === "coach" && <YourTeamsSection />}
+                  {canAccessCoachFeatures(profile) && <YourTeamsSection />}
                 </div>
               </div>
             </div>
 
-            {(profile.role !== "coach" || !profile.team_id) && !profile.onboarding_completed && (
+            {!canAccessCoachFeatures(profile) && !profile.onboarding_completed && (
               <Card className="touch-manipulation border-primary/50 bg-primary/5">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -276,7 +276,7 @@ export default async function DashboardPage() {
               </Card>
             )}
 
-            {profile.role === "coach" && profile.team_id && !profile.onboarding_completed && (
+            {canAccessCoachFeatures(profile) && !profile.onboarding_completed && (
               <Card className="touch-manipulation border-primary/50 bg-primary/5">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -298,7 +298,7 @@ export default async function DashboardPage() {
               </Card>
             )}
 
-            {profile.onboarding_completed && profile.role === "coach" && (
+            {profile.onboarding_completed && canAccessCoachFeatures(profile) && (
               <OnboardingCompletionCard />
             )}
             {profile.onboarding_completed && <CoachStatusTicker />}
@@ -449,7 +449,7 @@ export default async function DashboardPage() {
                   <CardDescription className="text-xs sm:text-sm">Your league statistics</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {profile.role === "coach" && (overviewStats.team_record ?? overviewStats.draft_budget ?? overviewStats.roster_count != null) ? (
+                  {canAccessCoachFeatures(profile) && (overviewStats.team_record ?? overviewStats.draft_budget ?? overviewStats.roster_count != null) ? (
                     <div className="space-y-3 text-sm">
                       {overviewStats.team_record && (
                         <div>
@@ -512,7 +512,7 @@ export default async function DashboardPage() {
                     </div>
                   ) : (
                     <p className="text-sm text-muted-foreground">
-                      {profile.role === "coach" ? "No league stats yet." : "Statistics dashboard coming soon..."}
+                      {canAccessCoachFeatures(profile) ? "No league stats yet." : "Statistics dashboard coming soon..."}
                     </p>
                   )}
                 </CardContent>

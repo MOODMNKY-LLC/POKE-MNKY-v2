@@ -98,10 +98,9 @@ export function SyncStatus() {
     return () => clearInterval(interval)
   }, [supabase, loadSyncJobs])
 
-  async function triggerSync() {
+  async function triggerSync(incremental = true) {
     setSyncing(true)
     try {
-      // Get sync secret from API route (server-side only)
       const response = await fetch("/api/admin/trigger-notion-sync", {
         method: "POST",
         headers: {
@@ -109,7 +108,7 @@ export function SyncStatus() {
         },
         body: JSON.stringify({
           scope: ["draft_board"],
-          incremental: true,
+          incremental,
         }),
       })
 
@@ -121,10 +120,11 @@ export function SyncStatus() {
 
       toast({
         title: "Sync Started",
-        description: `Sync job ${data.job_id} started`,
+        description: incremental
+          ? `Incremental sync job ${data.job_id} started`
+          : `Full sync job ${data.job_id} started (removes Pokémon unchecked in Notion)`,
       })
 
-      // Reload jobs after a short delay
       setTimeout(() => {
         loadSyncJobs()
       }, 1000)
@@ -247,25 +247,41 @@ export function SyncStatus() {
               </div>
             )}
 
-            {/* Manual Sync Button */}
-            <Button
-              onClick={triggerSync}
-              disabled={syncing || isRunning}
-              className="w-full"
-              variant="outline"
-            >
-              {syncing || isRunning ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Syncing...
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  Trigger Sync
-                </>
-              )}
-            </Button>
+            {/* Sync Buttons */}
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => triggerSync(true)}
+                  disabled={syncing || isRunning}
+                  className="flex-1"
+                  variant="outline"
+                >
+                  {syncing || isRunning ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Syncing...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Incremental Sync
+                    </>
+                  )}
+                </Button>
+                <Button
+                  onClick={() => triggerSync(false)}
+                  disabled={syncing || isRunning}
+                  className="flex-1"
+                  variant="secondary"
+                  title="Full sync: removes Pokémon unchecked in Notion from draft pool"
+                >
+                  Full Sync
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Incremental: quick updates. Full: also removes Pokémon unchecked in Notion.
+              </p>
+            </div>
 
             {/* Recent Jobs */}
             {syncJobs.length > 1 && (

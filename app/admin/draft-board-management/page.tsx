@@ -2,6 +2,7 @@ import { createServerClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { NotionIntegrationPanel } from "@/components/admin/draft-board/notion-integration-panel"
 import { SyncStatus } from "@/components/admin/draft-board/sync-status"
+import { DraftBoardAnalysisCard } from "@/components/admin/draft-board/draft-board-analysis-card"
 import { AnalyticsDashboard } from "@/components/admin/draft-board/analytics-dashboard"
 import { QuickEditPanel } from "@/components/admin/draft-board/quick-edit-panel"
 import { WebhookStatus } from "@/components/admin/draft-board/webhook-status"
@@ -52,6 +53,7 @@ export default async function DraftBoardManagementPage() {
         <div className="space-y-6">
           <NotionIntegrationPanel />
           <SyncStatus />
+          <DraftBoardAnalysisCard />
           <WebhookStatus />
         </div>
 

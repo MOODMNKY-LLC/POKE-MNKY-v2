@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
-import { getCurrentUserProfile } from "@/lib/rbac"
+import { getCurrentUserProfile, canAccessCoachFeatures } from "@/lib/rbac"
 import { redirect } from "next/navigation"
 import {
   Breadcrumb,
@@ -40,7 +40,7 @@ export default async function DashboardStatsPage() {
   let team = null
   let stats: { team_record?: { wins: number; losses: number; differential: number }; draft_budget?: { total: number; spent: number; remaining: number }; roster_count?: number } = {}
 
-  if (profile.role === "coach" && profile.team_id) {
+  if (canAccessCoachFeatures(profile)) {
     const { data: teamData } = await supabase
       .from("teams")
       .select("id, name, wins, losses, differential")
@@ -125,10 +125,10 @@ export default async function DashboardStatsPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">My Stats</h1>
           <p className="text-muted-foreground text-sm">
-            {season ? season.name : "Current season"} · {profile.role === "coach" && team ? "Team statistics" : "Your overview"}
+            {season ? season.name : "Current season"} · {canAccessCoachFeatures(profile) && team ? "Team statistics" : "Your overview"}
           </p>
         </div>
-        {profile.role === "coach" && team && (stats.team_record || stats.draft_budget !== undefined) ? (
+        {canAccessCoachFeatures(profile) && team && (stats.team_record || stats.draft_budget !== undefined) ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {stats.team_record && (
               <Card>

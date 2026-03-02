@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase/server"
-import { getCurrentUserProfile } from "@/lib/rbac"
+import { getCurrentUserProfile, canAccessCoachFeatures } from "@/lib/rbac"
 
 export async function GET(request: NextRequest) {
   try {
@@ -71,8 +71,8 @@ export async function GET(request: NextRequest) {
       stats: {},
     }
 
-    // If coach, fetch team data and stats
-    if (profile.role === "coach" && profile.team_id) {
+    // If user has coach access (coach, admin, or commissioner with team), fetch team data and stats
+    if (canAccessCoachFeatures(profile)) {
       // Fetch full team data for coach card
       const { data: team, error: teamError } = await supabase
         .from("teams")

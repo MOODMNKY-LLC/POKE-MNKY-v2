@@ -262,6 +262,33 @@ export async function requirePermission(
 }
 
 /**
+ * Minimal profile shape for sync role checks
+ */
+export interface ProfileLike {
+  role?: string | null
+  team_id?: string | null
+}
+
+/**
+ * Check if profile can access coach features (team builder, roster, my team, etc.).
+ * Resolves admin+coach conflict: admins/commissioners assigned to a team get coach access.
+ * Hierarchy: admin > commissioner > coach; higher roles inherit coach access when team_id is set.
+ */
+export function canAccessCoachFeatures(profile: ProfileLike | null | undefined): boolean {
+  if (!profile?.team_id) return false
+  const r = profile.role
+  return r === UserRole.COACH || r === UserRole.ADMIN || r === UserRole.COMMISSIONER
+}
+
+/**
+ * Check if profile is strictly a coach (for display/labeling when you need to distinguish).
+ * Use canAccessCoachFeatures() for access control; use isStrictlyCoach() only for UI labels.
+ */
+export function isStrictlyCoach(profile: ProfileLike | null | undefined): boolean {
+  return profile?.role === UserRole.COACH
+}
+
+/**
  * Check if user is an admin
  */
 export async function isAdmin(supabase: SupabaseClient, userId: string): Promise<boolean> {

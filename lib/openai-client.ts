@@ -71,6 +71,10 @@ export const AI_MODELS = {
   // GPT-4o-mini for routine tasks (was gpt-5-mini)
   QUICK_SUMMARY: "gpt-4o-mini", // Daily digests
   DISCORD_REPLY: "gpt-4o-mini", // Simple bot responses
+
+  // GPT-5.2 for complex draft board analysis (reasoning.effort: medium/high)
+  // Fallback to gpt-4o if gpt-5.2-chat-latest not available in SDK
+  DRAFT_BOARD_ANALYSIS: "gpt-5.2-chat-latest",
 } as const
 
 export interface PokedexQuery {
