@@ -59,7 +59,17 @@ export function FileDropzone({
 
       setTimeout(() => setUploaded(false), 2000)
     } catch (error: any) {
-      toast.error(error.message || "Upload failed")
+      const msg = error?.message ?? "Upload failed"
+      const isBucketNotFound =
+        /bucket.*not found|not found|resource.*not found|does not exist/i.test(msg) ||
+        (error?.error && String(error.error).toLowerCase().includes("not found"))
+      if (isBucketNotFound) {
+        toast.error(
+          `Storage bucket "${bucket}" is not set up. Ask an admin to open Settings → Storage and use "Ensure required buckets", or create the bucket in Supabase Dashboard.`
+        )
+      } else {
+        toast.error(msg)
+      }
     } finally {
       setUploading(false)
     }

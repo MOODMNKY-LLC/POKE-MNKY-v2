@@ -119,6 +119,12 @@ public = true
 file_size_limit = "50MiB"
 allowed_mime_types = ["audio/mpeg", "audio/mp3", "audio/ogg", "audio/wav", "audio/webm", "audio/mp4", "audio/x-m4a"]
 
+# Team assets (coach uploads: team avatar, logo) — used by profile Coach Card
+[storage.buckets.team-assets]
+public = true
+file_size_limit = "5MiB"
+allowed_mime_types = ["image/png", "image/jpeg", "image/gif", "image/webp", "image/svg+xml"]
+
 # Allow connections via S3 compatible clients
 [storage.s3_protocol]
 enabled = true
