@@ -52,8 +52,9 @@ async function callApp(
   const res = await fetch(url, {
     method,
     headers: {
-      Authorization: `Bearer ${botKey}`,
       "Content-Type": "application/json",
+      // Use custom header for internal calls; Vercel can strip Authorization on same-origin requests
+      "X-Discord-Bot-Key": botKey,
     },
     body: body ? JSON.stringify(body) : undefined,
   })
