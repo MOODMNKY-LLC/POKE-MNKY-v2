@@ -25,15 +25,19 @@ export function verifyDiscordRequest(
   timestamp: string | null,
   publicKeyHex: string
 ): boolean {
-  if (!signature || !timestamp) return false
+  try {
+    if (!signature || !timestamp) return false
 
-  // Use exact bytes: Discord signs (timestamp + rawBody). Normalize key/signature hex (trim, lowercase).
-  const bodyStr = typeof bodyRaw === "string" ? bodyRaw : new TextDecoder().decode(bodyRaw)
-  const message = new TextEncoder().encode(timestamp + bodyStr)
-  const sigBytes = hexToUint8Array(signature.trim())
-  const keyBytes = hexToUint8Array(publicKeyHex.trim())
+    // Use exact bytes: Discord signs (timestamp + rawBody). Normalize key/signature hex (trim, lowercase).
+    const bodyStr = typeof bodyRaw === "string" ? bodyRaw : new TextDecoder().decode(bodyRaw)
+    const message = new TextEncoder().encode(timestamp + bodyStr)
+    const sigBytes = hexToUint8Array(signature.trim())
+    const keyBytes = hexToUint8Array(publicKeyHex.trim())
 
-  if (sigBytes.length !== 64 || keyBytes.length !== 32) return false
+    if (sigBytes.length !== 64 || keyBytes.length !== 32) return false
 
-  return nacl.sign.detached.verify(message, sigBytes, keyBytes)
+    return nacl.sign.detached.verify(message, sigBytes, keyBytes)
+  } catch {
+    return false
+  }
 }
