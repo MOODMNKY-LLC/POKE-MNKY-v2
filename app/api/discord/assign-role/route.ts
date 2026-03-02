@@ -110,25 +110,50 @@ export async function POST(request: NextRequest) {
       }
 
       // Add or remove role
-      if (action === 'add') {
-        await member.roles.add(role)
-      } else {
-        await member.roles.remove(role)
+      try {
+        if (action === 'add') {
+          await member.roles.add(role)
+        } else {
+          await member.roles.remove(role)
+        }
+      } catch (discordError: unknown) {
+        const err = discordError as { code?: number; message?: string; status?: number }
+        const isPermissionError =
+          err.code === 50013 ||
+          err.status === 403 ||
+          (err.message && /missing permissions/i.test(err.message))
+        if (isPermissionError) {
+          if (shouldDestroy) {
+            await client.destroy()
+          }
+          return NextResponse.json(
+            {
+              error:
+                "Missing Permissions. In Discord: (1) Give the bot 'Manage Roles'. (2) In Server Settings → Roles, put the bot's role above the role you're assigning (e.g. above Coach).",
+            },
+            { status: 403 },
+          )
+        }
+        throw discordError
       }
 
-      // Log activity
-      await serviceSupabase.from("user_activity_log").insert({
-        user_id: user.id,
-        action: `discord_role_${action}`,
-        resource_type: "profile",
-        resource_id: userId,
-        metadata: {
-          discord_id: userProfile.discord_id,
-          discord_role_id: discordRoleId,
-          discord_role_name: role.name,
-          action,
-        },
-      })
+      // Log activity (best-effort; do not fail the request)
+      try {
+        await serviceSupabase.from("user_activity_log").insert({
+          user_id: user.id,
+          action: `discord_role_${action}`,
+          resource_type: "profile",
+          resource_id: userId,
+          metadata: {
+            discord_id: userProfile.discord_id,
+            discord_role_id: discordRoleId,
+            discord_role_name: role.name,
+            action,
+          },
+        })
+      } catch (logError: unknown) {
+        console.warn("[Discord Assign Role API] Activity log insert failed:", logError)
+      }
 
       if (shouldDestroy) {
         await client.destroy()
@@ -142,16 +167,29 @@ export async function POST(request: NextRequest) {
           name: role.name,
         },
       })
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as { code?: number; status?: number; message?: string }
       if (shouldDestroy) {
         await client.destroy()
       }
+      // Normalize Discord permission errors that might escape the inner catch
+      if (err.code === 50013 || err.status === 403 || (err.message && /missing permissions/i.test(err.message))) {
+        return NextResponse.json(
+          {
+            error:
+              "Missing Permissions. In Discord: (1) Give the bot 'Manage Roles'. (2) In Server Settings → Roles, put the bot's role above the role you're assigning (e.g. above Coach).",
+          },
+          { status: 403 },
+        )
+      }
       throw error
     }
-  } catch (error: any) {
-    console.error("[Discord Assign Role API] Error:", error)
+  } catch (error: unknown) {
+    const err = error as { code?: number; message?: string }
+    console.error("[Discord Assign Role API] Error:", err?.message ?? error, "code:", err?.code)
+    const message = err?.message && typeof err.message === "string" ? err.message : "Failed to assign Discord role"
     return NextResponse.json(
-      { error: error.message || "Failed to assign Discord role" },
+      { error: message },
       { status: 500 },
     )
   }

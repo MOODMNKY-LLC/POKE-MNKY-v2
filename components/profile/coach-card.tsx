@@ -35,6 +35,7 @@ export function CoachCard({ team, userId }: CoachCardProps) {
   const [teamName, setTeamName] = useState(team?.name || "")
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [uploadingLogo, setUploadingLogo] = useState(false)
   const [currentTeam, setCurrentTeam] = useState<Team | null>(team)
   const [supabase, setSupabase] = useState<ReturnType<typeof createBrowserClient> | null>(null)
 
@@ -100,6 +101,30 @@ export function CoachCard({ team, userId }: CoachCardProps) {
     setUploading(false)
   }
 
+  const handleLogoUpload = async (url: string) => {
+    if (!supabase || !currentTeam) return
+
+    setUploadingLogo(true)
+    const { error } = await supabase
+      .from("teams")
+      .update({ logo_url: url })
+      .eq("id", currentTeam.id)
+
+    if (error) {
+      toast.error("Failed to update logo")
+      console.error("Error updating logo:", error)
+    } else {
+      toast.success("Logo updated")
+      const { data } = await supabase
+        .from("teams")
+        .select("*")
+        .eq("id", currentTeam.id)
+        .single()
+      if (data) setCurrentTeam(data as Team)
+    }
+    setUploadingLogo(false)
+  }
+
   if (!currentTeam) {
     return (
       <Card>
@@ -157,6 +182,32 @@ export function CoachCard({ team, userId }: CoachCardProps) {
               </Button>
             </FileDropzone>
           </div>
+        </div>
+
+        {/* Team Logo (optional) */}
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Team Logo</Label>
+          <FileDropzone
+            bucket="team-assets"
+            path={`teams/${currentTeam.id}/logo`}
+            accept="image/*"
+            maxSize={5 * 1024 * 1024}
+            onUploadComplete={handleLogoUpload}
+          >
+            <Button variant="outline" size="sm" disabled={uploadingLogo} className="w-full max-w-[200px]">
+              {uploadingLogo ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload Logo
+                </>
+              )}
+            </Button>
+          </FileDropzone>
         </div>
 
         {/* Team Name */}

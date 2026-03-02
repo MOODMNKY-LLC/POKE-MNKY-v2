@@ -117,6 +117,11 @@ DISCORD_GUILD_ID=your_server_id_here
 - Check browser console for error details
 - Common causes: Bot doesn't have "Manage Roles" permission, role hierarchy issues
 
+### "Failed to add role: Missing Permissions" (in-app role assignment)
+When adding a role via **User Management → Manage Discord Roles** (shield icon):
+1. **Bot permission**: In Discord Server Settings → Integrations → your bot, ensure the bot has **Manage Roles**.
+2. **Role hierarchy**: A bot can only assign roles that are **below** its own role. In Server Settings → Roles, drag the bot's role **above** every role you want the bot to assign (e.g. above Coach, Commissioner, etc.). Roles higher in the list have higher hierarchy.
+
 ---
 
 ## 7. Role Priority

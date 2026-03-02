@@ -188,9 +188,9 @@ export function DiscordManagementSection() {
               </Link>
             </Button>
             <Button asChild variant="outline" className="w-full justify-start">
-              <Link href="/admin/discord/bot">
+              <Link href="/admin/discord#bot">
                 <Bot className="h-4 w-4 mr-2" />
-                Bot Status & Health
+                Bot Status & Permissions
                 <ExternalLink className="h-3 w-3 ml-2" />
               </Link>
             </Button>
@@ -222,6 +222,10 @@ export function DiscordManagementSection() {
               <p>
                 <strong>Role Mapping:</strong> Discord roles are mapped to app roles using predefined mappings. 
                 You can view and configure these mappings in the Role Mapping tab or on the dedicated Discord Roles page.
+              </p>
+              <p>
+                <strong>In-app role assignment:</strong> Assigning roles via the shield icon (Manage Discord Roles) requires the bot to have <em>Manage Roles</em> and its role above any role you assign. Check{" "}
+                <Link href="/admin/discord#bot" className="text-primary underline underline-offset-2">Bot Status & Permissions</Link> for details.
               </p>
             </div>
           </CardContent>

@@ -3,6 +3,9 @@ import { createServerClient } from "@/lib/supabase/server"
 import { createServiceRoleClient } from "@/lib/supabase/service"
 import { assignCoachToTeam } from "@/lib/coach-assignment"
 import { getCurrentUserProfile } from "@/lib/rbac"
+import { syncAppRoleToDiscord } from "@/lib/discord-role-sync"
+
+export const runtime = "nodejs"
 
 /**
  * POST /api/admin/assign-coach
@@ -142,7 +145,7 @@ export async function POST(request: NextRequest) {
     // Verify user exists and has coach role (use service role client)
     const { data: targetProfile, error: targetProfileError } = await serviceSupabase
       .from("profiles")
-      .select("id, role, username, display_name")
+      .select("id, role, username, display_name, discord_id")
       .eq("id", userId)
       .single()
 
@@ -207,12 +210,27 @@ export async function POST(request: NextRequest) {
       },
     })
 
+    // Sync Coach role to Discord when user has discord_id (unify app + Discord)
+    let discordSynced = false
+    if (targetProfile?.discord_id && process.env.DISCORD_BOT_TOKEN && process.env.DISCORD_GUILD_ID) {
+      try {
+        const syncResult = await syncAppRoleToDiscord(targetProfile.discord_id, "coach", userId)
+        discordSynced = syncResult.success
+        if (!syncResult.success) {
+          console.warn("[Admin Assign Coach] Discord role sync failed:", syncResult.message)
+        }
+      } catch (syncErr) {
+        console.warn("[Admin Assign Coach] Discord role sync error:", syncErr)
+      }
+    }
+
     return NextResponse.json({
       success: true,
       message: result.message,
       coachId: result.coachId,
       teamId: result.teamId,
       team: team,
+      discordRoleSynced: discordSynced,
     })
   } catch (error: any) {
     console.error("[Admin Assign Coach] Error:", error)
