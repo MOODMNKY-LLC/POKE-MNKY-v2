@@ -7,7 +7,8 @@
 import * as nacl from "npm:tweetnacl@1.0.3"
 
 function hexToUint8Array(hex: string): Uint8Array {
-  const match = hex.match(/.{1,2}/g) ?? []
+  const trimmed = hex.replace(/\s/g, "").toLowerCase()
+  const match = trimmed.match(/.{1,2}/g) ?? []
   return new Uint8Array(match.map((byte) => parseInt(byte, 16)))
 }
 
@@ -26,10 +27,11 @@ export function verifyDiscordRequest(
 ): boolean {
   if (!signature || !timestamp) return false
 
+  // Use exact bytes: Discord signs (timestamp + rawBody). Normalize key/signature hex (trim, lowercase).
   const bodyStr = typeof bodyRaw === "string" ? bodyRaw : new TextDecoder().decode(bodyRaw)
   const message = new TextEncoder().encode(timestamp + bodyStr)
-  const sigBytes = hexToUint8Array(signature)
-  const keyBytes = hexToUint8Array(publicKeyHex)
+  const sigBytes = hexToUint8Array(signature.trim())
+  const keyBytes = hexToUint8Array(publicKeyHex.trim())
 
   if (sigBytes.length !== 64 || keyBytes.length !== 32) return false
 

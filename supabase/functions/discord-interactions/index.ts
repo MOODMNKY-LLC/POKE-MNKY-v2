@@ -153,17 +153,20 @@ Deno.serve(async (req: Request) => {
     return new Response("Method Not Allowed", { status: 405 })
   }
 
-  const publicKey = Deno.env.get("DISCORD_PUBLIC_KEY")
-  const signature = req.headers.get("x-signature-ed25519")
-  const timestamp = req.headers.get("x-signature-timestamp")
-  const rawBody = await req.text()
+  // Read raw body once (exact bytes Discord sent) for signature verification
+  const bodyBytes = await req.arrayBuffer()
+  const rawBody = new TextDecoder().decode(bodyBytes)
+
+  const publicKey = (Deno.env.get("DISCORD_PUBLIC_KEY") ?? "").trim()
+  const signature = req.headers.get("x-signature-ed25519") ?? req.headers.get("X-Signature-Ed25519")
+  const timestamp = req.headers.get("x-signature-timestamp") ?? req.headers.get("X-Signature-Timestamp")
 
   if (!publicKey) {
     console.error("Missing DISCORD_PUBLIC_KEY - set it with: supabase secrets set DISCORD_PUBLIC_KEY=<your-app-public-key>")
     return jsonResponse({ error: "Missing DISCORD_PUBLIC_KEY. Set Supabase secret: supabase secrets set DISCORD_PUBLIC_KEY=<value>" }, 500)
   }
 
-  if (!verifyDiscordRequest(rawBody, signature, timestamp, publicKey)) {
+  if (!verifyDiscordRequest(bodyBytes, signature, timestamp, publicKey)) {
     return new Response("Bad request signature.", { status: 401 })
   }
 
