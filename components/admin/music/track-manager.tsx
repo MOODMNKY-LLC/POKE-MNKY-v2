@@ -47,7 +47,12 @@ interface MusicTrack {
   playlist_enabled?: boolean // Whether track is enabled for in-app playlist
 }
 
-export function TrackManager() {
+export interface TrackManagerProps {
+  /** When this value changes, the track list is refetched (e.g. after an upload). */
+  refreshKey?: number
+}
+
+export function TrackManager({ refreshKey }: TrackManagerProps) {
   const [tracks, setTracks] = useState<MusicTrack[]>([])
   const [loading, setLoading] = useState(true)
   const [playingTrack, setPlayingTrack] = useState<string | null>(null)
@@ -68,7 +73,7 @@ export function TrackManager() {
         audioElementRef.current = null
       }
     }
-  }, [])
+  }, [refreshKey])
 
   const fetchTracks = async () => {
     setLoading(true)
@@ -545,7 +550,7 @@ export function TrackManager() {
         <Alert>
           <Music2 className="h-4 w-4" />
           <AlertDescription>
-            No tracks found. Upload tracks using the "Upload Track" button above.
+            No tracks found. Upload tracks in the Settings tab.
           </AlertDescription>
         </Alert>
       )}

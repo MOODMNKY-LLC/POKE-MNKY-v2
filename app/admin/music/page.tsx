@@ -6,9 +6,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Music, List, PlaySquare, Settings } from "lucide-react"
 import { TrackManager } from "@/components/admin/music/track-manager"
 import { PlaylistBuilder } from "@/components/admin/music/playlist-builder"
+import { MusicFileUpload } from "@/components/admin/music/music-file-upload"
 
 export default function AdminMusicPage() {
   const [mounted, setMounted] = useState(false)
+  const [tracksRefreshKey, setTracksRefreshKey] = useState(0)
 
   useEffect(() => {
     setMounted(true)
@@ -60,11 +62,11 @@ export default function AdminMusicPage() {
             <CardHeader>
               <CardTitle>Music Tracks</CardTitle>
               <CardDescription>
-                Upload and manage music tracks stored in Supabase Storage
+                Tracks in Supabase Storage. Toggle playlist visibility and delete as needed.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <TrackManager />
+              <TrackManager refreshKey={tracksRefreshKey} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -84,6 +86,17 @@ export default function AdminMusicPage() {
         </TabsContent>
 
         <TabsContent value="settings" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Upload track</CardTitle>
+              <CardDescription>
+                Upload audio files directly to the music-tracks bucket. Max 10 MB per file.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <MusicFileUpload onUploadComplete={() => setTracksRefreshKey((k) => k + 1)} />
+            </CardContent>
+          </Card>
           <Card>
             <CardHeader>
               <CardTitle>Music Player Settings</CardTitle>

@@ -246,7 +246,7 @@ export function DraftBoardClient({
     if (!currentTeamId || !selectedPokemon || !budget) return
 
     try {
-      const response = await fetch("/api/draft/pick", {
+      const response = await fetch("/api/draft/pick-by-name", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

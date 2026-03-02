@@ -324,6 +324,9 @@ DISCORD_GUILD_ID=your_discord_server_id
 
 # App Configuration
 NEXT_PUBLIC_APP_URL=http://localhost:3000
+# Production: NEXT_PUBLIC_APP_URL=https://poke-mnky.moodmnky.com
+APP_BASE_URL=http://localhost:3000
+# Production: APP_BASE_URL=https://poke-mnky.moodmnky.com
 NODE_ENV=development
 ```
 

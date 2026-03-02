@@ -1,0 +1,22 @@
+{
+  "name": "poke-mnky-discord-bot",
+  "version": "1.0.0",
+  "description": "Discord bot for POKE MNKY league operations",
+  "main": "start.ts",
+  "scripts": {
+    "start": "tsx start.ts",
+    "dev": "tsx watch start.ts",
+    "clear-commands": "tsx clear-and-register-commands.ts",
+    "test:notifications": "tsx test-notifications.ts",
+    "test:webhooks": "tsx test-webhook-integration.ts"
+  },
+  "dependencies": {
+    "discord.js": "^14.14.1",
+    "@supabase/supabase-js": "^2.39.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.7.0",
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.3"
+  }
+}

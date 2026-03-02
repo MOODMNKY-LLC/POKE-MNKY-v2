@@ -4,6 +4,42 @@ import { isAdmin } from '@/lib/rbac'
 import { createServiceRoleClient } from '@/lib/supabase/service'
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
+const MUSIC_BUCKET = 'music-tracks'
+
+/**
+ * Ensure music-tracks bucket exists; create it if missing.
+ * @returns null if bucket exists or was created, or an error message if creation failed.
+ */
+async function ensureMusicBucket(
+  serviceSupabase: ReturnType<typeof createServiceRoleClient>
+): Promise<string | null> {
+  const { data: buckets, error: listError } = await serviceSupabase.storage.listBuckets()
+  if (listError) {
+    console.error('[Upload Track] listBuckets failed:', listError.message)
+    return `Cannot list buckets: ${listError.message}. Check Supabase service role key.`
+  }
+  if (buckets?.some((b) => b.name === MUSIC_BUCKET)) return null
+
+  const { error: createError } = await serviceSupabase.storage.createBucket(MUSIC_BUCKET, {
+    public: true,
+    fileSizeLimit: 50 * 1024 * 1024, // 50MB
+    allowedMimeTypes: [
+      'audio/mpeg',
+      'audio/mp3',
+      'audio/ogg',
+      'audio/wav',
+      'audio/webm',
+      'audio/mp4',
+      'audio/x-m4a',
+    ],
+  })
+  if (createError) {
+    console.error('[Upload Track] createBucket failed:', createError.message)
+    return `Bucket "${MUSIC_BUCKET}" does not exist and could not be created: ${createError.message}. Create it manually in Supabase Dashboard → Storage → New bucket (name: music-tracks, public: true).`
+  }
+  console.log('[Upload Track] Created bucket:', MUSIC_BUCKET)
+  return null
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -63,6 +99,11 @@ export async function POST(request: NextRequest) {
 
     const serviceSupabase = createServiceRoleClient()
 
+    const bucketError = await ensureMusicBucket(serviceSupabase)
+    if (bucketError) {
+      return NextResponse.json({ error: bucketError }, { status: 500 })
+    }
+
     // Generate storage path
     const sanitizedTitle = title
       .toLowerCase()
@@ -78,7 +119,7 @@ export async function POST(request: NextRequest) {
 
     // Upload to Supabase Storage
     const { data: uploadData, error: uploadError } = await serviceSupabase.storage
-      .from('music-tracks')
+      .from(MUSIC_BUCKET)
       .upload(storagePath, buffer, {
         contentType: file.type,
         cacheControl: '31536000', // 1 year cache
@@ -95,7 +136,7 @@ export async function POST(request: NextRequest) {
 
     // Get public URL
     const { data: urlData } = serviceSupabase.storage
-      .from('music-tracks')
+      .from(MUSIC_BUCKET)
       .getPublicUrl(storagePath)
 
     // Create audio element to get duration
@@ -129,7 +170,7 @@ export async function POST(request: NextRequest) {
       console.error('[Upload Track] Database error:', dbError)
       // Try to clean up uploaded file
       await serviceSupabase.storage
-        .from('music-tracks')
+        .from(MUSIC_BUCKET)
         .remove([storagePath])
       
       return NextResponse.json(

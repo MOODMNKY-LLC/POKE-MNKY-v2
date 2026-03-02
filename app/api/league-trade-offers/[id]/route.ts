@@ -16,6 +16,7 @@ import {
   notifyLeagueTradeAccepted,
   notifyLeagueTradeApproved,
   notifyLeagueTradeDenied,
+  notifyTeraWindowOpened,
 } from "@/lib/discord-notifications"
 
 export async function PATCH(
@@ -137,6 +138,7 @@ export async function PATCH(
         { league_trade_offer_id: id, receiving_team_id: offer.offering_team_id, expires_at: expiresAtIso },
       ])
       await notifyLeagueTradeApproved(id).catch(() => {})
+      await notifyTeraWindowOpened(id).catch(() => {})
     } else if (newStatus === "denied") {
       await notifyLeagueTradeDenied(id).catch(() => {})
     }

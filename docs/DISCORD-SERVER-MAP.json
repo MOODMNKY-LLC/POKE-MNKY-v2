@@ -1,0 +1,745 @@
+{
+  "guildId": "1190512330556063764",
+  "generatedAt": "2026-03-02T01:39:54.950Z",
+  "channelCount": 49,
+  "categories": [
+    {
+      "id": "1408801550175830016",
+      "name": "AAB Singles",
+      "position": 0,
+      "channels": [
+        {
+          "id": "1408801974605975553",
+          "name": "announcements",
+          "type": 0,
+          "typeName": "text",
+          "position": 2,
+          "topic": "Announcements for The Average At Best Singles League will be posted here. \n\nRule Changes\nVoting Results\nMajor Events (Pre Draft Meeting Time and Date, Draft Time and Date, etc.)"
+        },
+        {
+          "id": "1196192255829086298",
+          "name": "battle",
+          "type": 0,
+          "typeName": "text",
+          "position": 3,
+          "topic": "Use this Channel to set up your weekly battle with your opponent. You can post your Battle code here as well when it comes time for your battle."
+        },
+        {
+          "id": "1191355707296055306",
+          "name": "general-chat",
+          "type": 0,
+          "typeName": "text",
+          "position": 4
+        },
+        {
+          "id": "1279902507346427935",
+          "name": "logos",
+          "type": 0,
+          "typeName": "text",
+          "position": 5
+        },
+        {
+          "id": "1190514178381844560",
+          "name": "questions",
+          "type": 0,
+          "typeName": "text",
+          "position": 6
+        },
+        {
+          "id": "1190513002127048775",
+          "name": "rules",
+          "type": 0,
+          "typeName": "text",
+          "position": 7
+        },
+        {
+          "id": "1190521133032808549",
+          "name": "suggestions",
+          "type": 0,
+          "typeName": "text",
+          "position": 8
+        },
+        {
+          "id": "1190520119949021244",
+          "name": "trades-and-transactions",
+          "type": 0,
+          "typeName": "text",
+          "position": 9
+        },
+        {
+          "id": "1357802168031117586",
+          "name": "video-content",
+          "type": 0,
+          "typeName": "text",
+          "position": 10
+        },
+        {
+          "id": "1190513871098744872",
+          "name": "voting",
+          "type": 0,
+          "typeName": "text",
+          "position": 11
+        }
+      ]
+    },
+    {
+      "id": "1190513054593601658",
+      "name": "Pokemon Extras",
+      "position": 1,
+      "channels": [
+        {
+          "id": "1365498070862790739",
+          "name": "memes",
+          "type": 0,
+          "typeName": "text",
+          "position": 12
+        },
+        {
+          "id": "1408808089989152908",
+          "name": "pogo",
+          "type": 0,
+          "typeName": "text",
+          "position": 13
+        },
+        {
+          "id": "1367315535477604454",
+          "name": "pokémon-tcg",
+          "type": 0,
+          "typeName": "text",
+          "position": 14
+        },
+        {
+          "id": "1428746130115657899",
+          "name": "game-spoilers",
+          "type": 0,
+          "typeName": "text",
+          "position": 15
+        }
+      ]
+    },
+    {
+      "id": "1190512330556063767",
+      "name": "Voice Channels",
+      "position": 2,
+      "channels": [
+        {
+          "id": "1190512331009032303",
+          "name": "General",
+          "type": 2,
+          "typeName": "voice",
+          "position": 1
+        },
+        {
+          "id": "1408800830131540058",
+          "name": "Battle 1",
+          "type": 2,
+          "typeName": "voice",
+          "position": 2
+        },
+        {
+          "id": "1408801007323971594",
+          "name": "Battle 2",
+          "type": 2,
+          "typeName": "voice",
+          "position": 3
+        }
+      ]
+    },
+    {
+      "id": "1190533648391352440",
+      "name": "Draft League Docs",
+      "position": 3,
+      "channels": [
+        {
+          "id": "1190533743505575996",
+          "name": "docs",
+          "type": 0,
+          "typeName": "text",
+          "position": 16
+        }
+      ]
+    },
+    {
+      "id": "1226363585815384177",
+      "name": "Season 1 Review",
+      "position": 4,
+      "channels": [
+        {
+          "id": "1226363715599863850",
+          "name": "season-1-review",
+          "type": 0,
+          "typeName": "text",
+          "position": 17
+        }
+      ]
+    },
+    {
+      "id": "1258114737208688640",
+      "name": "Season 2 Review",
+      "position": 5,
+      "channels": [
+        {
+          "id": "1258115492061642822",
+          "name": "season-2-review",
+          "type": 0,
+          "typeName": "text",
+          "position": 18
+        }
+      ]
+    },
+    {
+      "id": "1318416849758847017",
+      "name": "Season 3 Review",
+      "position": 6,
+      "channels": [
+        {
+          "id": "1318416920248058007",
+          "name": "season-3-review",
+          "type": 0,
+          "typeName": "text",
+          "position": 19
+        }
+      ]
+    },
+    {
+      "id": "1389792306391023626",
+      "name": "Season 4 Review",
+      "position": 7,
+      "channels": [
+        {
+          "id": "1389792356533932072",
+          "name": "season-4-review",
+          "type": 0,
+          "typeName": "text",
+          "position": 20
+        }
+      ]
+    },
+    {
+      "id": "1410796245647233195",
+      "name": "Season 5 Review",
+      "position": 8,
+      "channels": [
+        {
+          "id": "1410796312752029787",
+          "name": "season-5-review",
+          "type": 0,
+          "typeName": "text",
+          "position": 21
+        }
+      ]
+    },
+    {
+      "id": "1429247813417566228",
+      "name": "AAB Doubles",
+      "position": 9,
+      "channels": [
+        {
+          "id": "1429248222723047555",
+          "name": "announcements",
+          "type": 0,
+          "typeName": "text",
+          "position": 22
+        },
+        {
+          "id": "1429248096835080202",
+          "name": "battle",
+          "type": 0,
+          "typeName": "text",
+          "position": 23
+        },
+        {
+          "id": "1429248168003895306",
+          "name": "general-chat",
+          "type": 0,
+          "typeName": "text",
+          "position": 24
+        },
+        {
+          "id": "1429247967486808234",
+          "name": "polls-and-voting",
+          "type": 0,
+          "typeName": "text",
+          "position": 25
+        },
+        {
+          "id": "1429248407272165376",
+          "name": "questions",
+          "type": 0,
+          "typeName": "text",
+          "position": 26
+        },
+        {
+          "id": "1429248434228957234",
+          "name": "rules",
+          "type": 0,
+          "typeName": "text",
+          "position": 27
+        },
+        {
+          "id": "1429248501564571856",
+          "name": "suggestions",
+          "type": 0,
+          "typeName": "text",
+          "position": 28
+        },
+        {
+          "id": "1429248689196765306",
+          "name": "team-names-and-logos",
+          "type": 0,
+          "typeName": "text",
+          "position": 29
+        },
+        {
+          "id": "1429248323604451381",
+          "name": "trades-and-transactions",
+          "type": 0,
+          "typeName": "text",
+          "position": 30
+        },
+        {
+          "id": "1429248563933610054",
+          "name": "video-content",
+          "type": 0,
+          "typeName": "text",
+          "position": 31
+        }
+      ]
+    },
+    {
+      "id": "1461567928804708574",
+      "name": "Average At Best Battle League",
+      "position": 10,
+      "channels": [
+        {
+          "id": "1461568485716004894",
+          "name": "bot-command-testing",
+          "type": 0,
+          "typeName": "text",
+          "position": 32
+        },
+        {
+          "id": "1461567986329714791",
+          "name": "announcements",
+          "type": 0,
+          "typeName": "text",
+          "position": 33
+        }
+      ]
+    }
+  ],
+  "uncategorized": [
+    {
+      "id": "1190512331009032302",
+      "name": "welcome",
+      "type": 0,
+      "typeName": "text"
+    },
+    {
+      "id": "1322331029146566656",
+      "name": "Mods",
+      "type": 2,
+      "typeName": "voice"
+    },
+    {
+      "id": "1190531695867330621",
+      "name": "league-changes",
+      "type": 0,
+      "typeName": "text"
+    }
+  ],
+  "flat": [
+    {
+      "id": "1190512330556063767",
+      "name": "Voice Channels",
+      "type": 4,
+      "typeName": "category",
+      "parent_id": null,
+      "position": 2
+    },
+    {
+      "id": "1190512331009032302",
+      "name": "welcome",
+      "type": 0,
+      "typeName": "text",
+      "parent_id": null,
+      "position": 0
+    },
+    {
+      "id": "1190512331009032303",
+      "name": "General",
+      "type": 2,
+      "typeName": "voice",
+      "parent_id": "1190512330556063767",
+      "position": 1
+    },
+    {
+      "id": "1190513002127048775",
+      "name": "rules",
+      "type": 0,
+      "typeName": "text",
+      "parent_id": "1408801550175830016",
+      "position": 7
+    },
+    {
+      "id": "1190513054593601658",
+      "name": "Pokemon Extras",
+      "type": 4,
+      "typeName": "category",
+      "parent_id": null,
+      "position": 1
+    },
+    {
+      "id": "1190513871098744872",
+      "name": "voting",
+      "type": 0,
+      "typeName": "text",
+      "parent_id": "1408801550175830016",
+      "position": 11
+    },
+    {
+      "id": "1190514178381844560",
+      "name": "questions",
+      "type": 0,
+      "typeName": "text",
+      "parent_id": "1408801550175830016",
+      "position": 6
+    },
+    {
+      "id": "1190520119949021244",
+      "name": "trades-and-transactions",
+      "type": 0,
+      "typeName": "text",
+      "parent_id": "1408801550175830016",
+      "position": 9
+    },
+    {
+      "id": "1190521133032808549",
+      "name": "suggestions",
+      "type": 0,
+      "typeName": "text",
+      "parent_id": "1408801550175830016",
+      "position": 8
+    },
+    {
+      "id": "1190531695867330621",
+      "name": "league-changes",
+      "type": 0,
+      "typeName": "text",
+      "parent_id": null,
+      "position": 1
+    },
+    {
+      "id": "1190533648391352440",
+      "name": "Draft League Docs",
+      "type": 4,
+      "typeName": "category",
+      "parent_id": null,
+      "position": 3
+    },
+    {
+      "id": "1190533743505575996",
+      "name": "docs",
+      "type": 0,
+      "typeName": "text",
+      "parent_id": "1190533648391352440",
+      "position": 16
+    },
+    {
+      "id": "1191355707296055306",
+      "name": "general-chat",
+      "type": 0,
+      "typeName": "text",
+      "parent_id": "1408801550175830016",
+      "position": 4
+    },
+    {
+      "id": "1196192255829086298",
+      "name": "battle",
+      "type": 0,
+      "typeName": "text",
+      "parent_id": "1408801550175830016",
+      "position": 3
+    },
+    {
+      "id": "1226363585815384177",
+      "name": "Season 1 Review",
+      "type": 4,
+      "typeName": "category",
+      "parent_id": null,
+      "position": 4
+    },
+    {
+      "id": "1226363715599863850",
+      "name": "season-1-review",
+      "type": 0,
+      "typeName": "text",
+      "parent_id": "1226363585815384177",
+      "position": 17
+    },
+    {
+      "id": "1258114737208688640",
+      "name": "Season 2 Review",
+      "type": 4,
+      "typeName": "category",
+      "parent_id": null,
+      "position": 5
+    },
+    {
+      "id": "1258115492061642822",
+      "name": "season-2-review",
+      "type": 0,
+      "typeName": "text",
+      "parent_id": "1258114737208688640",
+      "position": 18
+    },
+    {
+      "id": "1279902507346427935",
+      "name": "logos",
+      "type": 0,
+      "typeName": "text",
+      "parent_id": "1408801550175830016",
+      "position": 5
+    },
+    {
+      "id": "1318416849758847017",
+      "name": "Season 3 Review",
+      "type": 4,
+      "typeName": "category",
+      "parent_id": null,
+      "position": 6
+    },
+    {
+      "id": "1318416920248058007",
+      "name": "season-3-review",
+      "type": 0,
+      "typeName": "text",
+      "parent_id": "1318416849758847017",
+      "position": 19
+    },
+    {
+      "id": "1322331029146566656",
+      "name": "Mods",
+      "type": 2,
+      "typeName": "voice",
+      "parent_id": null,
+      "position": 0
+    },
+    {
+      "id": "1357802168031117586",
+      "name": "video-content",
+      "type": 0,
+      "typeName": "text",
+      "parent_id": "1408801550175830016",
+      "position": 10
+    },
+    {
+      "id": "1365498070862790739",
+      "name": "memes",
+      "type": 0,
+      "typeName": "text",
+      "parent_id": "1190513054593601658",
+      "position": 12
+    },
+    {
+      "id": "1367315535477604454",
+      "name": "pokémon-tcg",
+      "type": 0,
+      "typeName": "text",
+      "parent_id": "1190513054593601658",
+      "position": 14
+    },
+    {
+      "id": "1389792306391023626",
+      "name": "Season 4 Review",
+      "type": 4,
+      "typeName": "category",
+      "parent_id": null,
+      "position": 7
+    },
+    {
+      "id": "1389792356533932072",
+      "name": "season-4-review",
+      "type": 0,
+      "typeName": "text",
+      "parent_id": "1389792306391023626",
+      "position": 20
+    },
+    {
+      "id": "1408800830131540058",
+      "name": "Battle 1",
+      "type": 2,
+      "typeName": "voice",
+      "parent_id": "1190512330556063767",
+      "position": 2
+    },
+    {
+      "id": "1408801007323971594",
+      "name": "Battle 2",
+      "type": 2,
+      "typeName": "voice",
+      "parent_id": "1190512330556063767",
+      "position": 3
+    },
+    {
+      "id": "1408801550175830016",
+      "name": "AAB Singles",
+      "type": 4,
+      "typeName": "category",
+      "parent_id": null,
+      "position": 0
+    },
+    {
+      "id": "1408801974605975553",
+      "name": "announcements",
+      "type": 0,
+      "typeName": "text",
+      "parent_id": "1408801550175830016",
+      "position": 2
+    },
+    {
+      "id": "1408808089989152908",
+      "name": "pogo",
+      "type": 0,
+      "typeName": "text",
+      "parent_id": "1190513054593601658",
+      "position": 13
+    },
+    {
+      "id": "1410796245647233195",
+      "name": "Season 5 Review",
+      "type": 4,
+      "typeName": "category",
+      "parent_id": null,
+      "position": 8
+    },
+    {
+      "id": "1410796312752029787",
+      "name": "season-5-review",
+      "type": 0,
+      "typeName": "text",
+      "parent_id": "1410796245647233195",
+      "position": 21
+    },
+    {
+      "id": "1428746130115657899",
+      "name": "game-spoilers",
+      "type": 0,
+      "typeName": "text",
+      "parent_id": "1190513054593601658",
+      "position": 15
+    },
+    {
+      "id": "1429247813417566228",
+      "name": "AAB Doubles",
+      "type": 4,
+      "typeName": "category",
+      "parent_id": null,
+      "position": 9
+    },
+    {
+      "id": "1429247967486808234",
+      "name": "polls-and-voting",
+      "type": 0,
+      "typeName": "text",
+      "parent_id": "1429247813417566228",
+      "position": 25
+    },
+    {
+      "id": "1429248096835080202",
+      "name": "battle",
+      "type": 0,
+      "typeName": "text",
+      "parent_id": "1429247813417566228",
+      "position": 23
+    },
+    {
+      "id": "1429248168003895306",
+      "name": "general-chat",
+      "type": 0,
+      "typeName": "text",
+      "parent_id": "1429247813417566228",
+      "position": 24
+    },
+    {
+      "id": "1429248222723047555",
+      "name": "announcements",
+      "type": 0,
+      "typeName": "text",
+      "parent_id": "1429247813417566228",
+      "position": 22
+    },
+    {
+      "id": "1429248323604451381",
+      "name": "trades-and-transactions",
+      "type": 0,
+      "typeName": "text",
+      "parent_id": "1429247813417566228",
+      "position": 30
+    },
+    {
+      "id": "1429248407272165376",
+      "name": "questions",
+      "type": 0,
+      "typeName": "text",
+      "parent_id": "1429247813417566228",
+      "position": 26
+    },
+    {
+      "id": "1429248434228957234",
+      "name": "rules",
+      "type": 0,
+      "typeName": "text",
+      "parent_id": "1429247813417566228",
+      "position": 27
+    },
+    {
+      "id": "1429248501564571856",
+      "name": "suggestions",
+      "type": 0,
+      "typeName": "text",
+      "parent_id": "1429247813417566228",
+      "position": 28
+    },
+    {
+      "id": "1429248563933610054",
+      "name": "video-content",
+      "type": 0,
+      "typeName": "text",
+      "parent_id": "1429247813417566228",
+      "position": 31
+    },
+    {
+      "id": "1429248689196765306",
+      "name": "team-names-and-logos",
+      "type": 0,
+      "typeName": "text",
+      "parent_id": "1429247813417566228",
+      "position": 29
+    },
+    {
+      "id": "1461567928804708574",
+      "name": "Average At Best Battle League",
+      "type": 4,
+      "typeName": "category",
+      "parent_id": null,
+      "position": 10
+    },
+    {
+      "id": "1461567986329714791",
+      "name": "announcements",
+      "type": 0,
+      "typeName": "text",
+      "parent_id": "1461567928804708574",
+      "position": 33
+    },
+    {
+      "id": "1461568485716004894",
+      "name": "bot-command-testing",
+      "type": 0,
+      "typeName": "text",
+      "parent_id": "1461567928804708574",
+      "position": 32
+    }
+  ]
+}

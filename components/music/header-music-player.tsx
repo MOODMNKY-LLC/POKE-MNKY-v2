@@ -114,34 +114,26 @@ export function HeaderMusicPlayer() {
     handleNext()
   }
 
-  // Handle play/pause from header button
+  // Handle play/pause from header button (audio stays in DOM via PopoverContent forceMount)
   const handlePlayPause = () => {
-    // Find the audio element via media-controller (works whether popover is open or closed)
-    const mediaController = document.querySelector('media-controller[audio]') as any
-    if (mediaController) {
-      const playButton = mediaController.querySelector('media-play-button') as any
-      if (playButton) {
-        playButton.click()
+    const mediaController = document.querySelector('media-controller[audio]') as HTMLElement & { querySelector: (s: string) => HTMLElement | null } | null
+    const audio = mediaController?.querySelector?.('audio') as HTMLAudioElement | null
+    const target = audio ?? audioRef.current
+
+    if (target) {
+      if (target.paused) {
+        target.play().then(() => setIsPlaying(true)).catch(console.error)
       } else {
-        // Fallback: directly control audio element
-        const audio = mediaController.querySelector('audio') as HTMLAudioElement
-        if (audio) {
-          if (audio.paused) {
-            audio.play().then(() => setIsPlaying(true)).catch(console.error)
-          } else {
-            audio.pause()
-            setIsPlaying(false)
-          }
-        }
-      }
-    } else if (audioRef.current) {
-      // Fallback: use ref if available
-      if (audioRef.current.paused) {
-        audioRef.current.play().then(() => setIsPlaying(true)).catch(console.error)
-      } else {
-        audioRef.current.pause()
+        target.pause()
         setIsPlaying(false)
       }
+      return
+    }
+
+    // Fallback: try clicking media-chrome play button
+    const playButton = mediaController?.querySelector?.('media-play-button') as HTMLElement | null
+    if (playButton) {
+      playButton.click()
     }
   }
 
@@ -193,7 +185,7 @@ export function HeaderMusicPlayer() {
   // This ensures the music player is visible in production
   if (tracks.length === 0) {
     return (
-      <div className="hidden xl:flex items-center">
+      <div className="hidden sm:flex items-center">
         <Button
           variant="ghost"
           size="sm"
@@ -206,7 +198,7 @@ export function HeaderMusicPlayer() {
           title="No tracks available. Click to refresh."
         >
           <Music2 className="h-3.5 w-3.5" />
-          <span className="hidden 2xl:inline">Music</span>
+          <span className="hidden md:inline">Music</span>
         </Button>
       </div>
     )
@@ -214,7 +206,7 @@ export function HeaderMusicPlayer() {
 
   if (!isEnabled) {
     return (
-      <div className="hidden xl:flex items-center">
+      <div className="hidden sm:flex items-center">
         <Button
           variant="ghost"
           size="sm"
@@ -227,7 +219,7 @@ export function HeaderMusicPlayer() {
           className="h-8 gap-1.5 text-xs"
         >
           <Music2 className="h-3.5 w-3.5" />
-          <span className="hidden 2xl:inline">Music</span>
+          <span className="hidden md:inline">Music</span>
         </Button>
       </div>
     )
@@ -236,7 +228,7 @@ export function HeaderMusicPlayer() {
   if (!currentTrack) {
     // If enabled but no current track, show enable button again
     return (
-      <div className="hidden xl:flex items-center">
+      <div className="hidden sm:flex items-center">
         <Button
           variant="ghost"
           size="sm"
@@ -249,7 +241,7 @@ export function HeaderMusicPlayer() {
           className="h-8 gap-1.5 text-xs"
         >
           <Music2 className="h-3.5 w-3.5" />
-          <span className="hidden 2xl:inline">Music</span>
+          <span className="hidden md:inline">Music</span>
         </Button>
       </div>
     )
@@ -258,7 +250,7 @@ export function HeaderMusicPlayer() {
   const trackInfo = `${currentTrack.title}${currentTrack.artist ? ` • ${currentTrack.artist}` : ''}`
 
   return (
-    <div className="hidden xl:flex items-center gap-2 -ml-2">
+    <div className="hidden sm:flex items-center gap-2 -ml-2">
         {/* Play/Pause Button */}
         <Button
           variant="ghost"
@@ -302,6 +294,7 @@ export function HeaderMusicPlayer() {
             align="end"
             side="bottom"
             sideOffset={8}
+            forceMount
           >
           <div className="space-y-5">
             {/* Track Info */}

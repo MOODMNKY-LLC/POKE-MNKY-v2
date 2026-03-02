@@ -25,6 +25,7 @@ import type { User as SupabaseUser } from "@supabase/supabase-js"
 import { Badge } from "@/components/ui/badge"
 import { getCurrentUserProfile, type UserProfile } from "@/lib/rbac"
 import type { User } from "@supabase/supabase-js"
+import { ReferencePopoutSheet, type ReferencePopoutVariant } from "@/components/reference-popout-sheet"
 
 interface SiteHeaderProps {
   initialUser?: User | null
@@ -40,6 +41,8 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
   const [isLoading, setIsLoading] = useState(!hasServerData) // Start as false if we have server data
   // syncState removed - PokepediaSyncProvider deleted
   const [mounted, setMounted] = useState(false)
+  const [referencePopout, setReferencePopout] = useState<ReferencePopoutVariant>(null)
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const router = useRouter()
 
   // Only create Supabase client on the client side
@@ -348,8 +351,31 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
                     Videos
                   </Link>
                 </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-muted-foreground font-normal">League & dashboard guides</DropdownMenuLabel>
+                <DropdownMenuItem
+                  onClick={() => setReferencePopout("league")}
+                  className="cursor-pointer"
+                >
+                  <BookOpen className="mr-2 h-4 w-4" />
+                  League Features Guide (v3)
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setReferencePopout("dashboard")}
+                  className="cursor-pointer"
+                >
+                  <BookOpen className="mr-2 h-4 w-4" />
+                  Dashboard Guides &amp; References
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+
+            <ReferencePopoutSheet
+              open={referencePopout !== null}
+              onOpenChange={(open) => !open && setReferencePopout(null)}
+              variant={referencePopout}
+              onOpenLeagueInPopout={() => setReferencePopout("league")}
+            />
             
             {/* Divider */}
             <div className="h-6 w-px bg-border mx-1" />
@@ -519,7 +545,7 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
                 </Link>
               </Button>
             )}
-          <Sheet>
+          <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="sm" className="px-2" suppressHydrationWarning>
                 <Menu className="h-5 w-5" />
@@ -653,6 +679,28 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
                     <PlayCircle className="h-5 w-5" />
                     Videos
                   </Link>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMobileNavOpen(false)
+                      setReferencePopout("league")
+                    }}
+                    className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2 w-full text-left"
+                  >
+                    <BookOpen className="h-5 w-5" />
+                    League Features Guide (v3)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMobileNavOpen(false)
+                      setReferencePopout("dashboard")
+                    }}
+                    className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2 w-full text-left"
+                  >
+                    <BookOpen className="h-5 w-5" />
+                    Dashboard Guides &amp; References
+                  </button>
                 </div>
                 
                 {/* Divider */}

@@ -22,7 +22,7 @@ Invoke via **/discord-agent** (subagent) or by describing a Discord task; the ag
 
 ### Discord MCP
 
-- **discord_get_server_info** (guildId `1069695816001933332`): Get current categories and channels. Use to verify layout, plan moves, or cross-check after running scripts.
+- **discord_get_server_info** (guildId `1190512330556063764` for AAB league): Get current categories and channels. Use to verify layout, plan moves, or cross-check after running scripts.
 - **discord_send**: Plain text only; no embeds or images. For rich welcome messages use `scripts/post-discord-welcome-embed.mjs` with the bot token.
 - MCP has no "edit channel" or "move channel"; use REST API scripts (e.g. `move-discord-channels-phase2.mjs`, `discord-phase2-apps-category.mjs`) with `DISCORD_BOT_TOKEN_MNKY_VERSE` or the relevant bot token from env.
 
@@ -47,7 +47,7 @@ Invoke via **/discord-agent** (subagent) or by describing a Discord task; the ag
 
 | Doc | Purpose | When to Update |
 |-----|---------|----------------|
-| [docs/DISCORD-SERVER-MAP.md](docs/DISCORD-SERVER-MAP.md) | Canonical categories and channel IDs | After any channel/category change; run `scripts/fetch-discord-server-map.mjs` and replace map sections |
+| [docs/DISCORD-SERVER-MAP.md](docs/DISCORD-SERVER-MAP.md) | Canonical categories and channel IDs | After any channel/category change; run `pnpm discord:refresh-map` and update map sections |
 | [docs/DISCORD-MNKY-VERSE-BOT-DESIGN.md](docs/DISCORD-MNKY-VERSE-BOT-DESIGN.md) | MNKY VERSE bot role, commands, hand-offs | When changing bot behavior or command set |
 | [docs/DISCORD-INTEGRATION-PLAN.md](docs/DISCORD-INTEGRATION-PLAN.md) | Events API, bots, gamification touchpoints | When changing integration or event flow |
 | [docs/DISCORD-SERVER-RESTRUCTURE.md](docs/DISCORD-SERVER-RESTRUCTURE.md) | Restructure phases and rationale | When adding a new phase or changing structure |
@@ -55,7 +55,7 @@ Invoke via **/discord-agent** (subagent) or by describing a Discord task; the ag
 | [docs/DISCORD-PHASE2-WALKTHROUGH.md](docs/DISCORD-PHASE2-WALKTHROUGH.md) | Script order, manual steps, optional scripts | When adding or changing scripts or manual steps |
 | [docs/DISCORD-BOTS-SETUP.md](docs/DISCORD-BOTS-SETUP.md), [docs/DISCORD-BOTS-ENV.md](docs/DISCORD-BOTS-ENV.md) | Bot setup and env vars | When adding a bot or env variable |
 
-**Periodic updates:** After running any script that changes the server (channel move, category create, welcome embed), refresh the server map and update DISCORD-SERVER-MAP.md. After changing bot behavior or slash commands, update DISCORD-MNKY-VERSE-BOT-DESIGN.md or the relevant bot section in the restructure doc.
+**Periodic updates:** After running any script that changes the server (channel move, category create, welcome embed), run `pnpm discord:refresh-map` and update DISCORD-SERVER-MAP.md. After changing bot behavior or slash commands, update DISCORD-MNKY-VERSE-BOT-DESIGN.md or the relevant bot section in the restructure doc.
 
 ## Commands
 

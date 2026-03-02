@@ -189,6 +189,34 @@ export default async function DashboardSettingsPage({
                     Here you can manage your account, notifications (when available), theme and preferences, and restart coach onboarding. This Guides tab is the place for dashboard help.
                   </p>
                 </section>
+                <section>
+                  <h3 className="font-semibold mb-2">References</h3>
+                  <p className="text-muted-foreground mb-2">
+                    Full guides and documentation you can open from the app:
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                    <li>
+                      <Link href="/dashboard/guides/league-features-v3" className="text-primary hover:underline">
+                        League Features Guide (v3)
+                      </Link>
+                      {" "}
+                      — How to use Trade Block, Trade Offers, Free Agency, Tera Captains, midnight execution, and weekly roster view (all CHATGPT-V3 features built in app).
+                    </li>
+                    <li>
+                      <Link href="/dashboard/guides/discord-integration" className="text-primary hover:underline">
+                        Discord Integration Guide
+                      </Link>
+                      {" "}
+                      — Webhooks, bot commands, channel mapping, what’s working vs. gaps, and how to configure the league Discord server.
+                    </li>
+                    <li>
+                      Dashboard guide (above) — Overview, sidebar, Teams, League, Draft, Weekly Matches.
+                    </li>
+                  </ul>
+                  <p className="text-muted-foreground mt-2 text-xs">
+                    In the project repo: <code className="rounded bg-muted px-1">docs/LEAGUE-FEATURES-GUIDE-V3.md</code>, <code className="rounded bg-muted px-1">docs/DISCORD-INTEGRATION-GUIDE.md</code>, <code className="rounded bg-muted px-1">docs/DISCORD-SERVER-INTEGRATION-REPORT.md</code>, <code className="rounded bg-muted px-1">docs/DISCORD-SERVER-MAP.md</code>, <code className="rounded bg-muted px-1">CHATGPT-V3-UPDATE.md</code>.
+                  </p>
+                </section>
               </CardContent>
             </Card>
           </TabsContent>

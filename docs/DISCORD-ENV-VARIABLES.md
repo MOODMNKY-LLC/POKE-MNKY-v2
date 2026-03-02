@@ -30,6 +30,12 @@ DISCORD_CLIENT_SECRET=your-discord-client-secret
 # Discord Public Key (Optional - for webhooks)
 # Used for: Verifying Discord webhook signatures
 DISCORD_PUBLIC_KEY=your-discord-public-key
+
+# App base URL (for Discord bot API calls and Supabase Edge Function)
+# Local: http://localhost:3000
+# Production: https://poke-mnky.moodmnky.com
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+APP_BASE_URL=http://localhost:3000
 ```
 
 ## Features That Use These Variables
