@@ -4,6 +4,9 @@
  * are processed in-process (no Supabase round-trip), staying under Discord’s 3s limit.
  */
 
+import { getWhoamiData } from "@/lib/discord/whoami-data"
+import { getDraftStatusData } from "@/lib/discord/draft-status-data"
+
 const MESSAGE_FLAG_EPHEMERAL = 64
 
 interface DiscordOption {
@@ -53,8 +56,9 @@ async function callApp(
     method,
     headers: {
       "Content-Type": "application/json",
-      // Use custom header for internal calls; Vercel can strip Authorization on same-origin requests
+      Authorization: `Bearer ${botKey}`,
       "X-Discord-Bot-Key": botKey,
+      "X-API-Key": botKey,
     },
     body: body ? JSON.stringify(body) : undefined,
   })
@@ -171,27 +175,14 @@ export async function handleApplicationCommand(
   switch (cmd) {
     case "whoami": {
       const seasonId = getOptString(options, "season_id")
-      let path = `/api/discord/coach/whoami?discord_user_id=${encodeURIComponent(userId)}`
-      if (seasonId) path += `&season_id=${encodeURIComponent(seasonId)}`
-      const result = await callApp(baseUrl, botKey, "GET", path)
-      content = buildContent("whoami", result.data, result.error)
+      const result = await getWhoamiData(userId, seasonId ?? undefined)
+      content = buildContent("whoami", result.ok ? result : null, result.error)
       break
     }
     case "draftstatus": {
-      let seasonId = getOptString(options, "season_id")
-      if (!seasonId && guildId) {
-        const cfgRes = await callApp(
-          baseUrl,
-          botKey,
-          "GET",
-          `/api/discord/guild/config?guild_id=${encodeURIComponent(guildId)}`
-        )
-        const cfg = cfgRes.data as { default_season_id?: string }
-        seasonId = cfg?.default_season_id
-      }
-      const path = `/api/discord/draft/status?discord_user_id=${encodeURIComponent(userId)}&guild_id=${encodeURIComponent(guildId)}${seasonId ? `&season_id=${encodeURIComponent(seasonId)}` : ""}`
-      const result = await callApp(baseUrl, botKey, "GET", path)
-      content = buildContent("draftstatus", result.data, result.error)
+      const seasonId = getOptString(options, "season_id") ?? null
+      const result = await getDraftStatusData(userId, guildId || null, seasonId)
+      content = buildContent("draftstatus", result.ok ? result : null, result.error)
       break
     }
     case "getseason": {

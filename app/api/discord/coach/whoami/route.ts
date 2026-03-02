@@ -15,12 +15,11 @@
  */
 
 import { NextRequest, NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
 import { validateBotKeyPresent } from "@/lib/auth/bot-key"
+import { getWhoamiData } from "@/lib/discord/whoami-data"
 
 export async function GET(request: NextRequest) {
   try {
-    // Validate bot key
     const botKeyValidation = validateBotKeyPresent(request)
     if (!botKeyValidation.valid || !botKeyValidation.botKey) {
       return NextResponse.json(
@@ -44,110 +43,14 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    if (!supabaseUrl || !serviceRoleKey) {
+    const result = await getWhoamiData(discordUserId, seasonId ?? undefined)
+    if (result.error && !result.ok) {
       return NextResponse.json(
-        { ok: false, error: "Supabase configuration missing" },
-        { status: 500 }
+        { ok: false, error: result.error },
+        { status: result.error === "Supabase configuration missing" ? 500 : 400 }
       )
     }
-
-    const supabase = createClient(supabaseUrl, serviceRoleKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    })
-
-    // Resolve coach by Discord ID
-    const { data: coach, error: coachError } = await supabase
-      .from("coaches")
-      .select("id, coach_name, discord_user_id, showdown_username, active")
-      .eq("discord_user_id", discordUserId)
-      .single()
-
-    if (coachError || !coach) {
-      return NextResponse.json({
-        ok: true,
-        coach: null,
-        teams: [],
-        season_team: null,
-        found: false,
-      })
-    }
-
-    // Get all teams for this coach
-    const { data: teams, error: teamsError } = await supabase
-      .from("teams")
-      .select(
-        `
-        id,
-        team_name,
-        franchise_key,
-        seasons:season_teams!inner (
-          id,
-          name
-        )
-      `
-      )
-      .eq("coach_id", coach.id)
-
-    // Resolve season team if season provided
-    let seasonTeam = null
-    if (seasonId) {
-      const { data: seasonTeamData } = await supabase
-        .from("teams")
-        .select(
-          `
-          id,
-          team_name,
-          franchise_key,
-          seasons:season_teams!inner (
-            id,
-            name
-          )
-        `
-        )
-        .eq("coach_id", coach.id)
-        .eq("season_teams.season_id", seasonId)
-        .single()
-
-      if (seasonTeamData) {
-        seasonTeam = {
-          id: seasonTeamData.id,
-          team_name: seasonTeamData.team_name,
-          franchise_key: seasonTeamData.franchise_key,
-          season: {
-            id: (seasonTeamData.seasons as any).id,
-            name: (seasonTeamData.seasons as any).name,
-          },
-        }
-      }
-    }
-
-    // Format teams response
-    const formattedTeams = (teams || []).map((team: any) => ({
-      id: team.id,
-      team_name: team.team_name,
-      franchise_key: team.franchise_key,
-      seasons: Array.isArray(team.seasons) ? team.seasons : [],
-    }))
-
-    return NextResponse.json({
-      ok: true,
-      coach: {
-        id: coach.id,
-        coach_name: coach.coach_name,
-        discord_user_id: coach.discord_user_id,
-        showdown_username: coach.showdown_username,
-        active: coach.active,
-      },
-      teams: formattedTeams,
-      season_team: seasonTeam,
-      found: true,
-    })
+    return NextResponse.json(result)
   } catch (error: any) {
     console.error("Discord coach whoami endpoint error:", error)
     return NextResponse.json(

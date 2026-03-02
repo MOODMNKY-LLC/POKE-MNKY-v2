@@ -7,14 +7,19 @@ import { NextRequest } from "next/server"
 
 /** Custom header for internal bot auth (Vercel may strip Authorization on same-origin requests) */
 export const DISCORD_BOT_KEY_HEADER = "x-discord-bot-key"
+/** Alternative header (some proxies allow X-API-Key when they strip others) */
+const API_KEY_HEADER = "x-api-key"
 
 /**
- * Extract bot key from Authorization header or X-Discord-Bot-Key (for internal calls).
- * Prefer the custom header so self-calls from the interactions route work on Vercel.
+ * Extract bot key from (in order): X-Discord-Bot-Key, X-API-Key, Authorization.
+ * Internal server-to-server calls send all three so at least one survives.
  */
 export function extractBotKey(request: NextRequest): string | null {
   const customKey = request.headers.get(DISCORD_BOT_KEY_HEADER)?.trim()
   if (customKey) return customKey
+
+  const apiKey = request.headers.get(API_KEY_HEADER)?.trim()
+  if (apiKey) return apiKey
 
   const authHeader = request.headers.get("authorization")
   if (!authHeader) return null
@@ -28,6 +33,7 @@ export function extractBotKey(request: NextRequest): string | null {
 /**
  * Validate bot key is present and, when DISCORD_BOT_API_KEY is set, matches it.
  * Use this for Discord app API routes so only the configured bot can call them.
+ * Accepts Authorization: Bearer <key> or X-Discord-Bot-Key: <key> (Vercel may strip Authorization).
  */
 export function validateBotKeyPresent(request: NextRequest): {
   valid: boolean
@@ -35,12 +41,23 @@ export function validateBotKeyPresent(request: NextRequest): {
   error?: string
 } {
   const botKey = extractBotKey(request)
+  const hasAuth = !!request.headers.get("authorization")
+  const hasXKey = !!request.headers.get(DISCORD_BOT_KEY_HEADER)
+  const hasApiKey = !!request.headers.get(API_KEY_HEADER)
 
   if (!botKey) {
+    console.warn(
+      "[bot-key] Auth failed: has Authorization:",
+      hasAuth,
+      "has X-Discord-Bot-Key:",
+      hasXKey,
+      "has X-API-Key:",
+      hasApiKey
+    )
     return {
       valid: false,
       botKey: null,
-      error: "Missing Authorization header with bot key",
+      error: "Missing bot key (send Authorization: Bearer <key> or X-Discord-Bot-Key)",
     }
   }
 
