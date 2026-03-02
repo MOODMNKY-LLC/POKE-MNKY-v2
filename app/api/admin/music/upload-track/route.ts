@@ -3,7 +3,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/rbac'
 import { createServiceRoleClient } from '@/lib/supabase/service'
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
+const MAX_FILE_SIZE = 60 * 1024 * 1024 // 60MB
 const MUSIC_BUCKET = 'music-tracks'
 
 /**
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
     // Validate file size
     if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json(
-        { error: `File size exceeds 10MB limit. File is ${(file.size / (1024 * 1024)).toFixed(2)}MB` },
+        { error: `File size exceeds 60MB limit. File is ${(file.size / (1024 * 1024)).toFixed(2)}MB` },
         { status: 400 }
       )
     }

@@ -9,7 +9,7 @@ import { Upload, Music2, X, Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
+const MAX_FILE_SIZE = 60 * 1024 * 1024 // 60MB
 const ACCEPT_AUDIO = "audio/mpeg,audio/mp3,audio/ogg,audio/wav,audio/webm,audio/mp4,audio/x-m4a"
 
 export interface MusicFileUploadProps {
@@ -51,7 +51,7 @@ export function MusicFileUpload({ onUploadComplete, className }: MusicFileUpload
     if (selectedFile.size > MAX_FILE_SIZE) {
       toast({
         title: "File too large",
-        description: `Maximum file size is 10 MB. Your file is ${(selectedFile.size / (1024 * 1024)).toFixed(2)} MB.`,
+        description: `Maximum file size is 60 MB. Your file is ${(selectedFile.size / (1024 * 1024)).toFixed(2)} MB.`,
         variant: "destructive",
       })
       return
@@ -129,10 +129,22 @@ export function MusicFileUpload({ onUploadComplete, className }: MusicFileUpload
 
       setUploadProgress(90)
 
-      const data = await response.json()
+      // Parse response safely - Vercel returns plain text (e.g. "Request Entity Too Large") for 413
+      let data: { error?: string }
+      const contentType = response.headers.get("content-type") ?? ""
+      try {
+        const text = await response.text()
+        data = contentType.includes("application/json") ? JSON.parse(text) : { error: text || response.statusText }
+      } catch {
+        data = { error: response.status === 413 ? "File too large. Max 60MB." : "Upload failed" }
+      }
 
       if (!response.ok) {
-        throw new Error(data.error || "Upload failed")
+        throw new Error(
+            response.status === 413
+            ? "File too large. Maximum 60MB."
+            : data.error || "Upload failed"
+        )
       }
 
       setUploadProgress(100)
@@ -211,7 +223,7 @@ export function MusicFileUpload({ onUploadComplete, className }: MusicFileUpload
                 <Upload className="h-10 w-10 text-muted-foreground" />
                 <p className="text-sm font-medium">Drag and drop or click to upload</p>
                 <p className="text-xs text-muted-foreground">
-                  Maximum file size: 10 MB · MP3, OGG, WAV, WebM, M4A
+                  Maximum file size: 60 MB · MP3, OGG, WAV, WebM, M4A
                 </p>
               </>
             )}
