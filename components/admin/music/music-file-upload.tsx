@@ -8,8 +8,9 @@ import { Progress } from "@/components/ui/progress"
 import { Upload, Music2, X, Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
+import { createClient } from "@/lib/supabase/client"
 
-const MAX_FILE_SIZE = 60 * 1024 * 1024 // 60MB
+const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB (matches Supabase bucket limit; direct upload bypasses Vercel 4.5MB)
 const ACCEPT_AUDIO = "audio/mpeg,audio/mp3,audio/ogg,audio/wav,audio/webm,audio/mp4,audio/x-m4a"
 
 export interface MusicFileUploadProps {
@@ -51,7 +52,7 @@ export function MusicFileUpload({ onUploadComplete, className }: MusicFileUpload
     if (selectedFile.size > MAX_FILE_SIZE) {
       toast({
         title: "File too large",
-        description: `Maximum file size is 60 MB. Your file is ${(selectedFile.size / (1024 * 1024)).toFixed(2)} MB.`,
+        description: `Maximum file size is 50 MB. Your file is ${(selectedFile.size / (1024 * 1024)).toFixed(2)} MB.`,
         variant: "destructive",
       })
       return
@@ -114,37 +115,54 @@ export function MusicFileUpload({ onUploadComplete, className }: MusicFileUpload
     setUploadProgress(10)
 
     try {
-      const formData = new FormData()
-      formData.append("file", file)
-      formData.append("title", title.trim())
-      formData.append("artist", artist.trim() || "Unknown Artist")
-      formData.append("moodTags", moodTags.trim())
+      const supabase = createClient()
 
-      setUploadProgress(30)
+      // Generate storage path (same logic as legacy API)
+      const sanitizedTitle = title
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+      const fileExt = file.name.split(".").pop() || "mp3"
+      const fileName = `${Date.now()}-${sanitizedTitle}.${fileExt}`
+      const storagePath = `tracks/${fileName}`
 
-      const response = await fetch("/api/admin/music/upload-track", {
+      setUploadProgress(20)
+
+      // Upload directly to Supabase Storage (bypasses Vercel 4.5MB body limit)
+      const { error: uploadError } = await supabase.storage
+        .from("music-tracks")
+        .upload(storagePath, file, {
+          contentType: file.type,
+          cacheControl: "31536000",
+          upsert: false,
+        })
+
+      setUploadProgress(70)
+
+      if (uploadError) {
+        throw new Error(uploadError.message)
+      }
+
+      // Create DB record via API (metadata only, small payload)
+      const response = await fetch("/api/admin/music/create-track-record", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          storagePath,
+          title: title.trim(),
+          artist: artist.trim() || "Unknown Artist",
+          moodTags: moodTags.trim(),
+          fileSize: file.size,
+        }),
       })
 
       setUploadProgress(90)
 
-      // Parse response safely - Vercel returns plain text (e.g. "Request Entity Too Large") for 413
-      let data: { error?: string }
-      const contentType = response.headers.get("content-type") ?? ""
-      try {
-        const text = await response.text()
-        data = contentType.includes("application/json") ? JSON.parse(text) : { error: text || response.statusText }
-      } catch {
-        data = { error: response.status === 413 ? "File too large. Max 60MB." : "Upload failed" }
-      }
+      const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(
-            response.status === 413
-            ? "File too large. Maximum 60MB."
-            : data.error || "Upload failed"
-        )
+        throw new Error(data.error || "Failed to save track metadata")
       }
 
       setUploadProgress(100)
@@ -223,7 +241,7 @@ export function MusicFileUpload({ onUploadComplete, className }: MusicFileUpload
                 <Upload className="h-10 w-10 text-muted-foreground" />
                 <p className="text-sm font-medium">Drag and drop or click to upload</p>
                 <p className="text-xs text-muted-foreground">
-                  Maximum file size: 60 MB · MP3, OGG, WAV, WebM, M4A
+                  Maximum file size: 50 MB · MP3, OGG, WAV, WebM, M4A
                 </p>
               </>
             )}
