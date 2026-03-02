@@ -75,9 +75,17 @@ After deployment, set **Interactions Endpoint URL** in the Developer Portal to t
 
 ---
 
-## 3. Command → API Mapping
+## 3. Command handling and timeouts
 
-Slash commands are handled by the Edge Function, which forwards to the Next.js app:
+When using **Option A** (Next.js URL), slash commands are handled **in the Next.js route** (`app/api/discord/interactions/route.ts`), which calls app APIs (whoami, draft status, etc.) directly. This avoids a round-trip to the Supabase Edge Function and keeps the response within Discord’s **3 second** limit. If you see “POKE MNKY didn’t respond in time”, ensure the Interactions Endpoint URL is the Next.js URL and that `DISCORD_BOT_API_KEY` and a base URL (`VERCEL_URL` is set automatically on Vercel; or `APP_BASE_URL` / `NEXT_PUBLIC_APP_URL`) are configured.
+
+**Debugging with Vercel CLI:** From the project root, run `vercel logs <deployment-url>` (e.g. `vercel logs https://poke-mnky-moodmnky-com.vercel.app`) to stream runtime logs while you trigger a slash command. Use the deployment URL from the Vercel dashboard or `vercel ls`.
+
+---
+
+## 4. Command → API Mapping
+
+Slash commands are handled by the Next.js route (Option A) or the Edge Function (Option B), which call the Next.js app:
 
 | Command | App API | Method |
 |---------|---------|--------|
@@ -93,7 +101,7 @@ See [docs/DISCORD-BOT-API-WIRING.md](docs/DISCORD-BOT-API-WIRING.md) for full ma
 
 ---
 
-## 4. Verify-User (Linked Roles)
+## 5. Verify-User (Linked Roles)
 
 - **Page:** `app/verify-user/page.tsx` — starts Discord OAuth2 with `role_connections.write` and `identify`.
 - **Callback:** `app/verify-user/callback/page.tsx` and `POST /api/discord/verify-role-connection` exchange the code for a token and update the user’s application role connection metadata via Discord API and show “Connected” or redirect back to Discord.
@@ -101,14 +109,14 @@ See [docs/DISCORD-BOT-API-WIRING.md](docs/DISCORD-BOT-API-WIRING.md) for full ma
 
 ---
 
-## 5. Terms of Service and Privacy Policy
+## 6. Terms of Service and Privacy Policy
 
 - **Pages:** `app/terms-of-service/page.tsx` and `app/privacy-policy/page.tsx`.
 - Static content or redirects; no auth. Set the URLs in the Developer Portal as above.
 
 ---
 
-## 6. Server File Copy (Legacy Bot on 10.3.0.119)
+## 7. Server File Copy (Legacy Bot on 10.3.0.119)
 
 The previous Discord bot ran on `moodmnky@10.3.0.119` as a Docker service (`tools/discord-bot` in the server’s POKE-MNKY clone). The following was copied into this repo for reference and migration:
 
@@ -123,7 +131,7 @@ Access: `ssh moodmnky@10.3.0.119` (use WSL + sshpass if needed).
 
 ---
 
-## 7. Environment Summary
+## 8. Environment Summary
 
 | Variable | Where | Purpose |
 |---------|--------|---------|

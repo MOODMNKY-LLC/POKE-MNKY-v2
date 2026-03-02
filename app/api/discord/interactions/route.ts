@@ -1,20 +1,24 @@
 /**
  * Discord Interactions Endpoint (Next.js API route).
  *
- * Use this URL as the Interactions Endpoint URL in the Discord Developer Portal when
- * the Supabase Edge Function returns 401 (e.g. signature headers stripped by the proxy).
- * This route receives the request directly from Discord, verifies the signature, then
- * either responds to PING or forwards APPLICATION_COMMAND to the Supabase Edge Function.
+ * Receives Discord POSTs, verifies signature, responds to PING, and handles
+ * APPLICATION_COMMAND in-process (calls app APIs directly) so we stay under
+ * Discord’s 3s limit. No Supabase round-trip for commands.
  *
  * Set in Discord: https://<your-app-domain>/api/discord/interactions
  *
- * Env: DISCORD_PUBLIC_KEY, DISCORD_BOT_API_KEY, NEXT_PUBLIC_SUPABASE_URL
+ * Env: DISCORD_PUBLIC_KEY, DISCORD_BOT_API_KEY, VERCEL_URL or APP_BASE_URL or NEXT_PUBLIC_APP_URL
  */
 
 import { NextRequest, NextResponse } from "next/server"
 import { verifyDiscordInteraction } from "@/lib/discord/verify-interaction"
+import {
+  handleApplicationCommand,
+  type InteractionPayload,
+} from "@/lib/discord/interactions-handler"
 
 const INTERACTION_TYPE_PING = 1
+const INTERACTION_TYPE_APPLICATION_COMMAND = 2
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,9 +40,9 @@ export async function POST(request: NextRequest) {
       return new NextResponse("Bad request signature.", { status: 401 })
     }
 
-    let payload: { type: number }
+    let payload: InteractionPayload
     try {
-      payload = JSON.parse(rawBody) as { type: number }
+      payload = JSON.parse(rawBody) as InteractionPayload
     } catch {
       return NextResponse.json({ error: "Invalid JSON" }, { status: 400 })
     }
@@ -47,33 +51,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ type: 1 })
     }
 
-    const botKey = process.env.DISCORD_BOT_API_KEY
-    const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").replace(/\/rest\/v1.*$/, "")
-    const functionUrl = `${supabaseUrl}/functions/v1/discord-interactions`
+    if (payload.type === INTERACTION_TYPE_APPLICATION_COMMAND && payload.data) {
+      const botKey = process.env.DISCORD_BOT_API_KEY
+      const baseUrl =
+        process.env.VERCEL_URL
+          ? `https://${process.env.VERCEL_URL}`
+          : (process.env.APP_BASE_URL || process.env.NEXT_PUBLIC_APP_URL || "").replace(/\/$/, "")
 
-    if (!botKey || !supabaseUrl) {
-      return NextResponse.json(
-        { type: 4, data: { content: "Bot not fully configured.", flags: 64 } },
-        { status: 200 }
-      )
+      if (!botKey || !baseUrl) {
+        return NextResponse.json(
+          { type: 4, data: { content: "Bot not fully configured.", flags: 64 } },
+          { status: 200 }
+        )
+      }
+
+      const response = await handleApplicationCommand(payload, baseUrl, botKey)
+      return NextResponse.json(response, { status: 200 })
     }
 
-    const res = await fetch(functionUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Discord-Verified": botKey,
-      },
-      body: rawBody,
-    })
-
-    const responseBody = await res.text()
-    const contentType = res.headers.get("Content-Type") ?? "application/json"
-
-    return new NextResponse(responseBody, {
-      status: res.status,
-      headers: { "Content-Type": contentType },
-    })
+    return NextResponse.json({ error: "Unknown interaction type" }, { status: 400 })
   } catch (err) {
     console.error("discord interactions route error:", err)
     return NextResponse.json(
