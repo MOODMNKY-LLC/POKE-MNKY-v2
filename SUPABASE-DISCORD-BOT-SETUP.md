@@ -23,8 +23,16 @@ Configure these in [Discord Developer Portal](https://discord.com/developers/app
 
 | Setting | URL |
 |--------|-----|
-| **Interactions Endpoint URL** | `https://<project-ref>.supabase.co/functions/v1/discord-interactions` |
+| **Interactions Endpoint URL** | Use **Option A** (Next.js) or **Option B** (Supabase) below. |
 | **Linked Roles Verification URL** | `https://poke-mnky.moodmnky.com/verify-user` |
+
+**Option A — Next.js (recommended if Supabase returns 401):**  
+`https://poke-mnky.moodmnky.com/api/discord/interactions`  
+Discord hits your app first; the route verifies the signature and responds to PING or forwards commands to the Supabase Edge Function. Requires `DISCORD_PUBLIC_KEY` and `DISCORD_BOT_API_KEY` in your Next.js env (e.g. Vercel).
+
+**Option B — Supabase Edge Function direct:**  
+`https://<project-ref>.supabase.co/functions/v1/discord-interactions`  
+If you get 401 (signature verification failed), switch to Option A.
 | **Terms of Service URL** | `https://poke-mnky.moodmnky.com/terms-of-service` |
 | **Privacy Policy URL** | `https://poke-mnky.moodmnky.com/privacy-policy` |
 
@@ -32,11 +40,15 @@ Replace `<project-ref>` with your Supabase project reference (from Supabase dash
 
 ---
 
-## 2. Interactions Endpoint (Supabase Edge Function)
+## 2. Interactions Endpoint
 
-- **Function:** `supabase/functions/discord-interactions/index.ts`
+**Next.js route (Option A):** `app/api/discord/interactions/route.ts`  
+Receives Discord POSTs directly, verifies Ed25519 signature, responds to PING, and forwards APPLICATION_COMMAND to the Supabase Edge Function with `X-Discord-Verified`. Use this URL in the Developer Portal when the Supabase URL returns 401 (e.g. signature headers stripped by the proxy).
+
+**Supabase Edge Function (Option B):** `supabase/functions/discord-interactions/index.ts`
 - **Behavior:**
-  - Verify every POST with Discord Ed25519 signature (`x-signature-ed25519`, `x-signature-timestamp`, raw body) using `DISCORD_PUBLIC_KEY`.
+  - If request has header `X-Discord-Verified` equal to `DISCORD_BOT_API_KEY`, treat as already verified (forwarded from Next.js).
+  - Else verify every POST with Discord Ed25519 signature (`x-signature-ed25519`, `x-signature-timestamp`, raw body) using `DISCORD_PUBLIC_KEY`.
   - Respond to **PING** (`type === 1`) with `{ type: 1 }` (PONG).
   - For **APPLICATION_COMMAND** (`type === 2`), route by `data.name` and call the Next.js app APIs with `Authorization: Bearer DISCORD_BOT_API_KEY`.
 - **Secrets** (set via `supabase secrets set` or `--env-file`):
@@ -57,7 +69,7 @@ After deployment, set **Interactions Endpoint URL** in the Developer Portal to t
 
 **Important:** The Interactions Endpoint is a **Supabase Edge Function**. It is **not** deployed by `pnpm build` or by pushing to GitHub. You must run `supabase functions deploy discord-interactions --no-verify-jwt` to deploy or update it. Secrets are set with `supabase secrets set` (or in Supabase Dashboard → Project Settings → Edge Functions → Secrets) and apply to the linked project.
 
-**Step-by-step for project `chmrszrwlfeqovwxyrmt`:** (1) `supabase link --project-ref chmrszrwlfeqovwxyrmt` (2) `supabase secrets set DISCORD_PUBLIC_KEY=bed1d73f9643f9532519c5a2049428dde7913c735e317bff8dd1f1b3d3f8c758` (3) `supabase functions deploy discord-interactions --no-verify-jwt` (4) In Discord set URL to `https://chmrszrwlfeqovwxyrmt.supabase.co/functions/v1/discord-interactions` and Save. **If it still fails:** Supabase Dashboard → Edge Functions → discord-interactions → Logs; click Save in Discord and check the **HTTP status** in the logs. **500** = missing `DISCORD_PUBLIC_KEY` or runtime error; **401** = signature verification failed (wrong public key, or key has extra spaces/newlines — ensure the secret is exactly the 64‑char hex from the Developer Portal). No logs at all = request blocked before the function (redeploy with `--no-verify-jwt`). After any code or secret change, redeploy: `supabase functions deploy discord-interactions --no-verify-jwt`.
+**Step-by-step for project `chmrszrwlfeqovwxyrmt`:** (1) `supabase link --project-ref chmrszrwlfeqovwxyrmt` (2) `supabase secrets set DISCORD_PUBLIC_KEY=bed1d73f9643f9532519c5a2049428dde7913c735e317bff8dd1f1b3d3f8c758` (3) `supabase functions deploy discord-interactions --no-verify-jwt` (4) In Discord set URL to `https://chmrszrwlfeqovwxyrmt.supabase.co/functions/v1/discord-interactions` and Save. **If it still fails:** Supabase Dashboard → Edge Functions → discord-interactions → Logs; click Save in Discord and check the **HTTP status** in the logs. **500** = missing `DISCORD_PUBLIC_KEY` or runtime error (the function now returns a JSON body with `error` and `message` and logs the exception — check logs for the exact message). **401** = signature verification failed. Check the log line `discord-interactions: verify failed` for `sig:`/`ts:` (if either is false, the request may be missing Discord’s signature headers). Otherwise ensure `DISCORD_PUBLIC_KEY` is exactly the 64‑char hex from Developer Portal → your app → General Information → Public Key (same app as the Interactions Endpoint). The function also tries canonical JSON body verification in case a proxy re-serializes the body. No logs at all = request blocked before the function (redeploy with `--no-verify-jwt`). Confirm the secret in Dashboard → Project Settings → Edge Functions → Secrets, then redeploy: `supabase functions deploy discord-interactions --no-verify-jwt`.
 
 **Local testing (same flow as [video](https://www.youtube.com/watch?v=J24Bvo_m7DM)):** Run `supabase functions serve discord-interactions --no-verify-jwt` and pass secrets via `--env-file` (e.g. a local `supabase/functions/discord-interactions/.env` with `DISCORD_PUBLIC_KEY`, `DISCORD_BOT_API_KEY`, `APP_BASE_URL`). Supabase serves functions on port **54321** at `/functions/v1/<function-name>`. Expose with ngrok: `ngrok http 54321`, then set Interactions Endpoint URL in the Developer Portal to `https://<ngrok-host>/functions/v1/discord-interactions`. Use `--no-verify-jwt` so Discord (which does not send a Supabase JWT) can reach the function; verification is done inside the function via the Discord signature.
 
@@ -117,8 +129,8 @@ Access: `ssh moodmnky@10.3.0.119` (use WSL + sshpass if needed).
 |---------|--------|---------|
 | `NEXT_PUBLIC_APP_URL` | Next.js / Vercel | App URL (production: `https://poke-mnky.moodmnky.com`) |
 | `APP_BASE_URL` | Next.js / Edge Function | Same; used by Supabase function to call app APIs |
-| `DISCORD_PUBLIC_KEY` | Supabase secrets | Verify interaction requests |
-| `DISCORD_BOT_API_KEY` | Supabase secrets + Next.js | Authenticate bot → app API calls |
+| `DISCORD_PUBLIC_KEY` | Supabase secrets + Next.js | Verify interaction requests (required for Next.js `/api/discord/interactions` and Edge Function) |
+| `DISCORD_BOT_API_KEY` | Supabase secrets + Next.js | Authenticate bot → app API calls; also used as `X-Discord-Verified` when Next.js forwards to Edge Function |
 | `DISCORD_BOT_TOKEN` | Bot / scripts | Register slash commands, guild APIs |
 | `DISCORD_CLIENT_ID` | Developer Portal / OAuth | Application ID |
 

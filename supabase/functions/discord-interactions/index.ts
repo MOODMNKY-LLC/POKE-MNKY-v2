@@ -149,40 +149,73 @@ function buildContentFromAppResponse(cmd: string, data: unknown, error?: string)
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method !== "POST") {
-    return new Response("Method Not Allowed", { status: 405 })
-  }
-
-  // Read raw body once (exact bytes Discord sent) for signature verification
-  const bodyBytes = await req.arrayBuffer()
-  const rawBody = new TextDecoder().decode(bodyBytes)
-
-  const publicKey = (Deno.env.get("DISCORD_PUBLIC_KEY") ?? "").trim()
-  const signature = req.headers.get("x-signature-ed25519") ?? req.headers.get("X-Signature-Ed25519")
-  const timestamp = req.headers.get("x-signature-timestamp") ?? req.headers.get("X-Signature-Timestamp")
-
-  if (!publicKey) {
-    console.error("Missing DISCORD_PUBLIC_KEY - set it with: supabase secrets set DISCORD_PUBLIC_KEY=<your-app-public-key>")
-    return jsonResponse({ error: "Missing DISCORD_PUBLIC_KEY. Set Supabase secret: supabase secrets set DISCORD_PUBLIC_KEY=<value>" }, 500)
-  }
-
-  if (!verifyDiscordRequest(bodyBytes, signature, timestamp, publicKey)) {
-    return new Response("Bad request signature.", { status: 401 })
-  }
-
-  let payload: InteractionPayload
   try {
-    payload = JSON.parse(rawBody) as InteractionPayload
-  } catch {
-    return jsonResponse({ error: "Invalid JSON" }, 400)
-  }
+    if (req.method !== "POST") {
+      return new Response("Method Not Allowed", { status: 405 })
+    }
 
-  // PING (Discord sends this when verifying the Interactions Endpoint URL; only publicKey required)
-  if (payload.type === INTERACTION_TYPE_PING) {
-    return jsonResponse({ type: INTERACTION_RESPONSE_PONG })
-  }
+    // Read raw body once (exact bytes Discord sent) for signature verification
+    const bodyBytes = await req.arrayBuffer()
+    const rawBody = new TextDecoder().decode(bodyBytes)
 
-  const botKey = Deno.env.get("DISCORD_BOT_API_KEY")
+    const forwardedSecret = req.headers.get("x-discord-verified")
+    const botKey = Deno.env.get("DISCORD_BOT_API_KEY")
+    const isForwardedFromNext = !!botKey && forwardedSecret === botKey
+
+    let verified = isForwardedFromNext
+    if (!verified) {
+      const publicKey = (Deno.env.get("DISCORD_PUBLIC_KEY") ?? "").trim()
+      const signature = req.headers.get("x-signature-ed25519") ?? req.headers.get("X-Signature-Ed25519")
+      const timestamp = req.headers.get("x-signature-timestamp") ?? req.headers.get("X-Signature-Timestamp")
+
+      if (!publicKey) {
+        console.error("discord-interactions: Missing DISCORD_PUBLIC_KEY")
+        return jsonResponse({ error: "Missing DISCORD_PUBLIC_KEY", hint: "Set Supabase secret: supabase secrets set DISCORD_PUBLIC_KEY=<app-public-key>" }, 500)
+      }
+
+      verified = verifyDiscordRequest(bodyBytes, signature, timestamp, publicKey)
+    }
+    if (!verified && !isForwardedFromNext && rawBody) {
+      const publicKey = (Deno.env.get("DISCORD_PUBLIC_KEY") ?? "").trim()
+      const signature = req.headers.get("x-signature-ed25519") ?? req.headers.get("X-Signature-Ed25519")
+      const timestamp = req.headers.get("x-signature-timestamp") ?? req.headers.get("X-Signature-Timestamp")
+      try {
+        const canonicalBody = JSON.stringify(JSON.parse(rawBody))
+        if (canonicalBody !== rawBody) {
+          verified = verifyDiscordRequest(canonicalBody, signature, timestamp, publicKey)
+        }
+      } catch {
+        // ignore
+      }
+    }
+    if (!verified) {
+      const signature = req.headers.get("x-signature-ed25519") ?? req.headers.get("X-Signature-Ed25519")
+      const timestamp = req.headers.get("x-signature-timestamp") ?? req.headers.get("X-Signature-Timestamp")
+      const publicKey = (Deno.env.get("DISCORD_PUBLIC_KEY") ?? "").trim()
+      const headerNames = Array.from(req.headers.keys()).filter((h) => h.toLowerCase().includes("signature") || h.toLowerCase().includes("timestamp"))
+      console.error(
+        "discord-interactions: verify failed",
+        "sig:", !!signature,
+        "ts:", !!timestamp,
+        "bodyLen:", bodyBytes.byteLength,
+        "keyLen:", publicKey.length,
+        "relevantHeaders:", headerNames.join(", ") || "(none)"
+      )
+      return new Response("Bad request signature.", { status: 401 })
+    }
+
+    let payload: InteractionPayload
+    try {
+      payload = JSON.parse(rawBody) as InteractionPayload
+    } catch {
+      return jsonResponse({ error: "Invalid JSON" }, 400)
+    }
+
+    // PING (Discord sends this when verifying the Interactions Endpoint URL; only publicKey required)
+    if (payload.type === INTERACTION_TYPE_PING) {
+      return jsonResponse({ type: INTERACTION_RESPONSE_PONG })
+    }
+
   const appBaseUrl = Deno.env.get("APP_BASE_URL") || Deno.env.get("NEXT_PUBLIC_APP_URL") || ""
   if (!botKey || !appBaseUrl) {
     console.error("Missing DISCORD_BOT_API_KEY or APP_BASE_URL for command handling")
@@ -379,4 +412,11 @@ Deno.serve(async (req: Request) => {
     type: INTERACTION_RESPONSE_CHANNEL_MESSAGE,
     data: { content: content.slice(0, 2000), flags: MESSAGE_FLAG_EPHEMERAL },
   })
+  } catch (err) {
+    console.error("discord-interactions error:", err)
+    return jsonResponse(
+      { error: "Internal error", message: err instanceof Error ? err.message : String(err) },
+      500
+    )
+  }
 })
