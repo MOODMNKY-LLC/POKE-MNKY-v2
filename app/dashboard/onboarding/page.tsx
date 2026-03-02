@@ -69,6 +69,9 @@ export default function CoachOnboardingPage() {
       if (Array.isArray(data.completed_steps)) setCompletedSteps(data.completed_steps)
       if (markComplete || step === "complete") {
         toast.success("Onboarding complete! Your dashboard will reflect this.")
+        if (data.summary) {
+          toast.info(data.summary, { duration: 6000 })
+        }
       }
     } finally {
       setSaving(false)

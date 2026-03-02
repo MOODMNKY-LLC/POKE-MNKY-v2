@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Plus, Library, Users } from "lucide-react"
 import Link from "next/link"
 import { LinkLeagueTeamButton } from "@/components/dashboard/link-league-team-button"
+import { SubmitForLeagueButton } from "@/components/dashboard/submit-for-league-button"
 
 export const dynamic = 'force-dynamic'
 
@@ -128,6 +129,10 @@ export default async function TeamsPage() {
                           <Button asChild variant="outline" size="sm">
                             <Link href={`/dashboard/teams/${team.id}`}>View</Link>
                           </Button>
+                          <SubmitForLeagueButton
+                            showdownTeamId={team.id}
+                            submittedForLeagueAt={team.submitted_for_league_at ?? null}
+                          />
                           {profile.role === "coach" && profile.team_id && (
                             <LinkLeagueTeamButton
                               showdownTeamId={team.id}

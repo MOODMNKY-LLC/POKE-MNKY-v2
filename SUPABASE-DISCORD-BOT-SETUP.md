@@ -152,7 +152,7 @@ Access: `ssh moodmnky@10.3.0.119` (use WSL + sshpass if needed).
 | `APP_BASE_URL` | Next.js / Edge Function | Same; used by Supabase function to call app APIs |
 | `DISCORD_PUBLIC_KEY` | Supabase secrets + Next.js | Verify interaction requests (required for Next.js `/api/discord/interactions` and Edge Function) |
 | `DISCORD_BOT_API_KEY` | Supabase secrets + Next.js | Authenticate bot → app API calls; also used as `X-Discord-Verified` when Next.js forwards to Edge Function |
-| `DISCORD_BOT_TOKEN` | Bot / scripts | Register slash commands, guild APIs |
+| `DISCORD_BOT_TOKEN` | Bot / scripts | Register slash commands, guild APIs; also used for in-app "Manage Discord Roles" (User Management). Bot needs **Manage Roles** in the server and its role must be **above** any role it assigns (Server Settings → Roles). |
 | `DISCORD_CLIENT_ID` | Developer Portal / OAuth | Application ID |
 
-See [docs/DISCORD-ENV-VARIABLES.md](docs/DISCORD-ENV-VARIABLES.md) for full list.
+See [docs/DISCORD-ENV-VARIABLES.md](docs/DISCORD-ENV-VARIABLES.md) for full list. If you get "Failed to add role: Missing Permissions", see [docs/DISCORD-ROLE-SYNC-SETUP.md](docs/DISCORD-ROLE-SYNC-SETUP.md) troubleshooting.

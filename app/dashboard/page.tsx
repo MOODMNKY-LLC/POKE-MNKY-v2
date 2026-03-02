@@ -19,8 +19,9 @@ import Link from "next/link"
 import { Trophy, Users, Calendar, BarChart3, Sword, BookOpen, ClipboardList, UserPlus } from "lucide-react"
 import { CoachStatusTicker } from "@/components/dashboard/coach-status-ticker"
 import { RecentActivityCard } from "@/components/dashboard/recent-activity-card"
-import { CoachCard as DefaultCoachCard } from "@/components/draft/coach-card"
-import { CoachCard as ConfigurableCoachCard } from "@/components/profile/coach-card"
+import { CoachCardWithToggle } from "@/components/dashboard/coach-card-with-toggle"
+import { YourTeamsSection } from "@/components/dashboard/your-teams-section"
+import { OnboardingCompletionCard } from "@/components/dashboard/onboarding-completion-card"
 
 // Role priority order: admin > commissioner > coach > spectator
 const ROLE_PRIORITY: Record<string, number> = {
@@ -59,8 +60,9 @@ export default async function DashboardPage() {
     .eq("is_current", true)
     .single()
 
-  // Fetch team data and overview stats for coaches
+  // Fetch team data, roster for coach card, and overview stats for coaches
   let team = null
+  let coachRoster: { pokemon_name: string; point_value: number }[] = []
   let overviewStats: {
     team_record?: { wins: number; losses: number; differential: number }
     draft_budget?: { total: number; spent: number; remaining: number }
@@ -101,6 +103,36 @@ export default async function DashboardPage() {
           spent: budget.spent_points ?? 0,
           remaining: budget.remaining_points ?? 0,
         }
+      }
+      // Latest roster snapshot for coach card (max week for this team+season)
+      const { data: maxWeekRow } = await supabase
+        .from("team_roster_versions")
+        .select("week_number")
+        .eq("team_id", profile.team_id)
+        .eq("season_id", season.id)
+        .order("week_number", { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      const weekNum = maxWeekRow?.week_number ?? 1
+      const { data: version } = await supabase
+        .from("team_roster_versions")
+        .select("snapshot")
+        .eq("team_id", profile.team_id)
+        .eq("season_id", season.id)
+        .eq("week_number", weekNum)
+        .maybeSingle()
+      const snapshot = (version?.snapshot ?? []) as Array<{ pokemon_id: string; points: number }>
+      if (snapshot.length > 0) {
+        const pokemonIds = snapshot.map((s) => s.pokemon_id)
+        const { data: pokemonRows } = await supabase
+          .from("pokemon")
+          .select("id, name")
+          .in("id", pokemonIds)
+        const byId = new Map((pokemonRows ?? []).map((p: { id: string; name: string }) => [p.id, p]))
+        coachRoster = snapshot.map((s) => ({
+          pokemon_name: byId.get(s.pokemon_id)?.name ?? "Unknown",
+          point_value: s.points,
+        }))
       }
       const { count: rosterCount } = await supabase
         .from("team_rosters")
@@ -201,22 +233,23 @@ export default async function DashboardPage() {
                   </p>
                 </div>
                 
-                {/* Coach Card - Takes 50% width on large screens, same as draft page */}
-                <div className="w-full flex items-center justify-center flex-shrink-0">
-                  {profile.role === "coach" && team ? (
-                    // Configurable coach card for actual coaches with team data
-                    <ConfigurableCoachCard team={team} userId={profile.id} />
-                  ) : (
-                    // Default coach card for non-coaches or coaches without team
-                    <>
-                      <div className="dark:hidden w-full">
-                        <DefaultCoachCard palette="red-blue" />
-                      </div>
-                      <div className="hidden dark:block w-full">
-                        <DefaultCoachCard palette="gold-black" />
-                      </div>
-                    </>
-                  )}
+                {/* Coach Card - Toggle demo vs real data; Your teams for coaches */}
+                <div className="w-full flex flex-col items-stretch gap-4 flex-shrink-0">
+                  <CoachCardWithToggle
+                    team={team}
+                    userId={profile.id}
+                    isCoach={profile.role === "coach"}
+                    roster={coachRoster}
+                    draftBudget={
+                      overviewStats.draft_budget
+                        ? {
+                            used: overviewStats.draft_budget.total - overviewStats.draft_budget.remaining,
+                            total: overviewStats.draft_budget.total,
+                          }
+                        : undefined
+                    }
+                  />
+                  {profile.role === "coach" && <YourTeamsSection />}
                 </div>
               </div>
             </div>
@@ -265,6 +298,9 @@ export default async function DashboardPage() {
               </Card>
             )}
 
+            {profile.onboarding_completed && profile.role === "coach" && (
+              <OnboardingCompletionCard />
+            )}
             {profile.onboarding_completed && <CoachStatusTicker />}
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

@@ -134,10 +134,24 @@ export async function PATCH(request: NextRequest) {
     })
   }
 
-  return NextResponse.json({
+  const payload: {
+    current_step: string
+    completed_steps: string[]
+    completed_at: string | null
+    updated_at: string | null
+    summary?: string
+    next_actions?: string[]
+  } = {
     current_step: updated.current_step,
-    completed_steps: updated.completed_steps,
+    completed_steps: updated.completed_steps as string[],
     completed_at: updated.completed_at,
     updated_at: updated.updated_at,
-  })
+  }
+  if (completedAt) {
+    payload.summary =
+      "You're set as a coach. You can use the Team Builder, Free Agency, and Weekly Matches."
+    payload.next_actions = ["Open Team Builder", "View My League Team", "View all guides"]
+  }
+
+  return NextResponse.json(payload)
 }
