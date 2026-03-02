@@ -57,15 +57,14 @@ export function StorageTab({ projectRef }: { projectRef: string }) {
       return
     }
 
+    const supabase = createBrowserClient()
     try {
-      // Try client-side API first
-      const { data, error } = await supabase.storage.createBucket(newBucketName, {
+      const { error } = await supabase.storage.createBucket(newBucketName, {
         public: false,
         fileSizeLimit: 52428800, // 50MB
       })
 
       if (error) {
-        // If client-side fails, try via admin API (uses service role)
         const response = await fetch("/api/admin/storage", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -75,19 +74,40 @@ export function StorageTab({ projectRef }: { projectRef: string }) {
             fileSizeLimit: 52428800,
           }),
         })
-        
+
         if (!response.ok) {
           const errorData = await response.json()
           throw new Error(errorData.error || "Failed to create bucket")
         }
       }
-      
+
       toast.success("Bucket created successfully")
       setNewBucketName("")
       loadBuckets()
     } catch (error: any) {
       console.error("Failed to create bucket:", error)
       toast.error("Failed to create bucket: " + (error.message || "Unknown error"))
+    }
+  }
+
+  async function ensureRequiredBuckets() {
+    setLoading(true)
+    try {
+      const response = await fetch("/api/admin/storage/ensure-buckets", { method: "POST" })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || "Failed to ensure buckets")
+      if (data.created?.length) {
+        toast.success(`Created bucket(s): ${data.created.join(", ")}`)
+      } else if (data.errors?.length) {
+        toast.error(data.errors.map((e: { bucket: string; error: string }) => `${e.bucket}: ${e.error}`).join("; "))
+      } else {
+        toast.success("Required buckets already exist")
+      }
+      loadBuckets()
+    } catch (error: any) {
+      toast.error(error.message || "Failed to ensure buckets")
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -120,9 +140,14 @@ export function StorageTab({ projectRef }: { projectRef: string }) {
               </CardTitle>
               <CardDescription>Manage file storage buckets for team logos, replays, and uploads</CardDescription>
             </div>
-            <Button onClick={loadBuckets} variant="outline" size="sm" disabled={loading}>
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Refresh"}
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={ensureRequiredBuckets} variant="secondary" size="sm" disabled={loading}>
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Ensure required buckets"}
+              </Button>
+              <Button onClick={loadBuckets} variant="outline" size="sm" disabled={loading}>
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Refresh"}
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
