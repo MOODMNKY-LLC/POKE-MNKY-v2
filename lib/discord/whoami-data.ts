@@ -45,11 +45,13 @@ export async function getWhoamiData(
     auth: { autoRefreshToken: false, persistSession: false },
   })
 
+  // Resolve coach by discord_user_id (bot canonical) or discord_id (set by assign_coach_to_team / link-account)
   const { data: coach, error: coachError } = await supabase
     .from("coaches")
     .select("id, coach_name, discord_user_id, showdown_username, active")
-    .eq("discord_user_id", discordUserId)
-    .single()
+    .or(`discord_user_id.eq.${discordUserId},discord_id.eq.${discordUserId}`)
+    .limit(1)
+    .maybeSingle()
 
   if (coachError || !coach) {
     return { ok: true, teams: [], season_team: null, found: false }
@@ -106,7 +108,7 @@ export async function getWhoamiData(
     coach: {
       id: coach.id,
       coach_name: coach.coach_name,
-      discord_user_id: coach.discord_user_id,
+      discord_user_id: coach.discord_user_id ?? discordUserId,
       showdown_username: coach.showdown_username ?? null,
       active: coach.active ?? false,
     },

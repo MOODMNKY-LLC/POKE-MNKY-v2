@@ -137,6 +137,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Sync coaches.discord_user_id so /whoami and bot commands work (user may already be a coach)
+    await serviceSupabase
+      .from("coaches")
+      .update({ discord_user_id: discordMember.user.id })
+      .eq("user_id", userId)
+
     // Log activity
     await serviceSupabase.from("user_activity_log").insert({
       user_id: user.id,

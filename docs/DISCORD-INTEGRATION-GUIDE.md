@@ -95,11 +95,20 @@ Implemented in **`lib/discord-commands/`** and backed by app APIs (using `DISCOR
 
 Bot registration and runtime are typically handled by an external integration worker or startup script; command logic lives in the repo.
 
-### 3.7 Admin Discord webhooks UI
+### 3.7 Coach identity in Discord (/whoami)
+
+For `/whoami` (and `/draftstatus`, `/pick`, `/search`) to work, the bot must resolve your Discord user to a **coach** in the app. **Admins** set this up:
+
+1. **Link Discord to the user’s profile** — Admin → User Management → select user → **Link Discord** → enter Discord username (or ID). This stores the Discord ID on the profile and, if the user already has a coach row, syncs it to the coach so the bot can resolve them.
+2. **Assign the user as a coach** — Use the assign-coach flow to assign that user to a team. That creates or updates the coach row and syncs the profile’s Discord ID to the coach, so `/whoami` and other bot commands work.
+
+Either order is fine (link then assign, or assign then link). If a coach sees “Your Discord account is not linked to a coach profile” when running `/whoami`, they should ask a commissioner or admin to link their Discord and ensure they are assigned as a coach. See **SUPABASE-DISCORD-BOT-SETUP.md** (section “Coach–Discord link for /whoami”) for full setup steps.
+
+### 3.8 Admin Discord webhooks UI
 
 - **Path:** `/admin/discord` (or equivalent under Admin).
 - **Features:** List, create, delete, enable/disable, and test webhooks stored in the `discord_webhooks` table.
-- Commissioners can point each webhook name to the correct Discord channel URL without editing code.
+- Commissioners can point each webhook name to the correct Discord channel URL without editing code. In **User Management**, coaches with Discord linked show “Bot OK (/whoami)” when their coach row is synced; otherwise “Re-save or re-assign for /whoami” so admins know the bot will work.
 
 ---
 

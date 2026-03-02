@@ -75,7 +75,12 @@ function buildContent(cmd: string, data: unknown, error?: string): string {
 
   switch (cmd) {
     case "whoami": {
-      if (!d?.found || !d?.coach) return "❌ Your Discord account is not linked to a coach profile."
+      if (!d?.found || !d?.coach)
+        return (
+          "❌ Your Discord account is not linked to a coach profile. " +
+          "Ask an admin to link your Discord in the app (User Management → Link Discord) and assign you as a coach. " +
+          "If you’re already a coach, ask your commissioner to re-link your Discord or re-assign you."
+        )
       const coach = d.coach as Record<string, unknown>
       const teams = (d.teams as Array<Record<string, unknown>>) ?? []
       const seasonTeam = d.season_team as Record<string, unknown> | null
@@ -88,7 +93,11 @@ function buildContent(cmd: string, data: unknown, error?: string): string {
       const season = d?.season as Record<string, unknown> | undefined
       const team = d?.team as Record<string, unknown> | undefined
       const coach = d?.coach as Record<string, unknown> | undefined
-      if (!coach?.linked) return "❌ Your Discord account is not linked to a coach."
+      if (!coach?.linked)
+        return (
+          "❌ Your Discord account is not linked to a coach. " +
+          "Ask an admin to link your Discord (User Management → Link Discord) and assign you as a coach."
+        )
       if (!team) return `✅ Season: ${season?.name ?? "—"}\nNo team in this season.`
       const budget = team.budget as Record<string, number> | undefined
       return (

@@ -363,9 +363,16 @@ function UsersManagementContent() {
                     </TableCell>
                     <TableCell>
                       {user.discord_username ? (
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm">{user.discord_username}</span>
-                          <DiscordRolesDialog userId={user.id} discordId={user.discord_id} />
+                        <div className="flex flex-col gap-0.5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm">{user.discord_username}</span>
+                            <DiscordRolesDialog userId={user.id} discordId={user.discord_id} />
+                          </div>
+                          {user.role === "coach" && (
+                            <span className="text-xs text-muted-foreground">
+                              {user.coach_bot_linked ? "Bot OK (/whoami)" : "Re-save or re-assign for /whoami"}
+                            </span>
+                          )}
                         </div>
                       ) : (
                         <div className="flex items-center gap-2">

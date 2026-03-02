@@ -78,12 +78,14 @@ export async function getDraftStatusData(
     return { ok: false, error: "Season not found" }
   }
 
+  // Resolve coach by discord_user_id (bot canonical) or discord_id (set by assign_coach_to_team / link-account)
   const { data: coach, error: coachError } = await supabase
     .from("coaches")
     .select("id, coach_name, discord_user_id, active")
-    .eq("discord_user_id", discordUserId)
+    .or(`discord_user_id.eq.${discordUserId},discord_id.eq.${discordUserId}`)
     .eq("active", true)
-    .single()
+    .limit(1)
+    .maybeSingle()
 
   const coachLinked = !!coach && !coachError
 
@@ -154,7 +156,7 @@ export async function getDraftStatusData(
       ? {
           id: coach.id,
           coach_name: coach.coach_name,
-          discord_user_id: coach.discord_user_id,
+          discord_user_id: coach.discord_user_id ?? discordUserId,
           linked: true,
         }
       : {
