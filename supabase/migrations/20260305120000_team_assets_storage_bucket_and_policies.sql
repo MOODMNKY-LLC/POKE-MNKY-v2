@@ -70,7 +70,4 @@ BEGIN
   END IF;
 END $$;
 
-COMMENT ON POLICY "Public can read team assets" ON storage.objects IS
-  'Allow public read for team-assets bucket (team avatars/logos in profile Coach Card).';
-COMMENT ON POLICY "Coaches can manage own team assets" ON storage.objects IS
-  'Coaches can upload/update/delete only under teams/<their profile.team_id>/ path.';
+-- Policies: Public read for team-assets; coaches can manage only teams/<their team_id>/; admins full access.

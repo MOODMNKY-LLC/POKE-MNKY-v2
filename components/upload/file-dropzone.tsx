@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect, useId } from "react"
 import { createBrowserClient } from "@/lib/supabase/client"
 import { Card } from "@/components/ui/card"
 import { Upload, Check } from "lucide-react"
@@ -27,6 +27,7 @@ export function FileDropzone({
   const [uploaded, setUploaded] = useState(false)
   const [dragOver, setDragOver] = useState(false)
   const [supabase, setSupabase] = useState<ReturnType<typeof createBrowserClient> | null>(null)
+  const inputId = useId()
 
   useEffect(() => {
     if (typeof window === "undefined") return
@@ -125,10 +126,10 @@ export function FileDropzone({
           accept={accept}
           onChange={handleFileSelect}
           className="hidden"
-          id="file-upload"
+          id={inputId}
           disabled={uploading}
         />
-        <label htmlFor="file-upload" className="cursor-pointer text-sm text-primary hover:underline">
+        <label htmlFor={inputId} className="cursor-pointer text-sm text-primary hover:underline">
           Select files
         </label>
       </div>
