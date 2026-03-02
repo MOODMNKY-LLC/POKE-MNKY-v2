@@ -130,7 +130,7 @@ export default function CoachOnboardingPage() {
               {currentStep === "welcome" &&
                 "Get started with the POKE MNKY league. Coaches draft a roster, manage free agency and trades, and submit weekly match results."}
               {currentStep === "register_as_coach" &&
-                "To become a coach, you need to be assigned the coach role and a team. Join the league Discord and contact the commissioner or admin, or request access through your server."}
+                "To become a coach, you need to be assigned the coach role and a team. Join the league Discord and contact the commissioner or admin, or request access through your server. For Discord commands like /whoami to work, an admin must link your Discord to your account and assign you as a coach."}
               {currentStep === "link_team" &&
                 "Once you are assigned as a coach, your league team will appear in the dashboard under My League Team. You can view roster, free agency, trade block, and stats."}
               {currentStep === "team_builder_intro" &&

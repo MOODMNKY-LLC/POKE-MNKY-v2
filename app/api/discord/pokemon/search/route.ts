@@ -106,13 +106,14 @@ export async function GET(request: NextRequest) {
 
       // If discord_user_id provided, also exclude that user's team's Pokemon
       if (discordUserId && ownedPicks) {
-        // Resolve coach and team
+        // Resolve coach by discord_user_id or discord_id (legacy link from assign_coach)
         const { data: coach } = await supabase
           .from("coaches")
           .select("id")
-          .eq("discord_user_id", discordUserId)
+          .or(`discord_user_id.eq.${discordUserId},discord_id.eq.${discordUserId}`)
           .eq("active", true)
-          .single()
+          .limit(1)
+          .maybeSingle()
 
         if (coach) {
           const { data: team } = await supabase

@@ -85,7 +85,18 @@ When using **Option A** (Next.js URL), slash commands are handled **in the Next.
 
 ---
 
-## 4. Command → API Mapping
+## 4. Coach–Discord link for /whoami
+
+For `/whoami` (and `/draftstatus`, `/pick`, `/search`) to work, the bot must resolve your Discord user ID to a **coach** in the database. Both of the following are required:
+
+1. **Admin links your Discord to your app account** — In the app: Admin → User Management → select the user → **Link Discord** → enter the Discord username (or ID). This sets `profiles.discord_id`.
+2. **Admin assigns you as a coach** — Use the assign-coach flow to assign that user to a team. That creates or updates a row in `coaches` and syncs `coaches.discord_user_id` from the profile (and `coaches.discord_id` for legacy fallback).
+
+The app resolves the coach by **`coaches.discord_user_id`** or **`coaches.discord_id`** (so existing links from assign-coach or Link Discord work). When an admin links Discord via **Link Discord**, the app also updates `coaches.discord_user_id` for that user if they already have a coach row. So: link profile first, then assign as coach; or assign as coach, then link profile — either order works, and `/whoami` will show the linked coach and teams.
+
+---
+
+## 5. Command → API Mapping
 
 Slash commands are handled by the Next.js route (Option A) or the Edge Function (Option B), which call the Next.js app:
 
@@ -111,14 +122,14 @@ See [docs/DISCORD-BOT-API-WIRING.md](docs/DISCORD-BOT-API-WIRING.md) for full ma
 
 ---
 
-## 6. Terms of Service and Privacy Policy
+## 7. Terms of Service and Privacy Policy
 
 - **Pages:** `app/terms-of-service/page.tsx` and `app/privacy-policy/page.tsx`.
 - Static content or redirects; no auth. Set the URLs in the Developer Portal as above.
 
 ---
 
-## 7. Server File Copy (Legacy Bot on 10.3.0.119)
+## 8. Server File Copy (Legacy Bot on 10.3.0.119)
 
 The previous Discord bot ran on `moodmnky@10.3.0.119` as a Docker service (`tools/discord-bot` in the server’s POKE-MNKY clone). The following was copied into this repo for reference and migration:
 
@@ -133,7 +144,7 @@ Access: `ssh moodmnky@10.3.0.119` (use WSL + sshpass if needed).
 
 ---
 
-## 8. Environment Summary
+## 9. Environment Summary
 
 | Variable | Where | Purpose |
 |---------|--------|---------|
