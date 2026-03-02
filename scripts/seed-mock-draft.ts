@@ -23,6 +23,7 @@ async function seedMockDraft() {
 
   const mockSeasonId = await getOrCreateMockSeason(supabase)
   const teamIds = await getOrCreateMockTeams(supabase, mockSeasonId)
+  await ensureMatchweeks(supabase, mockSeasonId)
   await seedDraftPool(supabase, mockSeasonId)
   await ensureDraftBudgets(supabase, mockSeasonId, teamIds)
 
@@ -62,6 +63,35 @@ async function getOrCreateMockSeason(
   }
   console.log("Created mock season:", MOCK_SEASON_NAME, created.id)
   return created.id
+}
+
+async function ensureMatchweeks(
+  supabase: ReturnType<typeof createServiceRoleClient>,
+  seasonId: string
+) {
+  const baseDate = new Date()
+  const weeks: Array<{ week_number: number; is_playoff: boolean }> = [
+    ...Array.from({ length: 10 }, (_, i) => ({ week_number: i + 1, is_playoff: false })),
+    ...Array.from({ length: 4 }, (_, i) => ({ week_number: 11 + i, is_playoff: true })),
+  ]
+  for (const w of weeks) {
+    const startDate = new Date(baseDate)
+    startDate.setDate(startDate.getDate() + (w.week_number - 1) * 7)
+    const endDate = new Date(startDate)
+    endDate.setDate(endDate.getDate() + 6)
+    const { error } = await supabase.from("matchweeks").upsert(
+      {
+        season_id: seasonId,
+        week_number: w.week_number,
+        start_date: startDate.toISOString().slice(0, 10),
+        end_date: endDate.toISOString().slice(0, 10),
+        is_playoff: w.is_playoff,
+      },
+      { onConflict: "season_id,week_number" }
+    )
+    if (error) throw new Error(`Failed to upsert matchweek ${w.week_number}: ${error.message}`)
+  }
+  console.log("Matchweeks ensured: 10 regular + 4 playoff weeks.")
 }
 
 async function getOrCreateMockTeams(
@@ -191,7 +221,6 @@ async function ensureDraftBudgets(
         season_id: seasonId,
         total_points: BUDGET_TOTAL,
         spent_points: 0,
-        remaining_points: BUDGET_TOTAL,
       },
       { onConflict: "team_id,season_id" }
     )

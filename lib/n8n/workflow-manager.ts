@@ -319,3 +319,86 @@ export async function createNotionSyncWorkflow(
     webhookUrl: actualWebhookUrl,
   }
 }
+
+/**
+ * Create Simulation Trigger Workflow
+ *
+ * Creates a workflow that:
+ * 1. Triggers on HTTP request (manual or cron)
+ * 2. Calls POST /api/admin/simulation/full-run with SIMULATION_API_KEY
+ *
+ * Requires: SIMULATION_API_KEY, N8N_API_URL, N8N_API_KEY
+ * Document in LEAGUE-SIMULATION-AND-TESTING-GUIDE.md
+ */
+export async function createSimulationTriggerWorkflow(): Promise<{
+  workflowId: string
+  webhookPath: string
+}> {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_BASE_URL || "https://poke-mnky.moodmnky.com"
+  const simKey = process.env.SIMULATION_API_KEY
+
+  if (!simKey) {
+    throw new Error("SIMULATION_API_KEY environment variable is required for simulation workflow")
+  }
+
+  const nodes: N8nNode[] = [
+    {
+      id: "webhook-trigger",
+      name: "Simulation Trigger",
+      type: "n8n-nodes-base.webhook",
+      typeVersion: 2,
+      position: [250, 300],
+      parameters: {
+        httpMethod: "POST",
+        path: "simulation-full-run",
+        responseMode: "responseNode",
+        options: {},
+      },
+    },
+    {
+      id: "call-full-run",
+      name: "Call Full Run",
+      type: "n8n-nodes-base.httpRequest",
+      typeVersion: 4.1,
+      position: [450, 300],
+      parameters: {
+        method: "POST",
+        url: `${appUrl.replace(/\/$/, "")}/api/admin/simulation/full-run`,
+        sendHeaders: true,
+        headerParameters: {
+          parameters: [
+            { name: "X-Simulation-API-Key", value: simKey },
+            { name: "Content-Type", value: "application/json" },
+          ],
+        },
+        sendBody: true,
+        specifyBody: "json",
+        jsonBody: JSON.stringify({ weeks: 10, top_n: 4, result_strategy: "random" }),
+        options: {},
+      },
+    },
+  ]
+
+  const connections: Record<string, any> = {
+    "Simulation Trigger": {
+      main: [[{ node: "Call Full Run", type: "main", index: 0 }]],
+    },
+  }
+
+  const workflow: N8nWorkflow = {
+    name: "League Simulation Full Run",
+    active: false,
+    nodes,
+    connections,
+    settings: { executionOrder: "v1" },
+  }
+
+  const result = await createN8nWorkflow(workflow)
+  const baseUrl = process.env.N8N_API_URL || ""
+  const webhookPath = "simulation-full-run"
+
+  return {
+    workflowId: result.id,
+    webhookPath,
+  }
+}

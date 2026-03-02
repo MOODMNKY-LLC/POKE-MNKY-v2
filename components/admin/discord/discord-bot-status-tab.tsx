@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Loader2, Bot, CheckCircle2, XCircle, RefreshCw, Info, Shield, ChevronDown, ChevronUp } from "lucide-react"
+import { DiscordCommandStatusTable } from "./discord-command-status-table"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 
@@ -266,6 +267,8 @@ export function DiscordBotStatusTab() {
           )}
         </CardContent>
       </Card>
+
+      <DiscordCommandStatusTable />
 
       {/* How It Works */}
       <Card>
