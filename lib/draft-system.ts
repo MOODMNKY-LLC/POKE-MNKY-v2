@@ -78,27 +78,54 @@ export class DraftSystem {
       draftType?: "snake" | "linear" | "auction"
       pickTimeLimit?: number
       autoDraftEnabled?: boolean
+      draftPositionMethod?: "randomizer" | "commissioner"
+      turnOrder?: string[]
+      rulesetSection?: string
+      seasonLengthWeeks?: number
+      playoffFormat?: "3_week" | "4_week" | "single_elimination" | "double_elimination"
+      playoffTeams?: number
+      draftPoolSource?: "generation" | "game" | "season_draft_pool" | "draft_pool" | "archived"
+      draftPoolSourceConfig?: Record<string, unknown>
+      archivedPoolId?: string
     }
   ): Promise<DraftSession> {
-    // Shuffle team order for snake draft
-    const shuffledOrder = this.shuffleArray([...teamIds])
+    // Determine turn order: commissioner-provided or random
+    const positionMethod = config?.draftPositionMethod || "randomizer"
+    const turnOrder =
+      positionMethod === "commissioner" && config?.turnOrder && config.turnOrder.length === teamIds.length
+        ? config.turnOrder
+        : this.shuffleArray([...teamIds])
+
+    const playoffFormat = config?.playoffFormat || "4_week"
+    const playoffWeeks = playoffFormat === "3_week" ? 3 : 4
+
+    const insertPayload: Record<string, unknown> = {
+      season_id: seasonId,
+      status: "active",
+      draft_type: config?.draftType || "snake",
+      total_teams: teamIds.length,
+      total_rounds: 11, // Default 11 rounds
+      current_pick_number: 1,
+      current_round: 1,
+      current_team_id: turnOrder[0] || null,
+      turn_order: turnOrder,
+      pick_time_limit_seconds: config?.pickTimeLimit || 45,
+      auto_draft_enabled: config?.autoDraftEnabled || false,
+      started_at: new Date().toISOString(),
+      ruleset_section: config?.rulesetSection ?? null,
+      season_length_weeks: config?.seasonLengthWeeks ?? 10,
+      playoff_format: playoffFormat,
+      playoff_weeks: playoffWeeks,
+      playoff_teams: config?.playoffTeams ?? 4,
+      draft_position_method: positionMethod,
+      draft_pool_source: config?.draftPoolSource ?? "season_draft_pool",
+      draft_pool_source_config: config?.draftPoolSourceConfig ?? {},
+      archived_pool_id: config?.archivedPoolId ?? null,
+    }
 
     const { data, error } = await this.supabase
       .from("draft_sessions")
-      .insert({
-        season_id: seasonId,
-        status: "active",
-        draft_type: config?.draftType || "snake",
-        total_teams: teamIds.length,
-        total_rounds: 11, // Default 11 rounds
-        current_pick_number: 1,
-        current_round: 1,
-        current_team_id: shuffledOrder[0] || null,
-        turn_order: shuffledOrder,
-        pick_time_limit_seconds: config?.pickTimeLimit || 45,
-        auto_draft_enabled: config?.autoDraftEnabled || false,
-        started_at: new Date().toISOString(),
-      })
+      .insert(insertPayload)
       .select()
       .single()
 

@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { createBrowserClient } from "@/lib/supabase/client"
-import { Settings, Database, Loader2 } from "lucide-react"
+import { Settings, Database, Loader2, Archive, FolderOpen } from "lucide-react"
 
 interface Season {
   id: string
@@ -37,6 +37,9 @@ export default function AdminDraftPoolRulesPage() {
   const [includeMythical, setIncludeMythical] = useState(false)
   const [includeParadox, setIncludeParadox] = useState(false)
   const [generateStatus, setGenerateStatus] = useState<string | null>(null)
+  const [archiveName, setArchiveName] = useState("")
+  const [archiveStatus, setArchiveStatus] = useState<string | null>(null)
+  const [archivedPools, setArchivedPools] = useState<Array<{ id: string; name: string; created_at?: string }>>([])
 
   useEffect(() => {
     const supabase = createBrowserClient()
@@ -64,11 +67,12 @@ export default function AdminDraftPoolRulesPage() {
       .single()
     setSeason(seasonData ?? null)
     if (seasonData?.id) {
-      const { data: rulesData } = await supabase
-        .from("season_rules")
-        .select("id, season_id, rule_category, rule_key, rule_value")
-        .eq("season_id", seasonData.id)
-      setRules(rulesData ?? [])
+      const [rulesRes, poolsRes] = await Promise.all([
+        supabase.from("season_rules").select("id, season_id, rule_category, rule_key, rule_value").eq("season_id", seasonData.id),
+        fetch(`/api/admin/draft-pools/archived?season_id=${seasonData.id}`).then((r) => r.json()),
+      ])
+      setRules(rulesRes?.data ?? [])
+      if (poolsRes?.success) setArchivedPools(poolsRes.pools ?? [])
     }
     setLoading(false)
   }
@@ -206,6 +210,85 @@ export default function AdminDraftPoolRulesPage() {
                 Generate draft pool
               </Button>
               {generateStatus && <p className="text-sm text-muted-foreground">{generateStatus}</p>}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Archive className="h-5 w-5" />
+                Draft Pool Archive
+              </CardTitle>
+              <CardDescription>
+                Save the current season draft pool for reuse. Archived pools can be loaded when creating a new draft session.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Archive name (e.g. S7 Gen 9 SV Pool)"
+                  value={archiveName}
+                  onChange={(e) => setArchiveName(e.target.value)}
+                  className="max-w-xs"
+                />
+                <Button
+                  onClick={async () => {
+                    if (!season || !archiveName.trim()) return
+                    setArchiveStatus("Saving...")
+                    try {
+                      const res = await fetch("/api/admin/draft-pools/archive", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          season_id: season.id,
+                          name: archiveName.trim(),
+                          source_metadata: {
+                            generation: filterGen ? parseInt(filterGen, 10) : undefined,
+                            game_code: filterGame || undefined,
+                          },
+                        }),
+                      })
+                      const data = await res.json()
+                      setArchiveStatus(res.ok ? `Saved ${data?.pokemon_count ?? 0} Pokemon` : (data?.error ?? "Failed"))
+                      if (res.ok) {
+                        setArchiveName("")
+                        const poolsRes = await fetch(`/api/admin/draft-pools/archived?season_id=${season.id}`)
+                        const poolsData = await poolsRes.json()
+                        if (poolsData.success) setArchivedPools(poolsData.pools ?? [])
+                      }
+                    } catch {
+                      setArchiveStatus("Request failed")
+                    }
+                  }}
+                  disabled={!archiveName.trim() || !!archiveStatus}
+                >
+                  Save as Archive
+                </Button>
+              </div>
+              {archiveStatus && <p className="text-sm text-muted-foreground">{archiveStatus}</p>}
+              {archivedPools.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Archived pools</p>
+                  <ul className="text-sm space-y-1 list-disc list-inside text-muted-foreground">
+                    {archivedPools.map((p) => (
+                      <li key={p.id}>
+                        {p.name}
+                        {p.created_at && (
+                          <span className="ml-2 text-xs">
+                            ({new Date(p.created_at).toLocaleDateString()})
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                  <Button asChild variant="outline" size="sm">
+                    <Link href="/admin/draft/sessions">
+                      <FolderOpen className="mr-2 h-4 w-4" />
+                      Create draft with archived pool
+                    </Link>
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         </>

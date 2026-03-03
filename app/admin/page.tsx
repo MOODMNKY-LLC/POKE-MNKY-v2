@@ -486,9 +486,12 @@ export default function AdminPage() {
               </CardHeader>
               <CardContent>
                 <p className="mb-4 text-sm text-muted-foreground">
-                  League Simulation, Discord Slash Commands, League Features, Discord Integration.
+                  Create Draft Session, League Simulation, Discord Slash Commands, League Features, Discord Integration.
                 </p>
                 <div className="flex flex-col gap-2">
+                  <Button asChild variant="outline" size="sm" className="w-full justify-start">
+                    <Link href="/dashboard/guides/create-draft-session">Create Draft Session</Link>
+                  </Button>
                   <Button asChild variant="outline" size="sm" className="w-full justify-start">
                     <Link href="/dashboard/guides/league-simulation">League Simulation</Link>
                   </Button>
