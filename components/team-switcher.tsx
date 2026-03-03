@@ -51,11 +51,9 @@ export function TeamSwitcher({
             >
               <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg overflow-hidden">
                 {activeTeam.logoUrl ? (
-                  <Image
+                  <img
                     src={activeTeam.logoUrl}
                     alt={activeTeam.name}
-                    width={32}
-                    height={32}
                     className="size-full object-contain"
                   />
                 ) : (
