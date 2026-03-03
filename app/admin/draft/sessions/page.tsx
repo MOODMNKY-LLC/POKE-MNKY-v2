@@ -57,35 +57,6 @@ export default function DraftSessionsAdminPage() {
     }
   }
 
-  async function createSession() {
-    try {
-      setCreating(true)
-      setError(null)
-
-      const res = await fetch("/api/draft/create-session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          draft_type: draftType,
-          pick_time_limit: pickTimeLimit,
-        }),
-      })
-
-      const data = await res.json()
-
-      if (data.success) {
-        setCreateDialogOpen(false)
-        await loadSessions()
-      } else {
-        setError(data.error || "Failed to create session")
-      }
-    } catch (err: any) {
-      setError(err.message || "Failed to create session")
-    } finally {
-      setCreating(false)
-    }
-  }
-
   async function cancelSession(sessionId: string) {
     if (!confirm("Are you sure you want to cancel this session?")) return
 

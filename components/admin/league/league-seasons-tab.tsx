@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
-import { Loader2, Calendar, CheckCircle } from "lucide-react"
+import { Loader2, Calendar, CheckCircle, RefreshCw, Plus } from "lucide-react"
 import {
   Table,
   TableBody,
@@ -15,6 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { CreateSeasonDialog } from "@/components/admin/create-season-dialog"
 
 interface SeasonRow {
   id: string
@@ -28,7 +29,9 @@ interface SeasonRow {
 export function LeagueSeasonsTab() {
   const [seasons, setSeasons] = useState<SeasonRow[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [settingId, setSettingId] = useState<string | null>(null)
+  const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [supabase, setSupabase] = useState<ReturnType<typeof createBrowserClient> | null>(null)
   const { toast } = useToast()
 
@@ -40,6 +43,7 @@ export function LeagueSeasonsTab() {
   const loadSeasons = useCallback(async () => {
     if (!supabase) return
     setLoading(true)
+    setError(null)
     try {
       const { data, error } = await supabase
         .from("seasons")
@@ -48,15 +52,23 @@ export function LeagueSeasonsTab() {
       if (error) throw error
       setSeasons((data as SeasonRow[]) ?? [])
     } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : typeof err === "object" && err !== null && "message" in err
+            ? String((err as { message: unknown }).message)
+            : "Failed to load seasons"
+      setError(message)
+      console.error("[LeagueSeasonsTab] seasons fetch error:", err)
       toast({
-        title: "Error",
-        description: err instanceof Error ? err.message : "Failed to load seasons",
+        title: "Error loading seasons",
+        description: message,
         variant: "destructive",
       })
     } finally {
       setLoading(false)
     }
-  }, [supabase, toast])
+  }, [supabase])
 
   useEffect(() => {
     if (!supabase) return
@@ -91,7 +103,7 @@ export function LeagueSeasonsTab() {
     }
   }
 
-  if (loading) {
+  if (loading && !error) {
     return (
       <Card>
         <CardContent className="flex items-center justify-center py-12">
@@ -101,8 +113,8 @@ export function LeagueSeasonsTab() {
     )
   }
 
-  return (
-    <div className="space-y-6">
+  if (error) {
+    return (
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -110,8 +122,45 @@ export function LeagueSeasonsTab() {
             Seasons
           </CardTitle>
           <CardDescription>
-            Set which season is &quot;current&quot; for the app. The Notion Draft Board sync and draft pool target the current season. Only one season can be current at a time.
+            Unable to load seasons. Check your connection and that the database migrations have been applied.
           </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-destructive">{error}</p>
+          <Button variant="outline" onClick={() => loadSeasons()} disabled={loading}>
+            {loading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Retry
+              </>
+            )}
+          </Button>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Seasons
+              </CardTitle>
+              <CardDescription>
+                Set which season is &quot;current&quot; for the app. The Notion Draft Board sync and draft pool target the current season. Only one season can be current at a time.
+              </CardDescription>
+            </div>
+            <Button onClick={() => setCreateDialogOpen(true)} className="shrink-0 gap-2">
+              <Plus className="h-4 w-4" />
+              Create Season
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <Table>
@@ -170,6 +219,11 @@ export function LeagueSeasonsTab() {
           </Table>
         </CardContent>
       </Card>
+      <CreateSeasonDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        onCreated={loadSeasons}
+      />
     </div>
   )
 }
