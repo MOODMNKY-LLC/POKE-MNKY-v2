@@ -6,12 +6,9 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Loader2, Plus, X } from "lucide-react"
+import { Loader2, Plus } from "lucide-react"
 import { AdminPageHeader } from "@/components/admin/admin-page-header"
+import { CreateDraftWizard } from "@/components/admin/create-draft-wizard"
 
 interface DraftSession {
   id: string
@@ -32,11 +29,6 @@ export default function DraftSessionsAdminPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
-  const [creating, setCreating] = useState(false)
-
-  // Form state
-  const [draftType, setDraftType] = useState<"snake" | "linear" | "auction">("snake")
-  const [pickTimeLimit, setPickTimeLimit] = useState(45)
 
   useEffect(() => {
     loadSessions()
@@ -139,58 +131,20 @@ export default function DraftSessionsAdminPage() {
                 Create Session
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Create Draft Session</DialogTitle>
                 <DialogDescription>
-                  Create a new draft session for the current season
+                  Configure and create a new draft session for the current season
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Draft Type</label>
-                  <Select value={draftType} onValueChange={(v) => setDraftType(v as any)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="snake">Snake Draft</SelectItem>
-                      <SelectItem value="linear">Linear Draft</SelectItem>
-                      <SelectItem value="auction">Auction Draft</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Pick Time Limit (seconds)</label>
-                  <Input
-                    type="number"
-                    value={pickTimeLimit}
-                    onChange={(e) => setPickTimeLimit(parseInt(e.target.value) || 45)}
-                    min={10}
-                    max={300}
-                  />
-                </div>
-                {error && (
-                  <Alert variant="destructive">
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                )}
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button onClick={createSession} disabled={creating}>
-                    {creating ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Creating...
-                      </>
-                    ) : (
-                      "Create Session"
-                    )}
-                  </Button>
-                </div>
-              </div>
+              <CreateDraftWizard
+                onSuccess={() => {
+                  setCreateDialogOpen(false)
+                  loadSessions()
+                }}
+                onCancel={() => setCreateDialogOpen(false)}
+              />
             </DialogContent>
           </Dialog>
         }

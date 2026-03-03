@@ -1,7 +1,15 @@
 /**
  * Playoff Bracket Generator
  * Creates playoff matches from standings (top N teams)
+ * Supports: 3_week, 4_week, single_elimination, double_elimination formats
  */
+
+export type PlayoffFormat = "3_week" | "4_week" | "single_elimination" | "double_elimination"
+
+/** Get number of playoff matchweeks from format */
+export function getPlayoffWeeksFromFormat(format: PlayoffFormat): number {
+  return format === "3_week" ? 3 : 4
+}
 
 export interface PlayoffMatch {
   team1_id: string

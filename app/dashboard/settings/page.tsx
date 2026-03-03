@@ -236,6 +236,13 @@ export default async function DashboardSettingsPage({
                       — End-to-end simulation: seed, draft, schedule, playoffs, and results for testing.
                     </li>
                     <li>
+                      <Link href="/dashboard/guides/create-draft-session" className="text-primary hover:underline">
+                        Create Draft Session Guide
+                      </Link>
+                      {" "}
+                      — How to configure and create a draft session with rules, playoffs, draft pool, and archive.
+                    </li>
+                    <li>
                       <Link href="/dashboard/guides/discord-slash-commands" className="text-primary hover:underline">
                         Discord Slash Commands Reference
                       </Link>
