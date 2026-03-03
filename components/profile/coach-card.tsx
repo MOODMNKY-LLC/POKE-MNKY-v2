@@ -28,9 +28,10 @@ interface Team {
 interface CoachCardProps {
   team: Team | null
   userId: string
+  onTeamUpdated?: () => void
 }
 
-export function CoachCard({ team, userId }: CoachCardProps) {
+export function CoachCard({ team, userId, onTeamUpdated }: CoachCardProps) {
   const [editingName, setEditingName] = useState(false)
   const [teamName, setTeamName] = useState(team?.name || "")
   const [saving, setSaving] = useState(false)
@@ -97,6 +98,7 @@ export function CoachCard({ team, userId }: CoachCardProps) {
         .eq("id", currentTeam.id)
         .single()
       if (data) setCurrentTeam(data as Team)
+      onTeamUpdated?.()
     }
     setUploading(false)
   }
@@ -121,6 +123,7 @@ export function CoachCard({ team, userId }: CoachCardProps) {
         .eq("id", currentTeam.id)
         .single()
       if (data) setCurrentTeam(data as Team)
+      onTeamUpdated?.()
     }
     setUploadingLogo(false)
   }
@@ -146,7 +149,7 @@ export function CoachCard({ team, userId }: CoachCardProps) {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          🎮 Coach Card
+          League Team
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -184,30 +187,43 @@ export function CoachCard({ team, userId }: CoachCardProps) {
           </div>
         </div>
 
-        {/* Team Logo (optional) */}
-        <div className="space-y-2">
-          <Label className="text-sm font-medium">Team Logo</Label>
-          <FileDropzone
-            bucket="team-assets"
-            path={`teams/${currentTeam.id}/logo`}
-            accept="image/*"
-            maxSize={5 * 1024 * 1024}
-            onUploadComplete={handleLogoUpload}
-          >
-            <Button variant="outline" size="sm" disabled={uploadingLogo} className="w-full max-w-[200px]">
-              {uploadingLogo ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Uploading...
-                </>
-              ) : (
-                <>
-                  <Upload className="h-4 w-4 mr-2" />
-                  Upload Logo
-                </>
-              )}
-            </Button>
-          </FileDropzone>
+        {/* Team Logo */}
+        <div className="flex items-center gap-4">
+          <div className="h-24 w-24 shrink-0 overflow-hidden rounded-lg border-2 border-border bg-muted flex items-center justify-center">
+            {currentTeam.logo_url ? (
+              <img
+                src={currentTeam.logo_url}
+                alt={`${currentTeam.name} logo`}
+                className="h-full w-full object-contain"
+              />
+            ) : (
+              <span className="text-xs text-muted-foreground text-center px-2">No logo</span>
+            )}
+          </div>
+          <div className="flex-1">
+            <Label className="text-sm font-medium mb-2 block">Team Logo</Label>
+            <FileDropzone
+              bucket="team-assets"
+              path={`teams/${currentTeam.id}/logo`}
+              accept="image/*"
+              maxSize={5 * 1024 * 1024}
+              onUploadComplete={handleLogoUpload}
+            >
+              <Button variant="outline" size="sm" disabled={uploadingLogo} className="w-full max-w-[200px]">
+                {uploadingLogo ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload Logo
+                  </>
+                )}
+              </Button>
+            </FileDropzone>
+          </div>
         </div>
 
         {/* Team Name */}

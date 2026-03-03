@@ -1,8 +1,25 @@
 # Coach/Player Profile System - Comprehensive Implementation Plan
 
-> **Status**: 📋 Planning Phase  
-> **Last Updated**: 2026-01-16  
+> **Status**: ✅ Implemented (Profile/Account/Coach reorganization complete)  
+> **Last Updated**: 2026-03-05  
 > **Priority**: High - Core User Experience Feature
+
+---
+
+## Implemented State (March 2026)
+
+The following has been implemented per the Profile, Account, Coach Profile, and Teams UI/UX Reorganization plan:
+
+- **Account vs Profile vs Coach Profile**: Clear separation in Settings (Account, Profile tabs) and ProfileSheet.
+- **User avatar upload**: ProfileSheet avatar block; uploads to `user-avatars` bucket; fallback to Discord avatar.
+- **Coach Profile (League Team)**: CoachCard inside ProfileSheet; coaches can update team name, avatar, logo via RLS policy `is_coach_of_team`.
+- **TeamSwitcher**: Supports `logoUrl`; AppSidebar passes coach team avatar/logo when available.
+- **Showdown team avatars**: Optional `avatar_url` on `showdown_teams`; storage in `team-assets/showdown-teams/{id}`; edit via ShowdownTeamEditSheet.
+- **Profile page**: `/dashboard/profile` redirects to dashboard and opens ProfileSheet.
+- **Command palette**: Open Profile, My Teams, My League Team.
+- **RLS**: Coach update policy for `teams` (name, avatar_url, logo_url); user-avatars and showdown-team storage policies.
+
+See `docs/DESIGN-SYSTEM.md` for Account/Profile/Coach Profile definitions.
 
 ---
 

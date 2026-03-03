@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { createBrowserClient } from "@/lib/supabase/client"
 import {
   Sheet,
@@ -20,7 +20,7 @@ import { PokeballIcon } from "@/components/ui/pokeball-icon"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { User, Shield, History, Gamepad2, CheckCircle2, XCircle, Loader2, RefreshCw } from "lucide-react"
+import { User, Shield, History, Gamepad2, CheckCircle2, XCircle, Loader2, RefreshCw, Upload } from "lucide-react"
 import { getCurrentUserProfile, canAccessCoachFeatures, type UserProfile, type DiscordRole } from "@/lib/rbac"
 import { DISCORD_TO_APP_ROLE_MAP } from "@/lib/discord-role-mappings"
 import { CoachCard } from "@/components/profile/coach-card"
@@ -62,6 +62,9 @@ export function ProfileSheet({ open, onOpenChange }: ProfileSheetProps) {
   const [syncing, setSyncing] = useState(false)
   const [syncMessage, setSyncMessage] = useState<{ type: "success" | "error" | null; text: string }>({ type: null, text: "" })
 
+  // Avatar upload state
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+
   useEffect(() => {
     if (open) {
       loadProfile()
@@ -69,11 +72,27 @@ export function ProfileSheet({ open, onOpenChange }: ProfileSheetProps) {
     }
   }, [open])
 
-  useEffect(() => {
-    if (profile?.team_id) {
-      loadTeam()
-    }
+  const fetchTeam = useCallback(() => {
+    if (!profile?.team_id) return
+    const teamId = profile.team_id
+    const supabase = createBrowserClient()
+    supabase
+      .from("teams")
+      .select("id, name, avatar_url, logo_url, wins, losses, differential, division, conference")
+      .eq("id", teamId)
+      .single()
+      .then(({ data, error }) => {
+        if (error) {
+          console.error("Error loading team:", error)
+        } else {
+          setTeam(data)
+        }
+      })
   }, [profile?.team_id])
+
+  useEffect(() => {
+    fetchTeam()
+  }, [fetchTeam])
 
   async function loadProfile() {
     const supabase = createBrowserClient()
@@ -129,23 +148,6 @@ export function ProfileSheet({ open, onOpenChange }: ProfileSheetProps) {
     }
   }
 
-  async function loadTeam() {
-    if (!profile?.team_id) return
-
-    const supabase = createBrowserClient()
-    const { data, error } = await supabase
-      .from("teams")
-      .select("*")
-      .eq("id", profile.team_id)
-      .single()
-
-    if (error) {
-      console.error("Error loading team:", error)
-    } else {
-      setTeam(data)
-    }
-  }
-
   async function saveProfile() {
     if (!profile) return
 
@@ -169,6 +171,37 @@ export function ProfileSheet({ open, onOpenChange }: ProfileSheetProps) {
     }
 
     setSaving(false)
+  }
+
+  async function handleAvatarFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !profile) return
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("File must be less than 5MB")
+      return
+    }
+    const supabase = createBrowserClient()
+    setUploadingAvatar(true)
+    try {
+      const fileName = `${Date.now()}-${file.name}`
+      const filePath = `users/${profile.id}/${fileName}`
+      const { error: uploadError } = await supabase.storage.from("user-avatars").upload(filePath, file)
+      if (uploadError) throw uploadError
+      const { data: { publicUrl } } = supabase.storage.from("user-avatars").getPublicUrl(filePath)
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ avatar_url: publicUrl })
+        .eq("id", profile.id)
+      if (updateError) throw updateError
+      toast.success("Avatar updated")
+      setProfile((p) => (p ? { ...p, avatar_url: publicUrl } : null))
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Upload failed"
+      toast.error(msg)
+    } finally {
+      setUploadingAvatar(false)
+      e.target.value = ""
+    }
   }
 
   async function syncShowdownAccount() {
@@ -228,19 +261,45 @@ export function ProfileSheet({ open, onOpenChange }: ProfileSheetProps) {
             </div>
           ) : (
             <div className="space-y-6">
-              {/* Profile Overview */}
-              <Card>
-                <CardContent className="pt-6">
+              {/* User Profile */}
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground mb-2">User Profile</h3>
+                <Card>
+                  <CardContent className="pt-6">
                   <div className="flex items-center gap-6">
-                    <UserAvatar
-                      src={profile.avatar_url || profile.discord_avatar || ""}
-                      alt={profile.display_name || profile.discord_username || "User"}
-                      fallback={profile.display_name?.[0] || profile.discord_username?.[0] || "U"}
-                      role={profile.role}
-                      size="xl"
-                      showBadge={false}
-                      showPokeball={false}
-                    />
+                    <div className="flex flex-col items-center gap-2">
+                      <UserAvatar
+                        src={profile.avatar_url || profile.discord_avatar || ""}
+                        alt={profile.display_name || profile.discord_username || "User"}
+                        fallback={profile.display_name?.[0] || profile.discord_username?.[0] || "U"}
+                        role={profile.role}
+                        size="xl"
+                        showBadge={false}
+                        showPokeball={false}
+                      />
+                      <label
+                        className={`inline-flex h-9 w-full items-center justify-center gap-2 whitespace-nowrap rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-xs transition-colors hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50 ${uploadingAvatar ? "opacity-50" : "cursor-pointer"}`}
+                      >
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          disabled={uploadingAvatar}
+                          onChange={handleAvatarFileSelect}
+                        />
+                        {uploadingAvatar ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Uploading...
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="h-4 w-4" />
+                            Change Avatar
+                          </>
+                        )}
+                      </label>
+                    </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <h2 className="text-2xl font-bold">{profile.display_name || profile.discord_username || "Unnamed User"}</h2>
@@ -264,12 +323,19 @@ export function ProfileSheet({ open, onOpenChange }: ProfileSheetProps) {
                   </div>
                 </CardContent>
               </Card>
+              </div>
 
-              {/* Coach Card & Showdown Teams (only for coaches) */}
+              {/* Coach Profile (League Team) & Showdown Teams (only for coaches) */}
               {canAccessCoachFeatures(profile) && (
                 <div className="space-y-4">
-                  <CoachCard team={team} userId={profile.id} />
-                  <ShowdownTeamsSection userId={profile.id} />
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground mb-2">League Team (Coach Profile)</h3>
+                    <CoachCard team={team} userId={profile.id} onTeamUpdated={fetchTeam} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground mb-2">Showdown Teams</h3>
+                    <ShowdownTeamsSection userId={profile.id} />
+                  </div>
                 </div>
               )}
 

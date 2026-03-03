@@ -13,7 +13,8 @@ import { Separator } from "@/components/ui/separator"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import Link from "next/link"
-import { User, Bell, Sliders, BookOpen } from "lucide-react"
+import { User, Bell, Sliders, BookOpen, UserCircle } from "lucide-react"
+import { ProfileSheetTrigger } from "@/components/profile/profile-sheet-trigger"
 import { RestartOnboardingButton } from "@/components/dashboard/restart-onboarding-button"
 import { ThemeSwitcher } from "@/components/theme-switcher"
 
@@ -41,7 +42,7 @@ export default async function DashboardSettingsPage({
   }
 
   const { tab } = await searchParams
-  const defaultTab = ["account", "notifications", "preferences", "guides"].includes(tab ?? "")
+  const defaultTab = ["account", "profile", "notifications", "preferences", "guides"].includes(tab ?? "")
     ? tab!
     : "account"
 
@@ -95,9 +96,9 @@ export default async function DashboardSettingsPage({
                 <CardDescription>Manage your account and profile. Edit display name and details from your profile page.</CardDescription>
               </CardHeader>
               <CardContent>
-                <Link href="/dashboard/profile" className="text-sm text-primary hover:underline">
-                  Go to Profile
-                </Link>
+                <ProfileSheetTrigger variant="link" className="h-auto p-0 text-sm text-primary hover:underline">
+                  Open Profile
+                </ProfileSheetTrigger>
               </CardContent>
             </Card>
             {profile.onboarding_completed && (
@@ -111,6 +112,24 @@ export default async function DashboardSettingsPage({
                 </CardContent>
               </Card>
             )}
+          </TabsContent>
+          <TabsContent value="profile" className="mt-4 space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>User Profile</CardTitle>
+                <CardDescription>Display name, avatar, bio, and Showdown sync. Coaches also manage their League Team branding here.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    {profile.display_name || profile.discord_username || "Unnamed"} — {profile.role}
+                  </p>
+                  <ProfileSheetTrigger variant="outline" size="sm">
+                    Edit Profile
+                  </ProfileSheetTrigger>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
           <TabsContent value="notifications" className="mt-4">
             <Card>

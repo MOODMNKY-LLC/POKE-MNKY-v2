@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { TeamDisplayShowdownClient } from "@/components/showdown/team-detail-display-client"
+import { ShowdownTeamDetailHeader } from "@/components/teams/showdown-team-detail-header"
 
 export const dynamic = "force-dynamic"
 
@@ -89,16 +90,19 @@ export default async function DashboardTeamDetailPage({
           </div>
         </div>
 
+        <ShowdownTeamDetailHeader
+          team={{
+            id: team.id,
+            team_name: team.team_name,
+            format: team.format,
+            generation: team.generation,
+            folder_path: team.folder_path,
+            avatar_url: team.avatar_url,
+          }}
+          isOwner={isOwner}
+        />
         <Card>
-          <CardHeader>
-            <CardTitle>{team.team_name}</CardTitle>
-            <CardDescription>
-              {team.format && `${team.format.toUpperCase()}`}
-              {team.generation && ` • Gen ${team.generation}`}
-              {team.folder_path && ` • ${team.folder_path}`}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             <TeamDisplayShowdownClient
               team={{
                 id: team.id,

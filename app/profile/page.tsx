@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { createBrowserClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -42,11 +42,27 @@ export default function ProfilePage() {
     loadActivity()
   }, [])
 
-  useEffect(() => {
-    if (profile?.team_id) {
-      loadTeam()
-    }
+  const fetchTeam = useCallback(() => {
+    if (!profile?.team_id) return
+    const teamId = profile.team_id
+    const supabase = createBrowserClient()
+    supabase
+      .from("teams")
+      .select("id, name, avatar_url, logo_url, wins, losses, differential, division, conference")
+      .eq("id", teamId)
+      .single()
+      .then(({ data, error }) => {
+        if (error) {
+          console.error("Error loading team:", error)
+        } else {
+          setTeam(data)
+        }
+      })
   }, [profile?.team_id])
+
+  useEffect(() => {
+    fetchTeam()
+  }, [fetchTeam])
 
   async function loadProfile() {
     const supabase = createBrowserClient()
@@ -204,7 +220,7 @@ export default function ProfilePage() {
       {/* Coach Card & Showdown Teams (only for coaches) */}
       {canAccessCoachFeatures(profile) && (
         <div className="space-y-4 mb-6">
-          <CoachCard team={team} userId={profile.id} />
+          <CoachCard team={team} userId={profile.id} onTeamUpdated={fetchTeam} />
           <ShowdownTeamsSection userId={profile.id} />
         </div>
       )}

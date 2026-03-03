@@ -28,6 +28,7 @@ import {
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const router = useRouter()
   const [userProfile, setUserProfile] = React.useState<UserProfile | null>(null)
+  const [coachTeam, setCoachTeam] = React.useState<{ name: string; avatar_url?: string | null; logo_url?: string | null } | null>(null)
   const [loading, setLoading] = React.useState(true)
   const [profileSheetOpen, setProfileSheetOpen] = React.useState(false)
 
@@ -39,6 +40,27 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       setLoading(false)
     }
     loadUser()
+  }, [])
+
+  React.useEffect(() => {
+    if (!userProfile?.team_id) {
+      setCoachTeam(null)
+      return
+    }
+    const supabase = createClient()
+    supabase
+      .from("teams")
+      .select("name, avatar_url, logo_url")
+      .eq("id", userProfile.team_id)
+      .single()
+      .then(({ data }) => setCoachTeam(data))
+  }, [userProfile?.team_id])
+
+  // Listen for open-profile-sheet event (from Settings, command palette, etc.)
+  React.useEffect(() => {
+    const handler = () => setProfileSheetOpen(true)
+    window.addEventListener("open-profile-sheet", handler)
+    return () => window.removeEventListener("open-profile-sheet", handler)
   }, [])
 
   // Dashboard-only navigation items (all routes must be within /dashboard/*)
@@ -189,6 +211,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           url: "/dashboard/settings",
         },
         {
+          title: "Profile",
+          url: "/dashboard/profile",
+        },
+        {
           title: "Notifications",
           url: "/dashboard/settings#notifications",
         },
@@ -222,8 +248,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     canAccessCoachFeatures(userProfile)
       ? [
           {
-            name: userProfile.display_name || "My Team",
-            logo: Trophy,
+            name: coachTeam?.name ?? userProfile.display_name ?? "My Team",
+            logoUrl: coachTeam?.avatar_url || coachTeam?.logo_url || undefined,
             plan: "Coach",
           },
         ]
