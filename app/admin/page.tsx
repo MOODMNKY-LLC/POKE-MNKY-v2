@@ -5,7 +5,7 @@ import { createBrowserClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { Database, Calendar, Trophy, Users, RefreshCw, MessageSquare, ClipboardList, FileText, Music, ArrowRightLeft, Play, BookOpen } from "lucide-react"
+import { Database, Calendar, Trophy, Users, RefreshCw, MessageSquare, ClipboardList, FileText, Music, ArrowRightLeft, Play, BookOpen, Settings } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 export default function AdminPage() {
