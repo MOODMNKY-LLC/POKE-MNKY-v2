@@ -90,7 +90,7 @@ function LeagueManagementContent() {
 
       {/* Unified Tabs */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="teams" className="gap-2">
             <Users className="h-4 w-4" />
             <span>Teams</span>
@@ -106,6 +106,10 @@ function LeagueManagementContent() {
           <TabsTrigger value="sync-logs" className="gap-2">
             <RefreshCw className="h-4 w-4" />
             <span>Sync Logs</span>
+          </TabsTrigger>
+          <TabsTrigger value="seasons" className="gap-2">
+            <CalendarDays className="h-4 w-4" />
+            <span>Seasons</span>
           </TabsTrigger>
         </TabsList>
 

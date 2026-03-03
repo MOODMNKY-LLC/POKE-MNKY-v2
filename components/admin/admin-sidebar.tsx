@@ -19,6 +19,7 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 
 const adminNavItems = [
   {
@@ -75,7 +76,10 @@ const adminNavItems = [
 
 export function AdminSidebar(props: React.ComponentProps<typeof Sidebar>) {
   return (
-    <Sidebar {...props}>
+    <Sidebar
+      {...props}
+      className={cn("!top-16 !h-[calc(100svh-4rem)]", props.className)}
+    >
       <SidebarHeader className="border-b border-border">
         <div className="flex items-center gap-2 px-2 py-2">
           <PokeMnkyPremium size={28} className="shrink-0" />
