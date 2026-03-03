@@ -94,7 +94,14 @@ export async function POST(request: NextRequest) {
       Array.isArray(discordRoles) &&
       discordRoles.some((r) => r?.name === "Admin" || r?.name === "Commissioner")
 
-    if (!isAdminByRole && !isAdminByDiscord) {
+    const { data: adminUser } = await serviceSupabase
+      .from("admin_users")
+      .select("user_id")
+      .eq("user_id", user.id)
+      .single()
+    const isAdminByTable = !!adminUser
+
+    if (!isAdminByRole && !isAdminByDiscord && !isAdminByTable) {
       return NextResponse.json(
         {
           error: "Forbidden - Admin or Commissioner required",

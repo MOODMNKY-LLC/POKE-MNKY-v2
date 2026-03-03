@@ -25,10 +25,18 @@ export async function GET(request: NextRequest) {
       .eq("id", user.id)
       .single()
 
-    if (
-      profile?.role !== "admin" &&
-      profile?.role !== "commissioner"
-    ) {
+    const { data: adminUser } = await serviceSupabase
+      .from("admin_users")
+      .select("user_id")
+      .eq("user_id", user.id)
+      .single()
+
+    const hasAccess =
+      profile?.role === "admin" ||
+      profile?.role === "commissioner" ||
+      !!adminUser
+
+    if (!hasAccess) {
       return NextResponse.json(
         { error: "Forbidden - Admin or Commissioner required" },
         { status: 403 }

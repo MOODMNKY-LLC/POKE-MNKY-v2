@@ -1,13 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
-import { exec } from 'child_process'
-import { promisify } from 'util'
-import { resolve } from 'path'
-
-const execAsync = promisify(exec)
+import { createServiceRoleClient } from '@/lib/supabase/service'
 
 interface SyncStatus {
-  status: 'idle' | 'running' | 'completed' | 'failed'
+  status: 'idle' | 'running' | 'completed' | 'failed' | 'cancelled'
   progress?: {
     synced: number
     skipped: number
@@ -20,12 +16,52 @@ interface SyncStatus {
   endTime?: number
 }
 
-// In-memory sync status (in production, use Redis or database)
-let syncStatus: SyncStatus = {
-  status: 'idle',
-}
+function mapSyncJobToStatus(job: {
+  status: string
+  pokemon_synced?: number
+  pokemon_failed?: number
+  progress_percent?: number
+  config?: { start?: number; end?: number; totalSkipped?: number }
+  started_at?: string
+  completed_at?: string
+  error_log?: Record<string, unknown>
+} | null): SyncStatus {
+  if (!job) {
+    return { status: 'idle' }
+  }
 
-let syncProcess: ReturnType<typeof exec> | null = null
+  const config = (job.config ?? {}) as { start?: number; end?: number; totalSkipped?: number }
+  const total = config.start != null && config.end != null
+    ? config.end - config.start + 1
+    : 0
+  const synced = job.pokemon_synced ?? 0
+  const failed = job.pokemon_failed ?? 0
+  const skipped = config.totalSkipped ?? 0
+
+  let status: SyncStatus['status'] = 'idle'
+  if (job.status === 'running') status = 'running'
+  else if (job.status === 'completed') status = 'completed'
+  else if (job.status === 'failed' || job.status === 'cancelled') status = job.status as 'failed' | 'cancelled'
+  else status = 'idle'
+
+  const errorMsg = job.error_log && typeof job.error_log === 'object' && 'errors' in job.error_log
+    ? (job.error_log.errors as Array<{ error?: string }>)?.[0]?.error
+    : undefined
+
+  return {
+    status,
+    progress: total > 0 ? {
+      synced,
+      skipped,
+      failed,
+      total,
+      percent: job.progress_percent ?? Math.round(((synced + skipped + failed) / total) * 100),
+    } : undefined,
+    error: errorMsg,
+    startTime: job.started_at ? new Date(job.started_at).getTime() : undefined,
+    endTime: job.completed_at ? new Date(job.completed_at).getTime() : undefined,
+  }
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -36,17 +72,34 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Check if user is admin (you may want to add RBAC check here)
-    // For now, just check authentication
+    const { searchParams } = new URL(request.url)
+    const jobId = searchParams.get('jobId')
 
-    // Get current sync status
-    return NextResponse.json({
-      status: syncStatus.status,
-      progress: syncStatus.progress,
-      error: syncStatus.error,
-      startTime: syncStatus.startTime,
-      endTime: syncStatus.endTime,
-    })
+    const serviceSupabase = createServiceRoleClient()
+
+    if (jobId) {
+      const { data: job, error } = await serviceSupabase
+        .from('sync_jobs')
+        .select('status, pokemon_synced, pokemon_failed, progress_percent, config, started_at, completed_at, error_log')
+        .eq('job_id', jobId)
+        .eq('sync_type', 'pokemon_cache')
+        .single()
+
+      if (error || !job) {
+        return NextResponse.json(mapSyncJobToStatus(null))
+      }
+      return NextResponse.json(mapSyncJobToStatus(job))
+    }
+
+    const { data: job } = await serviceSupabase
+      .from('sync_jobs')
+      .select('status, pokemon_synced, pokemon_failed, progress_percent, config, started_at, completed_at, error_log')
+      .eq('sync_type', 'pokemon_cache')
+      .order('started_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    return NextResponse.json(mapSyncJobToStatus(job))
   } catch (error) {
     console.error('[Sync API] Error getting status:', error)
     return NextResponse.json(
@@ -65,22 +118,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Check if sync is already running
-    if (syncStatus.status === 'running') {
-      return NextResponse.json(
-        { 
-          error: 'Sync is already running',
-          message: `A sync is currently in progress. Started at ${syncStatus.startTime ? new Date(syncStatus.startTime).toLocaleString() : 'unknown'}. Please wait for it to complete or cancel it first.`,
-          currentStatus: syncStatus,
-        },
-        { status: 409 }
-      )
-    }
+    const body = await request.json().catch(() => ({}))
+    const { start = 1, end = 1025, batchSize = 50, rateLimitMs = 100, jobId } = body
 
-    const body = await request.json()
-    const { start = 1, end = 1025, batchSize = 50, rateLimitMs = 100 } = body
-
-    // Validate inputs
     if (start < 1 || end > 1025 || start > end) {
       return NextResponse.json(
         { error: 'Invalid range. Start must be >= 1, end must be <= 1025, and start must be <= end' },
@@ -88,154 +128,66 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Reset status
-    syncStatus = {
-      status: 'running',
-      startTime: Date.now(),
-      progress: {
-        synced: 0,
-        skipped: 0,
-        failed: 0,
-        total: end - start + 1,
-        percent: 0,
-      },
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+    if (!supabaseUrl || !serviceRoleKey) {
+      return NextResponse.json(
+        { error: 'Missing Supabase configuration' },
+        { status: 500 }
+      )
     }
 
-    // Start sync process
-    const scriptPath = resolve(process.cwd(), 'scripts', 'sync-pokemon-data.ts')
-    const command = `npx tsx "${scriptPath}" --start ${start} --end ${end} --batchSize ${batchSize} --rateLimitMs ${rateLimitMs}`
-
-    syncProcess = exec(command, {
-      cwd: process.cwd(),
-      env: {
-        ...process.env,
-        NODE_ENV: process.env.NODE_ENV || 'development',
+    const functionUrl = `${supabaseUrl}/functions/v1/sync-pokemon-pokeapi`
+    const response = await fetch(functionUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${serviceRoleKey}`,
       },
+      body: JSON.stringify({
+        start,
+        end,
+        batchSize,
+        rateLimitMs,
+        jobId: jobId || undefined,
+      }),
     })
 
-    // Handle process output (for progress tracking)
-    let output = ''
-    syncProcess.stdout?.on('data', (data) => {
-      const chunk = data.toString()
-      output += chunk
-      
-      // Get the last line (since sync script uses \r to overwrite)
-      const lines = output.split('\n')
-      const lastLine = lines[lines.length - 1] || output.split('\r').pop() || ''
-      
-      // Parse progress from output
-      // Format: [X/Y] Syncing pokemon-name... (Z%) | ETA: Xm Ys
-      // Note: X = synced + skipped + failed (total processed), Y = total
-      // Script uses \r to overwrite, so we need to parse the latest line
-      const progressMatch = lastLine.match(/\[(\d+)\/(\d+)\].*?\((\d+\.?\d*)%\)/)
-      if (progressMatch && syncStatus.status === 'running' && syncStatus.progress) {
-        const processed = parseInt(progressMatch[1]) // synced + skipped + failed
-        const total = parseInt(progressMatch[2])
-        const percent = parseFloat(progressMatch[3])
-        
-        // Update progress - preserve individual counts if we have them from summary
-        // Otherwise, estimate synced = processed (we'll update when summary appears)
-        syncStatus.progress = {
-          synced: syncStatus.progress.synced !== undefined ? syncStatus.progress.synced : processed,
-          skipped: syncStatus.progress.skipped || 0,
-          failed: syncStatus.progress.failed || 0,
-          total: total,
-          percent: percent,
-        }
-      }
-      
-      // Parse summary lines (appears during sync and at the end)
-      // Format: ✅ Synced: X/Y, ⏭️ Skipped: X/Y, ❌ Failed: X/Y
-      const syncedMatch = output.match(/✅ Synced: (\d+)\/(\d+)/)
-      const skippedMatch = output.match(/⏭️.*?Skipped: (\d+)\/(\d+)/)
-      const failedMatch = output.match(/❌ Failed: (\d+)\/(\d+)/)
-      
-      // Update progress with actual counts when summary is available
-      if (syncedMatch && syncStatus.status === 'running' && syncStatus.progress) {
-        const synced = parseInt(syncedMatch[1])
-        const skipped = skippedMatch ? parseInt(skippedMatch[1]) : (syncStatus.progress.skipped || 0)
-        const failed = failedMatch ? parseInt(failedMatch[1]) : (syncStatus.progress.failed || 0)
-        const total = parseInt(syncedMatch[2])
-        
-        syncStatus.progress = {
-          synced,
-          skipped,
-          failed,
-          total,
-          percent: syncStatus.progress.percent || (total > 0 ? Math.round(((synced + skipped + failed) / total) * 100) : 0),
-        }
-      }
-    })
+    const data = await response.json().catch(() => ({}))
 
-    syncProcess.stderr?.on('data', (data) => {
-      console.error('[Sync Process] Error:', data.toString())
-    })
+    if (!response.ok) {
+      return NextResponse.json(
+        { error: data.error || `Edge Function failed: ${response.statusText}` },
+        { status: response.status >= 500 ? 500 : 400 }
+      )
+    }
 
-    syncProcess.on('close', (code) => {
-      // Parse final summary from output
-      const syncedMatch = output.match(/✅ Synced: (\d+)\/(\d+)/)
-      const skippedMatch = output.match(/⏭️.*?Skipped: (\d+)\/(\d+)/)
-      const failedMatch = output.match(/❌ Failed: (\d+)\/(\d+)/)
-      
-      const synced = syncedMatch ? parseInt(syncedMatch[1]) : (syncStatus.progress?.synced || 0)
-      const skipped = skippedMatch ? parseInt(skippedMatch[1]) : (syncStatus.progress?.skipped || 0)
-      const failed = failedMatch ? parseInt(failedMatch[1]) : (syncStatus.progress?.failed || 0)
-      const total = syncedMatch ? parseInt(syncedMatch[2]) : (syncStatus.progress?.total || 0)
-      
-      if (code === 0) {
-        syncStatus = {
-          ...syncStatus,
-          status: 'completed',
-          progress: {
-            synced,
-            skipped,
-            failed,
-            total,
-            percent: 100,
-          },
-          endTime: Date.now(),
-        }
-      } else {
-        syncStatus = {
-          ...syncStatus,
-          status: 'failed',
-          error: `Sync process exited with code ${code}`,
-          progress: {
-            synced,
-            skipped,
-            failed,
-            total,
-            percent: total > 0 ? Math.round(((synced + skipped + failed) / total) * 100) : 0,
-          },
-          endTime: Date.now(),
-        }
-      }
-      syncProcess = null
-    })
-
-    syncProcess.on('error', (error) => {
-      syncStatus = {
-        ...syncStatus,
-        status: 'failed',
-        error: error.message,
-        endTime: Date.now(),
-      }
-      syncProcess = null
-    })
+    if (data.success === false) {
+      return NextResponse.json(
+        { error: data.error || 'Sync failed' },
+        { status: 500 }
+      )
+    }
 
     return NextResponse.json({
-      message: 'Sync started',
-      status: syncStatus.status,
+      message: data.hasMore ? 'Chunk completed, more to process' : 'Sync completed',
+      status: data.hasMore ? 'running' : 'completed',
+      jobId: data.jobId,
+      hasMore: data.hasMore,
+      nextStart: data.nextStart,
+      progress: data.progress,
+      synced: data.synced,
+      skipped: data.skipped,
+      failed: data.failed,
+      totalSynced: data.totalSynced,
+      totalSkipped: data.totalSkipped,
+      totalFailed: data.totalFailed,
     })
   } catch (error) {
     console.error('[Sync API] Error starting sync:', error)
-    syncStatus = {
-      status: 'failed',
-      error: error instanceof Error ? error.message : 'Internal server error',
-      endTime: Date.now(),
-    }
     return NextResponse.json(
-      { error: syncStatus.error },
+      { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }
     )
   }
@@ -250,17 +202,26 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Stop sync if running
-    if (syncStatus.status === 'running' && syncProcess) {
-      syncProcess.kill('SIGTERM')
-      syncStatus = {
-        ...syncStatus,
-        status: 'failed',
-        error: 'Sync cancelled by user',
-        endTime: Date.now(),
+    let jobId: string | undefined
+    try {
+      const body = await request.json().catch(() => ({}))
+      jobId = body?.jobId
+    } catch {
+      // no body
+    }
+
+    if (jobId) {
+      const serviceSupabase = createServiceRoleClient()
+      const { error } = await serviceSupabase
+        .from('sync_jobs')
+        .update({ status: 'cancelled' })
+        .eq('job_id', jobId)
+        .eq('sync_type', 'pokemon_cache')
+        .eq('status', 'running')
+
+      if (!error) {
+        return NextResponse.json({ message: 'Sync cancelled' })
       }
-      syncProcess = null
-      return NextResponse.json({ message: 'Sync cancelled' })
     }
 
     return NextResponse.json({ message: 'No sync running' })

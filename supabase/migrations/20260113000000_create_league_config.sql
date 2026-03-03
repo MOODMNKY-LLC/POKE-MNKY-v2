@@ -2,7 +2,7 @@
 -- This table stores parsed rules from Google Sheets Rules parser
 
 CREATE TABLE IF NOT EXISTS public.league_config (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   
   -- Configuration type (rules, scoring, draft_settings, etc.)
   config_type TEXT NOT NULL CHECK (config_type IN ('rules', 'scoring', 'draft_settings', 'season_structure', 'general')),

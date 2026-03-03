@@ -1,6 +1,13 @@
--- Add coach_bot_linked to user_management_view so admins can see if /whoami will work for a user
+-- Add coach_bot_linked and discord_roles to user_management_view
+-- coach_bot_linked: admins can see if /whoami will work for a user
+-- discord_roles: for Discord-synced coach/commissioner stats (from 20250303)
+--
+-- DROP first: CREATE OR REPLACE cannot add columns in the middle (PostgreSQL
+-- maps by position, so adding discord_roles before is_active would rename is_active).
 
-CREATE OR REPLACE VIEW public.user_management_view AS
+DROP VIEW IF EXISTS public.user_management_view;
+
+CREATE VIEW public.user_management_view AS
 SELECT
   p.id,
   p.username,
@@ -11,6 +18,7 @@ SELECT
   t.name AS team_name,
   p.discord_id,
   p.discord_username,
+  p.discord_roles,
   p.is_active,
   p.email_verified,
   p.onboarding_completed,
@@ -29,4 +37,6 @@ FROM public.profiles p
 LEFT JOIN public.teams t ON p.team_id = t.id
 LEFT JOIN auth.users au ON p.id = au.id;
 
-COMMENT ON VIEW public.user_management_view IS 'User management; coach_bot_linked true when coach row has discord_user_id or discord_id set for /whoami.';
+GRANT SELECT ON public.user_management_view TO authenticated;
+
+COMMENT ON VIEW public.user_management_view IS 'User management; includes discord_roles and coach_bot_linked for Discord sync and /whoami.';

@@ -27,6 +27,10 @@
     "verify:database-optimization": "tsx scripts/verify-database-optimization.ts",
     "verify:complete": "tsx scripts/verify-and-populate-complete.ts",
     "deploy:showdown-function": "supabase functions deploy ingest-showdown-pokedex",
+    "deploy:sync-pokemon-function": "supabase functions deploy sync-pokemon-pokeapi",
+    "db:reset": "supabase db reset",
+    "db:reset:safe": "cross-env SUPABASE_DB_ONLY=true supabase db reset",
+    "db:reset:tolerate-502": "powershell -ExecutionPolicy Bypass -File scripts/db-reset-tolerate-502.ps1",
     "db:pull": "echo 'Supabase CLI not installed. Install with: scoop install supabase'",
     "db:push": "echo 'Supabase CLI not installed. Install with: scoop install supabase'",
     "db:migrate": "echo 'Supabase CLI not installed. Install with: scoop install supabase'",
@@ -149,6 +153,7 @@
     "zod": "3.25.76"
   },
   "devDependencies": {
+    "cross-env": "^7.0.3",
     "@orval/core": "^8.0.1",
     "@playwright/test": "^1.49.0",
     "@tailwindcss/postcss": "^4.1.9",

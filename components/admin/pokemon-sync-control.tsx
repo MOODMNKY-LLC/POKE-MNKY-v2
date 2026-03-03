@@ -63,6 +63,10 @@ export function PokemonSyncControl() {
     }
   }, [syncStatus.status])
 
+  const cancelledRef = useRef(false)
+  const jobIdRef = useRef<string | null>(null)
+  const startTimeRef = useRef<number>(0)
+
   const handleStartSync = async () => {
     if (startId < 1 || endId > 1025 || startId > endId) {
       toast({
@@ -74,144 +78,108 @@ export function PokemonSyncControl() {
     }
 
     setIsLoading(true)
-    try {
-      const response = await fetch('/api/admin/sync', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          start: startId,
-          end: endId,
-          batchSize,
-          rateLimitMs,
-        }),
-      })
+    cancelledRef.current = false
+    setSyncStatus({ status: 'running', startTime: Date.now() })
+    previousStatusRef.current = 'running'
 
-      const data = await response.json()
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current)
+      intervalRef.current = null
+    }
 
-      if (response.ok) {
-        setSyncStatus({ status: 'running', startTime: Date.now() })
-        previousStatusRef.current = 'running'
-        
-        // Clear any existing interval first
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current)
-          intervalRef.current = null
-        }
-        
-        // Poll function for active sync - checks state BEFORE making API call
-        const pollSyncStatus = async () => {
-          // CRITICAL: Check if interval still exists and sync should still be running
-          if (!intervalRef.current) {
-            return // Stop if interval was cleared
-          }
+    let currentStart = startId
+    let currentJobId: string | undefined
 
-          // Check current state BEFORE making API call
-          // Use a ref to track if we should continue polling
-          let shouldContinue = true
+    const runChunk = async (): Promise<void> => {
+      if (cancelledRef.current) return
 
-          try {
-            const statusResponse = await fetch('/api/admin/sync')
-            if (statusResponse.ok) {
-              const statusData = await statusResponse.json()
-              const statusChanged = previousStatusRef.current !== statusData.status
-              previousStatusRef.current = statusData.status
-              setSyncStatus(statusData)
-              
-              // Show notifications on status changes
-              if (statusChanged) {
-                if (statusData.status === 'completed') {
-                  toast({
-                    title: "Sync Completed",
-                    description: statusData.progress 
-                      ? `Successfully synced ${statusData.progress.synced} Pokemon${statusData.progress.skipped > 0 ? ` (${statusData.progress.skipped} skipped)` : ''}.`
-                      : "Pokemon data sync completed successfully.",
-                  })
-                  shouldContinue = false
-                } else if (statusData.status === 'failed') {
-                  toast({
-                    title: "Sync Failed",
-                    description: statusData.error || "Sync failed with an unknown error.",
-                    variant: "destructive",
-                  })
-                  shouldContinue = false
-                } else if (statusData.status === 'idle') {
-                  shouldContinue = false
-                }
-              }
-              
-              // Stop polling if sync is no longer running
-              if (!shouldContinue || statusData.status !== 'running') {
-                if (intervalRef.current) {
-                  clearInterval(intervalRef.current)
-                  intervalRef.current = null
-                }
-                return
-              }
-            } else {
-              // API error - stop polling
-              shouldContinue = false
-            }
-          } catch (error) {
-            // Stop polling on connection errors
-            console.error('Error polling sync status:', error)
-            shouldContinue = false
-          }
-          
-          // Clear interval if we shouldn't continue
-          if (!shouldContinue && intervalRef.current) {
-            clearInterval(intervalRef.current)
-            intervalRef.current = null
-          }
-        }
-        
-        // Start polling every 1 second ONLY if sync started successfully
-        intervalRef.current = setInterval(pollSyncStatus, 1000)
-        
-        toast({
-          title: "Sync Started",
-          description: `Syncing Pokemon ${startId}-${endId}...`,
+      try {
+        const response = await fetch('/api/admin/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            start: currentStart,
+            end: endId,
+            batchSize,
+            rateLimitMs,
+            jobId: currentJobId,
+          }),
         })
-      } else {
+
+        const data = await response.json()
+
+        if (!response.ok) {
+          setSyncStatus({
+            status: 'failed',
+            error: data.error || 'Sync failed',
+            endTime: Date.now(),
+          })
+          previousStatusRef.current = 'failed'
+          toast({ title: "Sync Failed", description: data.error, variant: "destructive" })
+          return
+        }
+
+        currentJobId = data.jobId
+        if (data.jobId) jobIdRef.current = data.jobId
+        setSyncStatus({
+          status: data.hasMore ? 'running' : 'completed',
+          startTime: startTimeRef.current,
+          endTime: data.hasMore ? undefined : Date.now(),
+          progress: data.progress,
+        })
+        previousStatusRef.current = data.hasMore ? 'running' : 'completed'
+
+        if (data.hasMore && !cancelledRef.current) {
+          currentStart = data.nextStart
+          await runChunk()
+        } else if (!data.hasMore) {
+          toast({
+            title: "Sync Completed",
+            description: data.progress
+              ? `Synced ${data.progress.synced} Pokemon${(data.progress.skipped ?? 0) > 0 ? ` (${data.progress.skipped} skipped)` : ''}.`
+              : "Pokemon data sync completed.",
+          })
+        }
+      } catch (error) {
+        setSyncStatus({
+          status: 'failed',
+          error: error instanceof Error ? error.message : 'Sync failed',
+          endTime: Date.now(),
+        })
+        previousStatusRef.current = 'failed'
         toast({
-          title: "Failed to Start Sync",
-          description: data.error || "Unknown error occurred.",
+          title: "Error",
+          description: error instanceof Error ? error.message : "Failed to sync.",
           variant: "destructive",
         })
+      } finally {
+        setIsLoading(false)
       }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to start sync.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsLoading(false)
     }
+
+    toast({ title: "Sync Started", description: `Syncing Pokemon ${startId}-${endId}...` })
+    await runChunk()
   }
 
   const handleStopSync = async () => {
+    cancelledRef.current = true
     setIsLoading(true)
     try {
       const response = await fetch('/api/admin/sync', {
         method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobId: jobIdRef.current }),
       })
 
       if (response.ok) {
         setSyncStatus({ status: 'idle' })
         previousStatusRef.current = 'idle'
-        
-        // Stop polling when sync is stopped
+        jobIdRef.current = null
         if (intervalRef.current) {
           clearInterval(intervalRef.current)
           intervalRef.current = null
         }
-        
-        toast({
-          title: "Sync Cancelled",
-          description: "Sync has been cancelled.",
-        })
+        toast({ title: "Sync Cancelled", description: "Sync has been cancelled." })
       }
     } catch (error) {
       toast({

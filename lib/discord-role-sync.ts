@@ -269,17 +269,29 @@ export async function syncDiscordRoleToApp(
       }))
       .sort((a, b) => b.position - a.position)
 
-    // Update if role is different OR if Discord roles need updating
-    const needsUpdate = profile.role !== appRole
-    
+    // Never downgrade admin or commissioner - Discord sync can upgrade but not demote
+    // (avoids overwriting app admin with spectator when Discord roles differ)
+    const roleHierarchy: Record<UserRole, number> = {
+      admin: 4,
+      commissioner: 3,
+      coach: 2,
+      spectator: 1,
+    }
+    const currentLevel = roleHierarchy[profile.role as UserRole] ?? 0
+    const newLevel = roleHierarchy[appRole] ?? 0
+    const wouldDowngrade = newLevel < currentLevel
+    const effectiveAppRole = wouldDowngrade ? (profile.role as UserRole) : appRole
+
+    const needsUpdate = profile.role !== effectiveAppRole
+
     // Always update Discord roles to keep them in sync (including empty array for removals)
     const updateData: { role?: UserRole; discord_roles: any[]; updated_at: string } = {
       discord_roles: discordRolesArray, // Always update, even if empty (reflects role removals)
       updated_at: new Date().toISOString(),
     }
-    
+
     if (needsUpdate) {
-      updateData.role = appRole
+      updateData.role = effectiveAppRole
     }
 
     // Always update Discord roles in database (handles additions, removals, and changes)
@@ -304,7 +316,7 @@ export async function syncDiscordRoleToApp(
         resource_id: profile.id,
         metadata: {
           old_role: profile.role,
-          new_role: appRole,
+          new_role: effectiveAppRole,
           synced_by: syncedBy || "system",
           discord_roles: discordRolesArray,
           discord_roles_count: discordRolesArray.length,

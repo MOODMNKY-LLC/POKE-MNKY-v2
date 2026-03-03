@@ -7,7 +7,7 @@
 
 -- Types Master Data
 CREATE TABLE IF NOT EXISTS public.types (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   type_id INTEGER UNIQUE NOT NULL,
   name TEXT UNIQUE NOT NULL,
   damage_relations JSONB, -- {double_damage_from, double_damage_to, etc.}
@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS public.types (
 
 -- Abilities Master Data
 CREATE TABLE IF NOT EXISTS public.abilities (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   ability_id INTEGER UNIQUE NOT NULL,
   name TEXT UNIQUE NOT NULL,
   is_main_series BOOLEAN DEFAULT true,
@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS public.abilities (
 
 -- Moves Master Data
 CREATE TABLE IF NOT EXISTS public.moves (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   move_id INTEGER UNIQUE NOT NULL,
   name TEXT UNIQUE NOT NULL,
   accuracy INTEGER,
@@ -57,7 +57,7 @@ CREATE TABLE IF NOT EXISTS public.moves (
 
 -- Items Master Data
 CREATE TABLE IF NOT EXISTS public.items (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   item_id INTEGER UNIQUE NOT NULL,
   name TEXT UNIQUE NOT NULL,
   cost INTEGER,
@@ -76,7 +76,7 @@ CREATE TABLE IF NOT EXISTS public.items (
 
 -- Stats Master Data
 CREATE TABLE IF NOT EXISTS public.stats (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   stat_id INTEGER UNIQUE NOT NULL,
   name TEXT UNIQUE NOT NULL,
   is_battle_only BOOLEAN DEFAULT false,
@@ -88,7 +88,7 @@ CREATE TABLE IF NOT EXISTS public.stats (
 
 -- Generations Master Data
 CREATE TABLE IF NOT EXISTS public.generations (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   generation_id INTEGER UNIQUE NOT NULL,
   name TEXT UNIQUE NOT NULL,
   abilities JSONB,
@@ -106,7 +106,7 @@ CREATE TABLE IF NOT EXISTS public.generations (
 
 -- Pokemon Species (Base species information)
 CREATE TABLE IF NOT EXISTS public.pokemon_species (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   species_id INTEGER UNIQUE NOT NULL,
   name TEXT UNIQUE NOT NULL,
   "order" INTEGER,
@@ -139,7 +139,7 @@ CREATE TABLE IF NOT EXISTS public.pokemon_species (
 
 -- Pokemon (Individual Pokemon instances)
 CREATE TABLE IF NOT EXISTS public.pokemon (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   pokemon_id INTEGER UNIQUE NOT NULL,
   name TEXT NOT NULL,
   base_experience INTEGER,
@@ -157,7 +157,7 @@ CREATE TABLE IF NOT EXISTS public.pokemon (
 
 -- Evolution Chains
 CREATE TABLE IF NOT EXISTS public.evolution_chains (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   evolution_chain_id INTEGER UNIQUE NOT NULL,
   baby_trigger_item_id INTEGER REFERENCES public.items(item_id),
   chain_data JSONB, -- Full evolution chain structure
@@ -167,7 +167,7 @@ CREATE TABLE IF NOT EXISTS public.evolution_chains (
 
 -- Pokemon Forms
 CREATE TABLE IF NOT EXISTS public.pokemon_forms (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   form_id INTEGER UNIQUE NOT NULL,
   name TEXT NOT NULL,
   "order" INTEGER,
@@ -203,7 +203,7 @@ END $$;
 
 -- Pokemon-Ability Relationships
 CREATE TABLE IF NOT EXISTS public.pokemon_abilities (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   pokemon_id INTEGER,
   ability_id INTEGER REFERENCES public.abilities(ability_id),
   is_hidden BOOLEAN DEFAULT false,
@@ -228,7 +228,7 @@ END $$;
 
 -- Pokemon-Move Relationships
 CREATE TABLE IF NOT EXISTS public.pokemon_moves (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   pokemon_id INTEGER,
   move_id INTEGER REFERENCES public.moves(move_id),
   version_group_id INTEGER,
@@ -241,7 +241,7 @@ CREATE TABLE IF NOT EXISTS public.pokemon_moves (
 
 -- Pokemon-Type Relationships
 CREATE TABLE IF NOT EXISTS public.pokemon_types (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   pokemon_id INTEGER,
   type_id INTEGER REFERENCES public.types(type_id),
   slot INTEGER, -- 1 or 2
@@ -265,7 +265,7 @@ END $$;
 
 -- Pokemon-Item Relationships (Held Items)
 CREATE TABLE IF NOT EXISTS public.pokemon_items (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   pokemon_id INTEGER,
   item_id INTEGER REFERENCES public.items(item_id),
   version_details JSONB, -- [{rarity, version: {name, url}}]

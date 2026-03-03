@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useToast } from "@/hooks/use-toast"
-import { RefreshCw, CheckCircle2, XCircle, Clock, Loader2 } from "lucide-react"
+import { RefreshCw, CheckCircle2, XCircle, Loader2 } from "lucide-react"
 import Link from "next/link"
 
 interface SyncJob {
@@ -27,6 +27,25 @@ function isNoCurrentSeasonError(errorLog: SyncJob["error_log"]): boolean {
   if (!errorLog || typeof errorLog !== "object") return false
   const msg = (errorLog.error ?? "").toString().toLowerCase()
   return msg.includes("current season") || msg.includes("is_current")
+}
+
+/** Extract human-readable error message from error_log (various shapes from different sync sources) */
+function getErrorMessage(errorLog: SyncJob["error_log"]): string | null {
+  if (!errorLog || typeof errorLog !== "object") return null
+  const err = errorLog.error ?? errorLog.global_error ?? errorLog.message
+  if (err && typeof err === "string" && err.trim()) return err.trim()
+  const details = errorLog.details
+  if (Array.isArray(details) && details.length > 0) {
+    const first = details[0]
+    const msg = typeof first === "string" ? first : first?.error ?? first?.message
+    if (msg) return String(msg)
+  }
+  return null
+}
+
+/** Whether we should show the error alert (only for failed jobs) */
+function shouldShowErrorAlert(job: SyncJob): boolean {
+  return job.status === "failed"
 }
 
 export function SyncStatus() {
@@ -190,7 +209,6 @@ export function SyncStatus() {
                     {latestJob.status === "running" && !isStale && (
                       <Loader2 className="mr-1 h-3 w-3 animate-spin" />
                     )}
-                    {latestJob.status === "running" && !isStale && <Clock className="mr-1 h-3 w-3" />}
                     {isStale ? "stuck" : latestJob.status}
                   </Badge>
                 </div>
@@ -208,7 +226,7 @@ export function SyncStatus() {
                     <> • Triggered by: {latestJob.triggered_by}</>
                   )}
                 </div>
-                {latestJob.pokemon_synced !== null && (
+                {latestJob.pokemon_synced !== null && latestJob.status !== "running" && (
                   <div className="text-xs text-muted-foreground">
                     Synced: {latestJob.pokemon_synced} Pokémon
                     {latestJob.pokemon_failed !== null && latestJob.pokemon_failed > 0 && (
@@ -216,11 +234,29 @@ export function SyncStatus() {
                     )}
                   </div>
                 )}
-                {latestJob.error_log && (
+                {isRunning && (
+                  <Alert className="border-primary/50 bg-primary/5">
+                    <AlertDescription className="text-xs">
+                      Sync in progress. Changes from Notion are being applied to the draft pool.
+                    </AlertDescription>
+                  </Alert>
+                )}
+                {latestJob.status === "completed" && (
+                  <Alert className="border-green-500/30 bg-green-500/5">
+                    <AlertDescription className="text-xs flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 shrink-0 text-green-600" />
+                      Sync completed successfully
+                      {latestJob.pokemon_synced != null && (
+                        <> — {latestJob.pokemon_synced} Pokémon synced</>
+                      )}
+                    </AlertDescription>
+                  </Alert>
+                )}
+                {shouldShowErrorAlert(latestJob) && (
                   <Alert variant="destructive">
                     <AlertDescription className="text-xs space-y-2">
                       <span className="block">
-                        {latestJob.error_log.error || "Sync error occurred"}
+                        {getErrorMessage(latestJob.error_log) ?? "Sync failed"}
                       </span>
                       {isNoCurrentSeasonError(latestJob.error_log) && (
                         <span className="block mt-2">
@@ -234,8 +270,7 @@ export function SyncStatus() {
                           {" "}(one row in <code className="text-[10px] bg-muted px-1 rounded">seasons</code> must have <code className="text-[10px] bg-muted px-1 rounded">is_current = true</code>).
                         </span>
                       )}
-                      {latestJob.status === "failed" &&
-                        (latestJob.pokemon_synced ?? 0) > 0 &&
+                      {(latestJob.pokemon_synced ?? 0) > 0 &&
                         (latestJob.pokemon_failed ?? 0) === 0 && (
                           <span className="block mt-2 text-muted-foreground">
                             Data was synced successfully; the job was marked failed due to a non-blocking issue. Trigger sync again to get a clean run.

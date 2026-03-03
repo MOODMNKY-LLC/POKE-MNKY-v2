@@ -2,6 +2,8 @@
  * Vercel Cron API Route for Pokemon Sync
  * Triggered daily at 3 AM UTC
  *
+ * Calls the sync-pokemon-pokeapi Edge Function to sync new/expired Pokemon.
+ *
  * Setup:
  * 1. Add to vercel.json:
  *    {
@@ -17,17 +19,11 @@
 
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
-import { getPokemonDataExtended } from "@/lib/pokemon-api-enhanced"
-import { PokemonClient } from "pokenode-ts"
 
 export const revalidate = 0
-export const maxDuration = 60 // Maximum allowed on Vercel Hobby plan
+export const maxDuration = 60
 
-const pokemonClient = new PokemonClient()
-
-async function detectNewPokemon(): Promise<number[]> {
-  const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
-
+async function detectNewPokemon(supabase: ReturnType<typeof createClient>): Promise<number[]> {
   const { data: maxCached } = await supabase
     .from("pokemon_cache")
     .select("pokemon_id")
@@ -39,11 +35,17 @@ async function detectNewPokemon(): Promise<number[]> {
   const newIds: number[] = []
   let currentId = maxId + 1
 
-  while (true) {
+  while (currentId <= 1025) {
     try {
-      await pokemonClient.getPokemonById(currentId)
-      newIds.push(currentId)
-      currentId++
+      const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${currentId}`, {
+        headers: { "User-Agent": "POKE-MNKY/1.0" },
+      })
+      if (res.ok) {
+        newIds.push(currentId)
+        currentId++
+      } else {
+        break
+      }
     } catch {
       break
     }
@@ -52,9 +54,7 @@ async function detectNewPokemon(): Promise<number[]> {
   return newIds
 }
 
-async function getExpiredPokemon(): Promise<number[]> {
-  const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
-
+async function getExpiredPokemon(supabase: ReturnType<typeof createClient>): Promise<number[]> {
   const { data: expired } = await supabase
     .from("pokemon_cache")
     .select("pokemon_id")
@@ -65,45 +65,38 @@ async function getExpiredPokemon(): Promise<number[]> {
 }
 
 export async function GET(request: Request) {
-  // Verify cron secret
   const authHeader = request.headers.get("authorization")
   const secret = process.env.CRON_SECRET?.trim()
   if (!secret || authHeader !== `Bearer ${secret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-  // Create sync job
-  const { data: job } = await supabase
-    .from("sync_jobs")
-    .insert({
-      job_type: "incremental",
-      status: "running",
-      triggered_by: "cron",
-    })
-    .select()
-    .single()
-
-  if (!job) {
-    return NextResponse.json({ error: "Failed to create sync job" }, { status: 500 })
+  if (!supabaseUrl || !serviceRoleKey) {
+    return NextResponse.json({ error: "Missing Supabase configuration" }, { status: 500 })
   }
 
+  const supabase = createClient(supabaseUrl, serviceRoleKey)
+
   try {
-    // Detect new and expired Pokemon
-    const [newPokemon, expiredPokemon] = await Promise.all([detectNewPokemon(), getExpiredPokemon()])
+    const [newPokemon, expiredPokemon] = await Promise.all([
+      detectNewPokemon(supabase),
+      getExpiredPokemon(supabase),
+    ])
 
     const toSync = [...new Set([...newPokemon, ...expiredPokemon])]
 
     if (toSync.length === 0) {
-      await supabase
-        .from("sync_jobs")
-        .update({
-          status: "completed",
-          pokemon_synced: 0,
-          completed_at: new Date().toISOString(),
-        })
-        .eq("job_id", job.job_id)
+      await supabase.from("sync_jobs").insert({
+        job_type: "incremental",
+        sync_type: "pokemon_cache",
+        status: "completed",
+        triggered_by: "cron",
+        pokemon_synced: 0,
+        completed_at: new Date().toISOString(),
+      })
 
       return NextResponse.json({
         success: true,
@@ -112,66 +105,61 @@ export async function GET(request: Request) {
       })
     }
 
+    const start = Math.min(...toSync)
+    const end = Math.min(Math.max(...toSync), 1025)
     const batchSize = 20
-    const batch = toSync.slice(0, batchSize)
-    const remaining = toSync.length - batch.length
 
-    // Sync Pokemon batch
-    let synced = 0
-    let failed = 0
-    const errors: Array<{ pokemon_id: number; error: string }> = []
+    const functionUrl = `${supabaseUrl}/functions/v1/sync-pokemon-pokeapi`
+    const response = await fetch(functionUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${serviceRoleKey}`,
+      },
+      body: JSON.stringify({
+        start,
+        end,
+        batchSize,
+        rateLimitMs: 50,
+      }),
+    })
 
-    for (const id of batch) {
-      try {
-        await getPokemonDataExtended(id, true)
-        synced++
-      } catch (error) {
-        failed++
-        errors.push({
-          pokemon_id: id,
-          error: error instanceof Error ? error.message : "Unknown error",
-        })
-      }
+    const data = await response.json().catch(() => ({}))
 
-      await new Promise((resolve) => setTimeout(resolve, 50))
+    if (!response.ok) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: data.error || `Edge Function failed: ${response.statusText}`,
+        },
+        { status: 500 }
+      )
     }
 
-    // Update sync job
-    await supabase
-      .from("sync_jobs")
-      .update({
-        status: remaining > 0 ? "partial" : failed === 0 ? "completed" : "partial",
-        pokemon_synced: synced,
-        pokemon_failed: failed,
-        error_log: { errors, remaining_count: remaining },
-        completed_at: new Date().toISOString(),
-      })
-      .eq("job_id", job.job_id)
+    if (data.success === false) {
+      return NextResponse.json(
+        { success: false, error: data.error || "Sync failed" },
+        { status: 500 }
+      )
+    }
 
     return NextResponse.json({
-      success: failed === 0,
-      message: `Synced ${synced}/${batch.length} Pokémon${remaining > 0 ? ` (${remaining} remaining for next run)` : ""}`,
-      synced,
-      failed,
-      remaining,
-      errors: failed > 0 ? errors : undefined,
+      success: true,
+      message: data.hasMore
+        ? `Synced chunk: ${data.synced} new, ${data.skipped} skipped, ${data.failed} failed. More chunks remain.`
+        : `Synced ${data.totalSynced} Pokemon (${data.totalSkipped} skipped, ${data.totalFailed} failed)`,
+      synced: data.totalSynced,
+      skipped: data.totalSkipped,
+      failed: data.totalFailed,
+      hasMore: data.hasMore,
     })
   } catch (error) {
-    await supabase
-      .from("sync_jobs")
-      .update({
-        status: "failed",
-        error_log: { global_error: error instanceof Error ? error.message : "Unknown error" },
-        completed_at: new Date().toISOString(),
-      })
-      .eq("job_id", job.job_id)
-
     return NextResponse.json(
       {
         success: false,
         error: error instanceof Error ? error.message : "Sync failed",
       },
-      { status: 500 },
+      { status: 500 }
     )
   }
 }

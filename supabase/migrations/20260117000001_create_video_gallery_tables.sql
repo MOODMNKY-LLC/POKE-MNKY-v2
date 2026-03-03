@@ -3,7 +3,7 @@
 
 -- Videos table (cached YouTube video data)
 CREATE TABLE IF NOT EXISTS public.videos (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   youtube_video_id TEXT NOT NULL UNIQUE,
   youtube_channel_id TEXT NOT NULL,
   title TEXT NOT NULL,
@@ -31,7 +31,7 @@ CREATE INDEX IF NOT EXISTS idx_videos_last_synced_at ON public.videos(last_synce
 
 -- Video feedback table (ratings, comments, reactions)
 CREATE TABLE IF NOT EXISTS public.video_feedback (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   video_id UUID NOT NULL REFERENCES public.videos(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   rating INTEGER CHECK (rating >= 1 AND rating <= 5), -- 1-5 star rating
@@ -51,7 +51,7 @@ CREATE INDEX IF NOT EXISTS idx_video_feedback_created_at ON public.video_feedbac
 
 -- Video tags table (user mentions/tags in videos)
 CREATE TABLE IF NOT EXISTS public.video_tags (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   video_id UUID NOT NULL REFERENCES public.videos(id) ON DELETE CASCADE,
   tagged_user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   tagged_by_user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -71,7 +71,7 @@ CREATE INDEX IF NOT EXISTS idx_video_tags_is_notified ON public.video_tags(is_no
 
 -- Video views tracking (for analytics)
 CREATE TABLE IF NOT EXISTS public.video_views (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   video_id UUID NOT NULL REFERENCES public.videos(id) ON DELETE CASCADE,
   user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL, -- NULL for anonymous views
   viewed_at TIMESTAMPTZ DEFAULT NOW(),
@@ -86,7 +86,7 @@ CREATE INDEX IF NOT EXISTS idx_video_views_viewed_at ON public.video_views(viewe
 
 -- Channel configuration (for YouTube channel settings)
 CREATE TABLE IF NOT EXISTS public.youtube_channels (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   channel_id TEXT NOT NULL UNIQUE,
   channel_handle TEXT,
   channel_name TEXT NOT NULL,
@@ -199,7 +199,7 @@ CREATE POLICY "YouTube channels can be updated by authenticated users" ON public
 
 -- Comments: Add a separate table for threaded comments on videos
 CREATE TABLE IF NOT EXISTS public.video_comments (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   video_id UUID NOT NULL REFERENCES public.videos(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   parent_comment_id UUID REFERENCES public.video_comments(id) ON DELETE CASCADE, -- For threading

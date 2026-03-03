@@ -8,7 +8,7 @@
 
 -- Locations (for Pokemon encounters)
 CREATE TABLE IF NOT EXISTS public.locations (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   location_id INTEGER UNIQUE NOT NULL,
   name TEXT UNIQUE NOT NULL,
   region_id INTEGER,
@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS public.locations (
 
 -- Location Areas (Pokemon encounter locations)
 CREATE TABLE IF NOT EXISTS public.location_areas (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   location_area_id INTEGER UNIQUE NOT NULL,
   name TEXT UNIQUE NOT NULL,
   game_index INTEGER,
@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS public.location_areas (
 
 -- Regions
 CREATE TABLE IF NOT EXISTS public.regions (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   region_id INTEGER UNIQUE NOT NULL,
   name TEXT UNIQUE NOT NULL,
   locations JSONB,
@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS public.regions (
 
 -- Berries
 CREATE TABLE IF NOT EXISTS public.berries (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   berry_id INTEGER UNIQUE NOT NULL,
   name TEXT UNIQUE NOT NULL,
   growth_time INTEGER,
@@ -68,7 +68,7 @@ CREATE TABLE IF NOT EXISTS public.berries (
 
 -- Berry Firmnesses
 CREATE TABLE IF NOT EXISTS public.berry_firmnesses (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   firmness_id INTEGER UNIQUE NOT NULL,
   name TEXT UNIQUE NOT NULL,
   berries JSONB,
@@ -79,7 +79,7 @@ CREATE TABLE IF NOT EXISTS public.berry_firmnesses (
 
 -- Berry Flavors
 CREATE TABLE IF NOT EXISTS public.berry_flavors (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   flavor_id INTEGER UNIQUE NOT NULL,
   name TEXT UNIQUE NOT NULL,
   berries JSONB,
@@ -91,7 +91,7 @@ CREATE TABLE IF NOT EXISTS public.berry_flavors (
 
 -- Contest Types
 CREATE TABLE IF NOT EXISTS public.contest_types (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   contest_type_id INTEGER UNIQUE NOT NULL,
   name TEXT UNIQUE NOT NULL,
   berry_flavor_id INTEGER REFERENCES public.berry_flavors(flavor_id),
@@ -102,7 +102,7 @@ CREATE TABLE IF NOT EXISTS public.contest_types (
 
 -- Contest Effects
 CREATE TABLE IF NOT EXISTS public.contest_effects (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   contest_effect_id INTEGER UNIQUE NOT NULL,
   appeal INTEGER,
   jam INTEGER,
@@ -114,7 +114,7 @@ CREATE TABLE IF NOT EXISTS public.contest_effects (
 
 -- Super Contest Effects
 CREATE TABLE IF NOT EXISTS public.super_contest_effects (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   super_contest_effect_id INTEGER UNIQUE NOT NULL,
   appeal INTEGER,
   flavor_text_entries JSONB,
@@ -125,7 +125,7 @@ CREATE TABLE IF NOT EXISTS public.super_contest_effects (
 
 -- Encounter Methods
 CREATE TABLE IF NOT EXISTS public.encounter_methods (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   encounter_method_id INTEGER UNIQUE NOT NULL,
   name TEXT UNIQUE NOT NULL,
   "order" INTEGER,
@@ -136,7 +136,7 @@ CREATE TABLE IF NOT EXISTS public.encounter_methods (
 
 -- Encounter Conditions
 CREATE TABLE IF NOT EXISTS public.encounter_conditions (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   encounter_condition_id INTEGER UNIQUE NOT NULL,
   name TEXT UNIQUE NOT NULL,
   values JSONB,
@@ -147,7 +147,7 @@ CREATE TABLE IF NOT EXISTS public.encounter_conditions (
 
 -- Encounter Condition Values
 CREATE TABLE IF NOT EXISTS public.encounter_condition_values (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   encounter_condition_value_id INTEGER UNIQUE NOT NULL,
   name TEXT UNIQUE NOT NULL,
   condition_id INTEGER REFERENCES public.encounter_conditions(encounter_condition_id),
@@ -158,7 +158,7 @@ CREATE TABLE IF NOT EXISTS public.encounter_condition_values (
 
 -- Machines (TMs/HMs)
 CREATE TABLE IF NOT EXISTS public.machines (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   machine_id INTEGER UNIQUE NOT NULL,
   item_id INTEGER REFERENCES public.items(item_id),
   move_id INTEGER REFERENCES public.moves(move_id),
@@ -169,7 +169,7 @@ CREATE TABLE IF NOT EXISTS public.machines (
 
 -- Move Ailments
 CREATE TABLE IF NOT EXISTS public.move_ailments (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   move_ailment_id INTEGER UNIQUE NOT NULL,
   name TEXT UNIQUE NOT NULL,
   moves JSONB,
@@ -180,7 +180,7 @@ CREATE TABLE IF NOT EXISTS public.move_ailments (
 
 -- Move Battle Styles
 CREATE TABLE IF NOT EXISTS public.move_battle_styles (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   move_battle_style_id INTEGER UNIQUE NOT NULL,
   name TEXT UNIQUE NOT NULL,
   names JSONB,
@@ -190,7 +190,7 @@ CREATE TABLE IF NOT EXISTS public.move_battle_styles (
 
 -- Move Categories
 CREATE TABLE IF NOT EXISTS public.move_categories (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   move_category_id INTEGER UNIQUE NOT NULL,
   name TEXT UNIQUE NOT NULL,
   moves JSONB,
@@ -201,7 +201,7 @@ CREATE TABLE IF NOT EXISTS public.move_categories (
 
 -- Move Damage Classes
 CREATE TABLE IF NOT EXISTS public.move_damage_classes (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   move_damage_class_id INTEGER UNIQUE NOT NULL,
   name TEXT UNIQUE NOT NULL,
   descriptions JSONB,
@@ -213,7 +213,7 @@ CREATE TABLE IF NOT EXISTS public.move_damage_classes (
 
 -- Move Learn Methods
 CREATE TABLE IF NOT EXISTS public.move_learn_methods (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   move_learn_method_id INTEGER UNIQUE NOT NULL,
   name TEXT UNIQUE NOT NULL,
   descriptions JSONB,
@@ -225,7 +225,7 @@ CREATE TABLE IF NOT EXISTS public.move_learn_methods (
 
 -- Move Targets
 CREATE TABLE IF NOT EXISTS public.move_targets (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   move_target_id INTEGER UNIQUE NOT NULL,
   name TEXT UNIQUE NOT NULL,
   descriptions JSONB,
@@ -237,7 +237,7 @@ CREATE TABLE IF NOT EXISTS public.move_targets (
 
 -- Natures
 CREATE TABLE IF NOT EXISTS public.natures (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   nature_id INTEGER UNIQUE NOT NULL,
   name TEXT UNIQUE NOT NULL,
   decreased_stat_id INTEGER REFERENCES public.stats(stat_id),
@@ -253,7 +253,7 @@ CREATE TABLE IF NOT EXISTS public.natures (
 
 -- Pokeathlon Stats
 CREATE TABLE IF NOT EXISTS public.pokeathlon_stats (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   pokeathlon_stat_id INTEGER UNIQUE NOT NULL,
   name TEXT UNIQUE NOT NULL,
   affecting_natures JSONB,
@@ -264,7 +264,7 @@ CREATE TABLE IF NOT EXISTS public.pokeathlon_stats (
 
 -- Egg Groups
 CREATE TABLE IF NOT EXISTS public.egg_groups (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   egg_group_id INTEGER UNIQUE NOT NULL,
   name TEXT UNIQUE NOT NULL,
   names JSONB,
@@ -275,7 +275,7 @@ CREATE TABLE IF NOT EXISTS public.egg_groups (
 
 -- Genders
 CREATE TABLE IF NOT EXISTS public.genders (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   gender_id INTEGER UNIQUE NOT NULL,
   name TEXT UNIQUE NOT NULL,
   pokemon_species_details JSONB,
@@ -286,7 +286,7 @@ CREATE TABLE IF NOT EXISTS public.genders (
 
 -- Growth Rates
 CREATE TABLE IF NOT EXISTS public.growth_rates (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   growth_rate_id INTEGER UNIQUE NOT NULL,
   name TEXT UNIQUE NOT NULL,
   formula TEXT,
@@ -299,7 +299,7 @@ CREATE TABLE IF NOT EXISTS public.growth_rates (
 
 -- Pokemon Colors
 CREATE TABLE IF NOT EXISTS public.pokemon_colors (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   color_id INTEGER UNIQUE NOT NULL,
   name TEXT UNIQUE NOT NULL,
   names JSONB,
@@ -310,7 +310,7 @@ CREATE TABLE IF NOT EXISTS public.pokemon_colors (
 
 -- Pokemon Habitats
 CREATE TABLE IF NOT EXISTS public.pokemon_habitats (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   habitat_id INTEGER UNIQUE NOT NULL,
   name TEXT UNIQUE NOT NULL,
   names JSONB,
@@ -321,7 +321,7 @@ CREATE TABLE IF NOT EXISTS public.pokemon_habitats (
 
 -- Pokemon Shapes
 CREATE TABLE IF NOT EXISTS public.pokemon_shapes (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   shape_id INTEGER UNIQUE NOT NULL,
   name TEXT UNIQUE NOT NULL,
   awesome_names JSONB,
@@ -333,7 +333,7 @@ CREATE TABLE IF NOT EXISTS public.pokemon_shapes (
 
 -- Pal Park Areas
 CREATE TABLE IF NOT EXISTS public.pal_park_areas (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   pal_park_area_id INTEGER UNIQUE NOT NULL,
   name TEXT UNIQUE NOT NULL,
   names JSONB,
@@ -344,7 +344,7 @@ CREATE TABLE IF NOT EXISTS public.pal_park_areas (
 
 -- Pokedexes
 CREATE TABLE IF NOT EXISTS public.pokedexes (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   pokedex_id INTEGER UNIQUE NOT NULL,
   name TEXT UNIQUE NOT NULL,
   is_main_series BOOLEAN DEFAULT false,
@@ -359,7 +359,7 @@ CREATE TABLE IF NOT EXISTS public.pokedexes (
 
 -- Versions
 CREATE TABLE IF NOT EXISTS public.versions (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   version_id INTEGER UNIQUE NOT NULL,
   name TEXT UNIQUE NOT NULL,
   names JSONB,
@@ -370,7 +370,7 @@ CREATE TABLE IF NOT EXISTS public.versions (
 
 -- Version Groups
 CREATE TABLE IF NOT EXISTS public.version_groups (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   version_group_id INTEGER UNIQUE NOT NULL,
   name TEXT UNIQUE NOT NULL,
   "order" INTEGER,
@@ -385,7 +385,7 @@ CREATE TABLE IF NOT EXISTS public.version_groups (
 
 -- Item Attributes
 CREATE TABLE IF NOT EXISTS public.item_attributes (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   item_attribute_id INTEGER UNIQUE NOT NULL,
   name TEXT UNIQUE NOT NULL,
   items JSONB,
@@ -397,7 +397,7 @@ CREATE TABLE IF NOT EXISTS public.item_attributes (
 
 -- Item Categories
 CREATE TABLE IF NOT EXISTS public.item_categories (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   item_category_id INTEGER UNIQUE NOT NULL,
   name TEXT UNIQUE NOT NULL,
   items JSONB,
@@ -409,7 +409,7 @@ CREATE TABLE IF NOT EXISTS public.item_categories (
 
 -- Item Fling Effects
 CREATE TABLE IF NOT EXISTS public.item_fling_effects (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   item_fling_effect_id INTEGER UNIQUE NOT NULL,
   name TEXT UNIQUE NOT NULL,
   effect_entries JSONB,
@@ -420,7 +420,7 @@ CREATE TABLE IF NOT EXISTS public.item_fling_effects (
 
 -- Item Pockets
 CREATE TABLE IF NOT EXISTS public.item_pockets (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   item_pocket_id INTEGER UNIQUE NOT NULL,
   name TEXT UNIQUE NOT NULL,
   categories JSONB,
@@ -431,7 +431,7 @@ CREATE TABLE IF NOT EXISTS public.item_pockets (
 
 -- Languages
 CREATE TABLE IF NOT EXISTS public.languages (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   language_id INTEGER UNIQUE NOT NULL,
   name TEXT UNIQUE NOT NULL,
   official BOOLEAN DEFAULT false,
@@ -444,7 +444,7 @@ CREATE TABLE IF NOT EXISTS public.languages (
 
 -- Characteristics
 CREATE TABLE IF NOT EXISTS public.characteristics (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   characteristic_id INTEGER UNIQUE NOT NULL,
   gene_modulo INTEGER,
   possible_values JSONB,
@@ -478,7 +478,7 @@ BEGIN
     WHERE table_schema = 'public' AND table_name = 'pokemon_comprehensive'
   ) THEN
     CREATE TABLE public.pokemon_comprehensive (
-      id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       pokemon_id INTEGER UNIQUE NOT NULL,
       name TEXT NOT NULL,
       base_experience INTEGER,
@@ -513,7 +513,7 @@ ALTER TABLE public.pokemon_species
 
 -- Pokemon Location Areas (many-to-many)
 CREATE TABLE IF NOT EXISTS public.pokemon_location_areas (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   pokemon_id INTEGER NOT NULL,
   location_area_id INTEGER NOT NULL REFERENCES public.location_areas(location_area_id),
   version_details JSONB,
@@ -523,7 +523,7 @@ CREATE TABLE IF NOT EXISTS public.pokemon_location_areas (
 
 -- Pokemon Egg Groups (many-to-many)
 CREATE TABLE IF NOT EXISTS public.pokemon_egg_groups (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   pokemon_species_id INTEGER NOT NULL,
   egg_group_id INTEGER NOT NULL REFERENCES public.egg_groups(egg_group_id),
   created_at TIMESTAMPTZ DEFAULT NOW(),

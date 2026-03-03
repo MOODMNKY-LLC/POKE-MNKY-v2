@@ -31,7 +31,7 @@ BEGIN
   ) THEN
     -- Create match stats table
     CREATE TABLE public.pokemon_stats (
-      id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       match_id UUID NOT NULL REFERENCES public.matches(id) ON DELETE CASCADE,
       pokemon_id UUID NOT NULL REFERENCES public.pokemon(id) ON DELETE CASCADE,
       team_id UUID NOT NULL REFERENCES public.teams(id) ON DELETE CASCADE,

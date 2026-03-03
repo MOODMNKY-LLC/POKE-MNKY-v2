@@ -5,24 +5,15 @@ import { createBrowserClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { Database, Calendar, Trophy, Users, RefreshCw, Settings, MessageSquare, ClipboardList, FileText, ChevronDown, ChevronUp, Music, ArrowRightLeft, Play, BookOpen } from "lucide-react"
-import { SupabaseManager } from "@/components/platform/supabase-manager"
-// PokepediaSyncStatusNew removed - sync system deleted
-import { ShowdownPokedexSync } from "@/components/admin/showdown-pokedex-sync"
-import { PokemonSyncControl } from "@/components/admin/pokemon-sync-control"
-import { PokeMnkyPremium } from "@/components/ui/poke-mnky-avatar"
+import { Database, Calendar, Trophy, Users, RefreshCw, MessageSquare, ClipboardList, FileText, Music, ArrowRightLeft, Play, BookOpen } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 
 export default function AdminPage() {
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<unknown>(null)
   const [profile, setProfile] = useState<{ role?: string } | null>(null)
   const [stats, setStats] = useState({ teams: 0, matches: 0, pokemon: 0 })
   const [pendingTradesCount, setPendingTradesCount] = useState<number>(0)
-  const [lastSync, setLastSync] = useState<any>(null)
-  const [platformOpen, setPlatformOpen] = useState(false)
-  const [pokemonSyncOpen, setPokemonSyncOpen] = useState(false)
-  const [showdownSyncOpen, setShowdownSyncOpen] = useState(false)
+  const [lastSync, setLastSync] = useState<{ synced_at?: string } | null>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -84,37 +75,8 @@ export default function AdminPage() {
     return <div className="flex min-h-screen items-center justify-center">Loading...</div>
   }
 
-  const projectRef = process.env.NEXT_PUBLIC_SUPABASE_URL?.split("//")[1]?.split(".")[0] || "default"
-
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <header className="border-b border-border bg-card">
-        <div className="container mx-auto flex h-16 items-center justify-between px-4">
-          <div className="flex items-center gap-3">
-            <PokeMnkyPremium size={32} className="shrink-0" />
-            <div>
-              <h1 className="text-xl font-bold">Admin Dashboard</h1>
-              <p className="text-sm text-muted-foreground">{user.email}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button onClick={() => setPlatformOpen(true)} variant="outline" size="sm">
-              <Settings className="h-4 w-4 mr-2" />
-              Platform Manager
-            </Button>
-            <Button asChild variant="outline" size="sm">
-              <Link href="/">View Site</Link>
-            </Button>
-            <form action="/api/auth/signout" method="POST">
-              <Button type="submit" variant="ghost" size="sm">
-                Sign Out
-              </Button>
-            </form>
-          </div>
-        </div>
-      </header>
-
-      <main className="container mx-auto flex-1 py-8 px-4">
+    <div className="container mx-auto py-8 px-4">
         <div className="mb-8">
           <h2 className="text-3xl font-bold tracking-tight">League Management</h2>
           <p className="text-muted-foreground">Manage teams, matches, and sync data</p>
@@ -282,18 +244,32 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* Data Synchronization Section */}
+        {/* Sync & Data Section */}
         <div className="mb-8">
           <div className="mb-4">
             <h3 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
               <RefreshCw className="h-6 w-6 text-primary" />
-              Data Synchronization
+              Sync & Data
             </h3>
             <p className="text-muted-foreground">
-              Sync data from external sources and keep your database up-to-date.
+              Trigger and monitor Pokemon sync, Showdown pokedex, Notion, and Google Sheets.
             </p>
           </div>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5">
+              <CardHeader>
+                <RefreshCw className="mb-2 h-8 w-8 text-primary" />
+                <CardTitle>Sync Hub</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="mb-4 text-sm text-muted-foreground">
+                  Pokemon PokeAPI, Showdown pokedex, sync status, and logs in one place.
+                </p>
+                <Button asChild className="w-full">
+                  <Link href="/admin/sync">Open Sync Hub</Link>
+                </Button>
+              </CardContent>
+            </Card>
             <Card>
               <CardHeader>
                 <FileText className="mb-2 h-8 w-8 text-primary" />
@@ -315,65 +291,6 @@ export default function AdminPage() {
                 </div>
               </CardContent>
             </Card>
-          </div>
-
-          {/* Sync Components */}
-          <div className="mt-4 space-y-4">
-            <Collapsible open={pokemonSyncOpen} onOpenChange={setPokemonSyncOpen}>
-              <div className="rounded-lg border bg-card">
-                <CollapsibleTrigger asChild>
-                  <div className="flex items-center justify-between p-6 cursor-pointer hover:bg-muted/50 transition-colors">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Database className="h-5 w-5 text-primary" />
-                        <h3 className="text-lg font-semibold">Pokemon Data Sync</h3>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        Manually trigger and monitor Pokemon data synchronization from PokeAPI.
-                      </p>
-                    </div>
-                    {pokemonSyncOpen ? (
-                      <ChevronUp className="h-4 w-4 text-muted-foreground ml-4 shrink-0" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4 text-muted-foreground ml-4 shrink-0" />
-                    )}
-                  </div>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <div className="border-t">
-                    <PokemonSyncControl />
-                  </div>
-                </CollapsibleContent>
-              </div>
-            </Collapsible>
-
-            <Collapsible open={showdownSyncOpen} onOpenChange={setShowdownSyncOpen}>
-              <div className="rounded-lg border bg-card">
-                <CollapsibleTrigger asChild>
-                  <div className="flex items-center justify-between p-6 cursor-pointer hover:bg-muted/50 transition-colors">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Database className="h-5 w-5 text-primary" />
-                        <h3 className="text-lg font-semibold">Showdown Competitive Database</h3>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        Sync Pokémon Showdown&apos;s competitive pokedex data to keep your database up-to-date.
-                      </p>
-                    </div>
-                    {showdownSyncOpen ? (
-                      <ChevronUp className="h-4 w-4 text-muted-foreground ml-4 shrink-0" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4 text-muted-foreground ml-4 shrink-0" />
-                    )}
-                  </div>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <div className="border-t">
-                    <ShowdownPokedexSync />
-                  </div>
-                </CollapsibleContent>
-              </div>
-            </Collapsible>
           </div>
         </div>
 
@@ -509,9 +426,6 @@ export default function AdminPage() {
             </Card>
           </div>
         </div>
-      </main>
-
-      <SupabaseManager projectRef={projectRef} open={platformOpen} onOpenChange={setPlatformOpen} />
     </div>
   )
 }

@@ -3,7 +3,7 @@
 
 -- Showdown Teams table
 CREATE TABLE IF NOT EXISTS public.showdown_teams (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   
   -- Team metadata (extracted from header)
   team_name TEXT NOT NULL,

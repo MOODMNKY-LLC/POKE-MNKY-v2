@@ -1,9 +1,6 @@
 -- Weekly battle plans (private, per coach, per match)
 -- Stores both freeform notes and structured JSON payload.
 
--- Required for uuid_generate_v4()
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA extensions;
-
 -- Ensure the standard updated_at trigger function exists
 CREATE OR REPLACE FUNCTION public.handle_updated_at()
 RETURNS TRIGGER AS $$
@@ -14,7 +11,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE TABLE IF NOT EXISTS public.weekly_battle_plans (
-  id UUID PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
   -- Owner
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
