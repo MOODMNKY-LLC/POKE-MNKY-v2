@@ -125,6 +125,12 @@ public = true
 file_size_limit = "5MiB"
 allowed_mime_types = ["image/png", "image/jpeg", "image/gif", "image/webp", "image/svg+xml"]
 
+# User avatars (profile avatar uploads; overrides Discord avatar when set)
+[storage.buckets.user-avatars]
+public = true
+file_size_limit = "5MiB"
+allowed_mime_types = ["image/png", "image/jpeg", "image/gif", "image/webp"]
+
 # Allow connections via S3 compatible clients
 [storage.s3_protocol]
 enabled = true

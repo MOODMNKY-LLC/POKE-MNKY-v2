@@ -10,6 +10,7 @@ import { Plus, Library, Users } from "lucide-react"
 import Link from "next/link"
 import { LinkLeagueTeamButton } from "@/components/dashboard/link-league-team-button"
 import { SubmitForLeagueButton } from "@/components/dashboard/submit-for-league-button"
+import { ShowdownTeamCard } from "@/components/teams/showdown-team-card"
 
 export const dynamic = 'force-dynamic'
 
@@ -113,41 +114,20 @@ export default async function TeamsPage() {
               {userTeams && userTeams.length > 0 ? (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {userTeams.map((team) => (
-                    <Card key={team.id}>
-                      <CardHeader>
-                        <CardTitle>{team.team_name}</CardTitle>
-                        <CardDescription>
-                          {team.format && (
-                            <span className="capitalize">{team.format}</span>
-                          )}
-                          {team.generation && ` • Gen ${team.generation}`}
-                          {team.pokemon_count > 0 && ` • ${team.pokemon_count} Pokemon`}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Button asChild variant="outline" size="sm">
-                            <Link href={`/dashboard/teams/${team.id}`}>View</Link>
-                          </Button>
-                          <SubmitForLeagueButton
-                            showdownTeamId={team.id}
-                            submittedForLeagueAt={team.submitted_for_league_at ?? null}
-                          />
-                          {canAccessCoachFeatures(profile) && (
-                            <LinkLeagueTeamButton
-                              showdownTeamId={team.id}
-                              isLinked={Boolean(team.team_id)}
-                              showUseForMatch
-                            />
-                          )}
-                          {!canAccessCoachFeatures(profile) && team.team_id && (
-                            <span className="text-xs text-muted-foreground">
-                              Linked to League Team
-                            </span>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
+                    <ShowdownTeamCard
+                      key={team.id}
+                      team={{
+                        id: team.id,
+                        team_name: team.team_name,
+                        format: team.format,
+                        generation: team.generation,
+                        pokemon_count: team.pokemon_count,
+                        avatar_url: team.avatar_url,
+                        submitted_for_league_at: team.submitted_for_league_at,
+                        team_id: team.team_id,
+                      }}
+                      canAccessCoachFeatures={canAccessCoachFeatures(profile)}
+                    />
                   ))}
                 </div>
               ) : (

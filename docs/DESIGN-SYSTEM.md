@@ -48,6 +48,23 @@ Fonts are wired in `app/layout.tsx` and referenced in `@theme` as `--font-sans`,
 - **Focus**: Ring uses `outline-ring/50`; ensure focusable elements have visible focus styles.
 - **Dark mode**: Toggle via `dark` class (e.g. `next-themes`). All tokens have light and dark values in `:root` and `.dark`.
 
+## Account, Profile, and Coach Profile
+
+The dashboard separates these concepts:
+
+| Term | Scope | Editable in |
+|------|-------|-------------|
+| **Account** | Auth identity, email/Discord link, security | Settings → Account |
+| **User Profile** | display_name, bio, user avatar | ProfileSheet / Profile |
+| **Coach Profile** | League team: name, avatar, logo; coach persona | CoachCard (inside ProfileSheet when coach) |
+| **Showdown Teams** | Export lists; optional avatar | My Teams, Team Builder, Upload |
+| **League Team** | Drafted roster, standings; branding from Coach Profile | league-team pages |
+
+- **ProfileSheet** is the single place for profile and coach editing; `/dashboard/profile` redirects to dashboard and opens it.
+- **Settings** tabs: Account | Profile | Notifications | Preferences | Guides.
+- **User avatar**: Upload to `user-avatars` bucket; fallback to Discord avatar when null.
+- **League team branding**: Coach-only; stored in `teams` (avatar_url, logo_url, name).
+
 ## Where to change things
 
 | Change        | File / location                    |
