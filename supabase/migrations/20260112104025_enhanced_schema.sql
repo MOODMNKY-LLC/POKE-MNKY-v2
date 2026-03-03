@@ -3,7 +3,7 @@
 
 -- Seasons table
 CREATE TABLE IF NOT EXISTS public.seasons (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL UNIQUE,
   start_date DATE NOT NULL,
   end_date DATE,
@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS public.seasons (
 
 -- Conferences table
 CREATE TABLE IF NOT EXISTS public.conferences (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL UNIQUE,
   season_id UUID NOT NULL REFERENCES public.seasons(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ DEFAULT NOW()
@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS public.conferences (
 
 -- Divisions table
 CREATE TABLE IF NOT EXISTS public.divisions (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   conference_id UUID NOT NULL REFERENCES public.conferences(id) ON DELETE CASCADE,
   season_id UUID NOT NULL REFERENCES public.seasons(id) ON DELETE CASCADE,
@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS public.divisions (
 
 -- Coaches table (linked to Discord users)
 CREATE TABLE IF NOT EXISTS public.coaches (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   discord_id TEXT UNIQUE,
   display_name TEXT NOT NULL,
   email TEXT,
@@ -64,7 +64,7 @@ CREATE TABLE IF NOT EXISTS public.pokemon_cache (
 
 -- Draft budgets
 CREATE TABLE IF NOT EXISTS public.draft_budgets (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   team_id UUID NOT NULL REFERENCES public.teams(id) ON DELETE CASCADE,
   season_id UUID NOT NULL REFERENCES public.seasons(id) ON DELETE CASCADE,
   total_points INTEGER DEFAULT 120,
@@ -76,7 +76,7 @@ CREATE TABLE IF NOT EXISTS public.draft_budgets (
 
 -- Matchweeks
 CREATE TABLE IF NOT EXISTS public.matchweeks (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   season_id UUID NOT NULL REFERENCES public.seasons(id) ON DELETE CASCADE,
   week_number INTEGER NOT NULL,
   start_date DATE NOT NULL,
@@ -98,7 +98,7 @@ ALTER TABLE public.matches ADD COLUMN IF NOT EXISTS notes TEXT;
 
 -- Battle sessions (for Showdown-style battles)
 CREATE TABLE IF NOT EXISTS public.battle_sessions (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   match_id UUID REFERENCES public.matches(id) ON DELETE CASCADE,
   format TEXT NOT NULL, -- gen9-ou, gen8-uu, etc.
   team_a_id UUID NOT NULL REFERENCES public.teams(id) ON DELETE CASCADE,
@@ -122,7 +122,7 @@ CREATE TABLE IF NOT EXISTS public.battle_events (
 
 -- Trade system
 CREATE TABLE IF NOT EXISTS public.trade_listings (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   team_id UUID NOT NULL REFERENCES public.teams(id) ON DELETE CASCADE,
   pokemon_id INTEGER NOT NULL,
   status TEXT DEFAULT 'available' CHECK (status IN ('available', 'pending', 'completed', 'cancelled')),
@@ -132,7 +132,7 @@ CREATE TABLE IF NOT EXISTS public.trade_listings (
 );
 
 CREATE TABLE IF NOT EXISTS public.trade_offers (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   listing_id UUID NOT NULL REFERENCES public.trade_listings(id) ON DELETE CASCADE,
   offering_team_id UUID NOT NULL REFERENCES public.teams(id) ON DELETE CASCADE,
   offered_pokemon_id INTEGER NOT NULL,
@@ -142,7 +142,7 @@ CREATE TABLE IF NOT EXISTS public.trade_offers (
 );
 
 CREATE TABLE IF NOT EXISTS public.trade_transactions (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   season_id UUID NOT NULL REFERENCES public.seasons(id) ON DELETE CASCADE,
   team_a_id UUID NOT NULL REFERENCES public.teams(id) ON DELETE CASCADE,
   team_b_id UUID NOT NULL REFERENCES public.teams(id) ON DELETE CASCADE,
@@ -154,7 +154,7 @@ CREATE TABLE IF NOT EXISTS public.trade_transactions (
 
 -- Discord webhooks config
 CREATE TABLE IF NOT EXISTS public.discord_webhooks (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL UNIQUE,
   webhook_url TEXT NOT NULL,
   enabled BOOLEAN DEFAULT TRUE,

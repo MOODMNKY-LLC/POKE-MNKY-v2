@@ -3,7 +3,7 @@
 
 -- Videos table (cached YouTube video data)
 CREATE TABLE IF NOT EXISTS public.videos (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   youtube_video_id TEXT NOT NULL UNIQUE,
   youtube_channel_id TEXT NOT NULL,
   title TEXT NOT NULL,
@@ -31,7 +31,7 @@ CREATE INDEX IF NOT EXISTS idx_videos_last_synced_at ON public.videos(last_synce
 
 -- Channel configuration (for YouTube channel settings)
 CREATE TABLE IF NOT EXISTS public.youtube_channels (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   channel_id TEXT NOT NULL UNIQUE,
   channel_handle TEXT,
   channel_name TEXT NOT NULL,

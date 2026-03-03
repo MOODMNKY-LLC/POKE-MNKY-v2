@@ -11,9 +11,19 @@
 --
 -- This was causing "duplicate key value violates unique constraint" errors
 -- when syncing Notion drafts to Supabase for a new season.
+--
+-- Wrapped in DO block: this migration runs before draft_pool is created (20260112),
+-- so we only alter if the table exists.
 
--- Try constraint first (some setups use it), then index
-alter table public.draft_pool
-  drop constraint if exists draft_pool_pokemon_name_point_value_key;
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name = 'draft_pool'
+  ) THEN
+    ALTER TABLE public.draft_pool
+      DROP CONSTRAINT IF EXISTS draft_pool_pokemon_name_point_value_key;
+  END IF;
+END $$;
 
-drop index if exists public.draft_pool_pokemon_name_point_value_key;
+DROP INDEX IF EXISTS public.draft_pool_pokemon_name_point_value_key;

@@ -91,30 +91,22 @@ export async function POST(request: NextRequest) {
       discordUsername: profile.discord_username
     })
 
-    // Check admin/commissioner permissions
-    const isAdmin = profile.role === "admin"
+    // Check admin/commissioner permissions (profiles.role or admin_users fallback)
+    const isAdminByRole = profile.role === "admin"
     const isCommissioner = profile.role === "commissioner"
-    
-    console.log("[Admin Assign Coach] Permission check:", {
-      userId: user.id,
-      role: profile.role,
-      isAdmin,
-      isCommissioner,
-      hasPermission: isAdmin || isCommissioner
-    })
-    
-    if (!isAdmin && !isCommissioner) {
+    const { data: adminUser } = await serviceSupabase
+      .from("admin_users")
+      .select("user_id")
+      .eq("user_id", user.id)
+      .single()
+    const isAdminByTable = !!adminUser
+    const hasPermission = isAdminByRole || isCommissioner || isAdminByTable
+
+    if (!hasPermission) {
       console.error("[Admin Assign Coach] Insufficient permissions:", {
         userId: user.id,
         currentRole: profile.role,
-        roleType: typeof profile.role,
-        requiredRoles: ["admin", "commissioner"],
-        roleComparison: {
-          equalsAdmin: profile.role === "admin",
-          equalsCommissioner: profile.role === "commissioner",
-          strictEqualsAdmin: profile.role === "admin",
-          strictEqualsCommissioner: profile.role === "commissioner"
-        }
+        isAdminByTable,
       })
       return NextResponse.json(
         { 
@@ -130,7 +122,7 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    console.log("[Admin Assign Coach] Permission check passed, proceeding with assignment")
+    console.log("[Admin Assign Coach] Permission check passed (role=%s, admin_users=%s), proceeding", profile.role, isAdminByTable)
 
     const body = await request.json()
     const { userId, teamId } = body

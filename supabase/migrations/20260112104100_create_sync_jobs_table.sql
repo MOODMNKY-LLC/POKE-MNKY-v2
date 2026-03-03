@@ -2,7 +2,7 @@
 -- Used by full-sync-pokemon.ts and incremental-sync-pokemon.ts
 
 CREATE TABLE IF NOT EXISTS public.sync_jobs (
-  job_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  job_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   job_type TEXT NOT NULL CHECK (job_type IN ('full', 'incremental')),
   status TEXT NOT NULL DEFAULT 'running' CHECK (status IN ('running', 'completed', 'failed', 'cancelled', 'partial')),
   triggered_by TEXT NOT NULL DEFAULT 'manual' CHECK (triggered_by IN ('manual', 'cron')),

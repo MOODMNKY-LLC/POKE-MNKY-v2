@@ -20,7 +20,7 @@ drop index if exists "public"."idx_draft_pool_sheet_name";
 
 
   create table if not exists "public"."sheets_draft_pool" (
-    "id" uuid not null default extensions.uuid_generate_v4(),
+    "id" uuid not null default gen_random_uuid(),
     "pokemon_name" text not null,
     "point_value" integer not null,
     "is_available" boolean default true,

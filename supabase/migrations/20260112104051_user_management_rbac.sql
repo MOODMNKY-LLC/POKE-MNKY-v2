@@ -116,7 +116,7 @@ CREATE POLICY "Admins can delete profiles"
 
 -- Role & Permission Management Table
 CREATE TABLE IF NOT EXISTS public.role_permissions (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   role TEXT NOT NULL UNIQUE CHECK (role IN ('admin', 'commissioner', 'coach', 'viewer')),
   permissions JSONB NOT NULL,
   description TEXT,
@@ -173,7 +173,7 @@ CREATE POLICY "Admins can modify role permissions"
 
 -- User Activity Log
 CREATE TABLE IF NOT EXISTS public.user_activity_log (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
   action TEXT NOT NULL,
   resource_type TEXT,

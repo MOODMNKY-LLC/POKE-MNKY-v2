@@ -1,8 +1,9 @@
 -- Create draft_pool table for storing available Pokemon with point values
 -- This table stores the complete list of Pokemon available for drafting
+-- Uses gen_random_uuid() (built-in PostgreSQL 13+) - works on both local and hosted Supabase
 
 CREATE TABLE IF NOT EXISTS public.draft_pool (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   
   -- Pokemon information
   pokemon_name TEXT NOT NULL,

@@ -8,7 +8,7 @@
 -- ============================================================================
 
 CREATE TABLE IF NOT EXISTS public.showdown_pool (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   season_id UUID NOT NULL REFERENCES public.seasons(id) ON DELETE CASCADE,
   pokemon_name TEXT NOT NULL,
   point_value INTEGER NOT NULL CHECK (point_value >= 1 AND point_value <= 20),

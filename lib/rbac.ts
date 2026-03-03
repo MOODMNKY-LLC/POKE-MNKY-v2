@@ -296,6 +296,15 @@ export async function isAdmin(supabase: SupabaseClient, userId: string): Promise
 }
 
 /**
+ * Check if user has admin or commissioner access (sync, profile-based).
+ */
+export function hasAdminOrCommissionerAccess(profile: { role?: string | null } | null): boolean {
+  if (!profile) return false
+  const r = profile.role
+  return r === UserRole.ADMIN || r === UserRole.COMMISSIONER
+}
+
+/**
  * Check if user can manage a specific team
  */
 export async function canManageTeam(supabase: SupabaseClient, userId: string, teamId: string): Promise<boolean> {

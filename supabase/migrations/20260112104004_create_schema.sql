@@ -3,7 +3,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Teams table
 CREATE TABLE IF NOT EXISTS public.teams (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL UNIQUE,
   coach_name TEXT NOT NULL,
   division TEXT NOT NULL,
@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS public.teams (
 
 -- Pokemon table
 CREATE TABLE IF NOT EXISTS public.pokemon (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   type1 TEXT,
   type2 TEXT,
@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS public.pokemon (
 
 -- Team Rosters (draft picks)
 CREATE TABLE IF NOT EXISTS public.team_rosters (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   team_id UUID NOT NULL REFERENCES public.teams(id) ON DELETE CASCADE,
   pokemon_id UUID NOT NULL REFERENCES public.pokemon(id) ON DELETE CASCADE,
   draft_round INTEGER NOT NULL,
@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS public.team_rosters (
 
 -- Matches table
 CREATE TABLE IF NOT EXISTS public.matches (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   week INTEGER NOT NULL,
   team1_id UUID NOT NULL REFERENCES public.teams(id) ON DELETE CASCADE,
   team2_id UUID NOT NULL REFERENCES public.teams(id) ON DELETE CASCADE,
@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS public.matches (
 
 -- Pokemon Stats (kills per match)
 CREATE TABLE IF NOT EXISTS public.pokemon_stats (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   match_id UUID NOT NULL REFERENCES public.matches(id) ON DELETE CASCADE,
   pokemon_id UUID NOT NULL REFERENCES public.pokemon(id) ON DELETE CASCADE,
   team_id UUID NOT NULL REFERENCES public.teams(id) ON DELETE CASCADE,
@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS public.pokemon_stats (
 
 -- Sync log table to track Google Sheets imports
 CREATE TABLE IF NOT EXISTS public.sync_log (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   sync_type TEXT NOT NULL,
   status TEXT NOT NULL,
   records_processed INTEGER DEFAULT 0,

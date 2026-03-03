@@ -2,7 +2,7 @@
 -- Stores sync configuration for Google Sheets integration
 
 CREATE TABLE IF NOT EXISTS public.google_sheets_config (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   spreadsheet_id TEXT NOT NULL,
   service_account_email TEXT, -- Optional: Uses GOOGLE_SERVICE_ACCOUNT_EMAIL env var if not provided
   service_account_private_key TEXT, -- Optional: Uses GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY or GOOGLE_PRIVATE_KEY env var if not provided
@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS public.google_sheets_config (
 
 -- Sheet mappings table for flexible sheet-to-table mapping
 CREATE TABLE IF NOT EXISTS public.sheet_mappings (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   config_id UUID NOT NULL REFERENCES public.google_sheets_config(id) ON DELETE CASCADE,
   sheet_name TEXT NOT NULL, -- Name of the sheet tab in Google Sheets
   table_name TEXT NOT NULL, -- Target Supabase table name
