@@ -5,7 +5,7 @@ import { createBrowserClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { Database, Calendar, Trophy, Users, RefreshCw, MessageSquare, ClipboardList, FileText, Music, ArrowRightLeft, Play, BookOpen, Settings } from "lucide-react"
+import { Database, Calendar, Trophy, Users, RefreshCw, MessageSquare, ClipboardList, FileText, Music, ArrowRightLeft, Play, BookOpen, Settings, UserCircle } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 export default function AdminPage() {
@@ -150,6 +150,20 @@ export default function AdminPage() {
           </Card>
           <Card>
             <CardHeader>
+              <UserCircle className="mb-2 h-8 w-8 text-primary" />
+              <CardTitle>Coach applications</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-4 text-sm text-muted-foreground">
+                Review apply-to-coach submissions, approve or reject with spectator access.
+              </p>
+              <Button asChild variant="outline" className="w-full bg-transparent">
+                <Link href="/admin/coach-applications">Open queue</Link>
+              </Button>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
               <ArrowRightLeft className="mb-2 h-8 w-8 text-chart-2" />
               <CardTitle className="flex items-center gap-2">
                 Trade approval
@@ -178,9 +192,14 @@ export default function AdminPage() {
               <p className="mb-4 text-sm text-muted-foreground">
                 Set season rules and build draft pool from pokemon_master (filter by game, generation, legendary/mythical/paradox).
               </p>
-              <Button asChild variant="outline" className="w-full bg-transparent">
-                <Link href="/admin/draft-pool-rules">Draft pool & rules</Link>
-              </Button>
+              <div className="flex flex-col gap-2">
+                <Button asChild variant="outline" className="w-full bg-transparent">
+                  <Link href="/admin/draft-pool-rules">Draft pool & rules</Link>
+                </Button>
+                <Button asChild variant="secondary" className="w-full">
+                  <Link href="/admin/draft-pool-builder">Pool builder & audit</Link>
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>

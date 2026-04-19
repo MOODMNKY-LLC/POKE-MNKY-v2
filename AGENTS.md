@@ -136,6 +136,19 @@ export async function POST(request: NextRequest) {
 - **Accessibility** - use semantic HTML and ARIA labels
 - **Performance** - use Server Components when possible, lazy load heavy components
 
+## Learned User Preferences
+
+- For broad analysis, end-to-end simulation design, admin guides, or multi-surface planning, follow the `deep-thinking` Cursor rule and use `.cursor/` resources when the user steers that way.
+- Requests to ship often mean run `pnpm build`, then commit and push when the working tree is ready.
+- When implementing an attached plan, do not edit the plan file; advance existing todos and mark them in progress instead of recreating them.
+- Treat documents in `hand-offs/` as primary inputs for scoped updates and planning.
+
+## Learned Workspace Facts
+
+- OpenClaw MCP uses `openclaw mcp serve` against `wss://aab-openclaw.moodmnky.com` (TLS on 443); direct access to raw gateway port 18789 from the public internet is usually blocked because the service sits behind HTTPS/WSS.
+- OpenClaw may require gateway pairing before the MCP bridge connects; keep gateway tokens only in gitignored local files, not in tracked documentation.
+- Cursor merges user-level `%USERPROFILE%\.cursor\mcp.json` with the project `.cursor/mcp.json`; an empty or truncated user file can break MCP with JSON parse errors.
+
 ## References
 
 - Project README: `README.md`

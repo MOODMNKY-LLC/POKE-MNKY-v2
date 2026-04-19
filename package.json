@@ -153,13 +153,14 @@
     "zod": "3.25.76"
   },
   "devDependencies": {
-    "cross-env": "^7.0.3",
     "@orval/core": "^8.0.1",
     "@playwright/test": "^1.49.0",
     "@tailwindcss/postcss": "^4.1.9",
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "baseline-browser-mapping": "^2.10.20",
+    "cross-env": "^7.0.3",
     "dotenv": "^17.2.3",
     "openapi-typescript": "^7.10.1",
     "orval": "^8.0.1",

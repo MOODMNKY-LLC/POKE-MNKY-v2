@@ -10,6 +10,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { createBrowserClient } from "@/lib/supabase/client"
 import { Settings, Database, Loader2, Archive, FolderOpen } from "lucide-react"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 interface Season {
   id: string
@@ -122,6 +123,14 @@ export default function AdminDraftPoolRulesPage() {
 
   return (
     <div className="container mx-auto py-8 px-4 space-y-6">
+      <Alert>
+        <AlertTitle>Primary ops path: in-app pool</AlertTitle>
+        <AlertDescription>
+          Google Sheets remain available as import/export sync — build and edit the draft pool here first, then use
+          Sheets only when you need a spreadsheet handoff or backup.
+        </AlertDescription>
+      </Alert>
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Draft pool & season rules</h1>
