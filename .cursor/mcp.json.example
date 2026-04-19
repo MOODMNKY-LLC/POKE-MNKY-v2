@@ -101,6 +101,16 @@
         "${env:OPENCLAW_GATEWAY_TOKEN_FILE}"
       ],
       "description": "OpenClaw remote Gateway over MCP (stdio bridge). Pin `command` to an openclaw 2026.4.15+ binary if your ~/.openclaw config was written by a newer CLI (avoids version-mismatch warnings). Requires gateway token file path in env."
+    },
+    "poke-mnky-n8n": {
+      "command": "npx",
+      "args": ["-y", "n8n-mcp"],
+      "env": {
+        "MCP_MODE": "stdio",
+        "N8N_API_URL": "${env:N8N_API_URL}",
+        "N8N_API_KEY": "${env:N8N_API_KEY}"
+      },
+      "description": "n8n API for MCP workflows (list/get/update). Set N8N_API_URL (e.g. https://aab-n8n.moodmnky.com) and N8N_API_KEY from n8n Settings → API. Webhook URL for the app is separate: N8N_WEBHOOK_URL in Vercel."
     }
   }
 }
