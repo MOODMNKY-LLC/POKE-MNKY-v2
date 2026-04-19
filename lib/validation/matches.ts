@@ -9,10 +9,13 @@ export const getMatchesQuerySchema = z.object({
   week: z
     .string()
     .optional()
+    .refine(
+      (s) => s === undefined || s === "" || /^-?\d+$/.test(s),
+      { message: "week must be a numeric string" }
+    )
     .transform((s) => {
       if (s === undefined || s === "") return undefined
-      const n = parseInt(s, 10)
-      return Number.isNaN(n) ? undefined : n
+      return parseInt(s, 10)
     })
     .refine((n) => n === undefined || (Number.isInteger(n) && n >= 1), {
       message: "week must be a positive integer",

@@ -5,7 +5,8 @@ export default defineConfig({
   plugins: [tsconfigPaths()],
   test: {
     environment: "node",
-    include: ["**/*.test.ts", "**/*.spec.ts"],
-    exclude: ["node_modules", ".next", "**/test-e2e*"],
+    // Only *.test.ts — e2e/*.spec.ts is Playwright, not Vitest
+    include: ["**/*.test.ts"],
+    exclude: ["node_modules", ".next", "**/test-e2e*", "e2e/**"],
   },
 })
