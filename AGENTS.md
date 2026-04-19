@@ -104,6 +104,7 @@ export async function POST(request: NextRequest) {
 - **Never commit** `.env.local` or secrets
 - **Always check** authentication before accessing protected resources
 - **Use environment variables** for all URLs and API keys
+- **Ops webhooks (optional):** `N8N_WEBHOOK_URL` and/or `OPENCLAW_ALERT_WEBHOOK_URL` — see `.env.example` and `lib/ops-alerts.ts`; set in Vercel for production
 - **Follow existing patterns** - check similar files before creating new ones
 - **Test API routes** locally before deploying
 - **Handle errors gracefully** in both UI and API routes
