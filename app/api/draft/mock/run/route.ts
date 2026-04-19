@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase/server"
 import { createServiceRoleClient } from "@/lib/supabase/service"
 import { DraftSystem } from "@/lib/draft-system"
+import { scoreCandidatesForAutopick } from "@/lib/draft-autopick-heuristics"
 
 const MOCK_SEASON_NAME = "Mock Draft Demo"
 
@@ -49,8 +50,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
-    const body = await request.json().catch(() => ({}))
-    const seasonIdParam = body.season_id as string | undefined
+    const body = (await request.json().catch(() => ({}))) as {
+      season_id?: string
+      max_picks?: number
+      autopick_budget_weight?: number
+      autopick_diversity_weight?: number
+    }
+    const seasonIdParam = body.season_id
     const maxPicksParam = typeof body.max_picks === "number" ? body.max_picks : undefined
 
     const admin = createServiceRoleClient()
@@ -126,15 +132,24 @@ export async function POST(request: NextRequest) {
       const remaining = budget?.remaining_points ?? 0
       if (remaining <= 0) break
 
-      const { data: available } = await admin
+      const { data: poolRows } = await admin
         .from("draft_pool")
         .select("pokemon_name, point_value")
         .eq("season_id", seasonId)
         .or("status.eq.available,status.is.null")
         .lte("point_value", remaining)
         .order("point_value", { ascending: false })
-        .limit(1)
-        .maybeSingle()
+        .limit(24)
+
+      const candidates = (poolRows ?? []).map((r) => ({
+        pokemon_name: r.pokemon_name as string,
+        point_value: r.point_value as number,
+      }))
+      const chosen = scoreCandidatesForAutopick(candidates, new Set(), {
+        budgetPressure: body.autopick_budget_weight,
+        diversityWeight: body.autopick_diversity_weight,
+      })
+      const available = chosen ?? candidates[0]
 
       if (!available) break
 

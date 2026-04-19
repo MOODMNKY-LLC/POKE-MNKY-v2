@@ -25,6 +25,7 @@ yarn-error.log*
 
 # cursor / mcp
 .cursor/mcp.json
+.cursor/openclaw-gateway.token
 
 # typescript
 *.tsbuildinfo

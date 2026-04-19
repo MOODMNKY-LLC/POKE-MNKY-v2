@@ -57,10 +57,19 @@ export class DraftSystem {
       .select("*")
       .eq("season_id", seasonId)
       .eq("status", "active")
+      .eq("governance_approval_status", "approved")
       .single()
 
     if (error && error.code !== "PGRST116") {
-      // PGRST116 = no rows returned, which is fine
+      if (error.code === "42703" || error.message?.includes("governance_approval_status")) {
+        const { data: legacy } = await this.supabase
+          .from("draft_sessions")
+          .select("*")
+          .eq("season_id", seasonId)
+          .eq("status", "active")
+          .single()
+        return legacy || null
+      }
       console.error("Error fetching draft session:", error)
       return null
     }
@@ -87,6 +96,10 @@ export class DraftSystem {
       draftPoolSource?: "generation" | "game" | "season_draft_pool" | "draft_pool" | "archived"
       draftPoolSourceConfig?: Record<string, unknown>
       archivedPoolId?: string
+      /** AAB: commissioner creates pending admin approval; admin goes live immediately */
+      governanceApprovalStatus?: "pending_admin" | "approved"
+      initialSessionStatus?: "pending" | "active"
+      createdBy?: string | null
     }
   ): Promise<DraftSession> {
     // Determine turn order: commissioner-provided or random
@@ -99,9 +112,13 @@ export class DraftSystem {
     const playoffFormat = config?.playoffFormat || "4_week"
     const playoffWeeks = playoffFormat === "3_week" ? 3 : 4
 
+    const gov = config?.governanceApprovalStatus ?? "approved"
+    const initialStatus = config?.initialSessionStatus ?? (gov === "approved" ? "active" : "pending")
+    const isLive = initialStatus === "active" && gov === "approved"
+
     const insertPayload: Record<string, unknown> = {
       season_id: seasonId,
-      status: "active",
+      status: initialStatus,
       draft_type: config?.draftType || "snake",
       total_teams: teamIds.length,
       total_rounds: 11, // Default 11 rounds
@@ -111,7 +128,9 @@ export class DraftSystem {
       turn_order: turnOrder,
       pick_time_limit_seconds: config?.pickTimeLimit || 45,
       auto_draft_enabled: config?.autoDraftEnabled || false,
-      started_at: new Date().toISOString(),
+      started_at: isLive ? new Date().toISOString() : null,
+      governance_approval_status: gov,
+      created_by: config?.createdBy ?? null,
       ruleset_section: config?.rulesetSection ?? null,
       season_length_weeks: config?.seasonLengthWeeks ?? 10,
       playoff_format: playoffFormat,
@@ -123,11 +142,18 @@ export class DraftSystem {
       archived_pool_id: config?.archivedPoolId ?? null,
     }
 
-    const { data, error } = await this.supabase
+    let { data, error } = await this.supabase
       .from("draft_sessions")
       .insert(insertPayload)
       .select()
       .single()
+
+    if (error?.message?.includes("governance_approval_status") || error?.code === "42703") {
+      const { governance_approval_status: _g, created_by: _c, ...legacyPayload } = insertPayload
+      const retry = await this.supabase.from("draft_sessions").insert(legacyPayload).select().single()
+      data = retry.data
+      error = retry.error
+    }
 
     if (error) {
       throw new Error(`Failed to create draft session: ${error.message}`)
@@ -193,6 +219,11 @@ export class DraftSystem {
 
     if (session.status !== "active") {
       return { success: false, error: `Draft session is ${session.status}` }
+    }
+
+    const gov = (session as { governance_approval_status?: string }).governance_approval_status
+    if (gov && gov !== "approved") {
+      return { success: false, error: "Draft session is pending admin approval" }
     }
 
     // Verify it's this team's turn

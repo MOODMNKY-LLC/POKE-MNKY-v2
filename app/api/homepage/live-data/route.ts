@@ -1,15 +1,12 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { redisCache, CacheKeys, CacheTTL } from "@/lib/cache/redis"
+import type { HomepageTopPokemon } from "@/lib/homepage-types"
 
 /**
- * Homepage Live Data API Route
- * 
- * Provides on-demand data loading for homepage live data section.
- * Replaces server-side queries that ran on every page load.
+ * Homepage Live Data API — teams + seasonal / weekly top Pokémon (AAB performer strips).
  */
 
-// Helper function to add timeout to promises
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number, name: string): Promise<T> {
   return Promise.race([
     promise,
@@ -19,30 +16,104 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, name: string): P
   ])
 }
 
+type Bundle = {
+  teams: unknown[]
+  teamCount: number
+  topPokemonSeasonal: HomepageTopPokemon[]
+  topPokemonWeekly: HomepageTopPokemon[]
+  currentWeek: number | null
+}
+
+async function aggregateTopPokemon(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  matchIds: string[] | null,
+  limit: number,
+  queryTimeout: number
+): Promise<HomepageTopPokemon[]> {
+  let q = supabase.from("pokemon_stats").select("pokemon_id, kills, match_id")
+
+  if (matchIds && matchIds.length > 0) {
+    q = q.in("match_id", matchIds)
+  } else {
+    q = q.limit(10000)
+  }
+
+  const result = await withTimeout(q, queryTimeout, "pokemon_stats aggregate")
+  if (result.error) {
+    if (result.error.code === "42703") {
+      console.warn("[HomepageLiveData] pokemon_stats column missing — skipping performers")
+    } else {
+      console.warn("[HomepageLiveData] Pokemon stats query error:", result.error)
+    }
+    return []
+  }
+
+  const rows = result.data || []
+  const byPokemon = new Map<string, { kills: number; uses: number }>()
+  for (const row of rows as { pokemon_id: string; kills?: number }[]) {
+    const id = row.pokemon_id
+    if (!id) continue
+    const cur = byPokemon.get(id) || { kills: 0, uses: 0 }
+    cur.kills += row.kills || 0
+    cur.uses += 1
+    byPokemon.set(id, cur)
+  }
+
+  const sorted = [...byPokemon.entries()]
+    .sort((a, b) => b[1].kills - a[1].kills)
+    .slice(0, limit)
+
+  const pokemonIds = sorted.map(([id]) => id)
+  if (pokemonIds.length === 0) return []
+
+  const pokeResult = await withTimeout(
+    supabase.from("pokemon").select("id, name, type1, type2").in("id", pokemonIds),
+    queryTimeout,
+    "Pokemon details fetch"
+  )
+
+  if (pokeResult.error) {
+    console.warn("[HomepageLiveData] Pokemon details:", pokeResult.error)
+    return sorted.map(([id, s]) => ({
+      pokemon_name: "Unknown",
+      kos_scored: s.kills,
+      times_used: s.uses,
+    }))
+  }
+
+  const pmap = new Map((pokeResult.data || []).map((p: { id: string; name: string; type1?: string; type2?: string }) => [p.id, p]))
+
+  return sorted.map(([id, s]) => {
+    const p = pmap.get(id)
+    return {
+      pokemon_name: p?.name || "Unknown",
+      kos_scored: s.kills,
+      times_used: s.uses,
+      pokemon: p
+        ? { id: p.id, name: p.name, type1: p.type1, type2: p.type2 }
+        : undefined,
+    }
+  })
+}
+
 export async function GET() {
   try {
     const supabase = await createClient()
+    const queryTimeout = 10000
 
-    // Try to load from cache first (Redis/Upstash KV)
-    const [cachedTeams, cachedTopPokemon] = await Promise.all([
-      redisCache.get(CacheKeys.homepageTeams),
-      redisCache.get(CacheKeys.homepageTopPokemon),
-    ])
-
-    // If data is cached, use it
-    if (cachedTeams && cachedTopPokemon !== null) {
+    const cached = await redisCache.get<Bundle>(CacheKeys.homepageBundle)
+    if (cached && cached.teams && Array.isArray(cached.topPokemonSeasonal)) {
       return NextResponse.json({
-        teams: cachedTeams.data || [],
-        teamCount: cachedTeams.count || 0,
-        topPokemon: cachedTopPokemon || [],
+        teams: cached.teams,
+        teamCount: cached.teamCount,
+        topPokemon: cached.topPokemonSeasonal,
+        topPokemonSeasonal: cached.topPokemonSeasonal,
+        topPokemonWeekly: cached.topPokemonWeekly ?? [],
+        currentWeek: cached.currentWeek ?? null,
       })
     }
 
-    // Fetch data with reasonable timeouts
-    const queryTimeout = 10000 // 10 seconds per query
-
-    const [teamsResult, pokemonStatsResult] = await Promise.allSettled([
-      // Teams query - optimized: select only needed columns
+    const [teamsResult, weekResult] = await Promise.allSettled([
       withTimeout(
         supabase
           .from("teams")
@@ -52,127 +123,86 @@ export async function GET() {
         queryTimeout,
         "Teams query"
       ),
-
-      // Pokemon stats query - try to fetch directly, handle missing column gracefully
       withTimeout(
-        supabase
-          .from("pokemon_stats")
-          .select("pokemon_id, kills")
-          .order("kills", { ascending: false })
-          .limit(3),
+        supabase.from("matches").select("week").order("week", { ascending: false }).limit(1),
         queryTimeout,
-        "Pokemon stats query"
+        "Max week query"
       ),
     ])
 
-    // Process teams result
-    let teams: any[] = []
+    let teams: unknown[] = []
     let teamCount = 0
-
     if (teamsResult.status === "fulfilled") {
       const result = teamsResult.value
-      if (result.error) {
-        console.warn("[HomepageLiveData] Teams query error:", result.error)
-      } else {
-        teams = result.data || []
+      if (!result.error && result.data) {
+        teams = result.data
         teamCount = result.count || 0
+      } else if (result.error) {
+        console.warn("[HomepageLiveData] Teams query error:", result.error)
       }
     } else {
       console.warn("[HomepageLiveData] Teams query failed:", teamsResult.reason)
     }
 
-    // Process pokemon stats result
-    let topPokemon: any[] = []
+    let currentWeek: number | null = null
+    let weeklyMatchIds: string[] | null = null
 
-    if (pokemonStatsResult.status === "fulfilled") {
-      const result = pokemonStatsResult.value
-      if (result.error && result.error.code === "42703") {
-        // Column doesn't exist - skip top pokemon
-        console.warn("[HomepageLiveData] Pokemon stats table doesn't have kills column - skipping top pokemon")
-        topPokemon = []
-      } else if (result.error) {
-        console.warn("[HomepageLiveData] Pokemon stats query error:", result.error)
-        topPokemon = []
-      } else if (result.data && result.data.length > 0) {
-        // Fetch pokemon details in parallel with stats
-        const pokemonIds = result.data.map((stat: any) => stat.pokemon_id)
-        try {
-          const pokemonDataResult = await withTimeout(
-            supabase
-              .from("pokemon")
-              .select("id, name, type1, type2")
-              .in("id", pokemonIds),
-            queryTimeout,
-            "Pokemon details fetch"
-          )
-
-          // Aggregate kills per Pokemon
-          const pokemonKills = new Map<string, { kills: number; matches: number; pokemon: any }>()
-
-          result.data.forEach((stat: any) => {
-            const pokemonId = stat.pokemon_id
-            if (!pokemonKills.has(pokemonId)) {
-              pokemonKills.set(pokemonId, {
-                kills: 0,
-                matches: 0,
-                pokemon: pokemonDataResult.data?.find((p: any) => p.id === pokemonId) || null,
-              })
-            }
-            const current = pokemonKills.get(pokemonId)!
-            current.kills += stat.kills || 0
-            current.matches += 1
-          })
-
-          // Convert to array and sort by kills
-          topPokemon = Array.from(pokemonKills.values())
-            .sort((a, b) => b.kills - a.kills)
-            .slice(0, 3)
-            .map((stat) => ({
-              pokemon_name: stat.pokemon?.name || "Unknown",
-              kos_scored: stat.kills,
-              times_used: stat.matches,
-              pokemon: stat.pokemon,
-            }))
-        } catch (error) {
-          console.warn("[HomepageLiveData] Pokemon details fetch exception:", error)
-          topPokemon = []
+    if (weekResult.status === "fulfilled" && !weekResult.value.error) {
+      const w = weekResult.value.data?.[0]?.week
+      if (typeof w === "number") {
+        currentWeek = w
+        const mids = await withTimeout(
+          supabase.from("matches").select("id").eq("week", w),
+          queryTimeout,
+          "Match ids for week"
+        )
+        if (!mids.error && mids.data?.length) {
+          weeklyMatchIds = mids.data.map((m: { id: string }) => m.id)
         }
-      } else {
-        topPokemon = []
       }
-    } else {
-      console.warn("[HomepageLiveData] Pokemon stats query failed:", pokemonStatsResult.reason)
-      topPokemon = []
     }
 
-    // Cache successful results (non-blocking)
+    const [topPokemonSeasonal, topPokemonWeekly] = await Promise.all([
+      aggregateTopPokemon(supabase, null, 5, queryTimeout),
+      weeklyMatchIds && weeklyMatchIds.length > 0
+        ? aggregateTopPokemon(supabase, weeklyMatchIds, 5, queryTimeout)
+        : Promise.resolve([] as HomepageTopPokemon[]),
+    ])
+
+    const bundle: Bundle = {
+      teams,
+      teamCount,
+      topPokemonSeasonal,
+      topPokemonWeekly,
+      currentWeek,
+    }
+
     if (redisCache.isEnabled()) {
-      Promise.all([
-        teams && teamCount !== null
-          ? redisCache.set(CacheKeys.homepageTeams, { data: teams, count: teamCount }, { ttl: CacheTTL.homepage })
-          : Promise.resolve(false),
-        topPokemon !== null
-          ? redisCache.set(CacheKeys.homepageTopPokemon, topPokemon, { ttl: CacheTTL.homepage })
-          : Promise.resolve(false),
-      ]).catch((error) => {
-        // Cache writes are non-critical - log but don't fail
-        console.warn("[HomepageLiveData] Cache write failed (non-critical):", error)
-      })
+      redisCache.set(CacheKeys.homepageBundle, bundle, { ttl: CacheTTL.homepage }).catch((e) =>
+        console.warn("[HomepageLiveData] Cache write failed:", e)
+      )
     }
 
     return NextResponse.json({
-      teams: teams || [],
-      teamCount: teamCount || 0,
-      topPokemon: topPokemon || [],
+      teams,
+      teamCount,
+      topPokemon: topPokemonSeasonal,
+      topPokemonSeasonal,
+      topPokemonWeekly,
+      currentWeek,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to load live data"
     console.error("[HomepageLiveData] Unexpected error:", error)
     return NextResponse.json(
       {
-        error: error.message || "Failed to load live data",
+        error: message,
         teams: [],
         teamCount: 0,
         topPokemon: [],
+        topPokemonSeasonal: [],
+        topPokemonWeekly: [],
+        currentWeek: null,
       },
       { status: 500 }
     )

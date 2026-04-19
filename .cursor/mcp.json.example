@@ -89,6 +89,18 @@
         "NOTION_API_KEY": "${env:NOTION_API_KEY}",
         "NOTION_API_VERSION": "${env:NOTION_API_VERSION}"
       }
+    },
+    "openclaw-aab": {
+      "command": "openclaw",
+      "args": [
+        "mcp",
+        "serve",
+        "--url",
+        "wss://aab-openclaw.moodmnky.com",
+        "--token-file",
+        "${env:OPENCLAW_GATEWAY_TOKEN_FILE}"
+      ],
+      "description": "OpenClaw remote Gateway over MCP (stdio bridge). Pin `command` to an openclaw 2026.4.15+ binary if your ~/.openclaw config was written by a newer CLI (avoids version-mismatch warnings). Requires gateway token file path in env."
     }
   }
 }

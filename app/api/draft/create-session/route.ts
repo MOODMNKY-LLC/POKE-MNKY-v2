@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server"
 import { createServiceRoleClient } from "@/lib/supabase/service"
 import { DraftSystem } from "@/lib/draft-system"
 import { generateDraftPoolFromMaster, loadArchivedPoolIntoSeason } from "@/lib/draft-pool-ops"
+import { notifyOpsEvent, OpsEvents } from "@/lib/ops-alerts"
 import { NextResponse } from "next/server"
 
 type PlayoffFormat = "3_week" | "4_week" | "single_elimination" | "double_elimination"
@@ -28,6 +29,8 @@ export async function POST(request: Request) {
     if (profile?.role !== "admin" && profile?.role !== "commissioner") {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 })
     }
+
+    const isCommissionerOnly = profile?.role === "commissioner"
 
     const supabase = createServiceRoleClient()
     const draftSystem = new DraftSystem()
@@ -84,6 +87,23 @@ export async function POST(request: Request) {
         message: "Active draft session already exists",
         session: existingSession,
       })
+    }
+
+    const { data: pendingApproval, error: pendingErr } = await supabase
+      .from("draft_sessions")
+      .select("id")
+      .eq("season_id", seasonId)
+      .eq("governance_approval_status", "pending_admin")
+      .maybeSingle()
+
+    if (!pendingErr && pendingApproval) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "A draft session is already awaiting admin approval for this season.",
+        },
+        { status: 409 }
+      )
     }
 
     let teamIds = body.team_ids
@@ -198,6 +218,9 @@ export async function POST(request: Request) {
       draftPoolSource: poolSource,
       draftPoolSourceConfig: poolConfig,
       archivedPoolId: poolConfig.archived_pool_id,
+      governanceApprovalStatus: isCommissionerOnly ? "pending_admin" : "approved",
+      initialSessionStatus: isCommissionerOnly ? "pending" : "active",
+      createdBy: user.id,
     })
 
     for (const teamId of teamIds) {
@@ -213,6 +236,14 @@ export async function POST(request: Request) {
           },
           { onConflict: "team_id,season_id" }
         )
+    }
+
+    if (isCommissionerOnly && session?.id) {
+      void notifyOpsEvent(OpsEvents.draftSessionPendingAdmin, {
+        session_id: session.id,
+        season_id: seasonId,
+        created_by: user.id,
+      })
     }
 
     return NextResponse.json({
