@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
 - **Never commit** `.env.local` or secrets
 - **Always check** authentication before accessing protected resources
 - **Use environment variables** for all URLs and API keys
-- **Ops webhooks (optional):** `N8N_WEBHOOK_URL` and/or `OPENCLAW_ALERT_WEBHOOK_URL` — see `.env.example` and `lib/ops-alerts.ts`; set in Vercel for production
+- **Ops webhooks (optional):** `N8N_WEBHOOK_URL` and/or `OPENCLAW_ALERT_WEBHOOK_URL` — see `.env.example` and `lib/ops-alerts.ts`; set in Vercel for production. OpenClaw `/hooks/*` expects Bearer auth matching `hooks.token` (often forwarded via n8n).
 - **Follow existing patterns** - check similar files before creating new ones
 - **Test API routes** locally before deploying
 - **Handle errors gracefully** in both UI and API routes
@@ -146,9 +146,12 @@ export async function POST(request: NextRequest) {
 
 ## Learned Workspace Facts
 
-- OpenClaw MCP uses `openclaw mcp serve` against `wss://aab-openclaw.moodmnky.com` (TLS on 443); direct access to raw gateway port 18789 from the public internet is usually blocked because the service sits behind HTTPS/WSS.
+- OpenClaw: MCP uses `openclaw mcp serve` against `wss://aab-openclaw.moodmnky.com` (TLS/443); HTTP hooks are at `https://aab-openclaw.moodmnky.com/hooks/...` (443). Raw gateway port 18789 is not reachable from the public internet.
 - OpenClaw may require gateway pairing before the MCP bridge connects; keep gateway tokens only in gitignored local files, not in tracked documentation.
 - Cursor merges user-level `%USERPROFILE%\.cursor\mcp.json` with the project `.cursor/mcp.json`; an empty or truncated user file can break MCP with JSON parse errors.
+- Cursor MCP server `poke-mnky-n8n` uses Docker image `ghcr.io/czlonkowski/n8n-mcp`; set `N8N_API_URL` and `N8N_API_KEY` in `.cursor/mcp.json` for n8n REST API access from MCP tools (separate from app webhook URLs).
+- `lib/ops-alerts.ts` POSTs JSON to `N8N_WEBHOOK_URL` and optionally `OPENCLAW_ALERT_WEBHOOK_URL` without an `Authorization` header. OpenClaw `/hooks/*` expects `Authorization: Bearer` matching OpenClaw `hooks.token`; production often chains app → n8n Webhook → HTTP Request to OpenClaw with Bearer supplied from n8n.
+- `scripts/test-ops-webhook-e2e.ts` smoke-tests configured ops webhook URLs.
 
 ## References
 
