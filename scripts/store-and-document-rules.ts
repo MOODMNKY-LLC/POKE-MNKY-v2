@@ -13,8 +13,11 @@ import { existsSync, mkdirSync } from "fs"
 async function storeAndDocumentRules() {
   require("dotenv").config({ path: ".env.local" })
 
-  const spreadsheetId = "1sVQD6_CsoYtGmguRhc07IDlnz2V4Q2uWTt8Owpl5JE0"
-  const sheetName = "Rules"
+  const spreadsheetId =
+    process.env.GOOGLE_SHEET_ID ||
+    process.env.NEXT_PUBLIC_GOOGLE_SHEET_ID ||
+    "1ezZTEqhLrE4id9EdXRIAd0J8hqiGE9dh9Ar5RvcPCLw"
+  const sheetName = process.env.LEAGUE_RULES_SHEET_NAME || "Rules"
 
   console.log("=".repeat(70))
   console.log("📋 Storing and Documenting Rules")
@@ -175,8 +178,7 @@ function generateMarkdownFromRules(rulesData: any[]): string {
 
   return `# League Rules Documentation
 
-> **Source**: [Google Sheet - Rules Tab](https://docs.google.com/spreadsheets/d/1sVQD6_CsoYtGmguRhc07IDlnz2V4Q2uWTt8Owpl5JE0/edit)
-> **Alternative Source**: [Standalone Rules Sheet](https://docs.google.com/spreadsheets/d/1wwH5XUHxQnivm90wGtNLQI_g7P3nPi5ZRcbZ3JU3-YQ/edit)
+> **Live Sheet**: [Current League Workbook](https://docs.google.com/spreadsheets/d/\${spreadsheetId}/edit)
 > **Last Updated**: ${new Date().toISOString().split("T")[0]}
 > **Sections**: ${rulesData.length}
 
