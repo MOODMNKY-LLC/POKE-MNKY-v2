@@ -1,20 +1,26 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { NumberTicker } from "@/components/ui/number-ticker"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { AnimatedList } from "@/components/ui/animated-list"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { PokemonSprite } from "@/components/pokemon-sprite"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Separator } from "@/components/ui/separator"
+import { PokemonSprite } from "@/components/pokemon-sprite"
+import type { DraftBudgetSnapshot } from "@/components/draft/draft-budget-summary"
 import { createClient } from "@/lib/supabase/client"
+import { cn } from "@/lib/utils"
+import { Users } from "lucide-react"
+
+const ROSTER_CAP = 11
 
 interface TeamRosterPanelProps {
   teamId: string | null
   seasonId: string
   weekNumber?: number | null
+  initialBudget?: DraftBudgetSnapshot | null
 }
 
 interface RosterPick {
@@ -25,18 +31,31 @@ interface RosterPick {
   draft_round: number
 }
 
-export function TeamRosterPanel({ teamId, seasonId, weekNumber }: TeamRosterPanelProps) {
+export function TeamRosterPanel({
+  teamId,
+  seasonId,
+  weekNumber,
+  initialBudget,
+}: TeamRosterPanelProps) {
   const [roster, setRoster] = useState<RosterPick[]>([])
-  const [budget, setBudget] = useState({ total: 120, spent: 0, remaining: 120 })
+  const [budget, setBudget] = useState<DraftBudgetSnapshot>({
+    total: initialBudget?.total ?? 120,
+    spent: initialBudget?.spent ?? 0,
+    remaining: initialBudget?.remaining ?? 120,
+  })
   const [loading, setLoading] = useState(true)
   const [supabase, setSupabase] = useState<ReturnType<typeof createClient> | null>(null)
 
-  // Initialize Supabase client on mount (client-side only)
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (initialBudget) {
+      setBudget(initialBudget)
+    }
+  }, [initialBudget])
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
       try {
-        const client = createClient()
-        setSupabase(client)
+        setSupabase(createClient())
       } catch (error) {
         console.error("Failed to create Supabase client:", error)
         setLoading(false)
@@ -46,9 +65,7 @@ export function TeamRosterPanel({ teamId, seasonId, weekNumber }: TeamRosterPane
 
   useEffect(() => {
     if (!teamId || !supabase) {
-      if (!supabase) {
-        return
-      }
+      if (!supabase) return
       setLoading(false)
       return
     }
@@ -67,23 +84,30 @@ export function TeamRosterPanel({ teamId, seasonId, weekNumber }: TeamRosterPane
             setLoading(false)
             return
           }
-          const picks: RosterPick[] = (data.roster ?? []).map((r: any, i: number) => ({
-            id: `${r.pokemon_id}-${i}`,
-            pokemon_name: r.pokemon_name ?? "Unknown",
-            pokemon_id: r.pokemon_id,
-            point_value: r.point_value ?? 0,
-            draft_round: i + 1,
-          }))
+          const picks: RosterPick[] = (data.roster ?? []).map(
+            (
+              r: { pokemon_id: string; pokemon_name?: string; point_value?: number },
+              i: number
+            ) => ({
+              id: `${r.pokemon_id}-${i}`,
+              pokemon_name: r.pokemon_name ?? "Unknown",
+              pokemon_id: r.pokemon_id,
+              point_value: r.point_value ?? 0,
+              draft_round: i + 1,
+            })
+          )
           setRoster(picks)
           const spent = picks.reduce((sum, p) => sum + p.point_value, 0)
-          setBudget({ total: 120, spent, remaining: 120 - spent })
+          const total = initialBudget?.total ?? 120
+          setBudget({ total, spent, remaining: total - spent })
           setLoading(false)
           return
         }
 
-        const { data: rosterData, error: rosterError } = await supabase
-          .from("team_rosters")
-          .select(`
+        const [rosterResult, budgetResult] = await Promise.all([
+          supabase!
+            .from("team_rosters")
+            .select(`
             id,
             pokemon_id,
             draft_round,
@@ -93,34 +117,48 @@ export function TeamRosterPanel({ teamId, seasonId, weekNumber }: TeamRosterPane
               name
             )
           `)
-          .eq("team_id", teamId)
-          .order("draft_round", { ascending: true })
-          .order("draft_order", { ascending: true })
+            .eq("team_id", teamId)
+            .order("draft_round", { ascending: true })
+            .order("draft_order", { ascending: true }),
+          supabase!
+            .from("draft_budgets")
+            .select("total_points, spent_points, remaining_points")
+            .eq("team_id", teamId)
+            .eq("season_id", seasonId)
+            .maybeSingle(),
+        ])
 
-        if (rosterError) {
-          console.error("Error fetching roster:", rosterError)
+        if (rosterResult.error) {
+          console.error("Error fetching roster:", rosterResult.error)
           setLoading(false)
           return
         }
 
-        if (rosterData) {
-          const picks: RosterPick[] = rosterData
+        if (budgetResult.data) {
+          setBudget({
+            total: budgetResult.data.total_points,
+            spent: budgetResult.data.spent_points,
+            remaining: budgetResult.data.remaining_points,
+          })
+        }
+
+        if (rosterResult.data) {
+          const picks: RosterPick[] = rosterResult.data
             .filter((r) => r.pokemon)
             .map((r) => ({
               id: r.id,
-              pokemon_name: (r.pokemon as any)?.name || "Unknown",
+              pokemon_name: (r.pokemon as { name?: string })?.name || "Unknown",
               pokemon_id: r.pokemon_id,
               point_value: r.draft_points || 0,
               draft_round: r.draft_round || 0,
             }))
-
           setRoster(picks)
-          const spent = picks.reduce((sum, p) => sum + p.point_value, 0)
-          setBudget({
-            total: 120,
-            spent,
-            remaining: 120 - spent,
-          })
+
+          if (!budgetResult.data) {
+            const spent = picks.reduce((sum, p) => sum + p.point_value, 0)
+            const total = initialBudget?.total ?? 120
+            setBudget({ total, spent, remaining: total - spent })
+          }
         }
       } catch (error) {
         console.error("Error fetching roster:", error)
@@ -129,12 +167,13 @@ export function TeamRosterPanel({ teamId, seasonId, weekNumber }: TeamRosterPane
       }
     }
 
-    fetchRoster()
+    void fetchRoster()
 
     if (weekNumber != null) {
       return
     }
-    const channel = supabase
+
+    const rosterChannel = supabase
       .channel(`team-roster:${teamId}`)
       .on(
         "postgres_changes",
@@ -145,109 +184,154 @@ export function TeamRosterPanel({ teamId, seasonId, weekNumber }: TeamRosterPane
           filter: `team_id=eq.${teamId}`,
         },
         () => {
-          fetchRoster()
+          void fetchRoster()
+        }
+      )
+      .subscribe()
+
+    const budgetChannel = supabase
+      .channel(`team-roster-budget:${teamId}:${seasonId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "draft_budgets",
+          filter: `team_id=eq.${teamId}`,
+        },
+        (payload) => {
+          const row = payload.new as {
+            season_id?: string
+            total_points: number
+            spent_points: number
+            remaining_points: number
+          }
+          if (row.season_id === seasonId) {
+            setBudget({
+              total: row.total_points,
+              spent: row.spent_points,
+              remaining: row.remaining_points,
+            })
+          }
         }
       )
       .subscribe()
 
     return () => {
-      channel.unsubscribe()
+      rosterChannel.unsubscribe()
+      budgetChannel.unsubscribe()
     }
-  }, [teamId, seasonId, supabase, weekNumber])
+  }, [teamId, seasonId, supabase, weekNumber, initialBudget?.total])
 
-  // Show loading state while Supabase client initializes
-  if (!supabase) {
-    return (
-      <Card>
-        <CardHeader>
-          <Skeleton className="h-6 w-32" />
-        </CardHeader>
-        <CardContent>
-          <Skeleton className="h-24 w-full" />
-        </CardContent>
-      </Card>
-    )
-  }
-
-  if (loading) {
-    return (
-      <Card>
-        <CardHeader>
-          <Skeleton className="h-6 w-32" />
-        </CardHeader>
-        <CardContent>
-          <Skeleton className="h-24 w-full" />
-        </CardContent>
-      </Card>
-    )
+  if (!supabase || loading) {
+    return <RosterPanelSkeleton />
   }
 
   if (!teamId) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Your Team</CardTitle>
+      <Card className="border-border/80 shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Users className="h-5 w-5 text-muted-foreground" aria-hidden />
+            Your roster
+          </CardTitle>
+          <CardDescription>Sign in with a team in this season to track picks.</CardDescription>
         </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground text-center py-4">
-            Please log in to view your team roster
-          </p>
-        </CardContent>
       </Card>
     )
   }
 
-  const rosterItems = roster.map(pick => ({
-    id: pick.id,
-    name: pick.pokemon_name,
-    content: (
-      <div className="flex items-center gap-3 p-2 rounded-lg border">
-        <Avatar className="h-10 w-10">
-          <PokemonSprite name={pick.pokemon_name} size="sm" />
-          <AvatarFallback>{pick.pokemon_name.slice(0, 2).toUpperCase()}</AvatarFallback>
-        </Avatar>
-        <div className="flex-1">
-          <p className="font-medium capitalize text-sm">{pick.pokemon_name}</p>
-          <p className="text-xs text-muted-foreground">Round {pick.draft_round}</p>
-        </div>
-        <Badge variant="secondary">{pick.point_value}pts</Badge>
-      </div>
-    ),
-  }))
+  const pct = budget.total > 0 ? Math.min((budget.spent / budget.total) * 100, 100) : 0
+  const slotsFilled = roster.length
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Your Team</CardTitle>
+    <Card className="border-border/80 shadow-sm">
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Users className="h-5 w-5 text-muted-foreground" aria-hidden />
+              Your roster
+            </CardTitle>
+            <CardDescription className="mt-1">
+              {slotsFilled} of {ROSTER_CAP} slots filled
+            </CardDescription>
+          </div>
+          <Badge variant="secondary" className="shrink-0 tabular-nums">
+            {slotsFilled}/{ROSTER_CAP}
+          </Badge>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Budget Display */}
-        <div>
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-medium">Budget</span>
-            <span className="text-sm">
-              <NumberTicker value={budget.spent} /> / <NumberTicker value={budget.total} />
+        <div className="space-y-2 rounded-lg border border-border/60 bg-muted/20 p-3">
+          <div className="flex items-center justify-between text-sm">
+            <span className="font-medium">Budget</span>
+            <span className="tabular-nums text-muted-foreground">
+              <span className="font-semibold text-foreground">{budget.spent}</span> / {budget.total}
             </span>
           </div>
-          <Progress value={(budget.spent / budget.total) * 100} />
-          <p className="text-xs text-muted-foreground mt-1">
+          <Progress value={pct} className="h-2" />
+          <p
+            className={cn(
+              "text-xs tabular-nums",
+              budget.remaining < 0
+                ? "text-destructive"
+                : budget.remaining < 20
+                  ? "text-amber-600 dark:text-amber-400"
+                  : "text-muted-foreground"
+            )}
+          >
             {budget.remaining} points remaining
           </p>
         </div>
 
-        {/* Roster List */}
-        <div>
-          <p className="text-sm font-medium mb-2">
-            Roster ({roster.length}/11)
+        <Separator />
+
+        {roster.length > 0 ? (
+          <ScrollArea className="h-[min(22rem,50vh)] pr-3">
+            <ul className="space-y-2">
+              {roster.map((pick) => (
+                <li
+                  key={pick.id}
+                  className="flex items-center gap-3 rounded-lg border border-border/60 bg-card p-2 transition-colors hover:bg-muted/30"
+                >
+                  <Avatar className="h-10 w-10 shrink-0">
+                    <PokemonSprite name={pick.pokemon_name} size="sm" />
+                    <AvatarFallback className="text-xs">
+                      {pick.pokemon_name.slice(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium capitalize text-sm">{pick.pokemon_name}</p>
+                    <p className="text-xs text-muted-foreground">Round {pick.draft_round}</p>
+                  </div>
+                  <Badge variant="outline" className="shrink-0 tabular-nums">
+                    {pick.point_value} pts
+                  </Badge>
+                </li>
+              ))}
+            </ul>
+          </ScrollArea>
+        ) : (
+          <p className="py-6 text-center text-sm text-muted-foreground">
+            No Pokémon drafted yet. Make a pick when it is your turn.
           </p>
-          {roster.length > 0 ? (
-            <AnimatedList items={rosterItems} />
-          ) : (
-            <p className="text-sm text-muted-foreground text-center py-4">
-              No Pokemon drafted yet
-            </p>
-          )}
-        </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+function RosterPanelSkeleton() {
+  return (
+    <Card className="border-border/80 shadow-sm">
+      <CardHeader>
+        <Skeleton className="h-6 w-36" />
+        <Skeleton className="h-4 w-48" />
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <Skeleton className="h-16 w-full" />
+        <Skeleton className="h-32 w-full" />
       </CardContent>
     </Card>
   )

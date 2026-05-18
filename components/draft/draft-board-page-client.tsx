@@ -8,8 +8,10 @@ import { TeamRosterPanel } from "@/components/draft/team-roster-panel"
 import { PickHistory } from "@/components/draft/pick-history"
 import { DraftChat } from "@/components/draft/draft-chat"
 import { DraftAssistantChat } from "@/components/ai/draft-assistant-chat"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { AlertCircle } from "lucide-react"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Separator } from "@/components/ui/separator"
+import type { DraftBudgetSnapshot } from "@/components/draft/draft-budget-summary"
+import { AlertCircle, History, MessageSquare, Sparkles } from "lucide-react"
 
 interface DraftSession {
   id: string
@@ -23,16 +25,18 @@ interface DraftSession {
 interface DraftBoardPageClientProps {
   initialSession: DraftSession | null
   seasonId: string
-  initialCurrentTeam: any
-  initialPokemon: any[]
+  seasonName?: string | null
+  initialCurrentTeam: { id: string; name: string } | null
+  initialPokemon: unknown[]
   initialDraftedPokemon: string[]
-  initialBudget: { total: number; spent: number; remaining: number } | null
+  initialBudget: DraftBudgetSnapshot | null
   noDraftPoolForCurrentSeason?: boolean
 }
 
 export function DraftBoardPageClient({
   initialSession,
   seasonId,
+  seasonName,
   initialCurrentTeam,
   initialPokemon,
   initialDraftedPokemon,
@@ -40,18 +44,15 @@ export function DraftBoardPageClient({
   noDraftPoolForCurrentSeason = false,
 }: DraftBoardPageClientProps) {
   const [session, setSession] = useState(initialSession)
-  const [currentTeam, setCurrentTeam] = useState(initialCurrentTeam)
-  const [supabase, setSupabase] = useState<any>(null)
+  const [currentTeam] = useState(initialCurrentTeam)
+  const [supabase, setSupabase] = useState<ReturnType<typeof createClient> | null>(null)
 
-  // Initialize Supabase client for real-time updates
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const client = createClient()
-      setSupabase(client)
+      setSupabase(createClient())
     }
   }, [])
 
-  // Set up real-time subscriptions for session updates (only when there is an active session)
   useEffect(() => {
     if (!supabase || !session) return
 
@@ -65,8 +66,7 @@ export function DraftBoardPageClient({
           table: "draft_sessions",
           filter: `id=eq.${session.id}`,
         },
-        (payload: any) => {
-          console.log("Session updated:", payload)
+        (payload: { new: Partial<DraftSession> }) => {
           setSession((prev) => (prev ? { ...prev, ...payload.new } : null))
         }
       )
@@ -78,57 +78,114 @@ export function DraftBoardPageClient({
   }, [supabase, session?.id])
 
   const hasActiveSession = !!session
+  const poolStats = {
+    total: initialPokemon.length,
+    drafted: initialDraftedPokemon.length,
+  }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      {noDraftPoolForCurrentSeason && (
-        <Alert variant="default" className="border-amber-500/50 bg-amber-500/10">
-          <AlertCircle className="h-4 w-4" />
+    <div className="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 md:px-6 md:py-8">
+      {(noDraftPoolForCurrentSeason || (!hasActiveSession && !noDraftPoolForCurrentSeason)) && (
+        <Alert
+          variant="default"
+          className="border-amber-500/40 bg-amber-500/5"
+        >
+          <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+          <AlertTitle className="text-amber-900 dark:text-amber-100">
+            {noDraftPoolForCurrentSeason ? "Draft pool empty" : "No active draft session"}
+          </AlertTitle>
           <AlertDescription>
-            No active draft. Draft pool for this season is empty — populate it to see Pokémon.
+            {noDraftPoolForCurrentSeason
+              ? "Populate the current season draft pool to see Pokémon on the board."
+              : "The board is read-only until a draft session is started for this season."}
           </AlertDescription>
         </Alert>
       )}
 
-      {!hasActiveSession && !noDraftPoolForCurrentSeason && (
-        <Alert variant="default" className="border-amber-500/50 bg-amber-500/10">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            No active draft. Board is read-only until a draft session is started.
-          </AlertDescription>
-        </Alert>
-      )}
+      <DraftHeader
+        session={session}
+        currentTeam={currentTeam}
+        seasonId={seasonId}
+        seasonName={seasonName}
+        initialBudget={initialBudget}
+        poolStats={poolStats}
+      />
 
-      <DraftHeader session={session} currentTeam={currentTeam} seasonId={seasonId} />
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: Draft Board (2 columns) */}
-        <div className="lg:col-span-2">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+        <motionless className="min-w-0 space-y-4">
+          <motionless className="flex items-center justify-between gap-2">
+            <h2 className="text-lg font-semibold tracking-tight">Available Pokémon</h2>
+            {hasActiveSession && currentTeam?.id === session?.current_team_id ? (
+              <span className="text-xs font-medium text-primary">You are on the clock</span>
+            ) : null}
+          </motionless>
           <DraftBoardClient
             sessionId={session?.id ?? ""}
             currentTeamId={currentTeam?.id || null}
             seasonId={seasonId}
             isYourTurn={hasActiveSession && currentTeam?.id === session?.current_team_id}
-            initialPokemon={initialPokemon}
+            initialPokemon={initialPokemon as Parameters<typeof DraftBoardClient>[0]["initialPokemon"]}
             initialDraftedPokemon={initialDraftedPokemon}
             initialBudget={initialBudget}
           />
-        </div>
+        </motionless>
 
-        {/* Right: Team Info (1 column) */}
-        <div className="lg:col-span-1 space-y-6">
-          <TeamRosterPanel teamId={currentTeam?.id} seasonId={seasonId} />
-          {hasActiveSession && session && <PickHistory sessionId={session.id} />}
-          <div className="h-[600px] border rounded-lg overflow-hidden">
-            <DraftAssistantChat
-              teamId={currentTeam?.id}
-              seasonId={seasonId}
-              className="h-full"
-            />
-          </div>
-          {hasActiveSession && session && <DraftChat sessionId={session.id} />}
-        </div>
+        <aside className="space-y-6 xl:sticky xl:top-6 xl:self-start">
+          <TeamRosterPanel
+            teamId={currentTeam?.id ?? null}
+            seasonId={seasonId}
+            initialBudget={initialBudget}
+          />
+
+          {hasActiveSession && session ? (
+            <motionless className="space-y-3">
+              <motionless className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                <History className="h-4 w-4" aria-hidden />
+                Pick history
+              </motionless>
+              <PickHistory sessionId={session.id} />
+            </motionless>
+          ) : null}
+
+          <Separator />
+
+          <motionless className="space-y-3">
+            <motionless className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+              <Sparkles className="h-4 w-4" aria-hidden />
+              Draft assistant
+            </motionless>
+            <div className="h-[min(28rem,55vh)] overflow-hidden rounded-xl border border-border/80 shadow-sm">
+              <DraftAssistantChat
+                teamId={currentTeam?.id}
+                seasonId={seasonId}
+                className="h-full"
+              />
+            </div>
+          </motionless>
+
+          {hasActiveSession && session ? (
+            <motionless className="space-y-3">
+              <motionless className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                <MessageSquare className="h-4 w-4" aria-hidden />
+                Draft chat
+              </motionless>
+              <DraftChat sessionId={session.id} />
+            </motionless>
+          ) : null}
+        </aside>
       </div>
+    </div>
+  )
+}
+
+function motionless({
+  className,
+  children,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div className={className} {...props}>
+      {children}
     </div>
   )
 }
