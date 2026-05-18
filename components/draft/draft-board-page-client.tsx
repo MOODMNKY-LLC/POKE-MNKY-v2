@@ -112,13 +112,13 @@ export function DraftBoardPageClient({
       />
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
-        <motionless className="min-w-0 space-y-4">
-          <motionless className="flex items-center justify-between gap-2">
+        <div className="min-w-0 space-y-4">
+          <div className="flex items-center justify-between gap-2">
             <h2 className="text-lg font-semibold tracking-tight">Available Pokémon</h2>
             {hasActiveSession && currentTeam?.id === session?.current_team_id ? (
               <span className="text-xs font-medium text-primary">You are on the clock</span>
             ) : null}
-          </motionless>
+          </div>
           <DraftBoardClient
             sessionId={session?.id ?? ""}
             currentTeamId={currentTeam?.id || null}
@@ -128,7 +128,7 @@ export function DraftBoardPageClient({
             initialDraftedPokemon={initialDraftedPokemon}
             initialBudget={initialBudget}
           />
-        </motionless>
+        </div>
 
         <aside className="space-y-6 xl:sticky xl:top-6 xl:self-start">
           <TeamRosterPanel
@@ -138,22 +138,22 @@ export function DraftBoardPageClient({
           />
 
           {hasActiveSession && session ? (
-            <motionless className="space-y-3">
-              <motionless className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                 <History className="h-4 w-4" aria-hidden />
                 Pick history
-              </motionless>
+              </div>
               <PickHistory sessionId={session.id} />
-            </motionless>
+            </div>
           ) : null}
 
           <Separator />
 
-          <motionless className="space-y-3">
-            <motionless className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
               <Sparkles className="h-4 w-4" aria-hidden />
               Draft assistant
-            </motionless>
+            </div>
             <div className="h-[min(28rem,55vh)] overflow-hidden rounded-xl border border-border/80 shadow-sm">
               <DraftAssistantChat
                 teamId={currentTeam?.id}
@@ -161,31 +161,19 @@ export function DraftBoardPageClient({
                 className="h-full"
               />
             </div>
-          </motionless>
+          </div>
 
           {hasActiveSession && session ? (
-            <motionless className="space-y-3">
-              <motionless className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                 <MessageSquare className="h-4 w-4" aria-hidden />
                 Draft chat
-              </motionless>
+              </div>
               <DraftChat sessionId={session.id} />
-            </motionless>
+            </div>
           ) : null}
         </aside>
       </div>
-    </div>
-  )
-}
-
-function motionless({
-  className,
-  children,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>) {
-  return (
-    <div className={className} {...props}>
-      {children}
     </div>
   )
 }
