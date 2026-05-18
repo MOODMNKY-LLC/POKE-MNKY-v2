@@ -50,7 +50,7 @@ export function RestartOnboardingButton({ className }: RestartOnboardingButtonPr
       ) : (
         <RotateCcw className="h-4 w-4" />
       )}
-      <span className="ml-2 shrink-0">{loading ? "Resetting…" : "Restart coach onboarding"}</span>
+      <span className="ml-2 shrink-0">{loading ? "Resetting…" : "Restart Discord-to-app onboarding"}</span>
     </Button>
   )
 }

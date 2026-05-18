@@ -12,6 +12,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { useState, useEffect, Suspense } from "react"
 import { MessageSquare, Mail, Lock, Sparkles, Users, Trophy, Zap } from "lucide-react"
 import { PokemonSprite } from "@/components/pokemon-sprite"
+import { DISCORD_LOGIN_COPY } from "@/lib/onboarding-flow"
 
 function LoginForm() {
   const [email, setEmail] = useState("")
@@ -78,15 +79,18 @@ function LoginForm() {
         <div className="w-full max-w-md space-y-8">
           {/* Header */}
           <div className="text-center space-y-2">
+            <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+              {DISCORD_LOGIN_COPY.eyebrow}
+            </p>
             <h1 className="text-3xl font-bold text-pokemon">Average at Best</h1>
-            <p className="text-muted-foreground">Pokémon Battle League Platform</p>
+            <p className="text-muted-foreground">Discord-first Pokémon league app</p>
           </div>
 
           {/* Auth Card */}
-          <Card className="border-2">
-            <CardHeader className="text-center space-y-1">
-              <CardTitle className="text-2xl">Welcome back</CardTitle>
-              <CardDescription>Sign in to your account to continue</CardDescription>
+            <Card className="border-2">
+              <CardHeader className="text-center space-y-1">
+              <CardTitle className="text-2xl">{DISCORD_LOGIN_COPY.title}</CardTitle>
+              <CardDescription>{DISCORD_LOGIN_COPY.description}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Discord OAuth - Primary */}
@@ -101,7 +105,7 @@ function LoginForm() {
                   {isDiscordLoading ? "Connecting..." : "Continue with Discord"}
                 </Button>
                 <p className="text-xs text-center text-muted-foreground">
-                  Recommended for coaches and players
+                  Recommended entrypoint for coaches and players
                 </p>
               </div>
 
@@ -109,7 +113,7 @@ function LoginForm() {
               <div className="relative">
                 <Separator />
                 <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-3 text-xs text-muted-foreground">
-                  Or continue with email
+                  Legacy email sign-in
                 </span>
               </div>
 
@@ -174,7 +178,7 @@ function LoginForm() {
       </div>
 
       {/* Right Side - App Info */}
-      <div className="hidden lg:flex items-center justify-center p-12 bg-gradient-to-br from-primary/10 via-accent/10 to-primary/5 relative overflow-hidden">
+          <div className="hidden lg:flex items-center justify-center p-12 bg-gradient-to-br from-primary/10 via-accent/10 to-primary/5 relative overflow-hidden">
         {/* Background Pattern */}
         <div className="absolute inset-0 opacity-5">
           <div className="absolute inset-0" style={{
@@ -185,15 +189,15 @@ function LoginForm() {
 
         <div className="relative z-10 w-full max-w-lg space-y-8 text-center">
           {/* Logo/Branding */}
-          <div className="space-y-4">
-            <div className="flex justify-center gap-4">
-              <PokemonSprite name="Pikachu" pokemonId={25} size="xl" mode="artwork" />
-              <PokemonSprite name="Charizard" pokemonId={6} size="xl" mode="artwork" />
-              <PokemonSprite name="Blastoise" pokemonId={9} size="xl" mode="artwork" />
-            </div>
+            <div className="space-y-4">
+              <div className="flex justify-center gap-4">
+                <PokemonSprite name="Pikachu" pokemonId={25} size="xl" mode="artwork" />
+                <PokemonSprite name="Charizard" pokemonId={6} size="xl" mode="artwork" />
+                <PokemonSprite name="Blastoise" pokemonId={9} size="xl" mode="artwork" />
+              </div>
             <h2 className="text-4xl font-bold text-pokemon">Average at Best</h2>
-            <p className="text-xl text-muted-foreground">Pokémon Battle League Platform</p>
-          </div>
+            <p className="text-xl text-muted-foreground">Discord-first league control room</p>
+            </div>
 
           {/* Features */}
           <div className="space-y-6 pt-8">
@@ -205,7 +209,7 @@ function LoginForm() {
                 <div>
                   <h3 className="font-semibold text-lg mb-1">AI-Powered Insights</h3>
                   <p className="text-sm text-muted-foreground">
-                    Get strategic recommendations and battle analysis powered by advanced AI
+                    Get strategic recommendations and battle analysis when you need them
                   </p>
                 </div>
               </div>
@@ -217,7 +221,7 @@ function LoginForm() {
                 <div>
                   <h3 className="font-semibold text-lg mb-1">Discord Integration</h3>
                   <p className="text-sm text-muted-foreground">
-                    Seamless connection with Discord for team management and notifications
+                    Discord is the entrypoint, role sync layer, and command surface for the app
                   </p>
                 </div>
               </div>
@@ -229,7 +233,7 @@ function LoginForm() {
                 <div>
                   <h3 className="font-semibold text-lg mb-1">Competitive League</h3>
                   <p className="text-sm text-muted-foreground">
-                    Draft your team, compete in matches, and track your standings
+                    Draft your team, manage the season, and track standings in one place
                   </p>
                 </div>
               </div>
@@ -241,7 +245,7 @@ function LoginForm() {
                 <div>
                   <h3 className="font-semibold text-lg mb-1">Real-time Analytics</h3>
                   <p className="text-sm text-muted-foreground">
-                    Track performance, analyze battles, and optimize your strategy
+                    Track performance, weekly stats, and roster changes as they happen
                   </p>
                 </div>
               </div>
@@ -251,7 +255,7 @@ function LoginForm() {
           {/* Footer Note */}
           <div className="pt-8 border-t">
             <p className="text-sm text-muted-foreground">
-              Join coaches and players competing in the most advanced Pokémon battle league platform
+              {DISCORD_LOGIN_COPY.footer}
             </p>
           </div>
         </div>

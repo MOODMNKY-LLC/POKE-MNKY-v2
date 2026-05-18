@@ -16,12 +16,14 @@ import { getCurrentUserProfile, canAccessCoachFeatures, type DiscordRole } from 
 import { DISCORD_TO_APP_ROLE_MAP } from "@/lib/discord-role-mappings"
 import { redirect } from "next/navigation"
 import Link from "next/link"
-import { Trophy, Users, Calendar, BarChart3, Sword, BookOpen, ClipboardList, UserPlus } from "lucide-react"
+import { Trophy, Users, Calendar, BarChart3, Sword, BookOpen, ClipboardList } from "lucide-react"
 import { CoachStatusTicker } from "@/components/dashboard/coach-status-ticker"
 import { RecentActivityCard } from "@/components/dashboard/recent-activity-card"
 import { CoachCardWithToggle } from "@/components/dashboard/coach-card-with-toggle"
 import { YourTeamsSection } from "@/components/dashboard/your-teams-section"
 import { OnboardingCompletionCard } from "@/components/dashboard/onboarding-completion-card"
+import { OnboardingRoadmap } from "@/components/dashboard/onboarding-roadmap"
+import { getDashboardOnboardingCopy } from "@/lib/onboarding-flow"
 
 // Role priority order: admin > commissioner > coach > spectator
 const ROLE_PRIORITY: Record<string, number> = {
@@ -59,6 +61,11 @@ export default async function DashboardPage() {
     .select("id, name, is_current")
     .eq("is_current", true)
     .single()
+
+  const onboardingCopy = getDashboardOnboardingCopy(
+    canAccessCoachFeatures(profile),
+    profile.onboarding_completed
+  )
 
   // Fetch team data, roster for coach card, and overview stats for coaches
   let team = null
@@ -254,45 +261,26 @@ export default async function DashboardPage() {
               </div>
             </div>
 
-            {!canAccessCoachFeatures(profile) && !profile.onboarding_completed && (
+            {!profile.onboarding_completed && (
               <Card className="touch-manipulation border-primary/50 bg-primary/5">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2">
-                    <UserPlus className="h-4 w-4" />
-                    Become a coach
+                <CardHeader className="space-y-2">
+                  <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                    <ClipboardList className="h-4 w-4" />
+                    {onboardingCopy.title}
                   </CardTitle>
+                  <CardDescription>{onboardingCopy.description}</CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Start the coach onboarding to learn how to register as a coach and use the team builder and league features.
-                  </p>
+                <CardContent className="space-y-4">
+                  <OnboardingRoadmap
+                    currentStep={canAccessCoachFeatures(profile) ? "link_team" : "register_as_coach"}
+                    completedSteps={[]}
+                    compact
+                  />
                   <Link
                     href="/dashboard/onboarding"
                     className="inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground h-9 px-4 py-2 hover:bg-primary/90"
                   >
-                    Start coach onboarding
-                  </Link>
-                </CardContent>
-              </Card>
-            )}
-
-            {canAccessCoachFeatures(profile) && !profile.onboarding_completed && (
-              <Card className="touch-manipulation border-primary/50 bg-primary/5">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2">
-                    <BookOpen className="h-4 w-4" />
-                    Finish coach onboarding
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Complete the short onboarding to learn how to use the Team Builder, free agency, and weekly matches.
-                  </p>
-                  <Link
-                    href="/dashboard/onboarding"
-                    className="inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground h-9 px-4 py-2 hover:bg-primary/90"
-                  >
-                    Continue onboarding
+                    {onboardingCopy.cta}
                   </Link>
                 </CardContent>
               </Card>

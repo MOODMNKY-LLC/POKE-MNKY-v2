@@ -4,6 +4,7 @@ import { useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { DISCORD_LINKED_ROLES_COPY } from "@/lib/onboarding-flow"
 
 const DISCORD_OAUTH_URL = "https://discord.com/api/oauth2/authorize"
 const SCOPES = ["identify", "role_connections.write"]
@@ -38,11 +39,8 @@ export default function VerifyUserPage() {
     <div className="container mx-auto max-w-md px-4 py-12">
       <Card>
         <CardHeader>
-          <CardTitle>Verify with Discord</CardTitle>
-          <CardDescription>
-            Connect your Discord account to verify your identity for server roles (Linked Roles).
-            You will be redirected to Discord to authorize, then returned here.
-          </CardDescription>
+          <CardTitle>{DISCORD_LINKED_ROLES_COPY.title}</CardTitle>
+          <CardDescription>{DISCORD_LINKED_ROLES_COPY.description}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {clientId ? (
@@ -52,13 +50,12 @@ export default function VerifyUserPage() {
           ) : (
             <p className="text-muted-foreground text-sm">
               Discord Client ID is not configured. Add NEXT_PUBLIC_DISCORD_CLIENT_ID to enable
-              Linked Roles verification.
+              optional Linked Roles verification.
             </p>
           )}
           <p className="text-muted-foreground text-xs">
-            This uses Discord OAuth2 with the identify and role_connections.write scopes. Your
-            verification status is stored by Discord and can be used by server admins for role
-            requirements.
+            {DISCORD_LINKED_ROLES_COPY.helper} This uses Discord OAuth2 with the identify and
+            role_connections.write scopes so Discord can store the verification result.
           </p>
           <Link href="/" className="block text-center text-primary text-sm underline underline-offset-4">
             Back to home

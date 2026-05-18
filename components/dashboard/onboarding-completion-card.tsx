@@ -5,11 +5,13 @@ import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { CheckCircle2, X, Wrench, Trophy, BookOpen } from "lucide-react"
+import { getDashboardOnboardingCopy } from "@/lib/onboarding-flow"
 
 const STORAGE_KEY = "onboarding_completion_card_dismissed"
 
 export function OnboardingCompletionCard() {
   const [visible, setVisible] = useState(false)
+  const copy = getDashboardOnboardingCopy(true, true)
 
   useEffect(() => {
     try {
@@ -35,7 +37,7 @@ export function OnboardingCompletionCard() {
       <CardHeader className="pb-2 flex flex-row items-start justify-between gap-2">
         <div className="flex items-center gap-2">
           <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-500 shrink-0" />
-          <CardTitle className="text-base">You completed coach onboarding</CardTitle>
+          <CardTitle className="text-base">{copy.title}</CardTitle>
         </div>
         <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={dismiss} aria-label="Dismiss">
           <X className="h-4 w-4" />
@@ -43,7 +45,7 @@ export function OnboardingCompletionCard() {
       </CardHeader>
       <CardContent className="space-y-3 pt-0">
         <p className="text-sm text-muted-foreground">
-          Your dashboard now shows your team, league actions, and the coach ticker. Use the links below to get started.
+          {copy.description}
         </p>
         <div className="flex flex-wrap gap-2">
           <Button asChild variant="default" size="sm">
