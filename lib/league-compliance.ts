@@ -4,6 +4,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js"
+import { getSeasonRules } from "./season-rules"
 
 const LEAGUE_BUDGET = 120
 const MIN_ROSTER = 8
@@ -40,15 +41,19 @@ export async function checkLeagueCompliance(
   const resolved: { name: string; pointValue: number }[] = []
 
   const rosterSize = pokemonNames.length
+  const seasonRules = await getSeasonRules(seasonId)
+  const leagueBudget = seasonRules?.draftBudget ?? LEAGUE_BUDGET
+  const minRoster = seasonRules?.rosterSizeMin ?? MIN_ROSTER
+  const maxRoster = seasonRules?.rosterSizeMax ?? MAX_ROSTER
 
-  if (rosterSize < MIN_ROSTER) {
+  if (rosterSize < minRoster) {
     errors.push(
-      `Roster size is ${rosterSize}; minimum is ${MIN_ROSTER} Pokemon.`
+      `Roster size is ${rosterSize}; minimum is ${minRoster} Pokemon.`
     )
   }
-  if (rosterSize > MAX_ROSTER) {
+  if (rosterSize > maxRoster) {
     errors.push(
-      `Roster size is ${rosterSize}; maximum is ${MAX_ROSTER} Pokemon.`
+      `Roster size is ${rosterSize}; maximum is ${maxRoster} Pokemon.`
     )
   }
 
@@ -124,17 +129,17 @@ export async function checkLeagueCompliance(
     }
   }
 
-  if (totalPoints > LEAGUE_BUDGET) {
+  if (totalPoints > leagueBudget) {
     errors.push(
-      `Total points (${totalPoints}) exceeds league budget (${LEAGUE_BUDGET}).`
+      `Total points (${totalPoints}) exceeds league budget (${leagueBudget}).`
     )
   }
 
   const compliant =
     errors.length === 0 &&
-    rosterSize >= MIN_ROSTER &&
-    rosterSize <= MAX_ROSTER &&
-    totalPoints <= LEAGUE_BUDGET
+    rosterSize >= minRoster &&
+    rosterSize <= maxRoster &&
+    totalPoints <= leagueBudget
 
   return {
     compliant,
