@@ -13,7 +13,7 @@ export default async function DraftBoardPage() {
   // Only use the season marked as current (is_current = true). Do not show draft pool from other seasons.
   const { data: season } = await supabase
     .from("seasons")
-    .select("id")
+    .select("id, name")
     .eq("is_current", true)
     .single()
 
@@ -88,6 +88,7 @@ export default async function DraftBoardPage() {
     <DraftBoardPageClient
       initialSession={session}
       seasonId={seasonId}
+      seasonName={season.name}
       initialCurrentTeam={currentTeam}
       initialPokemon={pokemon}
       initialDraftedPokemon={draftedPokemon}

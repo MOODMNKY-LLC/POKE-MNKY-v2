@@ -5,13 +5,14 @@
  */
 
 import { useCallback, useEffect, useState } from "react"
-import { Flame, RefreshCw, Loader2, Sparkles, Trophy } from "lucide-react"
+import { CalendarDays, Flame, Loader2, RefreshCw, Sparkles, Trophy, Users } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { PokeballIcon } from "@/components/ui/pokeball-icon"
 import { PokemonSprite } from "@/components/pokemon-sprite"
 import { EmptyState } from "@/components/ui/empty-state"
+import { StatMetricCard } from "@/components/league/stat-metric-card"
 
 interface Team {
   id: string
@@ -82,21 +83,52 @@ export function HomepageLiveData() {
 
   const seasonal = data?.topPokemonSeasonal ?? data?.topPokemon ?? []
   const weekly = data?.topPokemonWeekly ?? []
+  const topSeasonal = seasonal[0]
 
   return (
     <section className="w-full border-t border-border/40 bg-muted/20 py-12 md:py-20 lg:py-24">
       <div className="container mx-auto px-4 md:px-6">
-        <div className="mb-10 flex flex-col gap-2 text-center md:text-left">
-          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">League snapshot</h2>
-          <p className="text-muted-foreground max-w-2xl">
-            Standings and top Pokémon — weekly strip uses the latest match week in the database; seasonal is
-            all recorded KOs this season.
-          </p>
+        <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div className="max-w-2xl space-y-2">
+            <Badge variant="outline" className="w-fit">
+              Live from league data
+            </Badge>
+            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Live league board</h2>
+            <p className="text-muted-foreground text-pretty">
+              Standings, weekly performers, and seasonal leaders are pulled from the current league data set.
+              Refresh when the sheet or match logs change.
+            </p>
+          </div>
+          <Button onClick={loadData} disabled={loading} variant="outline" className="gap-2 md:self-start">
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            Refresh board
+          </Button>
+        </div>
+
+        <div className="mb-8 grid gap-4 md:grid-cols-3">
+          <StatMetricCard
+            label="Teams"
+            value={data ? String(data.teamCount) : "—"}
+            hint="Tracked on the league sheet"
+            icon={Users}
+          />
+          <StatMetricCard
+            label="Current week"
+            value={data?.currentWeek ? "Week " + data.currentWeek : "—"}
+            hint="Latest completed or active week"
+            icon={CalendarDays}
+          />
+          <StatMetricCard
+            label="Top KO total"
+            value={topSeasonal ? String(topSeasonal.kos_scored) : "—"}
+            hint={topSeasonal ? topSeasonal.pokemon_name : "Season leaders appear when matches are logged"}
+            icon={Flame}
+          />
         </div>
 
         <div className="grid gap-8 lg:grid-cols-2 lg:gap-12 lg:items-start">
           {/* Standings */}
-          <Card className="border-2 h-full flex flex-col">
+          <Card className="flex h-full flex-col border-border/70 bg-card/80 shadow-sm">
             <CardHeader>
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <CardTitle className="flex items-center gap-2">
@@ -105,7 +137,7 @@ export function HomepageLiveData() {
                 </CardTitle>
                 {data && <Badge variant="outline">{data.teamCount} teams</Badge>}
               </div>
-              <CardDescription>Top five by wins right now</CardDescription>
+              <CardDescription>Top five by wins from the current ranking view</CardDescription>
             </CardHeader>
             <CardContent className="flex-1">
               {loading && !hasLoaded ? (
@@ -148,27 +180,6 @@ export function HomepageLiveData() {
                       </div>
                     </div>
                   ))}
-                  <div className="pt-2 border-t">
-                    <Button
-                      onClick={loadData}
-                      disabled={loading}
-                      variant="ghost"
-                      size="sm"
-                      className="w-full gap-2"
-                    >
-                      {loading ? (
-                        <>
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                          Refreshing…
-                        </>
-                      ) : (
-                        <>
-                          <RefreshCw className="h-3 w-3" />
-                          Refresh
-                        </>
-                      )}
-                    </Button>
-                  </div>
                 </div>
               ) : (
                 <EmptyState
@@ -182,7 +193,7 @@ export function HomepageLiveData() {
 
           {/* Performers: weekly + seasonal */}
           <div className="flex flex-col gap-6">
-            <Card className="border-2 flex flex-col">
+            <Card className="flex flex-col border-border/70 bg-card/80 shadow-sm">
               <CardHeader>
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   <CardTitle className="flex items-center gap-2">
@@ -193,7 +204,7 @@ export function HomepageLiveData() {
                     Week {data?.currentWeek ?? "—"}
                   </Badge>
                 </div>
-                <CardDescription>KOs in the latest completed match week</CardDescription>
+                <CardDescription>KOs in the latest completed or active match week</CardDescription>
               </CardHeader>
               <CardContent>
                 {loading && !hasLoaded ? (
@@ -204,13 +215,13 @@ export function HomepageLiveData() {
                   <PerformerList items={weekly} />
                 ) : (
                   <p className="text-sm text-muted-foreground py-4 text-center">
-                    No weekly stats yet — matches and KOs will populate this strip.
+                    No weekly stats yet. Matches and KOs will populate this strip when results land.
                   </p>
                 )}
               </CardContent>
             </Card>
 
-            <Card className="border-2 flex flex-col">
+            <Card className="flex flex-col border-border/70 bg-card/80 shadow-sm">
               <CardHeader>
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   <CardTitle className="flex items-center gap-2">
@@ -230,22 +241,11 @@ export function HomepageLiveData() {
                   <PerformerList items={seasonal} />
                 ) : (
                   <p className="text-sm text-muted-foreground py-4 text-center">
-                    No seasonal totals yet.
+                    No seasonal totals yet. Logged battles will fill this as data lands.
                   </p>
                 )}
               </CardContent>
             </Card>
-
-            <Button
-              onClick={loadData}
-              disabled={loading}
-              variant="outline"
-              size="sm"
-              className="w-full gap-2"
-            >
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-              Refresh league data
-            </Button>
           </div>
         </div>
       </div>
