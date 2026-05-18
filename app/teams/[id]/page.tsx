@@ -11,6 +11,7 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import { CalendarDays, Shield, Swords, TrendingUp, Users } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { LeagueTeamRosterClient } from "@/components/dashboard/league-team-roster-client"
 
 export const dynamic = "force-dynamic"
 
@@ -81,6 +82,14 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ id:
     .eq("team_id", id)
     .eq("status", "active")
     .order("draft_round")
+
+  const { data: matchweeks } = await supabase
+    .from("matchweeks")
+    .select("week_number")
+    .eq("season_id", currentSeason.id)
+    .order("week_number", { ascending: true })
+
+  const weeks = matchweeks?.map((w) => w.week_number) ?? [1]
 
   const { data: matches } = await supabase
     .from("matches")
@@ -303,6 +312,13 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ id:
             </CardContent>
           </Card>
         </div>
+
+        <LeagueTeamRosterClient
+          teamId={id}
+          seasonId={currentSeason.id}
+          seasonName={currentSeason.name}
+          weeks={weeks.length > 0 ? weeks : [1]}
+        />
 
         <p className="text-center text-sm text-muted-foreground">
           <Link href="/standings" className="font-medium hover:text-primary underline-offset-4 hover:underline">
