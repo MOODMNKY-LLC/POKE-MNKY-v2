@@ -7,6 +7,7 @@ import { DraftBoardTable } from "./draft-board-table"
 import { BudgetDisplay } from "./budget-display"
 import { PickConfirmationDialog } from "./pick-confirmation-dialog"
 import { BorderBeam } from "@/components/ui/border-beam"
+import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -209,6 +210,8 @@ export function DraftBoardClient({
 
   // Get point tiers (20 to 1)
   const pointTiers = Array.from({ length: 20 }, (_, i) => 20 - i)
+  const draftedCount = draftedPokemon.length
+  const availableCount = pokemon.length - draftedCount
 
   // Group filtered Pokemon by point value for Kanban (1-20)
   const pokemonByPoint: Record<number, { name: string; point_value: number; generation: number; pokemon_id: number | null; status: string; types?: string[] }[]> = {}
@@ -289,7 +292,7 @@ export function DraftBoardClient({
 
   return (
     <>
-      <Card className="relative overflow-hidden">
+      <Card className="relative overflow-hidden border-border/80 bg-card/80 shadow-sm">
         {isYourTurn && currentTeamId && (
           <BorderBeam 
             size={250}
@@ -300,9 +303,15 @@ export function DraftBoardClient({
             className="opacity-100"
           />
         )}
-        <CardHeader>
-          <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-            <CardTitle>Draft Board</CardTitle>
+        <CardHeader className="space-y-4">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="space-y-2">
+              <CardTitle className="text-2xl">Draft board</CardTitle>
+              <p className="max-w-2xl text-sm text-muted-foreground">
+                Browse the current season pool, filter by point tier or generation, and switch between table and
+                kanban views while the draft is live.
+              </p>
+            </div>
             <div className="flex items-center gap-3">
               <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "kanban" | "list")}>
                 <TabsList className="h-9">
@@ -321,15 +330,31 @@ export function DraftBoardClient({
               )}
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row gap-4 mt-4">
+          <div className="flex flex-wrap gap-2">
+            <Badge variant="secondary" className="gap-1.5">
+              {visiblePointValues.length} visible tiers
+            </Badge>
+            <Badge variant="outline" className="gap-1.5">
+              {draftedCount} drafted
+            </Badge>
+            <Badge variant="outline" className="gap-1.5">
+              {availableCount} available
+            </Badge>
+            {isYourTurn && currentTeamId ? (
+              <Badge className="gap-1.5 bg-primary text-primary-foreground">
+                Live turn
+              </Badge>
+            ) : null}
+          </div>
+          <div className="grid gap-3 rounded-2xl border border-border/60 bg-muted/20 p-4 sm:grid-cols-3">
             <Input
               placeholder="Search Pokemon..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="flex-1"
+              className="sm:col-span-1"
             />
             <Select value={selectedTier.toString()} onValueChange={(v) => setSelectedTier(v === "all" ? "all" : parseInt(v))}>
-              <SelectTrigger className="w-full sm:w-48">
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="Point Tier" />
               </SelectTrigger>
               <SelectContent>
@@ -342,7 +367,7 @@ export function DraftBoardClient({
               </SelectContent>
             </Select>
             <Select value={selectedGeneration.toString()} onValueChange={(v) => setSelectedGeneration(v === "all" ? "all" : parseInt(v))}>
-              <SelectTrigger className="w-full sm:w-48">
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="Generation" />
               </SelectTrigger>
               <SelectContent>
@@ -358,7 +383,7 @@ export function DraftBoardClient({
         </CardHeader>
         <CardContent>
           {pokemon.length === 0 ? (
-            <div className="text-center py-8 space-y-4">
+            <div className="py-12 text-center space-y-4">
               <p className="text-muted-foreground">
                 No Pokemon found. Check console for details.
               </p>
@@ -369,7 +394,7 @@ export function DraftBoardClient({
               </div>
             </div>
           ) : filteredPokemon.length === 0 ? (
-            <div className="text-center py-8 space-y-4">
+            <div className="py-12 text-center space-y-4">
               <p className="text-muted-foreground">
                 {pokemon.length} Pokemon loaded, but none match current filters.
               </p>
