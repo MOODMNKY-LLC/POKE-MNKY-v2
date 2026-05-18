@@ -3,6 +3,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service"
 import { DraftSystem } from "@/lib/draft-system"
 import { generateDraftPoolFromMaster, loadArchivedPoolIntoSeason } from "@/lib/draft-pool-ops"
 import { notifyOpsEvent, OpsEvents } from "@/lib/ops-alerts"
+import { getSeasonRules } from "@/lib/season-rules"
 import { NextResponse } from "next/server"
 
 type PlayoffFormat = "3_week" | "4_week" | "single_elimination" | "double_elimination"
@@ -136,6 +137,9 @@ export async function POST(request: Request) {
       )
     }
 
+    const seasonRules = await getSeasonRules(seasonId)
+    const draftBudget = seasonRules?.draftBudget ?? 120
+
     // Draft pool prep: generate or load archived before creating session
     const poolSource = body.draft_pool_source || "season_draft_pool"
     const poolConfig = body.draft_pool_config || {}
@@ -230,9 +234,9 @@ export async function POST(request: Request) {
           {
             team_id: teamId,
             season_id: seasonId,
-            total_points: 120,
+            total_points: draftBudget,
             spent_points: 0,
-            remaining_points: 120,
+            remaining_points: draftBudget,
           },
           { onConflict: "team_id,season_id" }
         )
