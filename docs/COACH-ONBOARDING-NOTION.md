@@ -1,13 +1,13 @@
 # Coach Onboarding – Notion and Supabase integration
 
-The coach onboarding flow (Dashboard → Onboarding) is fully hooked up to **Supabase** (progress and profile sync) and optionally to **Notion** (full guide link).
+The coach onboarding flow (Dashboard → Onboarding) is the single checklist for getting from Discord identity to a coach-ready dashboard. It is hooked up to **Supabase** (progress and profile sync) and optionally to **Notion** (full guide link).
 
 ## Supabase integration
 
 - **Table**: `coach_onboarding` stores per-user progress (`current_step`, `completed_steps`, `completed_at`). RLS allows authenticated users to select/insert/update only their own row.
 - **API**: `GET /api/coach-onboarding` returns current step and completed steps; `PATCH /api/coach-onboarding` updates step and optionally marks onboarding complete.
 - **Profile sync**: When the user marks onboarding complete (or reaches step `complete` with `mark_complete: true`), the API sets `profiles.onboarding_completed = true` for that user. The dashboard uses this to show a “Finish coach onboarding” card for coaches who have a team but have not completed onboarding. A one-time sync on GET ensures existing completed onboarding rows also set `profiles.onboarding_completed`.
-- **Navigation**: Dashboard sidebar includes an “Onboarding” link under Dashboard. The dashboard shows “Continue onboarding” for coaches with a team and `onboarding_completed === false`.
+- **Navigation**: Dashboard sidebar includes an “Onboarding” link under Dashboard. The dashboard shows one “Coach onboarding” card for anyone not yet complete and links into the same checklist page.
 
 ## Team Builder hookup
 

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { DISCORD_LINKED_ROLES_COPY } from "@/lib/onboarding-flow"
 
 export default function VerifyUserCallbackPage() {
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading")
@@ -39,7 +40,10 @@ export default function VerifyUserCallbackPage() {
           return
         }
         setStatus("success")
-        setMessage(data.message || "Your Discord account is now connected for role verification.")
+        setMessage(
+          data.message ||
+            "Your Discord account is now connected for optional Discord-side verification."
+        )
       })
       .catch(() => {
         setStatus("error")
@@ -52,13 +56,13 @@ export default function VerifyUserCallbackPage() {
       <Card>
         <CardHeader>
           <CardTitle>
-            {status === "loading" && "Verifying…"}
-            {status === "success" && "Connected"}
+            {status === "loading" && "Connecting Discord roles…"}
+            {status === "success" && "Verification complete"}
             {status === "error" && "Verification failed"}
           </CardTitle>
           <CardDescription>
-            {status === "loading" && "Completing Discord verification…"}
-            {status === "success" && "You can close this tab and return to Discord."}
+            {status === "loading" && DISCORD_LINKED_ROLES_COPY.description}
+            {status === "success" && "You can close this tab and return to Discord. This does not change app onboarding."}
             {status === "error" && message}
           </CardDescription>
         </CardHeader>
