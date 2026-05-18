@@ -4,6 +4,7 @@
  */
 
 import { createServiceRoleClient } from "./supabase/service"
+import { getSeasonRules } from "./season-rules"
 import { pushDraftStateToNotion } from "./sync/push-draft-state-to-notion"
 
 export interface DraftPick {
@@ -695,11 +696,14 @@ export class DraftSystem {
       .order("draft_round", { ascending: true })
       .order("draft_pick_number", { ascending: true })
 
+    const seasonRules = await getSeasonRules(seasonId)
+    const draftBudget = seasonRules?.draftBudget ?? 120
+
     return {
       budget: {
-        total: budget?.total_points || 120,
+        total: budget?.total_points || draftBudget,
         spent: budget?.spent_points || 0,
-        remaining: budget?.remaining_points || 120,
+        remaining: budget?.remaining_points || draftBudget,
       },
       picks:
         picks?.map((p) => ({
