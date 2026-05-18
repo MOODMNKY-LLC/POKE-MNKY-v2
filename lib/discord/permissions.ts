@@ -8,8 +8,9 @@ import { appGet } from "./api-client"
 
 type GuildConfigResponse = {
   ok: boolean
-  config: {
-    admin_role_ids: string[]
+  admin_role_ids?: string[]
+  config?: {
+    admin_role_ids?: string[]
   } | null
 }
 
@@ -33,13 +34,22 @@ export async function canManageDraftConfig(
       `/api/discord/guild/config?guild_id=${encodeURIComponent(interaction.guildId)}`
     )
 
-    const allowedRoleIds = response.config?.admin_role_ids || []
+    const allowedRoleIds = response.admin_role_ids ?? response.config?.admin_role_ids ?? []
     if (allowedRoleIds.length === 0) {
       return false // No roles configured, only admins allowed
     }
 
     // Check if user has any of the allowed roles
-    return member?.roles.cache.some((role) => allowedRoleIds.includes(role.id)) ?? false
+    const roleCache = member?.roles?.cache as
+      | { some?: (fn: (role: { id: string } ) => boolean) => boolean; values?: () => IterableIterator<{ id: string }> }
+      | undefined
+    if (!roleCache) return false
+
+    if (typeof roleCache.some === "function") {
+      return roleCache.some((role) => allowedRoleIds.includes(role.id))
+    }
+
+    return Array.from(roleCache.values?.() ?? []).some((role) => allowedRoleIds.includes(role.id))
   } catch (error) {
     console.error("[Discord Permissions] Failed to check permissions:", error)
     return false

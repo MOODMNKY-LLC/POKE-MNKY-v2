@@ -12,8 +12,6 @@ import { BattleCompletionEvent } from './monitors/showdown-monitor.js';
 const SHOWDOWN_SERVER_URL = process.env.SHOWDOWN_SERVER_URL || 'https://aab-showdown.moodmnky.com';
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const DISCORD_RESULTS_CHANNEL_ID = process.env.DISCORD_RESULTS_CHANNEL_ID;
-
 if (!SUPABASE_URL || !SUPABASE_KEY) {
   console.error('[IntegrationWorker] Missing required environment variables');
   console.error('  Required: SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL');

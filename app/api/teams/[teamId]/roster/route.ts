@@ -12,6 +12,7 @@
 
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { getSeasonRules } from "@/lib/season-rules"
 
 export async function GET(
   request: NextRequest,
@@ -114,21 +115,15 @@ export async function GET(
     // If budget view returns no rows, calculate defaults from season
     let budget = budgetData
     if (!budget && !budgetError) {
-      // Get season defaults
-      const { data: season } = await supabase
-        .from("seasons")
-        .select("draft_points_budget, roster_size_max")
-        .eq("id", seasonId)
-        .single()
-
-      if (season) {
+      const seasonRules = await getSeasonRules(seasonId)
+      if (seasonRules) {
         budget = {
           points_used: 0,
-          draft_points_budget: season.draft_points_budget || 120,
-          budget_remaining: season.draft_points_budget || 120,
+          draft_points_budget: seasonRules.draftBudget || 120,
+          budget_remaining: seasonRules.draftBudget || 120,
           slots_used: 0,
-          roster_size_max: season.roster_size_max || 10,
-          slots_remaining: season.roster_size_max || 10,
+          roster_size_max: seasonRules.rosterSizeMax || 10,
+          slots_remaining: seasonRules.rosterSizeMax || 10,
         }
       }
     }
@@ -145,7 +140,7 @@ export async function GET(
     // Fetch team name (optional - don't fail if team doesn't exist)
     const { data: team } = await supabase
       .from("teams")
-      .select("team_name")
+      .select("name")
       .eq("id", teamId)
       .maybeSingle()
 
@@ -154,7 +149,7 @@ export async function GET(
       return NextResponse.json({
         team_id: teamId,
         season_id: seasonId,
-        team_name: team?.team_name || null,
+        team_name: team?.name || null,
         roster: [],
         budget: budget || {
           points_used: 0,
@@ -195,7 +190,7 @@ export async function GET(
     return NextResponse.json({
       team_id: teamId,
       season_id: seasonId,
-      team_name: roster[0]?.team_name || null,
+      team_name: team?.name || null,
       roster: formattedRoster,
       budget: {
         points_used: budget?.points_used || 0,

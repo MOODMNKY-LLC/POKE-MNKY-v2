@@ -4,6 +4,7 @@
  */
 
 import { createServiceRoleClient } from "./supabase/service"
+import { getSeasonRules } from "./season-rules"
 
 export type TransactionType = "replacement" | "addition" | "drop_only"
 
@@ -231,10 +232,13 @@ export class FreeAgencySystem {
       }))
 
     const spent = roster.reduce((sum, p) => sum + p.point_value, 0)
+    const seasonRules = await getSeasonRules(seasonId)
+    const draftBudget = seasonRules?.draftBudget ?? 120
+    const transactionCap = seasonRules?.transactionCap ?? 10
     const budget = {
-      total: 120,
+      total: draftBudget,
       spent,
-      remaining: 120 - spent,
+      remaining: draftBudget - spent,
     }
 
     // Get transaction count
@@ -246,7 +250,7 @@ export class FreeAgencySystem {
       .single()
 
     const transactionCount = countData?.transaction_count || 0
-    const remainingTransactions = Math.max(0, 10 - transactionCount)
+    const remainingTransactions = Math.max(0, transactionCap - transactionCount)
 
     return {
       team_id: teamId,

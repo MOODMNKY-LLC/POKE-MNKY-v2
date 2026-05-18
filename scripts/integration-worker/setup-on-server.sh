@@ -56,8 +56,7 @@ SERVICE_DEF=$(cat <<'EOF'
       - SHOWDOWN_SERVER_URL=http://pokemon-showdown:8000
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-      - DISCORD_RESULTS_CHANNEL_ID=${DISCORD_RESULTS_CHANNEL_ID}
-    networks:
+      networks:
       - poke-mnky-network
     depends_on:
       - pokemon-showdown

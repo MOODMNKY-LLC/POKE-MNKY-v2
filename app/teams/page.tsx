@@ -11,7 +11,41 @@ const divisions = ["Kanto", "Johto", "Hoenn", "Sinnoh"]
 export default async function TeamsPage() {
   try {
     const supabase = await createClient()
-    const { data: teams, error } = await supabase.from("teams").select("*").order("name")
+    const { data: currentSeason, error: seasonError } = await supabase
+      .from("seasons")
+      .select("id, name")
+      .eq("is_current", true)
+      .maybeSingle()
+
+    if (seasonError) {
+      throw seasonError
+    }
+
+    if (!currentSeason?.id) {
+      return (
+        <>
+          <div className="border-b border-border bg-muted/30 py-8">
+            <div className="container mx-auto px-4 md:px-6">
+              <h1 className="text-4xl font-bold tracking-tight">All Teams</h1>
+              <p className="mt-2 text-muted-foreground">Browse all teams competing in the league</p>
+            </div>
+          </div>
+          <div className="container mx-auto px-4 md:px-6 py-8">
+            <Card>
+              <CardContent className="py-12 text-center">
+                <p className="text-muted-foreground">No current season is set.</p>
+              </CardContent>
+            </Card>
+          </div>
+        </>
+      )
+    }
+
+    const { data: teams, error } = await supabase
+      .from("teams")
+      .select("*")
+      .eq("season_id", currentSeason.id)
+      .order("name")
 
     if (error) {
       console.error("[Teams Page] Error fetching teams:", error)
@@ -78,7 +112,7 @@ export default async function TeamsPage() {
                               <span className="text-muted-foreground">Coach</span>
                               <div className="flex items-center gap-1.5">
                                 <PokeballIcon role="coach" size="xs" />
-                                <span className="font-medium">{team.coach}</span>
+                                <span className="font-medium">{team.coach_name}</span>
                               </div>
                             </div>
                             <div className="flex items-center justify-between">

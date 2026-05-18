@@ -25,6 +25,91 @@ export class ReplayParser {
   ) {}
 
   /**
+   * Parse a raw replay log string.
+   */
+  parseReplayLog(logText: string, roomId: string): ParsedReplayResult {
+    const logLines = logText.split('\n').filter(line => line.trim());
+
+    let winner: 'p1' | 'p2' | null = null;
+    let team1Score = 0;
+    let team2Score = 0;
+    const faints: ParsedReplayResult['faints'] = [];
+    let currentTurn = 0;
+    const playerNames: Record<'p1' | 'p2', string> = { p1: '', p2: '' };
+
+    for (const line of logLines) {
+      const parts = line.split('|');
+      if (parts.length < 2) continue;
+
+      const command = parts[1];
+
+      if (command === 'player') {
+        const side = parts[2] as 'p1' | 'p2';
+        const name = parts[3] || '';
+        if (side === 'p1' || side === 'p2') {
+          playerNames[side] = name;
+        }
+        continue;
+      }
+
+      if (command === 'turn') {
+        currentTurn = parseInt(parts[2]) || 0;
+        continue;
+      }
+
+      if (command === 'faint') {
+        const pokemon = parts[2] || '';
+        const side = pokemon.startsWith('p1') ? 'p1' : 'p2';
+
+        faints.push({
+          pokemon,
+          side,
+          turn: currentTurn,
+        });
+
+        if (side === 'p2') {
+          team1Score++;
+        } else if (side === 'p1') {
+          team2Score++;
+        }
+        continue;
+      }
+
+      if (command === 'win') {
+        const winnerArg = parts[2] || '';
+        if (winnerArg === 'p1' || winnerArg.startsWith('p1')) {
+          winner = 'p1';
+        } else if (winnerArg === 'p2' || winnerArg.startsWith('p2')) {
+          winner = 'p2';
+        } else if (winnerArg === playerNames.p1) {
+          winner = 'p1';
+        } else if (winnerArg === playerNames.p2) {
+          winner = 'p2';
+        }
+        continue;
+      }
+
+      if (command === 'tie' || command === 'draw') {
+        winner = null;
+        continue;
+      }
+    }
+
+    const differential = Math.abs(team1Score - team2Score);
+    const replayUrl = `${this.showdownServerUrl}/replay/${roomId}`;
+
+    return {
+      winner,
+      team1Score,
+      team2Score,
+      differential,
+      replayUrl,
+      battleLog: logLines,
+      faints,
+    };
+  }
+
+  /**
    * Fetch replay from Showdown server
    */
   async fetchReplay(roomId: string): Promise<string> {
@@ -73,84 +158,8 @@ export class ReplayParser {
    */
   async parseReplay(roomId: string): Promise<ParsedReplayResult> {
     const logText = await this.fetchReplay(roomId);
-    const logLines = logText.split('\n').filter(line => line.trim());
-
-    let winner: 'p1' | 'p2' | null = null;
-    let team1Score = 0;
-    let team2Score = 0;
-    const faints: ParsedReplayResult['faints'] = [];
-    let currentTurn = 0;
-
-    // Parse log lines
-    for (const line of logLines) {
-      // Parse protocol message
-      const parts = line.split('|');
-      if (parts.length < 2) continue;
-
-      const command = parts[1];
-
-      // Track turn number
-      if (command === 'turn') {
-        currentTurn = parseInt(parts[2]) || 0;
-        continue;
-      }
-
-      // Track faints
-      if (command === 'faint') {
-        const pokemon = parts[2] || '';
-        const side = pokemon.startsWith('p1') ? 'p1' : 'p2';
-        
-        faints.push({
-          pokemon,
-          side,
-          turn: currentTurn,
-        });
-
-        // Increment score for the side that caused the faint
-        // p2 fainting means p1 scored a KO
-        if (side === 'p2') {
-          team1Score++;
-        } else if (side === 'p1') {
-          team2Score++;
-        }
-        continue;
-      }
-
-      // Detect winner
-      if (command === 'win') {
-        const winnerArg = parts[2] || '';
-        if (winnerArg === 'p1' || winnerArg.startsWith('p1')) {
-          winner = 'p1';
-        } else if (winnerArg === 'p2' || winnerArg.startsWith('p2')) {
-          winner = 'p2';
-        }
-        continue;
-      }
-
-      // Detect tie
-      if (command === 'tie' || command === 'draw') {
-        winner = null;
-        continue;
-      }
-    }
-
-    // Calculate differential
-    const differential = Math.abs(team1Score - team2Score);
-
-    // Construct replay URL (try to find the correct format)
-    const replayUrl = `${this.showdownServerUrl}/replay/${roomId}`;
-
-    return {
-      winner,
-      team1Score,
-      team2Score,
-      differential,
-      replayUrl,
-      battleLog: logLines,
-      faints,
-    };
+    return this.parseReplayLog(logText, roomId);
   }
-
   /**
    * Map parsed result to match update data
    */

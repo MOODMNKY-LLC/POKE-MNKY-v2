@@ -91,7 +91,6 @@ integration-worker:
     - SHOWDOWN_SERVER_URL=http://pokemon-showdown:8000
     - SUPABASE_URL=${SUPABASE_URL}
     - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-    - DISCORD_RESULTS_CHANNEL_ID=${DISCORD_RESULTS_CHANNEL_ID:-}
   networks:
     - poke-mnky-network
   depends_on:
@@ -119,7 +118,6 @@ Add or verify these variables exist:
 ```env
 SUPABASE_URL=https://chmrszrwlfeqovwxyrmt.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key-here
-DISCORD_RESULTS_CHANNEL_ID=your-channel-id-here
 ```
 
 Save and exit.

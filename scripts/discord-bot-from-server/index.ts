@@ -46,7 +46,7 @@ const commands = [
   new SlashCommandBuilder()
     .setName("recap")
     .setDescription("Generate AI-powered weekly recap")
-    .addIntegerOption((option) => option.setName("week").setDescription("Week number").setRequired(true)),
+    .addIntegerOption((option) => option.setName("week").setDescription("Week number").setRequired(false)),
 
   new SlashCommandBuilder()
     .setName("pokemon")
@@ -399,16 +399,30 @@ async function handleRecapCommand(interaction: any) {
   await interaction.deferReply()
 
   try {
+    let targetWeek = week
+    if (!targetWeek) {
+      const statsResponse = await fetch(`${APP_URL}/api/weekly-stats`)
+      const statsData = await statsResponse.json()
+      if (statsData?.week_number) {
+        targetWeek = statsData.week_number
+      }
+    }
+
+    if (!targetWeek) {
+      await interaction.editReply("No weekly stats available yet")
+      return
+    }
+
     const response = await fetch(`${APP_URL}/api/ai/weekly-recap`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ week_number: week }),
+      body: JSON.stringify({ week_number: targetWeek }),
     })
 
     const data = await response.json()
 
     if (data.recap) {
-      await interaction.editReply(`**Week ${week} Recap**\n\n${data.recap}`)
+      await interaction.editReply(`**Week ${targetWeek} Recap**\n\n${data.recap}`)
     } else {
       await interaction.editReply("Failed to generate recap")
     }
