@@ -77,7 +77,6 @@ integration-worker:
     - SHOWDOWN_SERVER_URL=http://pokemon-showdown:8000
     - SUPABASE_URL=${SUPABASE_URL}
     - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-    - DISCORD_RESULTS_CHANNEL_ID=${DISCORD_RESULTS_CHANNEL_ID:-}
   networks:
     - poke-mnky-network
   depends_on:
@@ -105,7 +104,6 @@ Add:
 # Integration Worker
 SUPABASE_URL=https://chmrszrwlfeqovwxyrmt.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key-here
-DISCORD_RESULTS_CHANNEL_ID=your-discord-channel-id-here
 ```
 
 **Security Note**: Make sure `.env` file has proper permissions:
@@ -357,7 +355,6 @@ docker compose up -d integration-worker
 | `SHOWDOWN_SERVER_URL` | Yes | Showdown server URL (use internal Docker network name) | `http://pokemon-showdown:8000` |
 | `SUPABASE_URL` | Yes | Supabase project URL | `https://chmrszrwlfeqovwxyrmt.supabase.co` |
 | `SUPABASE_SERVICE_ROLE_KEY` | Yes | Supabase service role key | `eyJhbGc...` |
-| `DISCORD_RESULTS_CHANNEL_ID` | No | Discord channel ID for notifications | `1234567890` |
 
 ---
 

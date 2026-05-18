@@ -326,7 +326,7 @@ The ecosystem relies on multiple data storage systems, each optimized for differ
 
 The ecosystem includes sophisticated integration services that automate league operations, bridge communication between components, and reduce manual administrative work. These services transform the platform from a collection of tools into an automated league management system.
 
-**Integration Worker** (`integration-worker`) serves as the event bridge connecting Showdown battles with league management features. Currently running in placeholder mode awaiting Phase 2 implementation, this service is designed to watch Showdown battle rooms for completed matches, parse replay data to extract results, update Supabase match records with winners and scores, post results to Discord channels, and automatically update league standings. The worker monitors WebSocket connections to Showdown rooms, detects battle completion events, extracts battle statistics from replay logs, validates results against match records, and propagates updates throughout the system. When fully implemented, this service will eliminate manual result entry, ensure accurate standings updates, and provide real-time notifications of completed battles.
+**Integration Worker** (`scripts/integration-worker`) is the event bridge connecting Showdown battles with league management features. It watches Showdown battle rooms for completed matches, parses replay data to extract results, updates Supabase match records with winners and scores, posts results through the shared Discord notification path, and automatically updates league standings. The worker monitors WebSocket connections to Showdown rooms, detects battle completion events, extracts battle statistics from replay logs, validates results against match records, and propagates updates throughout the system. This service reduces manual result entry, keeps standings accurate, and provides real-time notifications of completed battles.
 
 **Discord Bot** (`discord-bot`) provides a comprehensive command interface for league operations directly within Discord, enabling coaches to manage matches, validate teams, check standings, and perform draft operations without leaving their Discord server. The bot implements twelve slash commands including `/battle` for creating Showdown battle rooms, `/validate-team` for checking team legality against rosters, `/showdown-link` for connecting Discord accounts to Showdown accounts, `/matchups` for viewing weekly match schedules, `/submit` for submitting match results with AI-powered parsing, `/standings` for current league rankings, `/recap` for AI-generated weekly summaries, `/pokemon` for Pokémon information lookups, and draft-related commands for managing draft picks and viewing team status. The bot communicates with the Next.js app via HTTP API calls, uses Supabase service role keys for database access, calls Showdown server APIs for battle room creation, and posts formatted messages to Discord channels. This integration brings league management directly into the community's primary communication platform, making operations convenient and accessible.
 
@@ -562,15 +562,12 @@ DISCORD_BOT_TOKEN=<discord-bot-token>
 SHOWDOWN_SERVER_URL=http://pokemon-showdown:8000
 # Next.js app URL - for API callbacks
 APP_URL=https://poke-mnky.moodmnky.com
-# Discord channel ID for posting battle results
-DISCORD_RESULTS_CHANNEL_ID=<discord-channel-id>
 # Showdown API key - for authenticating Showdown API calls
 SHOWDOWN_API_KEY=<same-as-showdown-server>
 ```
 
 **Development Notes**:
-- Currently in placeholder mode - full implementation pending
-- `DISCORD_RESULTS_CHANNEL_ID` is the numeric channel ID from Discord
+- Worker is implemented under `scripts/integration-worker/`
 - `SHOWDOWN_API_KEY` must match the key used by Showdown server
 - Service watches Showdown replays directory for completed battles
 
@@ -586,8 +583,6 @@ DISCORD_BOT_TOKEN=<discord-bot-token>
 DISCORD_CLIENT_ID=<discord-client-id>
 # Discord server (guild) ID - where bot operates
 DISCORD_GUILD_ID=<discord-guild-id>
-# Discord channel ID for posting results
-DISCORD_RESULTS_CHANNEL_ID=<discord-channel-id>
 # Supabase project URL
 SUPABASE_URL=https://chmrszrwlfeqovwxyrmt.supabase.co
 # Supabase service role key
@@ -771,7 +766,6 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<supabase-anon-key>
 DISCORD_BOT_TOKEN=<discord-bot-token>
 DISCORD_CLIENT_ID=<discord-client-id>
 DISCORD_GUILD_ID=<discord-guild-id>
-DISCORD_RESULTS_CHANNEL_ID=<discord-channel-id>
 ```
 
 ### Security Best Practices
@@ -786,7 +780,7 @@ DISCORD_RESULTS_CHANNEL_ID=<discord-channel-id>
 
 ### Environment Variable Validation
 
-Each service should validate required environment variables on startup. Missing critical variables should cause services to fail fast with clear error messages. The integration worker currently implements this pattern, logging warnings for missing variables while still starting in placeholder mode.
+Each service should validate required environment variables on startup. Missing critical variables should cause services to fail fast with clear error messages. The integration worker follows this pattern and fails fast when the Supabase credentials are missing.
 
 ---
 
@@ -842,7 +836,7 @@ The POKE MNKY ecosystem demonstrates several sophisticated architectural pattern
 
 While the current ecosystem provides comprehensive league management capabilities, several areas present opportunities for enhancement and optimization as the platform evolves and scales.
 
-**Integration Worker Implementation** remains in placeholder mode, awaiting Phase 2 development to provide full automation capabilities. Current battle result capture requires manual entry, creating administrative overhead and potential for errors. Full implementation would enable automatic replay parsing, result extraction, and standings updates, significantly reducing manual work and improving data accuracy.
+**Integration Worker Implementation** now lives under `scripts/integration-worker/` and covers replay parsing, result extraction, and standings updates. Manual entry is no longer the default path for battle result capture.
 
 **Authentication Unification** maintains separate systems for Showdown (MySQL) and the platform (Supabase), creating complexity in account management. A unified authentication system using Supabase Auth with Showdown assertion generation would simplify user management while maintaining Showdown compatibility. This enhancement would enable single sign-on across all platform components and reduce authentication-related support issues.
 

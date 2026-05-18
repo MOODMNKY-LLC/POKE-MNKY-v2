@@ -69,7 +69,6 @@ Add:
 ```env
 SUPABASE_URL=https://chmrszrwlfeqovwxyrmt.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-DISCORD_RESULTS_CHANNEL_ID=your-channel-id
 ```
 
 ### 5. Build and Start

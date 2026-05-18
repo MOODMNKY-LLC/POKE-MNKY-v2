@@ -1,7 +1,8 @@
 /**
  * Build the POKE MNKY slash commands how-to embed using @discordjs/builders.
- * Single source of truth for the Discord how-to: includes both app-registered commands
- * (lib/discord-commands) and legacy/server-bot commands (tools/discord-bot on server).
+ * Single source of truth for the Discord how-to: includes app-registered command definitions
+ * (lib/discord-commands) and legacy compatibility commands for server-bot setups.
+ * Live interaction replies are handled by the Next.js Discord interactions route.
  */
 
 import { EmbedBuilder } from "@discordjs/builders"

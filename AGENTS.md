@@ -4,6 +4,10 @@
 
 Always use the OpenAI developer documentation MCP server (`openaiDeveloperDocs`) if you need to work with the OpenAI API, ChatGPT Apps SDK, Codex, Responses API, Agents SDK, or related OpenAI documentation without me having to explicitly ask.
 
+## OpenClaw agent: Ollama / model & quota choices
+
+The **POKE MNKY** OpenClaw agent’s instructions (including which **Ollama** cloud models to prefer for day-to-day chat vs. “heavy” work) live in the monorepo at `../AGENTS.md` and `../../workspaces/poke-mnky/AGENTS.md` under **“Model choice, `/model`, and Ollama Cloud”**. When helping the human pick a model or limit burn, use that table; the default **daily driver** is **`ollama/gemma3:12b-cloud`**, not large Qwen/Kimi, unless the task needs it. Official plan limits: [Ollama Cloud](https://ollama.com/cloud).
+
 ## Project Overview
 
 POKE MNKY is a comprehensive Pokémon Draft League Management Platform built with:

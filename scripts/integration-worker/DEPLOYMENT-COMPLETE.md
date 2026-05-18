@@ -55,7 +55,7 @@ Health: Healthy
 
 ## What Was Fixed
 
-1. **Dockerfile Path**: Updated from `tools/integration-worker` to `scripts/integration-worker`
+1. **Dockerfile Path**: Updated to `scripts/integration-worker`
 2. **Volume Mount**: Removed conflicting volume mount that overwrote `/app`
 3. **TypeScript Types**: Fixed Supabase type inference issues with type assertions
 4. **ESM Imports**: Added `.js` extensions to all relative imports
@@ -141,7 +141,6 @@ SELECT * FROM matches WHERE status = 'in_progress' AND showdown_room_id IS NOT N
 SUPABASE_URL=https://chmrszrwlfeqovwxyrmt.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=<your-key>
 SHOWDOWN_SERVER_URL=http://pokemon-showdown:8000
-DISCORD_RESULTS_CHANNEL_ID=<optional>
 ```
 
 ### Docker Compose Service

@@ -14,7 +14,6 @@ pnpm install
 SHOWDOWN_SERVER_URL=https://aab-showdown.moodmnky.com
 SUPABASE_URL=https://chmrszrwlfeqovwxyrmt.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-DISCORD_RESULTS_CHANNEL_ID=your-channel-id
 ```
 
 3. Build:
@@ -39,5 +38,11 @@ pnpm dev
 - **monitors/**: WebSocket monitoring for Showdown battle rooms
 - **parsers/**: Replay log parsing to extract battle results
 - **updaters/**: Database updates and standings recalculation
+
+## Testing
+
+- `pnpm test` runs a deterministic local parser fixture.
+- `pnpm smoke` runs the broader connectivity smoke test.
+- `TEST_ROOM_ID=... pnpm test` adds an optional live replay fetch check.
 
 See `docs/PRIORITY-1-INTEGRATION-WORKER-IMPLEMENTATION.md` for complete documentation.

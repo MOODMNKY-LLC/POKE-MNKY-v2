@@ -159,7 +159,7 @@
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "baseline-browser-mapping": "^2.10.20",
+    "baseline-browser-mapping": "^2.10.30",
     "cross-env": "^7.0.3",
     "dotenv": "^17.2.3",
     "openapi-typescript": "^7.10.1",

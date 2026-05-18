@@ -35,12 +35,12 @@ cd /mnt/c/DEV-MNKY/MOOD_MNKY/POKE-MNKY-v2
    ```bash
    sshpass -p '<password>' rsync -avz scripts/integration-worker/ \
      moodmnky@10.3.0.119:/home/moodmnky/POKE-MNKY/scripts/integration-worker/
-   ```
+```
 
 2. **SSH to server**:
    ```bash
    sshpass -p '<password>' ssh moodmnky@10.3.0.119
-   ```
+```
 
 3. **Add service to docker-compose.yml**:
    - Copy content from `docker-compose-snippet.yml`
@@ -50,7 +50,6 @@ cd /mnt/c/DEV-MNKY/MOOD_MNKY/POKE-MNKY-v2
    ```env
    SUPABASE_URL=https://chmrszrwlfeqovwxyrmt.supabase.co
    SUPABASE_SERVICE_ROLE_KEY=<your-key>
-   DISCORD_RESULTS_CHANNEL_ID=<optional>
    ```
 
 5. **Build and start**:
@@ -59,7 +58,7 @@ cd /mnt/c/DEV-MNKY/MOOD_MNKY/POKE-MNKY-v2
    docker compose build integration-worker
    docker compose up -d integration-worker
    docker compose logs -f integration-worker
-   ```
+```
 
 ---
 
@@ -79,7 +78,6 @@ integration-worker:
     - SHOWDOWN_SERVER_URL=http://pokemon-showdown:8000
     - SUPABASE_URL=${SUPABASE_URL}
     - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-    - DISCORD_RESULTS_CHANNEL_ID=${DISCORD_RESULTS_CHANNEL_ID:-}
   networks:
     - poke-mnky-network
   depends_on:
@@ -93,7 +91,6 @@ integration-worker:
 | `SHOWDOWN_SERVER_URL` | Yes | Internal Docker network URL: `http://pokemon-showdown:8000` |
 | `SUPABASE_URL` | Yes | Supabase project URL |
 | `SUPABASE_SERVICE_ROLE_KEY` | Yes | Service role key for database access |
-| `DISCORD_RESULTS_CHANNEL_ID` | No | Discord channel for notifications |
 
 ---
 

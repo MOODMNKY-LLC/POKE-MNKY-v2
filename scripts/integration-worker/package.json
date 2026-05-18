@@ -10,7 +10,8 @@
     "test": "tsx src/test.ts",
     "test:websocket": "tsx src/test-websocket.ts",
     "test:integration": "tsx src/test-integration.ts",
-    "test:room-manager": "tsx src/test-room-manager.ts"
+    "test:room-manager": "tsx src/test-room-manager.ts",
+    "smoke": "tsx src/test-integration.ts"
   },
   "dependencies": {
     "@pkmn/protocol": "^0.5.0",

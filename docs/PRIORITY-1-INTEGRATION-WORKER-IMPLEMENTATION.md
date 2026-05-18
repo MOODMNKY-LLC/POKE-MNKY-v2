@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-The Integration Worker is the critical automation component that bridges Showdown battles with league management. Currently in placeholder mode, this service must be fully implemented to enable automatic battle result capture, standings updates, and Discord notifications. Without it, all match results require manual entry, creating administrative overhead and potential for errors.
+The Integration Worker is the automation component that bridges Showdown battles with league management. It now lives under `scripts/integration-worker/` and handles battle result capture, standings updates, and Discord notifications. Manual entry is no longer the default path.
 
 This document provides a comprehensive, actionable implementation plan with code examples, architecture decisions, and step-by-step instructions to transform the placeholder worker into a production-ready automation service.
 
@@ -40,7 +40,7 @@ This document provides a comprehensive, actionable implementation plan with code
 ### What's Missing
 
 1. **Integration Worker Service**: ❌ Not implemented
-   - No code exists in `scripts/integration-worker/`
+   - Code exists in `scripts/integration-worker/`
    - No Docker configuration
    - No WebSocket monitoring
    - No replay parsing logic
@@ -816,7 +816,7 @@ export class DatabaseUpdater {
 
 #### Step 5.1: Create Main Worker Entry Point
 
-Create `scripts/integration-worker/src/index.ts`:
+Create `scripts/integration-worker/src/index.ts` (current implementation is in repo):
 
 ```typescript
 import { RoomManager } from './monitors/room-manager';
@@ -828,8 +828,6 @@ import { notifyMatchResult } from '../../../lib/discord-notifications';
 const SHOWDOWN_SERVER_URL = process.env.SHOWDOWN_SERVER_URL || 'https://aab-showdown.moodmnky.com';
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const DISCORD_RESULTS_CHANNEL_ID = process.env.DISCORD_RESULTS_CHANNEL_ID;
-
 if (!SUPABASE_URL || !SUPABASE_KEY) {
   console.error('[IntegrationWorker] Missing required environment variables');
   process.exit(1);
@@ -955,7 +953,6 @@ integration-worker:
     - SHOWDOWN_SERVER_URL=http://pokemon-showdown:8000
     - SUPABASE_URL=${SUPABASE_URL}
     - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-    - DISCORD_RESULTS_CHANNEL_ID=${DISCORD_RESULTS_CHANNEL_ID}
   networks:
     - poke-mnky-network
   depends_on:

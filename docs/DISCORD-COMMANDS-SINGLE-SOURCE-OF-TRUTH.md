@@ -8,13 +8,13 @@ This doc explains where Discord slash commands live, how they get registered, an
 
 ### App repo (this repo — POKE MNKY-v2)
 
-- **Path:** `lib/discord-commands/`
+- **Interaction entrypoint:** `app/api/discord/interactions/route.ts`
 - **Commands:** `/pick`, `/search`, `/calc`, `/free-agency-submit`, `/free-agency-status`, `/draftstatus`, `/whoami`, `/setseason`, `/getseason`, `/coverage`
 - **Registration:** Run from this repo with:
   ```bash
   pnpm discord:register-commands
   ```
-  That script uses `getAllCommands()` from `lib/discord-commands/index.ts`, builds the payload from each command’s `.data.toJSON()`, and calls Discord’s REST API to register **guild** commands for `DISCORD_GUILD_ID`.
+  That script uses `getAllCommands()` from `lib/discord-commands/index.ts` to register **guild** commands for `DISCORD_GUILD_ID`. The Next.js interactions route returns the live command responses.
 
 - **How-to content:** The embed text for the “how to use” guide is built in **`lib/discord/slash-commands-guide-embed.ts`** (title, description, fields for each command). Scripts that post the guide use that module so the guide is a single source of truth.
 
@@ -31,13 +31,13 @@ This doc explains where Discord slash commands live, how they get registered, an
 
 ### Option A: One set of commands (recommended)
 
-- **Single source of truth:** Use only the **app repo** commands (`lib/discord-commands`).
+- **Single source of truth:** Use the **Next.js interactions route** for replies, with `lib/discord-commands` kept as registration/compatibility definitions.
 - **Steps:**
   1. Register from the app repo: `pnpm discord:register-commands` (with `DISCORD_BOT_TOKEN`, `DISCORD_CLIENT_ID`, `DISCORD_GUILD_ID` in `.env.local` or `.env`).
-  2. Run the **bot process** that handles interactions (e.g. the server bot) but have it **use the same command definitions** from this repo (e.g. import `getAllCommands` and handle by `commandName`), or run a separate bot that only handles the app’s 10 commands.
+  2. Keep the interactions route and the app APIs aligned with those definitions.
   3. Keep the how-to guide in sync by editing only **`lib/discord/slash-commands-guide-embed.ts`** and re-posting the embed when needed (`pnpm discord:post-guide-embed [channelId]`).
 
-Result: One list of commands, one registration, one guide.
+Result: One active interaction path, one registration source, one guide.
 
 ### Option B: Two sets (app + legacy)
 

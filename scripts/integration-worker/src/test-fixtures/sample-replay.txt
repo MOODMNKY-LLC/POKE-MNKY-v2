@@ -1,0 +1,7 @@
+|player|p1|Simeon|1000
+|player|p2|Opponent|1000
+|turn|1
+|faint|p2a: Garchomp
+|turn|2
+|faint|p2b: Iron Valiant
+|win|Simeon

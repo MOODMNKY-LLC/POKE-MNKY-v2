@@ -1,6 +1,6 @@
 # Activating Discord Slash Commands
 
-This guide explains how to make POKE MNKY slash commands active in your Discord server. The bot process runs on an external server; **slash commands must be registered with Discord’s API** (one-time or after any command change).
+This guide explains how to make POKE MNKY slash commands active in your Discord server. **Slash commands must be registered with Discord’s API** (one-time or after any command change), and Discord sends interactions to the Next.js `/api/discord/interactions` route.
 
 ---
 
@@ -74,9 +74,9 @@ If you use Node directly:
 npx tsx scripts/register-discord-commands.ts
 ```
 
-### 5. Restart the bot (if it runs as a service)
+### 5. Restart auxiliary services only if you still use them
 
-So the bot process picks up any env/code changes and continues to handle interactions:
+Slash command replies do **not** depend on a long-running bot process in this repo anymore. If you run an auxiliary bot or worker for role sync or posting, restart that service so it picks up env/code changes:
 
 - **If using Docker Compose** (e.g. a `discord-bot` or `integration-worker` service that runs the bot):
 
@@ -88,7 +88,7 @@ So the bot process picks up any env/code changes and continues to handle interac
 
 - **If using PM2 or a systemd service:** restart that service instead.
 
-Registration only needs to be run once per guild (or after adding/editing commands). The running bot only needs to handle `interactionCreate`; it does not need to register commands on every startup unless you want that behavior.
+Registration only needs to be run once per guild (or after adding/editing commands). The Next.js app handles `interactionCreate` responses directly; registration does not require a separate always-on command handler.
 
 ---
 
@@ -123,7 +123,7 @@ Handlers live in `lib/discord-commands/`. See [DISCORD-COMMANDS-REGISTRATION.md]
   Wait a minute and try again; Discord can cache the command list. Ensure `DISCORD_GUILD_ID` is the correct server ID (Developer Mode → right‑click server → Copy Server ID).
 
 - **Bot doesn’t respond to /commands**  
-  Registration only makes commands visible. The bot process that handles `interactionCreate` must be running (on 10.3.0.119 or wherever it’s hosted). Restart the bot service after registering.
+  Registration only makes commands visible. The Next.js app must be reachable at `/api/discord/interactions`, and `DISCORD_PUBLIC_KEY` / `DISCORD_BOT_API_KEY` must be set.
 
 ---
 
