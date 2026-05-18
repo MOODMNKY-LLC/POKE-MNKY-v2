@@ -1,12 +1,18 @@
 /**
  * N8N Code Node: Validate Transaction
  * 
- * Validates: budget (120pts), roster size (8-10), transaction limit (10 F/A moves), timing
+ * Validates league rules using season_rules when available; falls back to legacy defaults.
  */
 
 // Get transaction and roster data
 const transaction = $input.first().json;
 const rosterData = $('Read D2:E11').first().json.values || [];
+const rulesRow = $('Season Rules').first()?.json || {};
+
+const budgetLimit = Number(rulesRow.draft_budget || rulesRow.draftBudget || 120);
+const minRoster = Number(rulesRow.roster_size_min || rulesRow.rosterSizeMin || 8);
+const maxRoster = Number(rulesRow.roster_size_max || rulesRow.rosterSizeMax || 10);
+const transactionCap = Number(rulesRow.transaction_cap || rulesRow.transactionCap || 10);
 
 // Calculate current roster stats
 let currentRosterSize = 0;
@@ -51,13 +57,13 @@ const newPointTotal = currentPointTotal - droppedPokemonPoints + newPokemonPoint
 // Validation checks
 const validations = {
   budget: {
-    valid: newPointTotal <= 120,
-    message: newPointTotal > 120 
-      ? `Budget exceeded: ${newPointTotal}pts > 120pts (current: ${currentPointTotal}pts, dropped: ${droppedPokemonPoints}pts, added: ${newPokemonPoints}pts)` 
+    valid: newPointTotal <= budgetLimit,
+    message: newPointTotal > budgetLimit 
+      ? `Budget exceeded: ${newPointTotal}pts > ${budgetLimit}pts (current: ${currentPointTotal}pts, dropped: ${droppedPokemonPoints}pts, added: ${newPokemonPoints}pts)` 
       : null
   },
   rosterSize: {
-    valid: newRosterSize >= 8 && newRosterSize <= 10,
+    valid: newRosterSize >= minRoster && newRosterSize <= maxRoster,
     message: newRosterSize < 8 
       ? `Roster too small: ${newRosterSize} < 8 (current: ${currentRosterSize})`
       : newRosterSize > 10
@@ -65,7 +71,7 @@ const validations = {
       : null
   },
   transactionLimit: {
-    valid: true, // TODO: Track transaction count (would need database or sheet tracking)
+    valid: true, // TODO: Track transaction count (would need database tracking)
     message: null
   },
   timing: {
