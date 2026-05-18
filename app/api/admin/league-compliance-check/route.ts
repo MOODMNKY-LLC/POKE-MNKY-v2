@@ -12,17 +12,15 @@ import {
   checkLeagueCompliance,
   extractPokemonNamesFromShowdownTeam,
 } from "@/lib/league-compliance"
+import { getSeasonRules } from "@/lib/season-rules"
 import { openai } from "@/lib/openai-client"
-
-const LEAGUE_DOCS_SNIPPET = `
-League rules (summary): Draft budget 120 points per team; roster 8-10 Pokemon; point values in range; Tera budget 15 for Tera Captains; transaction cap 10 per season; trades/FA execute 12:00 AM Monday EST.
-`.trim()
 
 async function getLeagueComplianceAIWarnings(
   teamName: string,
   rosterSize: number,
   totalPoints: number,
-  resolvedNames: string[]
+  resolvedNames: string[],
+  rulesSummary: string
 ): Promise<string[]> {
   try {
     if (!process.env.OPENAI_API_KEY) return []
@@ -31,7 +29,7 @@ async function getLeagueComplianceAIWarnings(
       messages: [
         {
           role: "system",
-          content: `You are a league commissioner assistant. Given a team summary and the league rules below, reply with 0-3 short advisory warnings only if something might violate or stretch league rules (format, Tera usage, transaction limits, etc.). If the team looks fine, reply with exactly: NONE. Be very brief; one line per warning. Rules: ${LEAGUE_DOCS_SNIPPET}`,
+          content: `You are a league commissioner assistant. Given a team summary and the league rules below, reply with 0-3 short advisory warnings only if something might violate or stretch league rules (format, Tera usage, transaction limits, etc.). If the team looks fine, reply with exactly: NONE. Be very brief; one line per warning. Rules: ${rulesSummary}`,
         },
         {
           role: "user",
@@ -116,12 +114,22 @@ export async function POST(request: NextRequest) {
     )
 
     if (includeAi && result.compliant && result.resolved.length > 0) {
+      const seasonRules = await getSeasonRules(seasonId)
+      const rulesSummary = [
+        `Draft budget: ${seasonRules?.draftBudget ?? 120}`,
+        `Roster: ${seasonRules?.rosterSizeMin ?? 8}-${seasonRules?.rosterSizeMax ?? 10}`,
+        `Tera budget: ${seasonRules?.teraBudget ?? 15}`,
+        `Transaction cap: ${seasonRules?.transactionCap ?? 10}`,
+        `Tera captains max: ${seasonRules?.maxTeraCaptains ?? 3}`,
+        `Stellar tera banned: ${seasonRules?.stellarTeraBanned ? "yes" : "no"}`,
+      ].join("; ")
       const resolvedNames = result.resolved.map((r) => `${r.name} (${r.pointValue})`)
       const aiWarnings = await getLeagueComplianceAIWarnings(
         team.team_name ?? "Unknown",
         result.rosterSize,
         result.totalPoints,
-        resolvedNames
+        resolvedNames,
+        rulesSummary
       )
       result.warnings.push(...aiWarnings)
     }
