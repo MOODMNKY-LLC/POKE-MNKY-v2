@@ -105,7 +105,9 @@ export default function AdminMusicPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">Settings coming soon...</p>
+              <p className="text-muted-foreground">
+                The player uses the current theme and track visibility state automatically. Add more controls here when the workflow needs them.
+              </p>
             </CardContent>
           </Card>
         </TabsContent>

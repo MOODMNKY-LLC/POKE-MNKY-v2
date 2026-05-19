@@ -7,13 +7,13 @@ export const homepageLeague = {
   shortName: "AAB",
   fullName: "Average At Best Battle League",
   tagline:
-    "A 20-team Pokémon draft league built around standings, the draft room, weekly stats, and coach tools, with Discord keeping the workflow moving.",
+    "Discord-first Pokémon draft league with public standings, a live draft room, weekly match prep, and coach tools backed by Supabase.",
   heroAccent: "League hub",
 } as const
 
 export const homepageHero = {
   eyebrow: "Public league hub",
-  title: "Standings first. Draft room next. Everything else routes through the league site.",
+  title: "The league runs here: standings, draft room, weekly prep, and coach tools.",
   description:
     "Use the homepage to check standings, teams, weekly stats, insights, and the draft room. Discord sign-in opens the coach path without turning the public site into a generic splash page.",
   primaryCta: {
@@ -32,15 +32,15 @@ export const homepageHero = {
     label: "Sign in with Discord",
     href: "/auth/login",
   },
-  chips: ["Live standings", "Weekly stats", "Discord-linked coach tools"] as const,
+  chips: ["Public standings", "Weekly match prep", "Discord onboarding"] as const,
   operations: [
     {
       title: "Standings",
-      description: "The public front door for the season table and differential.",
+      description: "The public front door for the season table, race order, and differential.",
     },
     {
       title: "Teams",
-      description: "Roster pages and coach context across the league.",
+      description: "Roster pages, coach context, and season history across the league.",
     },
     {
       title: "Draft room",
@@ -86,7 +86,7 @@ export const homepageLeagueBlocks: HomepageLeagueBlock[] = [
   {
     id: "weekly-stats",
     title: "Weekly Stats",
-    description: "Latest battle-week totals, results, and performance notes.",
+    description: "Latest battle-week totals, results, and matchup notes.",
     href: "/matches",
     cta: "Review week",
   },

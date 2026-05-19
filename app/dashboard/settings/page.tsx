@@ -135,10 +135,12 @@ export default async function DashboardSettingsPage({
             <Card>
               <CardHeader>
                 <CardTitle>Notifications</CardTitle>
-                <CardDescription>Notification preferences are coming soon. You will be able to choose how and when to receive match reminders and league updates.</CardDescription>
+                <CardDescription>League reminders currently land through Discord and the in-app activity feed. Browser or email notification controls are not exposed yet.</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">Check back later.</p>
+                <p className="text-sm text-muted-foreground">
+                  Use Discord for match updates, then check the dashboard activity feed for the latest logged actions.
+                </p>
               </CardContent>
             </Card>
           </TabsContent>

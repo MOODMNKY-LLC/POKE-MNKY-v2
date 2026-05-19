@@ -29,9 +29,9 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "Average at Best Battle League | Pokémon Competitive Platform",
+  title: "Average at Best Battle League | Standings, Draft Room, Coach Tools",
   description:
-    "Complete Pokémon Battle League platform with AI-powered insights, Discord integration, Showdown battle engine, and real-time analytics. Join the competitive scene today!",
+    "Discord-first Pokémon draft league with public standings, draft control, weekly match prep, team pages, and coach workflows backed by Supabase.",
   keywords: [
     "pokémon battle league",
     "competitive pokémon",
@@ -42,20 +42,20 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     title: "Average at Best Battle League",
-    description: "Competitive Pokémon Battle League with AI insights and Discord integration",
+    description: "Discord-first Pokémon draft league with standings, draft room, and coach tools",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
     title: "Average at Best Battle League",
-    description: "Competitive Pokémon Battle League platform",
+    description: "Discord-first Pokémon draft league with standings, draft room, and coach tools",
   },
   generator: "v0.app",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "AAB Battle League",
+    title: "AAB League",
   },
   icons: {
     icon: [
