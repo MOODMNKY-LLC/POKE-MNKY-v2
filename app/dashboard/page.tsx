@@ -67,6 +67,12 @@ export default async function DashboardPage() {
     profile.onboarding_completed
   )
 
+  const { data: onboardingState } = await supabase
+    .from("coach_onboarding")
+    .select("current_step, completed_steps, completed_at")
+    .eq("user_id", user.id)
+    .maybeSingle()
+
   // Fetch team data, roster for coach card, and overview stats for coaches
   let team = null
   let coachRoster: { pokemon_name: string; point_value: number }[] = []
@@ -272,8 +278,11 @@ export default async function DashboardPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <OnboardingRoadmap
-                    currentStep={canAccessCoachFeatures(profile) ? "link_team" : "register_as_coach"}
-                    completedSteps={[]}
+                    currentStep={
+                      onboardingState?.current_step ??
+                      (canAccessCoachFeatures(profile) ? "link_team" : "register_as_coach")
+                    }
+                    completedSteps={(onboardingState?.completed_steps as string[]) ?? []}
                     compact
                   />
                   <Link

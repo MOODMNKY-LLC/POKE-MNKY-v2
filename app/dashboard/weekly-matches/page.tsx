@@ -28,6 +28,70 @@ const TOTAL_WEEKS = 8
 
 type SearchParams = { [key: string]: string | string[] | undefined }
 
+type TeamRanking = {
+  team_id: string
+  team_name: string
+  conference: string | null
+  division: string | null
+  wins: number | null
+  losses: number | null
+  differential: number | null
+  active_win_streak: number | null
+  league_rank: number | null
+  sos: number | null
+}
+
+type RosterCaptain = {
+  pokemon_id: string
+  pokemon_name: string
+  point_value: number
+  is_tera_captain: boolean
+  tera_types: string[]
+}
+
+async function loadRosterCaptains(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  teamId: string | null,
+  seasonId: string | null,
+  weekNumber: number
+): Promise<RosterCaptain[]> {
+  if (!teamId || !seasonId) return []
+
+  const { data: version } = await supabase
+    .from("team_roster_versions")
+    .select("snapshot")
+    .eq("team_id", teamId)
+    .eq("season_id", seasonId)
+    .eq("week_number", weekNumber)
+    .maybeSingle()
+
+  const snapshot = (version?.snapshot ?? []) as Array<{
+    pokemon_id: string
+    points: number
+    is_tera_captain?: boolean
+    tera_types?: string[]
+  }>
+
+  if (snapshot.length === 0) return []
+
+  const { data: pokemonRows } = await supabase
+    .from("pokemon")
+    .select("id, name")
+    .in("id", snapshot.map((entry) => entry.pokemon_id))
+
+  const byId = new Map((pokemonRows ?? []).map((row: { id: string; name: string }) => [row.id, row]))
+
+  return snapshot
+    .filter((entry) => entry.is_tera_captain)
+    .map((entry) => ({
+      pokemon_id: entry.pokemon_id,
+      pokemon_name: byId.get(entry.pokemon_id)?.name ?? "Unknown",
+      point_value: entry.points,
+      is_tera_captain: true,
+      tera_types: entry.tera_types ?? [],
+    }))
+}
+
 function parseWeek(input: unknown) {
   if (typeof input !== "string") return 1
   const n = parseInt(input, 10)
@@ -60,6 +124,11 @@ export default async function WeeklyMatchesPage({
 
   const isCoach = canAccessCoachFeatures(profile)
   const teamId = isCoach ? profile.team_id : null
+  const { data: currentSeason } = await supabase
+    .from("seasons")
+    .select("id, name")
+    .eq("is_current", true)
+    .maybeSingle()
 
   // Fetch this coach’s regular-season matches (if any) so we can:
   // - Disable weeks without a scheduled match
@@ -111,6 +180,40 @@ export default async function WeeklyMatchesPage({
       ? selectedMatch.team2
       : selectedMatch.team1
     : null
+
+  const seasonId = selectedMatch?.season_id ?? currentSeason?.id ?? null
+  const { data: standingsRows } = seasonId
+    ? await supabase
+        .from("v_regular_team_rankings")
+        .select("team_id, team_name, conference, division, wins, losses, differential, active_win_streak, league_rank, sos")
+        .eq("season_id", seasonId)
+        .order("league_rank", { ascending: true })
+    : { data: [] as TeamRanking[] }
+
+  const rankings = (standingsRows ?? []) as TeamRanking[]
+  const rankingsByTeamId = new Map(rankings.map((row) => [row.team_id, row]))
+  const currentTeamStanding = teamId ? rankingsByTeamId.get(teamId) ?? null : null
+  const opponentTeamStanding = opponentTeam?.id ? rankingsByTeamId.get(opponentTeam.id) ?? null : null
+
+  const currentDivisionRank =
+    currentTeamStanding && currentTeamStanding.division
+      ? rankings.filter(
+          (row) =>
+            row.conference === currentTeamStanding.conference &&
+            row.division === currentTeamStanding.division
+        ).findIndex((row) => row.team_id === currentTeamStanding.team_id) + 1
+      : null
+  const opponentDivisionRank =
+    opponentTeamStanding && opponentTeamStanding.division
+      ? rankings.filter(
+          (row) =>
+            row.conference === opponentTeamStanding.conference &&
+            row.division === opponentTeamStanding.division
+        ).findIndex((row) => row.team_id === opponentTeamStanding.team_id) + 1
+      : null
+
+  const currentTeamCaptains = await loadRosterCaptains(supabase, teamId, seasonId, selectedWeek)
+  const opponentTeamCaptains = await loadRosterCaptains(supabase, opponentTeam?.id ?? null, seasonId, selectedWeek)
 
   return (
     <SidebarProvider>
@@ -253,13 +356,47 @@ export default async function WeeklyMatchesPage({
                     Opponent snapshot
                   </CardTitle>
                   <CardDescription>
-                    Record, kills/deaths, differential, streak, recent form.
+                    Record, streak, differential, and league context for the selected opponent.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-sm text-muted-foreground">
-                    Coming soon: backed by `v_team_record_regular` and `v_active_win_streak_regular`.
-                  </div>
+                  {opponentTeamStanding ? (
+                    <div className="space-y-2 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">Record: </span>
+                        <span className="font-medium">
+                          {opponentTeamStanding.wins ?? 0}-{opponentTeamStanding.losses ?? 0}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Differential: </span>
+                        <span className="font-medium">
+                          {(opponentTeamStanding.differential ?? 0) >= 0 ? "+" : ""}
+                          {opponentTeamStanding.differential ?? 0}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Streak: </span>
+                        <span className="font-medium">
+                          {opponentTeamStanding.active_win_streak
+                            ? opponentTeamStanding.active_win_streak > 0
+                              ? `W${opponentTeamStanding.active_win_streak}`
+                              : `L${Math.abs(opponentTeamStanding.active_win_streak)}`
+                            : "—"}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Conference / Division: </span>
+                        <span className="font-medium">
+                          {opponentTeamStanding.conference ?? "—"} / {opponentTeamStanding.division ?? "—"}
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-sm text-muted-foreground">
+                      Pick a scheduled week to load the opponent's rank and form from Supabase.
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -270,12 +407,41 @@ export default async function WeeklyMatchesPage({
                     Tera captains
                   </CardTitle>
                   <CardDescription>
-                    Your two Tera captains vs their two Tera captains.
+                    Your flagged Tera captains versus the opponent's flagged Tera captains.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-sm text-muted-foreground">
-                    Coming soon: sourced from roster metadata (team roster + captain flags).
+                  <div className="space-y-4 text-sm">
+                    <div>
+                      <p className="mb-2 font-medium">Your team</p>
+                      {currentTeamCaptains.length > 0 ? (
+                        <ul className="space-y-1 text-muted-foreground">
+                          {currentTeamCaptains.map((entry) => (
+                            <li key={entry.pokemon_id}>
+                              {entry.pokemon_name}
+                              {entry.tera_types.length > 0 ? ` · ${entry.tera_types.join("/")}` : ""}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-muted-foreground">No Tera captains flagged in this week’s roster snapshot.</p>
+                      )}
+                    </div>
+                    <div>
+                      <p className="mb-2 font-medium">Opponent</p>
+                      {opponentTeamCaptains.length > 0 ? (
+                        <ul className="space-y-1 text-muted-foreground">
+                          {opponentTeamCaptains.map((entry) => (
+                            <li key={entry.pokemon_id}>
+                              {entry.pokemon_name}
+                              {entry.tera_types.length > 0 ? ` · ${entry.tera_types.join("/")}` : ""}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-muted-foreground">No Tera captains flagged for the opposing roster snapshot.</p>
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -291,9 +457,45 @@ export default async function WeeklyMatchesPage({
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-sm text-muted-foreground">
-                    Coming soon: backed by `v_regular_team_rankings`.
-                  </div>
+                  {currentTeamStanding ? (
+                    <div className="space-y-2 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">League rank: </span>
+                        <span className="font-medium">#{currentTeamStanding.league_rank ?? "—"}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Division rank: </span>
+                        <span className="font-medium">
+                          {currentDivisionRank ? `#${currentDivisionRank}` : "—"}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Record: </span>
+                        <span className="font-medium">
+                          {currentTeamStanding.wins ?? 0}-{currentTeamStanding.losses ?? 0}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Strength of schedule: </span>
+                        <span className="font-medium">
+                          {currentTeamStanding.sos != null ? currentTeamStanding.sos.toFixed(3) : "—"}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Opponent rank: </span>
+                        <span className="font-medium">
+                          {opponentTeamStanding?.league_rank != null
+                            ? `#${opponentTeamStanding.league_rank}`
+                            : "—"}
+                          {opponentDivisionRank ? ` · division #${opponentDivisionRank}` : ""}
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-sm text-muted-foreground">
+                      League rank and division context load once the current season standings are available.
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -320,4 +522,3 @@ export default async function WeeklyMatchesPage({
     </SidebarProvider>
   )
 }
-

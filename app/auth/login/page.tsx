@@ -83,7 +83,7 @@ function LoginForm() {
               {DISCORD_LOGIN_COPY.eyebrow}
             </p>
             <h1 className="text-3xl font-bold text-pokemon">Average at Best</h1>
-            <p className="text-muted-foreground">Discord-first Pokémon league app</p>
+            <p className="text-muted-foreground">Discord opens the league, the app handles the workflow.</p>
           </div>
 
           {/* Auth Card */}
@@ -166,6 +166,30 @@ function LoginForm() {
                 </Button>
               </form>
 
+              <div className="grid gap-3 rounded-xl border border-border/60 bg-muted/20 p-4 text-sm">
+                <div className="flex items-start gap-3">
+                  <Users className="mt-0.5 h-4 w-4 text-primary" />
+                  <div>
+                    <p className="font-medium">Discord identity first</p>
+                    <p className="text-muted-foreground">Use Discord to match your league profile, roles, and coach access.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Trophy className="mt-0.5 h-4 w-4 text-primary" />
+                  <div>
+                    <p className="font-medium">Coach workflow unlocked</p>
+                    <p className="text-muted-foreground">Once assigned, the dashboard, roster tools, and weekly matches open up.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Sparkles className="mt-0.5 h-4 w-4 text-primary" />
+                  <div>
+                    <p className="font-medium">League tools stay in the app</p>
+                    <p className="text-muted-foreground">Standings, draft room, insights, and team pages are all one system.</p>
+                  </div>
+                </div>
+              </div>
+
               {/* Footer Link */}
               <div className="text-center">
                 <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
@@ -207,9 +231,9 @@ function LoginForm() {
                   <Sparkles className="h-6 w-6 text-primary" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-lg mb-1">AI-Powered Insights</h3>
+                  <h3 className="font-semibold text-lg mb-1">League-first homepage</h3>
                   <p className="text-sm text-muted-foreground">
-                    Get strategic recommendations and battle analysis when you need them
+                    Standings, draft room access, and weekly data are the public front door
                   </p>
                 </div>
               </div>
@@ -219,9 +243,9 @@ function LoginForm() {
                   <Users className="h-6 w-6 text-accent" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-lg mb-1">Discord Integration</h3>
+                  <h3 className="font-semibold text-lg mb-1">Discord onboarding</h3>
                   <p className="text-sm text-muted-foreground">
-                    Discord is the entrypoint, role sync layer, and command surface for the app
+                    Sign in with Discord, get linked to your coach profile, and unlock the dashboard
                   </p>
                 </div>
               </div>
@@ -231,9 +255,9 @@ function LoginForm() {
                   <Trophy className="h-6 w-6 text-primary" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-lg mb-1">Competitive League</h3>
+                  <h3 className="font-semibold text-lg mb-1">Draft room and team tools</h3>
                   <p className="text-sm text-muted-foreground">
-                    Draft your team, manage the season, and track standings in one place
+                    Manage roster history, weekly prep, free agency, and trades in one place
                   </p>
                 </div>
               </div>
@@ -243,9 +267,9 @@ function LoginForm() {
                   <Zap className="h-6 w-6 text-accent" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-lg mb-1">Real-time Analytics</h3>
+                  <h3 className="font-semibold text-lg mb-1">Live league data</h3>
                   <p className="text-sm text-muted-foreground">
-                    Track performance, weekly stats, and roster changes as they happen
+                    Standings, stats, and match context update from the backend instead of static copy
                   </p>
                 </div>
               </div>

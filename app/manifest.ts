@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'Average at Best Battle League',
     short_name: 'AAB Battle League',
-    description: 'Competitive Pokémon Battle League platform with AI-powered insights, Discord integration, and real-time analytics',
+    description: 'Discord-first Pokémon draft league with standings, draft room, coach tools, and weekly match prep',
     start_url: '/',
     display: 'standalone',
     background_color: '#ffffff',
