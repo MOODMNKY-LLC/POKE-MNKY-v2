@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "season_id required" }, { status: 400 })
     }
 
-    const { inserted } = await generateDraftPoolFromMaster({
+    const result = await generateDraftPoolFromMaster({
       season_id,
       generation,
       game_code,
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
       include_paradox,
     })
 
-    return NextResponse.json({ ok: true, inserted })
+    return NextResponse.json({ ok: true, ...result })
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Internal server error" },

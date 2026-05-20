@@ -167,7 +167,19 @@ export default function AdminDraftPoolRulesPage() {
         }),
       })
       const data = await res.json()
-      setGenerateStatus(res.ok ? `Added ${data?.inserted ?? 0} to season draft pool` : (data?.error ?? "Failed"))
+      if (!res.ok) {
+        setGenerateStatus(data?.error ?? "Failed")
+        return
+      }
+      const inserted = data?.inserted ?? 0
+      const matched = data?.matched ?? 0
+      let msg = `Added ${inserted} to season draft pool (${matched} matched filters)`
+      if (data?.warning) msg += `. ${data.warning}`
+      if (inserted === 0 && data?.masters_total === 0) {
+        msg =
+          "Added 0 — pokemon_master is empty. Run scripts/backfill-pokemon-master.ts once, then Generate again."
+      }
+      setGenerateStatus(msg)
       if (res.ok) await refreshPoolStatus()
     } catch {
       setGenerateStatus("Request failed")
