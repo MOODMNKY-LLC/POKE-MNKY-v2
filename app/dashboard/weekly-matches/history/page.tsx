@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/breadcrumb"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import {
   SidebarInset,
@@ -27,6 +28,47 @@ export default async function WeeklyMatchesHistoryPage() {
 
   if (!user) {
     redirect("/auth/login")
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("team_id")
+    .eq("id", user.id)
+    .single()
+
+  const teamId = profile?.team_id
+
+  let matches: Array<{
+    id: string
+    week: number
+    status: string
+    team1_score: number | null
+    team2_score: number | null
+    replay_url: string | null
+    played_at: string | null
+    team1: { name: string } | null
+    team2: { name: string } | null
+    winner: { name: string } | null
+  }> = []
+
+  if (teamId) {
+    const { data } = await supabase
+      .from("matches")
+      .select(
+        `
+        id, week, status, team1_score, team2_score, replay_url, played_at,
+        team1:teams!matches_team1_id_fkey(name),
+        team2:teams!matches_team2_id_fkey(name),
+        winner:teams!matches_winner_id_fkey(name)
+      `
+      )
+      .or(`team1_id.eq.${teamId},team2_id.eq.${teamId}`)
+      .eq("status", "completed")
+      .order("week", { ascending: false })
+      .order("played_at", { ascending: false })
+      .limit(50)
+
+    matches = (data ?? []) as typeof matches
   }
 
   return (
@@ -63,20 +105,62 @@ export default async function WeeklyMatchesHistoryPage() {
         </header>
 
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+          <div className="flex flex-wrap gap-2 mb-2">
+            <Button asChild>
+              <Link href="/dashboard/weekly-matches/submit">Submit result</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href="/dashboard/weekly-matches">Back to Weekly Matches</Link>
+            </Button>
+          </div>
+
           <Card>
             <CardHeader>
-              <CardTitle>Weekly match history</CardTitle>
+              <CardTitle>Your match history</CardTitle>
               <CardDescription>
-                Placeholder route so the sidebar doesn’t 404. We’ll populate this with your completed matches and links to replays.
+                Completed matches involving your league team.
               </CardDescription>
             </CardHeader>
-            <CardContent className="flex flex-wrap gap-2">
-              <Button asChild variant="outline">
-                <Link href="/schedule">League schedule</Link>
-              </Button>
-              <Button asChild variant="outline">
-                <Link href="/dashboard/weekly-matches">Back to Weekly Matches</Link>
-              </Button>
+            <CardContent className="space-y-4">
+              {!teamId ? (
+                <p className="text-muted-foreground text-sm">
+                  Link a league team in your profile to see match history.
+                </p>
+              ) : matches.length === 0 ? (
+                <p className="text-muted-foreground text-sm">
+                  No completed matches yet.
+                </p>
+              ) : (
+                matches.map((m) => (
+                  <div
+                    key={m.id}
+                    className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-4 last:border-0"
+                  >
+                    <div>
+                      <p className="font-medium">
+                        Week {m.week}: {m.team1?.name} vs {m.team2?.name}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {m.team1_score}–{m.team2_score} · Winner: {m.winner?.name}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary">{m.status}</Badge>
+                      {m.replay_url ? (
+                        <Button asChild size="sm" variant="outline">
+                          <a
+                            href={m.replay_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            Replay
+                          </a>
+                        </Button>
+                      ) : null}
+                    </div>
+                  </div>
+                ))
+              )}
             </CardContent>
           </Card>
         </div>
@@ -84,4 +168,3 @@ export default async function WeeklyMatchesHistoryPage() {
     </SidebarProvider>
   )
 }
-

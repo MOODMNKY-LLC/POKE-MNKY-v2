@@ -1,6 +1,6 @@
 # CURSOR_HANDOFF
 
-Last updated: 2026-05-20
+Last updated: 2026-05-20 (implementation pass)
 
 Purpose: living handoff doc for the next Cursor implementation pass. Keep this file updated as the plan evolves so the work can be resumed without re-discovering context.
 
@@ -221,9 +221,20 @@ Purpose: living handoff doc for the next Cursor implementation pass. Keep this f
 - Practical UX takeaway:
   - The app currently sells the vision well, but the trust signal drops on the operational paths.
 
-## Concrete Gaps Found
+## Closed in implementation pass (2026-05-20)
 
-- `/dashboard/team` is linked from multiple places, but there is no route for it.
+- OAuth callback restored: `app/auth/callback/route.ts`
+- `/dashboard/team` links → `/dashboard/league-team`; `YourTeamsSection` `useRouter()` fixed
+- Match reporting E2E: `lib/match-result-complete.ts`, `POST /api/matches/submit`, wired `/matches` + dashboard submit/history
+- Discord role mappings: `discord_role_mappings` migration + `GET/POST/DELETE /api/admin/discord/role-mappings`
+- Bot status: real Discord API health in `app/api/discord/bot-status`
+- Draft landing ticker: live data via `seasonId` (no `demoMode`)
+- Security audit doc: [docs/SUPABASE-SECURITY-AUDIT-2026.md](docs/SUPABASE-SECURITY-AUDIT-2026.md) (read-only; no RLS rollout)
+- README roadmap link → `temp/PROJECT-ROADMAP.md`
+
+## Concrete Gaps Found (remaining)
+
+- `/dashboard/team` was linked from multiple places (fixed → `/dashboard/league-team`).
   - Examples:
     - [`app/calc/page.tsx`](/home/moodmnky/.openclaw/workspace/POKE-MNKY/app/calc/page.tsx:81)
     - [`app/dashboard/weekly-matches/page.tsx`](/home/moodmnky/.openclaw/workspace/POKE-MNKY/app/dashboard/weekly-matches/page.tsx:516)

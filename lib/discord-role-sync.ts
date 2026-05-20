@@ -7,6 +7,7 @@ import type { GuildMember } from "discord.js"
 import { createServiceRoleClient } from "@/lib/supabase/service"
 import type { UserRole } from "@/lib/rbac"
 import { APP_TO_DISCORD_ROLE_MAP, DISCORD_TO_APP_ROLE_MAP } from "@/lib/discord-role-mappings"
+import { loadDiscordRoleMaps } from "@/lib/discord-role-mapping-store"
 
 // Re-export for backward compatibility
 export { APP_TO_DISCORD_ROLE_MAP, DISCORD_TO_APP_ROLE_MAP }
@@ -105,8 +106,9 @@ export async function syncAppRoleToDiscord(
       throw error
     }
 
-    // Get Discord role names for this app role
-    const discordRoleNames = APP_TO_DISCORD_ROLE_MAP[appRole] || []
+    const supabase = createServiceRoleClient()
+    const { appToDiscord } = await loadDiscordRoleMaps(supabase)
+    const discordRoleNames = appToDiscord[appRole] || []
     if (discordRoleNames.length === 0) {
       if (shouldDestroy) {
         await client.destroy()
@@ -130,7 +132,7 @@ export async function syncAppRoleToDiscord(
     }
 
     // Get all mapped Discord roles (for removal)
-    const allMappedRoleIds = Object.values(APP_TO_DISCORD_ROLE_MAP)
+    const allMappedRoleIds = Object.values(appToDiscord)
       .flat()
       .map((name) => guild.roles.cache.find((r) => r.name === name)?.id)
       .filter((id) => id !== undefined) as string[]
@@ -229,22 +231,26 @@ export async function syncDiscordRoleToApp(
       }
     }
 
-    // Determine app role from Discord roles (priority order)
-    let appRole: UserRole = "spectator" // Default
+    const supabase = createServiceRoleClient()
+    const { appToDiscord } = await loadDiscordRoleMaps(supabase)
 
-    // Check roles in priority order (admin roles first)
+    // Determine app role from Discord roles (priority order)
+    let appRole: UserRole = "spectator"
     const rolePriority: UserRole[] = ["admin", "commissioner", "coach", "spectator"]
 
     for (const role of rolePriority) {
-      const mappedDiscordRoles = APP_TO_DISCORD_ROLE_MAP[role] || []
-      if (mappedDiscordRoles.some((name) => discordMember.roles.cache.some((r) => r.name === name))) {
+      const mappedDiscordRoles = appToDiscord[role] || []
+      if (
+        mappedDiscordRoles.some((name) =>
+          discordMember.roles.cache.some((r) => r.name === name)
+        )
+      ) {
         appRole = role
-        break // Use highest priority match
+        break
       }
     }
 
     // Find user in database
-    const supabase = createServiceRoleClient()
     const { data: profile } = await supabase
       .from("profiles")
       .select("id, role")

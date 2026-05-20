@@ -83,7 +83,7 @@ export default function CalcPage() {
           </CardHeader>
           <CardContent>
             <Button variant="outline" asChild className="w-full">
-              <Link href="/dashboard/team">Go to My Team</Link>
+              <Link href="/dashboard/league-team">Go to My Team</Link>
             </Button>
           </CardContent>
         </Card>

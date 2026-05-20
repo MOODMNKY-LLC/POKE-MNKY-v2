@@ -19,6 +19,7 @@ type TeamItem = {
 }
 
 export function YourTeamsSection() {
+  const router = useRouter()
   const [teams, setTeams] = useState<TeamItem[]>([])
   const [loading, setLoading] = useState(true)
   const [settingId, setSettingId] = useState<string | null>(null)

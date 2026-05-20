@@ -1,4 +1,7 @@
 import Link from "next/link"
+import { createClient } from "@/lib/supabase/server"
+import { resolveCurrentSeasonId } from "@/lib/match-result-complete"
+import { createServiceRoleClient } from "@/lib/supabase/service"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -21,11 +24,20 @@ import {
   Sparkles,
 } from "lucide-react"
 
-export default function DraftLandingPage() {
+export default async function DraftLandingPage() {
+  let seasonId: string | undefined
+  try {
+    const supabase = createServiceRoleClient()
+    seasonId = (await resolveCurrentSeasonId(supabase)) ?? undefined
+  } catch {
+    const supabase = await createClient()
+    seasonId = (await resolveCurrentSeasonId(supabase)) ?? undefined
+  }
+
   return (
     <>
       {/* Live Draft Ticker Banner */}
-      <LiveDraftTicker demoMode={true} />
+      <LiveDraftTicker seasonId={seasonId} />
 
       {/* Hero Section with Avatar Showcase */}
       <section className="relative w-full border-b border-border/40 py-16 md:py-24 lg:py-32 overflow-x-hidden">
