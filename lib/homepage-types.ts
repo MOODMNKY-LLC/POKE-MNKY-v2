@@ -12,9 +12,21 @@ export type HomepageTopPokemon = {
   }
 }
 
+export type NextEventKind =
+  | "draft_start"
+  | "draft_close"
+  | "draft_live"
+  | "season_start"
+  | "season_end"
+  | "none"
+
 export type NextEventPayload = {
-  kind: "season_start" | "season_end" | "none"
+  kind: NextEventKind
   label: string
   targetIso: string | null
   seasonName: string | null
+  /** IANA timezone used for scheduled draft times (e.g. America/Chicago). */
+  timezone: string
+  /** Human-readable local time for the target (Chicago). */
+  displayLocal: string | null
 }

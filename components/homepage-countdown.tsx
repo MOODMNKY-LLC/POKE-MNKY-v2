@@ -4,26 +4,41 @@ import { useEffect, useState } from "react"
 import { Clock } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import type { NextEventPayload } from "@/lib/homepage-types"
+import { getCountdownParts, type CountdownParts } from "@/lib/league-countdown"
 
 function pad(n: number) {
   return n.toString().padStart(2, "0")
 }
 
-function formatRemaining(ms: number) {
-  if (ms <= 0) return null
-  const s = Math.floor(ms / 1000)
-  const d = Math.floor(s / 86400)
-  const h = Math.floor((s % 86400) / 3600)
-  const m = Math.floor((s % 3600) / 60)
-  const sec = s % 60
-  if (d > 0) return `${d}d ${pad(h)}h ${pad(m)}m`
-  if (h > 0) return `${h}h ${pad(m)}m ${pad(sec)}s`
-  return `${m}m ${pad(sec)}s`
+function CountdownGrid({ parts }: { parts: CountdownParts }) {
+  const units: { label: string; value: number }[] = [
+    { label: "Days", value: parts.days },
+    { label: "Hours", value: parts.hours },
+    { label: "Min", value: parts.minutes },
+    { label: "Sec", value: parts.seconds },
+  ]
+  return (
+    <div className="grid grid-cols-4 gap-2 sm:gap-3">
+      {units.map(({ label, value }) => (
+        <div
+          key={label}
+          className="rounded-md border border-border/60 bg-background/80 px-2 py-2 text-center sm:px-3 sm:py-2.5"
+        >
+          <p className="font-mono text-xl font-semibold tabular-nums tracking-tight sm:text-2xl">
+            {label === "Days" ? String(value) : pad(value)}
+          </p>
+          <p className="text-[10px] uppercase tracking-wide text-muted-foreground sm:text-xs">
+            {label}
+          </p>
+        </div>
+      ))}
+    </div>
+  )
 }
 
 export function HomepageCountdown() {
   const [data, setData] = useState<NextEventPayload | null>(null)
-  const [remaining, setRemaining] = useState<string | null>(null)
+  const [parts, setParts] = useState<CountdownParts | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -44,13 +59,11 @@ export function HomepageCountdown() {
 
   useEffect(() => {
     if (!data?.targetIso) {
-      setRemaining(null)
+      setParts(null)
       return
     }
-    const target = new Date(data.targetIso).getTime()
     const tick = () => {
-      const left = formatRemaining(target - Date.now())
-      setRemaining(left)
+      setParts(getCountdownParts(data.targetIso!))
     }
     tick()
     const id = setInterval(tick, 1000)
@@ -58,6 +71,9 @@ export function HomepageCountdown() {
   }, [data?.targetIso])
 
   if (!data) return null
+
+  const isDraft = data.kind === "draft_start" || data.kind === "draft_close"
+  const ended = data.targetIso && !parts
 
   return (
     <Card className="border border-border/60 bg-muted/30 shadow-sm">
@@ -67,13 +83,25 @@ export function HomepageCountdown() {
           {data.label}
         </CardTitle>
         {data.seasonName && <CardDescription>{data.seasonName}</CardDescription>}
+        {data.displayLocal && isDraft && (
+          <CardDescription className="text-foreground/80">
+            {data.kind === "draft_close" ? "Closes" : "Starts"}: {data.displayLocal} (Chicago)
+          </CardDescription>
+        )}
       </CardHeader>
-      <CardContent className="pt-0">
-        {data.targetIso && remaining ? (
-          <p className="font-mono text-lg tabular-nums tracking-tight">{remaining}</p>
+      <CardContent className="pt-0 space-y-3">
+        {data.kind === "draft_live" && (
+          <p className="text-sm font-medium text-primary">Draft is underway — good luck, coaches!</p>
+        )}
+        {parts ? (
+          <CountdownGrid parts={parts} />
+        ) : ended ? (
+          <p className="text-sm text-muted-foreground">This event has started.</p>
         ) : (
           <p className="text-sm text-muted-foreground">
-            Countdown appears when the league sets upcoming season dates in Supabase.
+            {data.kind === "none"
+              ? "Countdown appears when an admin sets the next draft date in League → Countdown."
+              : "Schedule updates appear here when season dates are configured."}
           </p>
         )}
       </CardContent>
