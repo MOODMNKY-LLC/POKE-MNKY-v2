@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server"
 import { DraftSystem } from "@/lib/draft-system"
 import { createServiceRoleClient } from "@/lib/supabase/service"
 import { DraftBoardPageClient } from "@/components/draft/draft-board-page-client"
+import { resolveCoachTeamForSeason } from "@/lib/coach-team-context"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
 
@@ -40,13 +41,7 @@ export default async function DraftBoardPage() {
   let currentTeam = null
 
   if (user) {
-    const { data: teamData } = await supabase
-      .from("teams")
-      .select("*")
-      .eq("coach_id", user.id)
-      .eq("season_id", seasonId)
-      .maybeSingle()
-
+    const { team: teamData } = await resolveCoachTeamForSeason(supabase, user.id, seasonId)
     if (teamData) {
       currentTeam = teamData
     }

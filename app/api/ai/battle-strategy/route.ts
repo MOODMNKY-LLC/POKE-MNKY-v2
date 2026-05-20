@@ -4,6 +4,11 @@ import { openai } from '@ai-sdk/openai'
 import { convertToModelMessages } from 'ai'
 import { createServerClient } from '@/lib/supabase/server'
 import { AI_MODELS } from '@/lib/openai-client'
+import {
+  handleOpenClawChatRequest,
+  isOpenClawConfigured,
+  openClawModeSystemPrompt,
+} from '@/lib/openclaw/chat-route'
 
 export async function POST(request: Request) {
   try {
@@ -18,6 +23,18 @@ export async function POST(request: Request) {
 
     const body = await request.json()
     const { messages, team1Id, team2Id, matchId, mcpEnabled = true, model } = body
+
+    if (isOpenClawConfigured()) {
+      return handleOpenClawChatRequest(request, {
+        mode: 'battle-strategy',
+        userId: user.id,
+        systemPrompt: openClawModeSystemPrompt('battle-strategy', {
+          team1Id: team1Id ? String(team1Id) : undefined,
+          team2Id: team2Id ? String(team2Id) : undefined,
+          matchId: matchId ? String(matchId) : undefined,
+        }),
+      }, body)
+    }
 
     // Get MCP server URL and API key from environment
     const mcpServerUrl = process.env.MCP_DRAFT_POOL_SERVER_URL || 'https://mcp-draft-pool.moodmnky.com/mcp'

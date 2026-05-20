@@ -13,6 +13,7 @@ import { DraftAssistantChat } from "@/components/ai/draft-assistant-chat"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
+import { resolveCoachTeamForSeason } from "@/lib/coach-team-context"
 
 interface DraftSession {
   id: string
@@ -123,16 +124,12 @@ export function DraftBoardSection() {
         }
         
         if (mounted && user) {
-          const { data: teamData, error: teamError } = await supabase
-            .from("teams")
-            .select("*")
-            .eq("coach_id", user.id)
-            .eq("season_id", sessionData.season_id)
-            .maybeSingle()
-
-          if (teamError) {
-            console.warn("Error fetching team:", teamError)
-          } else if (mounted && teamData) {
+          const { team: teamData } = await resolveCoachTeamForSeason(
+            supabase,
+            user.id,
+            sessionData.season_id
+          )
+          if (mounted && teamData) {
             setCurrentTeam(teamData)
           }
         }
@@ -206,16 +203,8 @@ export function DraftBoardSection() {
         const { data: { user } } = await supabase.auth.getUser().catch(() => ({ data: { user: null }, error: null }))
         
         if (mounted && user) {
-          const { data: teamData, error: teamError } = await supabase
-            .from("teams")
-            .select("*")
-            .eq("coach_id", user.id)
-            .eq("season_id", seasonId)
-            .maybeSingle()
-
-          if (teamError) {
-            console.warn("Error fetching team:", teamError)
-          } else if (mounted && teamData) {
+          const { team: teamData } = await resolveCoachTeamForSeason(supabase, user.id, seasonId)
+          if (mounted && teamData) {
             setCurrentTeam(teamData)
           }
         }
@@ -319,6 +308,15 @@ export function DraftBoardSection() {
   return (
     <div className="space-y-6">
       <DraftHeader session={session} currentTeam={currentTeam} />
+      {!currentTeam?.id && (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            No league team linked for this season. Ask an admin to assign you to the correct team, or use
+            Dashboard → Your teams → Release if you claimed the wrong slot, then get reassigned.
+          </AlertDescription>
+        </Alert>
+      )}
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left: Draft Board (2 columns) */}

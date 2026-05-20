@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { resolveCoachTeamForSeason } from "@/lib/coach-team-context"
 
 export function DraftRosterSection() {
   const [seasonId, setSeasonId] = useState<string | null>(null)
@@ -49,14 +50,11 @@ export function DraftRosterSection() {
         // Load user's team
         const { data: { user } } = await supabase.auth.getUser()
         if (user) {
-          const { data: coachRow } = await supabase.from("coaches").select("id").eq("user_id", user.id).maybeSingle()
-        const coachId = (coachRow as any)?.id ?? user.id
-        const { data: teamData } = await supabase
-            .from("teams")
-            .select("id, name")
-            .eq("season_id", seasonData.id)
-            .eq("coach_id", coachId)
-            .maybeSingle()
+          const { team: teamData } = await resolveCoachTeamForSeason(
+            supabase,
+            user.id,
+            seasonData.id
+          )
 
           if (teamData) {
             setUserTeam({

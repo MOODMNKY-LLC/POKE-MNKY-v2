@@ -4,6 +4,11 @@ import { openai } from '@ai-sdk/openai'
 import { convertToModelMessages } from 'ai'
 import { createServerClient } from '@/lib/supabase/server'
 import { AI_MODELS } from '@/lib/openai-client'
+import {
+  handleOpenClawChatRequest,
+  isOpenClawConfigured,
+  openClawModeSystemPrompt,
+} from '@/lib/openclaw/chat-route'
 
 export async function POST(request: Request) {
   try {
@@ -21,6 +26,17 @@ export async function POST(request: Request) {
 
     if (!teamId) {
       return new Response('teamId is required', { status: 400 })
+    }
+
+    if (isOpenClawConfigured()) {
+      return handleOpenClawChatRequest(request, {
+        mode: 'free-agency',
+        userId: user.id,
+        systemPrompt: openClawModeSystemPrompt('free-agency', {
+          teamId: String(teamId),
+          seasonId: seasonId ? String(seasonId) : undefined,
+        }),
+      }, body)
     }
 
     // Get MCP server URL and API key from environment

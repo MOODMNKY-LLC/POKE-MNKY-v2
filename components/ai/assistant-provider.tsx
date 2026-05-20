@@ -46,8 +46,12 @@ export function AssistantProvider() {
 
       const newContext: typeof context = {}
 
-      // Fetch team and season for draft/free-agency contexts
-      if (pathname.startsWith("/draft") || pathname.startsWith("/dashboard/free-agency")) {
+      // Fetch team and season for draft / free-agency contexts (include dashboard draft tabs)
+      if (
+        pathname.startsWith("/draft") ||
+        pathname.startsWith("/dashboard/draft") ||
+        pathname.startsWith("/dashboard/free-agency")
+      ) {
         const { data: profile } = await supabase
           .from("profiles")
           .select("team_id")

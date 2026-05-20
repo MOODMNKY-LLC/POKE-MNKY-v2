@@ -11,10 +11,7 @@ export const runtime = "nodejs"
  * POST /api/admin/assign-coach
  * Manually assign a coach to a team
  * 
- * Body: {
- *   userId: string,
- *   teamId?: string (optional - if not provided, assigns to first available team)
- * }
+ * Body: { userId: string, teamId: string } — teamId is required (no random auto-assign).
  */
 export async function POST(request: NextRequest) {
   try {
@@ -130,6 +127,16 @@ export async function POST(request: NextRequest) {
     if (!userId) {
       return NextResponse.json(
         { error: "userId is required" },
+        { status: 400 }
+      )
+    }
+
+    if (!teamId || typeof teamId !== "string") {
+      return NextResponse.json(
+        {
+          error:
+            "teamId is required. Select an explicit league team — auto-assign to the first open slot is disabled.",
+        },
         { status: 400 }
       )
     }

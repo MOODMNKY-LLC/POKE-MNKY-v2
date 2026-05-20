@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, Check, Users } from "lucide-react"
+import { Loader2, Check, Users, Unlink } from "lucide-react"
 import { toast } from "sonner"
 
 type TeamItem = {
@@ -33,6 +34,36 @@ export function YourTeamsSection() {
       .catch(() => setTeams([]))
       .finally(() => setLoading(false))
   }, [])
+
+  const releaseTeam = async (teamId?: string) => {
+    if (
+      !confirm(
+        "Release this league team assignment? You can be reassigned to the correct team by an admin."
+      )
+    ) {
+      return
+    }
+    setSettingId(teamId ?? "release")
+    try {
+      const res = await fetch("/api/coach/release-team", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ teamId }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        toast.error(data.error ?? "Failed to release team")
+        return
+      }
+      toast.success(data.message ?? "Released from team")
+      setTeams([])
+      router.refresh()
+    } catch {
+      toast.error("Failed to release team")
+    } finally {
+      setSettingId(null)
+    }
+  }
 
   const setCurrent = async (teamId: string) => {
     setSettingId(teamId)
@@ -79,7 +110,24 @@ export function YourTeamsSection() {
   }
 
   if (teams.length === 0) {
-    return null
+    return (
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Your teams
+          </CardTitle>
+          <CardDescription className="text-xs">
+            No league team linked yet. Claim the team that matches your Discord or commissioner assignment.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button asChild size="sm">
+            <Link href="/dashboard/claim-team">Claim your team</Link>
+          </Button>
+        </CardContent>
+      </Card>
+    )
   }
 
   return (
@@ -90,7 +138,7 @@ export function YourTeamsSection() {
           Your teams
         </CardTitle>
         <CardDescription className="text-xs">
-          Set which team is shown as current on your dashboard and coach card.
+          Set which team is current for draft and league tools. Release if you were assigned to the wrong slot.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-2">
@@ -126,6 +174,22 @@ export function YourTeamsSection() {
                   )}
                 </Button>
               )}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-destructive hover:text-destructive"
+                disabled={settingId !== null}
+                onClick={() => releaseTeam(t.id)}
+              >
+                {settingId === t.id ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <>
+                    <Unlink className="h-3 w-3 mr-1" />
+                    Release
+                  </>
+                )}
+              </Button>
             </div>
           </div>
         ))}

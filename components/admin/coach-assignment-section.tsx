@@ -13,7 +13,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Users, UserPlus, AlertCircle, CheckCircle2, ShieldCheck, Send } from "lucide-react"
+import { Users, UserPlus, AlertCircle, CheckCircle2, ShieldCheck, Send, Unlink } from "lucide-react"
 import { toast } from "sonner"
 import { createBrowserClient } from "@/lib/supabase/client"
 
@@ -182,9 +182,35 @@ export function CoachAssignmentSection() {
     }
   }
 
+  async function handleRelease(userId: string, teamId?: string) {
+    if (!confirm("Release this coach from their league team? The slot will be open again.")) {
+      return
+    }
+    try {
+      setAssigning(true)
+      const response = await fetch("/api/admin/release-coach", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, teamId }),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || "Failed to release")
+      toast.success(data.message || "Coach released from team")
+      await loadData()
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Failed to release")
+    } finally {
+      setAssigning(false)
+    }
+  }
+
   async function handleAssign() {
     if (!selectedCoach) {
       toast.error("Please select a coach")
+      return
+    }
+    if (!selectedTeam || selectedTeam === "auto-assign") {
+      toast.error("Select an explicit league team — auto-assign is disabled")
       return
     }
     try {
@@ -194,7 +220,7 @@ export function CoachAssignmentSection() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userId: selectedCoach,
-          teamId: selectedTeam && selectedTeam !== "auto-assign" ? selectedTeam : undefined,
+          teamId: selectedTeam,
         }),
       })
       const data = await response.json()
@@ -445,10 +471,9 @@ export function CoachAssignmentSection() {
             </label>
             <Select value={selectedTeam} onValueChange={setSelectedTeam}>
               <SelectTrigger>
-                <SelectValue placeholder="Auto-assign or choose slot..." />
+                <SelectValue placeholder="Choose league team (required)..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="auto-assign">Auto-assign (First Available)</SelectItem>
                 {teams.map((team) => (
                   <SelectItem key={team.id} value={team.id}>
                     <div className="flex items-center justify-between w-full">
@@ -471,7 +496,7 @@ export function CoachAssignmentSection() {
 
           <Button
             onClick={handleAssign}
-            disabled={!selectedCoach || assigning}
+            disabled={!selectedCoach || !selectedTeam || assigning}
             className="w-full"
             variant={hasSubmissions ? "outline" : "default"}
           >
@@ -520,12 +545,25 @@ export function CoachAssignmentSection() {
                 return (
                   <div
                     key={coach.id}
-                    className="flex items-center justify-between p-2 bg-muted/50 rounded text-sm"
+                    className="flex items-center justify-between gap-2 p-2 bg-muted/50 rounded text-sm"
                   >
                     <span className="font-medium">
                       {coach.display_name || coach.username || "Unnamed"}
                     </span>
-                    <Badge variant="secondary">{team?.name || "Unknown Team"}</Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary">{team?.name || "Unknown Team"}</Badge>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-destructive hover:text-destructive"
+                        disabled={assigning}
+                        onClick={() => handleRelease(coach.id, coach.team_id ?? undefined)}
+                      >
+                        <Unlink className="h-3 w-3 mr-1" />
+                        Release
+                      </Button>
+                    </div>
                   </div>
                 )
               })}

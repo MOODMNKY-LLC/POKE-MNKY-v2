@@ -249,7 +249,8 @@ export default function CoachOnboardingPage() {
                 )}
                 {currentVisibleStepId === "team_linked" && (
                   <p className="text-sm text-muted-foreground">
-                    Once your team is linked, the dashboard and roster views can pull your league data from Supabase.
+                    Claim your league team explicitly (no auto-assign). Once linked, the dashboard and draft
+                    assistant use your team from Supabase.
                   </p>
                 )}
                 {currentVisibleStepId === "team_builder_intro" && (
@@ -264,6 +265,11 @@ export default function CoachOnboardingPage() {
                 )}
 
                 <div className="flex flex-wrap gap-2">
+                  {currentVisibleStepId === "team_linked" && (
+                    <Button asChild size="sm">
+                      <Link href="/dashboard/claim-team">Claim your team</Link>
+                    </Button>
+                  )}
                   {notionGuideUrl && (
                     <Button asChild variant="outline" size="sm">
                       <a href={notionGuideUrl} target="_blank" rel="noopener noreferrer">
