@@ -1,5 +1,7 @@
 # Draft Pool: Seed Workflow (Option B) and True Upsert (Option A)
 
+> **Legacy:** Prefer the in-app workflow in [DRAFT-IN-APP-OPERATIONS.md](./DRAFT-IN-APP-OPERATIONS.md) (Generate → Publish on `/admin/draft-pool-rules`). This document is retained for existing Notion/n8n deployments only.
+
 ## Option B: One-Time Seed Workflow — Done
 
 A dedicated **manual** workflow seeds `draft_pool` from all Notion Draft Board rows with "Added to Draft Board" checked.

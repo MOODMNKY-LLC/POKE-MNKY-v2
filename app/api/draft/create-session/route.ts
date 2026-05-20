@@ -2,6 +2,11 @@ import { createClient } from "@/lib/supabase/server"
 import { createServiceRoleClient } from "@/lib/supabase/service"
 import { DraftSystem } from "@/lib/draft-system"
 import { generateDraftPoolFromMaster, loadArchivedPoolIntoSeason } from "@/lib/draft-pool-ops"
+import {
+  DraftPoolPublishError,
+  getDraftPoolStatus,
+  publishSeasonDraftPoolToBoard,
+} from "@/lib/draft-pool-publish"
 import { notifyOpsEvent, OpsEvents } from "@/lib/ops-alerts"
 import { getSeasonRules } from "@/lib/season-rules"
 import { NextResponse } from "next/server"
@@ -162,6 +167,39 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: msg }, { status: 400 })
     }
 
+    let poolPublish: Awaited<ReturnType<typeof publishSeasonDraftPoolToBoard>> | null = null
+    if (poolSource === "draft_pool") {
+      // Board already populated in draft_pool; no builder publish step.
+    } else {
+      try {
+        poolPublish = await publishSeasonDraftPoolToBoard(seasonId)
+      } catch (publishErr) {
+        if (publishErr instanceof DraftPoolPublishError) {
+          if (publishErr.code === "NO_INCLUDED_ROWS") {
+            const status = await getDraftPoolStatus(seasonId)
+            if (status.draft_pool_available === 0) {
+              return NextResponse.json(
+                {
+                  success: false,
+                  error:
+                    "Draft board is empty. Generate a season pool and publish before creating a session.",
+                  code: publishErr.code,
+                },
+                { status: 400 }
+              )
+            }
+          } else {
+            return NextResponse.json(
+              { success: false, error: publishErr.message, code: publishErr.code },
+              { status: publishErr.status }
+            )
+          }
+        } else {
+          throw publishErr
+        }
+      }
+    }
+
     // Ensure matchweeks exist
     const seasonLengthWeeks = body.season_length_weeks ?? 10
     const playoffFormat = body.playoff_format || "4_week"
@@ -254,6 +292,7 @@ export async function POST(request: Request) {
       success: true,
       message: "Draft session created successfully",
       session,
+      pool_publish: poolPublish,
     })
   } catch (error: any) {
     console.error("Create draft session error:", error)

@@ -348,12 +348,14 @@ export class DraftSystem {
       .eq("season_id", session.season_id)
       .eq("status", "available")
 
-    // Optional: push draft state to Notion so admins see Status = "Drafted" in Draft Board
-    pushDraftStateToNotion(this.supabase, {
-      season_id: session.season_id,
-      pokemon_name: pokemon.pokemon_name,
-      point_value: pokemon.point_value,
-    }).catch((err) => console.warn("[DraftSystem] Push to Notion failed:", err))
+    // Legacy Notion sync (off by default; set DRAFT_PUSH_TO_NOTION=true to enable)
+    if (process.env.DRAFT_PUSH_TO_NOTION === "true") {
+      pushDraftStateToNotion(this.supabase, {
+        season_id: session.season_id,
+        pokemon_name: pokemon.pokemon_name,
+        point_value: pokemon.point_value,
+      }).catch((err) => console.warn("[DraftSystem] Push to Notion failed:", err))
+    }
 
     // Advance to next pick
     const nextPickNumber = session.current_pick_number + 1

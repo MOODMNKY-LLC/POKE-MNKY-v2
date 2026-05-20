@@ -12,7 +12,6 @@ export async function POST() {
     { status: 503 },
   )
 }
-
 // Production implementation (uncomment when deployed to Vercel):
 /*
 import { createClient } from "@/lib/supabase/server"
@@ -59,3 +58,4 @@ export async function POST() {
   }
 }
 */
+

@@ -1,8 +1,11 @@
 /**
+ * @deprecated Use POST /api/draft/pick-by-name (DraftSystem.makePick) for live drafts.
+ * Kept for legacy RPC / draft_picks reporting tests only — not used by the coach UI.
+ *
  * Phase 5.3: Enhanced Draft Pick Endpoint
- * 
+ *
  * POST /api/draft/pick
- * 
+ *
  * Submits a draft pick using rpc_submit_draft_pick RPC function
  * Returns updated budget information
  * 
@@ -99,17 +102,25 @@ export async function POST(request: NextRequest) {
       return internalError("RPC function did not return expected data")
     }
 
-    return NextResponse.json({
-      ok: true,
-      draft_pick_id: result.draft_pick_id,
-      points_snapshot: result.points_snapshot,
-      team_budget: {
-        points_used: result.points_used,
-        budget_remaining: result.budget_remaining,
-        slots_used: result.slots_used,
-        slots_remaining: result.slots_remaining,
+    return NextResponse.json(
+      {
+        ok: true,
+        draft_pick_id: result.draft_pick_id,
+        points_snapshot: result.points_snapshot,
+        team_budget: {
+          points_used: result.points_used,
+          budget_remaining: result.budget_remaining,
+          slots_used: result.slots_used,
+          slots_remaining: result.slots_remaining,
+        },
       },
-    })
+      {
+        headers: {
+          Deprecation: "true",
+          Link: '</api/draft/pick-by-name>; rel="successor-version"',
+        },
+      }
+    )
   } catch (err) {
     return internalError(
       err instanceof Error ? err.message : "Internal server error",

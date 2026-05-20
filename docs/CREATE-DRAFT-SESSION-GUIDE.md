@@ -64,7 +64,7 @@ This guide explains how to create and configure a draft session for your league 
 
 ### Draft Pool Source
 
-- **Use existing season pool** (default): Uses the current `season_draft_pool` or `draft_pool` for the season. Generate a pool first via **Draft Pool & Season Rules** if empty.
+- **Use existing season pool** (default): Uses `season_draft_pool` and **auto-publishes** to `draft_pool` when you create the session. Generate (and optionally Publish) via **Draft Pool & Season Rules** first if the board is empty.
 - **By Generation**: Generate a pool from `pokemon_master` filtered by generation (1–9). Optionally include legendary, mythical, or paradox Pokémon.
 - **By Game**: Generate a pool filtered by game code (e.g. SV, FRLG, SwSh). Uses `pokemon_games` table.
 - **Archived Pool**: Load a previously saved pool. Save pools from **Draft Pool & Season Rules** → Draft Pool Archive.
@@ -75,10 +75,13 @@ This guide explains how to create and configure a draft session for your league 
 
 Review all choices and click **Create Session**. The system will:
 
-1. Prepare the draft pool (if generation, game, or archived was selected).
-2. Create or update matchweeks for the season.
-3. Upsert `canonical_league_config` with playoff settings.
-4. Create the draft session and initialize budgets for all teams.
+1. Prepare the draft pool (generate/load into `season_draft_pool` when needed).
+2. **Publish** to `draft_pool` automatically (merge; skips already-drafted rows).
+3. Create or update matchweeks for the season.
+4. Upsert `canonical_league_config` with playoff settings.
+5. Create the draft session and initialize budgets for all teams.
+
+See [DRAFT-IN-APP-OPERATIONS.md](./DRAFT-IN-APP-OPERATIONS.md) for the full operator path.
 
 ---
 
