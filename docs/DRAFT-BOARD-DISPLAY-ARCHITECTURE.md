@@ -9,6 +9,8 @@
 
 This document explains how and where the draft board displays Pokemon from the `draft_pool` table.
 
+**Pool setup:** Admins populate `draft_pool` via **Publish** from `season_draft_pool` ([DRAFT-IN-APP-OPERATIONS.md](./DRAFT-IN-APP-OPERATIONS.md)). Notion/n8n seed is legacy.
+
 ---
 
 ## 📍 Where It's Displayed
@@ -19,12 +21,12 @@ This document explains how and where the draft board displays Pokemon from the `
    - URL: `/dashboard/draft/board`
    - Component: `app/dashboard/draft/board/page.tsx`
    - Wrapper: `components/dashboard/draft-board-section.tsx`
-   - Renders: `components/draft/draft-board.tsx`
+   - Renders: `components/draft/draft-board-client.tsx`
 
 2. **Legacy Route** (Still Works):
    - URL: `/draft/board`
    - Component: `app/draft/board/page.tsx`
-   - Directly renders: `components/draft/draft-board.tsx`
+   - Directly renders: `components/draft/draft-board-client.tsx`
 
 3. **Dashboard Tab**:
    - Main dashboard (`/dashboard`) shows Draft tabs section
@@ -37,7 +39,7 @@ This document explains how and where the draft board displays Pokemon from the `
 
 ### Step 1: Component Initialization
 
-**File**: `components/draft/draft-board.tsx`
+**File**: `components/draft/draft-board-client.tsx`
 
 ```typescript
 // Component receives props:
@@ -82,7 +84,7 @@ ORDER BY point_value DESC, pokemon_name ASC
 
 ### Step 3: Fetch Drafted Pokemon (for filtering)
 
-**Direct Supabase Query**: `components/draft/draft-board.tsx` (lines 75-79)
+**Direct Supabase Query**: `components/draft/draft-board-client.tsx` (lines 75-79)
 
 ```typescript
 const { data } = await supabase
@@ -96,7 +98,7 @@ const { data } = await supabase
 
 ### Step 4: Organize by Point Tiers
 
-**Logic**: `components/draft/draft-board.tsx` (lines 123-130, 280-300)
+**Logic**: `components/draft/draft-board-client.tsx` (lines 123-130, 280-300)
 
 ```typescript
 // Organize Pokemon by point_value
@@ -178,7 +180,7 @@ DraftBoard (Card container)
 
 ### 1. DraftBoard Component
 
-**File**: `components/draft/draft-board.tsx`
+**File**: `components/draft/draft-board-client.tsx`
 
 **Responsibilities**:
 - ✅ Fetches available Pokemon via API
@@ -291,7 +293,7 @@ WHERE season_id = $seasonId
 
 ### Subscription Setup
 
-**File**: `components/draft/draft-board.tsx` (lines 102-121)
+**File**: `components/draft/draft-board-client.tsx` (lines 102-121)
 
 ```typescript
 const channel = supabase
@@ -348,7 +350,7 @@ const channel = supabase
 app/dashboard/draft/board/page.tsx (Server Component)
   └─ components/dashboard/draft-board-section.tsx (Client Component)
       └─ components/draft/draft-header.tsx
-      └─ components/draft/draft-board.tsx ← MAIN DISPLAY
+      └─ components/draft/draft-board-client.tsx ← MAIN DISPLAY
       └─ components/draft/team-roster-panel.tsx
       └─ components/draft/pick-history.tsx
       └─ components/ai/draft-assistant-chat.tsx
@@ -365,7 +367,7 @@ app/dashboard/draft/board/page.tsx (Server Component)
 ```
 app/draft/board/page.tsx (Client Component)
   └─ components/draft/draft-header.tsx
-  └─ components/draft/draft-board.tsx ← MAIN DISPLAY
+  └─ components/draft/draft-board-client.tsx ← MAIN DISPLAY
   └─ components/draft/team-roster-panel.tsx
   └─ components/draft/pick-history.tsx
   └─ components/ai/draft-assistant-chat.tsx
@@ -391,7 +393,7 @@ app/draft/board/page.tsx (Client Component)
 
 ### Components
 
-- **`components/draft/draft-board.tsx`**: Main Pokemon display component
+- **`components/draft/draft-board-client.tsx`**: Main Pokemon display component
 - **`components/draft/point-tier-section.tsx`**: Tier grouping component
 - **`components/draft/draft-pokemon-card.tsx`**: Individual Pokemon card
 - **`components/dashboard/draft-board-section.tsx`**: Dashboard wrapper

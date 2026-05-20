@@ -25,26 +25,29 @@ export default async function DraftBoardManagementPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Draft Board Management</h1>
         <p className="text-muted-foreground mt-2">
-          Manage the draft pool through Notion integration with real-time sync to Supabase
+          Monitor the live board and use advanced overrides. Primary pool workflow is in-app.
         </p>
       </div>
 
       {/* How to populate the draft pool */}
       <div className="rounded-lg border bg-muted/50 p-4 text-sm">
-        <h2 className="font-semibold mb-2">How to populate the draft pool</h2>
+        <h2 className="font-semibold mb-2">Recommended: in-app pool workflow</h2>
         <ol className="list-decimal list-inside space-y-1.5 text-muted-foreground">
           <li>
-            <strong className="text-foreground">Curate the list in Notion</strong> — Use the Master Draft Board and set &quot;Added to Draft Board&quot; for each Pokémon you want in the pool.
+            <strong className="text-foreground">Draft Pool Rules</strong> — Generate season pool, then Publish to draft
+            board (<code className="rounded bg-muted px-1">/admin/draft-pool-rules</code>).
           </li>
           <li>
-            <strong className="text-foreground">Run the n8n seed once per season</strong> — When the pool is empty or you need a full refresh, run the <strong>Draft Pool Seed (Notion → Supabase)</strong> workflow in n8n. See <code className="rounded bg-muted px-1">docs/N8N-DRAFT-POOL-SEED-AND-UPSERT.md</code> for details.
+            <strong className="text-foreground">Create draft session</strong> — Wizard auto-publishes when generating or
+            loading a pool. See <code className="rounded bg-muted px-1">docs/DRAFT-IN-APP-OPERATIONS.md</code>.
           </li>
           <li>
-            <strong className="text-foreground">Ongoing changes</strong> — Edits in Notion are synced to Supabase by the n8n <strong>Notion Draft Board → Supabase Sync</strong> workflow (webhook or scheduled).
+            <strong className="text-foreground">Coaches draft</strong> —{" "}
+            <code className="rounded bg-muted px-1">/dashboard/draft/board</code> via pick-by-name API.
           </li>
         </ol>
         <p className="mt-2 text-xs text-muted-foreground">
-          Quick Edit Panel below writes only to Supabase; changes are not synced back to Notion.
+          Notion/n8n panels below are legacy only. Quick Edit writes directly to draft_pool (advanced).
         </p>
       </div>
 

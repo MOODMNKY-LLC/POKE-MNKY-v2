@@ -55,10 +55,11 @@ POKE MNKY is a comprehensive Pokémon Draft League Management Platform built wit
 - Use service role key only for admin operations in API routes
 
 ### AI Features
-- AI routes in `app/api/ai/` directory
-- Agent implementations in `lib/agents/`
-- Use Vercel AI SDK (`@ai-sdk/react`) for chat interfaces
-- MCP tools available via `poke-mnky-draft-pool` MCP server
+- **Primary backend:** OpenClaw gateway (`OPENCLAW_GATEWAY_URL`, `OPENCLAW_GATEWAY_TOKEN`, `OPENCLAW_AGENT_ID=poke-mnky`) via `lib/openclaw/` — all `app/api/ai/*` routes proxy to the `poke-mnky` agent
+- Health check: `GET /api/openclaw/health`
+- Chat UI: Vercel AI SDK (`@ai-sdk/react`) + `BaseChatInterface` unchanged (`/api/ai/*` URLs)
+- Optional: `@openclaw/sdk` when installable; repo ships a native WebSocket gateway client
+- League tools: OpenClaw agent workspace / MCP (draft pool) on the gateway side
 
 ### Authentication
 - Supabase Auth for user authentication
@@ -147,15 +148,21 @@ export async function POST(request: NextRequest) {
 - Requests to ship often mean run `pnpm build`, then commit and push when the working tree is ready.
 - When implementing an attached plan, do not edit the plan file; advance existing todos and mark them in progress instead of recreating them.
 - Treat documents in `hand-offs/` as primary inputs for scoped updates and planning.
+- For app-wide gap or functional audits, cross-check routes/APIs against Supabase and record findings in `docs/APP-FUNCTIONAL-AUDIT.md` rather than only ad-hoc notes.
+- For Discord/auth/webhook integration work, validate end-to-end with smoke scripts and update `docs/DISCORD-INTEGRATION-VERIFY.md` when behavior changes.
 
 ## Learned Workspace Facts
 
-- OpenClaw: MCP uses `openclaw mcp serve` against `wss://aab-openclaw.moodmnky.com` (TLS/443); HTTP hooks are at `https://aab-openclaw.moodmnky.com/hooks/...` (443). Raw gateway port 18789 is not reachable from the public internet.
-- OpenClaw may require gateway pairing before the MCP bridge connects; keep gateway tokens only in gitignored local files, not in tracked documentation.
+- In-app AI: all `/api/ai/*` proxy via `lib/openclaw/` (native WebSocket client; `@openclaw/sdk` is not published on npm). Remote gateway: MCP `openclaw mcp serve` → `wss://aab-openclaw.moodmnky.com` (443); HTTP hooks `https://aab-openclaw.moodmnky.com/hooks/...`; raw port 18789 is not public. `OPENCLAW_GATEWAY_TOKEN` must be the host `gateway.auth.token` (grants `operator.write` for agent/chat RPCs), not `hooks.token`. Local dev WSS behind SSL inspection: `OPENCLAW_GATEWAY_INSECURE_SKIP_TLS_VERIFY=true` only (never production).
 - Cursor merges user-level `%USERPROFILE%\.cursor\mcp.json` with the project `.cursor/mcp.json`; an empty or truncated user file can break MCP with JSON parse errors.
 - Cursor MCP server `poke-mnky-n8n` uses Docker image `ghcr.io/czlonkowski/n8n-mcp`; set `N8N_API_URL` and `N8N_API_KEY` in `.cursor/mcp.json` for n8n REST API access from MCP tools (separate from app webhook URLs).
-- `lib/ops-alerts.ts` POSTs JSON to `N8N_WEBHOOK_URL` and optionally `OPENCLAW_ALERT_WEBHOOK_URL` without an `Authorization` header. OpenClaw `/hooks/*` expects `Authorization: Bearer` matching OpenClaw `hooks.token`; production often chains app → n8n Webhook → HTTP Request to OpenClaw with Bearer supplied from n8n.
-- `scripts/test-ops-webhook-e2e.ts` smoke-tests configured ops webhook URLs.
+- `lib/ops-alerts.ts` POSTs JSON to `N8N_WEBHOOK_URL` and optionally `OPENCLAW_ALERT_WEBHOOK_URL` without an `Authorization` header. OpenClaw `/hooks/*` expects `Authorization: Bearer` matching OpenClaw `hooks.token`; production often chains app → n8n Webhook → HTTP Request to OpenClaw with Bearer supplied from n8n. Smoke-test with `scripts/test-ops-webhook-e2e.ts`.
+- On Windows with Norton/corporate SSL inspection: `git config --global http.sslBackend schannel` (unset `http.sslCAInfo`); npm/pnpm `cafile` and `NODE_EXTRA_CA_CERTS` → `%USERPROFILE%\.certs\norton-web-mail-shield-root.pem` fixes `UNABLE_TO_VERIFY_LEAF_SIGNATURE` on registry/npm; `experimental.turbopackUseSystemTlsCerts: true` in `next.config.mjs` for Google Fonts.
+- Vercel KV `internal-*.upstash.io` hostnames only resolve on Vercel; local dev should skip Redis cache when only internal `KV_*` URLs are set (`lib/cache/redis.ts`).
+- Supabase CLI browser OAuth often fails on Windows/corporate networks; use a dashboard personal access token with `supabase login --token` (optional `SUPABASE_ACCESS_TOKEN` in `.env.local`, never commit).
+- To align local Postgres schema with linked prod when local migration history is ahead: park migrations not on remote under `supabase/migrations/_held_local_only_not_on_prod/`, then `supabase db pull` and `supabase db reset`; for prod **row data** locally run `pnpm db:sync:prod-data` (`scripts/sync-prod-data-to-local.ps1`: linked dump → `db reset --no-seed` → restore).
+- `ECONNREFUSED` on `127.0.0.1:65432` means Docker Desktop and `supabase start` are required when `.env.local` points at local Supabase.
+- Discord: bots/slash commands use Supabase Edge Function `discord-interactions` (not serverless Next.js). In-app paths include `lib/discord-notifications.ts`, `discord_webhooks`, and `POST /api/discord/sync-my-profile`. Local OAuth: `http://127.0.0.1:3000`, client callback `app/auth/callback/page.tsx` (PKCE); seeded `discord_id` conflicts need `20260519210000_fix_handle_new_user_discord_upsert.sql`. Smoke-test with `scripts/test-discord-integration-verify.ts` and `docs/DISCORD-INTEGRATION-VERIFY.md`.
 
 ## References
 

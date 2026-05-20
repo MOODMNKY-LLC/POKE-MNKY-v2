@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { createBrowserClient } from "@/lib/supabase/client"
-import { Settings, Database, Loader2, Archive, FolderOpen } from "lucide-react"
+import { Settings, Database, Loader2, Archive, FolderOpen, Upload } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 interface Season {
@@ -41,6 +41,14 @@ export default function AdminDraftPoolRulesPage() {
   const [archiveName, setArchiveName] = useState("")
   const [archiveStatus, setArchiveStatus] = useState<string | null>(null)
   const [archivedPools, setArchivedPools] = useState<Array<{ id: string; name: string; created_at?: string }>>([])
+  const [poolStatus, setPoolStatus] = useState<{
+    season_draft_pool_included: number
+    draft_pool_available: number
+    draft_pool_drafted: number
+    ready_for_draft: boolean
+    has_active_session: boolean
+  } | null>(null)
+  const [publishStatus, setPublishStatus] = useState<string | null>(null)
 
   useEffect(() => {
     const supabase = createBrowserClient()
@@ -74,8 +82,60 @@ export default function AdminDraftPoolRulesPage() {
       ])
       setRules(rulesRes?.data ?? [])
       if (poolsRes?.success) setArchivedPools(poolsRes.pools ?? [])
+      const statusRes = await fetch(`/api/admin/draft-pools/status?season_id=${seasonData.id}`)
+      const statusData = await statusRes.json()
+      if (statusData.success) {
+        setPoolStatus({
+          season_draft_pool_included: statusData.season_draft_pool_included,
+          draft_pool_available: statusData.draft_pool_available,
+          draft_pool_drafted: statusData.draft_pool_drafted,
+          ready_for_draft: statusData.ready_for_draft,
+          has_active_session: statusData.has_active_session,
+        })
+      }
     }
     setLoading(false)
+  }
+
+  async function refreshPoolStatus() {
+    if (!season) return
+    const statusRes = await fetch(`/api/admin/draft-pools/status?season_id=${season.id}`)
+    const statusData = await statusRes.json()
+    if (statusData.success) {
+      setPoolStatus({
+        season_draft_pool_included: statusData.season_draft_pool_included,
+        draft_pool_available: statusData.draft_pool_available,
+        draft_pool_drafted: statusData.draft_pool_drafted,
+        ready_for_draft: statusData.ready_for_draft,
+        has_active_session: statusData.has_active_session,
+      })
+    }
+  }
+
+  async function publishToBoard() {
+    if (!season) return
+    setPublishStatus("Publishing...")
+    try {
+      const res = await fetch("/api/admin/draft-pools/publish", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ season_id: season.id }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        const parts = [
+          data.published ? `${data.published} new` : null,
+          data.updated ? `${data.updated} updated` : null,
+          data.skipped_drafted ? `${data.skipped_drafted} drafted (skipped)` : null,
+        ].filter(Boolean)
+        setPublishStatus(parts.length ? `Published: ${parts.join(", ")}` : "Publish complete")
+        await refreshPoolStatus()
+      } else {
+        setPublishStatus(data.error ?? "Publish failed")
+      }
+    } catch {
+      setPublishStatus("Request failed")
+    }
   }
 
   async function saveRule(category: string, key: string, value: unknown) {
@@ -108,6 +168,7 @@ export default function AdminDraftPoolRulesPage() {
       })
       const data = await res.json()
       setGenerateStatus(res.ok ? `Added ${data?.inserted ?? 0} to season draft pool` : (data?.error ?? "Failed"))
+      if (res.ok) await refreshPoolStatus()
     } catch {
       setGenerateStatus("Request failed")
     }
@@ -124,12 +185,26 @@ export default function AdminDraftPoolRulesPage() {
   return (
     <div className="container mx-auto py-8 px-4 space-y-6">
       <Alert>
-        <AlertTitle>Primary ops path: in-app pool</AlertTitle>
+        <AlertTitle>In-app workflow (recommended)</AlertTitle>
         <AlertDescription>
-          Google Sheets remain available as import/export sync — build and edit the draft pool here first, then use
-          Sheets only when you need a spreadsheet handoff or backup.
+          <strong>1. Generate</strong> → season_draft_pool · <strong>2. Publish</strong> → live draft board ·{" "}
+          <strong>3. Create session</strong> in Draft Sessions. Notion/n8n sync is legacy — see{" "}
+          <code className="rounded bg-muted px-1">docs/DRAFT-IN-APP-OPERATIONS.md</code>.
         </AlertDescription>
       </Alert>
+
+      {poolStatus && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Pool readiness</CardTitle>
+            <CardDescription>
+              Builder: {poolStatus.season_draft_pool_included} included · Board: {poolStatus.draft_pool_available}{" "}
+              available, {poolStatus.draft_pool_drafted} drafted
+              {poolStatus.has_active_session && " · Active draft session (publish blocked)"}
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      )}
 
       <div className="flex items-center justify-between">
         <div>
@@ -215,10 +290,37 @@ export default function AdminDraftPoolRulesPage() {
                   Include paradox
                 </label>
               </div>
-              <Button onClick={generateDraftPool} disabled={!!generateStatus}>
-                Generate draft pool
+              <Button onClick={generateDraftPool} disabled={generateStatus?.startsWith("Generating")}>
+                1. Generate draft pool
               </Button>
               {generateStatus && <p className="text-sm text-muted-foreground">{generateStatus}</p>}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Upload className="h-5 w-5" />
+                Publish to draft board
+              </CardTitle>
+              <CardDescription>
+                Copies included season_draft_pool rows into draft_pool for coaches on the live board. Drafted rows are
+                never changed.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Button
+                onClick={publishToBoard}
+                disabled={publishStatus?.startsWith("Publishing") || poolStatus?.has_active_session}
+              >
+                2. Publish to draft board
+              </Button>
+              {publishStatus && <p className="text-sm text-muted-foreground">{publishStatus}</p>}
+              {poolStatus && !poolStatus.ready_for_draft && (
+                <p className="text-sm text-amber-600 dark:text-amber-500">
+                  Board has no available Pokémon. Generate a pool, then publish before starting a draft.
+                </p>
+              )}
             </CardContent>
           </Card>
 

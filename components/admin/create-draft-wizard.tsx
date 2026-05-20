@@ -82,6 +82,11 @@ export function CreateDraftWizard({ onSuccess, onCancel }: CreateDraftWizardProp
   const [archivedPools, setArchivedPools] = useState<ArchivedPool[]>([])
   const [teams, setTeams] = useState<Team[]>([])
   const [loadingData, setLoadingData] = useState(true)
+  const [poolStatus, setPoolStatus] = useState<{
+    season_draft_pool_included: number
+    draft_pool_available: number
+    ready_for_draft: boolean
+  } | null>(null)
 
   useEffect(() => {
     async function load() {
@@ -112,6 +117,22 @@ export function CreateDraftWizard({ onSuccess, onCancel }: CreateDraftWizardProp
     }
     load()
   }, [])
+
+  useEffect(() => {
+    if (step !== 5) return
+    fetch("/api/admin/draft-pools/status")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.success) {
+          setPoolStatus({
+            season_draft_pool_included: d.season_draft_pool_included,
+            draft_pool_available: d.draft_pool_available,
+            ready_for_draft: d.ready_for_draft,
+          })
+        }
+      })
+      .catch(() => {})
+  }, [step])
 
   const update = <K extends keyof WizardState>(key: K, value: WizardState[K]) => {
     setState((s) => ({ ...s, [key]: value }))
@@ -481,6 +502,20 @@ export function CreateDraftWizard({ onSuccess, onCancel }: CreateDraftWizardProp
             {state.draftPoolSource === "game" && state.draftPoolConfig.game_code && ` (${state.draftPoolConfig.game_code})`}
             {state.draftPoolSource === "archived" && state.draftPoolConfig.archived_pool_id && ` (archived)`}
           </p>
+          {poolStatus && (
+            <p className="text-muted-foreground">
+              Board: {poolStatus.draft_pool_available} available · Builder:{" "}
+              {poolStatus.season_draft_pool_included} included. Creating the session will auto-publish when needed.
+            </p>
+          )}
+          {poolStatus && !poolStatus.ready_for_draft && state.draftPoolSource === "season_draft_pool" && (
+            <Alert>
+              <AlertDescription>
+                The live board is empty. Generate and publish from Draft Pool Rules first, or choose Generate/Archived
+                in step 4 so create-session can build and publish automatically.
+              </AlertDescription>
+            </Alert>
+          )}
         </div>
       )}
 
