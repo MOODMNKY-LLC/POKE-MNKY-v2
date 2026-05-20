@@ -13,7 +13,6 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { HomepageCountdown } from "@/components/homepage-countdown"
 import { HomepageLeagueBlocks } from "@/components/homepage-league-blocks"
 import { HomepageLiveData } from "@/components/homepage-live-data"
 import { homepageHero, homepageLeague } from "@/lib/homepage-config"
@@ -108,8 +107,6 @@ export default function HomePage() {
             </div>
 
             <div className="space-y-4 animate-fade-in">
-              <HomepageCountdown />
-
               <Card className="overflow-hidden border-border/70 bg-card/90 shadow-xl">
                 <CardHeader className="space-y-3">
                   <div className="flex items-center justify-between gap-2">
