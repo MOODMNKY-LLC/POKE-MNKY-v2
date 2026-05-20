@@ -1,4 +1,5 @@
 export * from "./types"
 export * from "./config"
 export * from "./chat-route"
+export * from "./http-chat"
 export { OpenClawGatewayClient } from "./gateway-client"

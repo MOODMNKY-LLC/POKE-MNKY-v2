@@ -16,8 +16,8 @@ import {
 import { logger } from '@/lib/logger'
 import {
   handleOpenClawChatRequest,
-  isOpenClawConfigured,
   openClawModeSystemPrompt,
+  shouldRouteChatToOpenClaw,
 } from '@/lib/openclaw/chat-route'
 
 export async function POST(request: Request) {
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
 
     const body = await request.json()
 
-    if (isOpenClawConfigured()) {
+    if (shouldRouteChatToOpenClaw()) {
       return handleOpenClawChatRequest(request, {
         mode: 'general',
         userId: user?.id ?? null,

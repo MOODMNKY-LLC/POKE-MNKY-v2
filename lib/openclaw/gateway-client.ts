@@ -12,10 +12,25 @@ export class OpenClawGatewayClient {
   private ws: WebSocket | null = null
   private pending = new Map<string, PendingRequest>()
   private connected = false
+  private grantedScopes: string[] = []
   private eventQueue: GatewayFrame[] = []
   private eventWaiters: Array<(frame: GatewayFrame) => void> = []
 
   constructor(private readonly config: OpenClawConfig) {}
+
+  getScopes(): string[] {
+    return [...this.grantedScopes]
+  }
+
+  requireScope(scope: string): void {
+    if (!this.grantedScopes.includes(scope)) {
+      throw new Error(
+        `missing scope: ${scope}. Granted: [${this.grantedScopes.join(", ") || "none"}]. ` +
+          `Use gateway.auth.token with operator.write (not hooks.token). ` +
+          `For in-app chat, defaults are OPENCLAW_CLIENT_ID=webchat-ui and OPENCLAW_CLIENT_MODE=webchat.`
+      )
+    }
+  }
 
   async connect(timeoutMs = 20_000): Promise<void> {
     if (this.connected && this.ws?.readyState === WebSocket.OPEN) {
@@ -77,11 +92,7 @@ export class OpenClawGatewayClient {
       if (frame.ok) {
         pending.resolve(frame.payload)
       } else {
-        const err =
-          typeof frame.error === "string"
-            ? frame.error
-            : JSON.stringify(frame.error ?? "Gateway request failed")
-        pending.reject(new Error(err))
+        pending.reject(new Error(formatGatewayError(frame.error)))
       }
       return
     }
@@ -132,10 +143,10 @@ export class OpenClawGatewayClient {
       minProtocol: 3,
       maxProtocol: 4,
       client: {
-        id: "poke-mnky-web",
+        id: this.config.clientId,
         version: "1.0.0",
-        platform: "web",
-        mode: "operator",
+        platform: "node",
+        mode: this.config.clientMode,
       },
       role: "operator",
       scopes: ["operator.read", "operator.write"],
@@ -147,7 +158,14 @@ export class OpenClawGatewayClient {
       userAgent: "poke-mnky-nextjs/1.0.0",
     }
 
-    await this.request("connect", params, timeoutMs)
+    const hello = (await this.request("connect", params, timeoutMs)) as {
+      auth?: { scopes?: string[]; role?: string }
+      type?: string
+    } | null
+    if (process.env.LOG_OPENCLAW_HELLO === "1") {
+      console.log("[OpenClaw] hello-ok:", JSON.stringify(hello, null, 2))
+    }
+    this.grantedScopes = Array.isArray(hello?.auth?.scopes) ? hello.auth.scopes : []
   }
 
   async request(method: string, params?: unknown, timeoutMs = 30_000): Promise<unknown> {
@@ -192,6 +210,18 @@ export class OpenClawGatewayClient {
     this.ws = null
     this.connected = false
   }
+}
+
+function formatGatewayError(error: unknown): string {
+  if (typeof error === "string") return error
+  if (error && typeof error === "object") {
+    const record = error as { message?: string; code?: string }
+    if (record.message) {
+      return record.code ? `${record.code}: ${record.message}` : record.message
+    }
+    return JSON.stringify(error)
+  }
+  return "Gateway request failed"
 }
 
 function isTerminal(frame: GatewayFrame): boolean {

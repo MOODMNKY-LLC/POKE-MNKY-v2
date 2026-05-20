@@ -8,7 +8,7 @@ import { getPokemonData } from '@/lib/pokemon-api'
 import { NextResponse } from 'next/server'
 import {
   handleOpenClawChatRequest,
-  isOpenClawConfigured,
+  shouldRouteChatToOpenClaw,
   openClawModeSystemPrompt,
 } from '@/lib/openclaw/chat-route'
 
@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     if (isUseChatRequest) {
       const { messages, selectedPokemon, mcpEnabled = true, model } = body
 
-      if (isOpenClawConfigured()) {
+      if (shouldRouteChatToOpenClaw()) {
         const supabase = await createServerClient()
         const { data: { user } } = await supabase.auth.getUser()
         return handleOpenClawChatRequest(request, {
