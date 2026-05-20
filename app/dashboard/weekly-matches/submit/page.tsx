@@ -6,13 +6,12 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import Link from "next/link"
+import { MatchSubmitForm } from "@/components/matches/match-submit-form"
 
 export default async function WeeklyMatchesSubmitPage() {
   const supabase = await createClient()
@@ -56,24 +55,11 @@ export default async function WeeklyMatchesSubmitPage() {
       </header>
 
       <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-        <Card>
-          <CardHeader>
-            <CardTitle>Submit match result</CardTitle>
-            <CardDescription>
-              Placeholder route so the sidebar doesn’t 404. We’ll wire this to the real submission flow next.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-wrap gap-2">
-            <Button asChild>
-              <Link href="/matches/submit">Go to current submission page</Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link href="/dashboard/weekly-matches">Back to Weekly Matches</Link>
-            </Button>
-          </CardContent>
-        </Card>
+        <MatchSubmitForm
+          backHref="/dashboard/weekly-matches"
+          successRedirect="/dashboard/weekly-matches/history"
+        />
       </div>
     </>
   )
 }
-

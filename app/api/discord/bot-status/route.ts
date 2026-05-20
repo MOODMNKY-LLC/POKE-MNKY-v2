@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase/server"
 
-// Simple bot status check endpoint
-// Note: This is a placeholder - actual bot status would require
-// the bot to report its status or a health check endpoint
 export async function GET() {
   const supabase = await createServerClient()
   const {
@@ -14,18 +11,47 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  // Check if bot token is configured
   const botToken = process.env.DISCORD_BOT_TOKEN
-
   if (!botToken) {
-    return NextResponse.json({ online: false, error: "Bot token not configured" })
+    return NextResponse.json({
+      online: false,
+      configured: false,
+      error: "Bot token not configured",
+    })
   }
 
-  // In a real implementation, you'd ping the bot or check its status
-  // For now, we'll just check if the token exists
-  // TODO: Implement actual bot health check
-  return NextResponse.json({
-    online: !!botToken,
-    message: botToken ? "Bot token is configured" : "Bot token is missing",
-  })
+  const start = Date.now()
+  try {
+    const res = await fetch("https://discord.com/api/v10/users/@me", {
+      headers: { Authorization: `Bot ${botToken}` },
+      signal: AbortSignal.timeout(8000),
+    })
+    const latencyMs = Date.now() - start
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => "")
+      return NextResponse.json({
+        online: false,
+        configured: true,
+        latencyMs,
+        error: `Discord API ${res.status}${text ? `: ${text.slice(0, 120)}` : ""}`,
+      })
+    }
+
+    const bot = (await res.json()) as { id?: string; username?: string }
+    return NextResponse.json({
+      online: true,
+      configured: true,
+      latencyMs,
+      bot: { id: bot.id, username: bot.username },
+      message: "Bot token valid and Discord API reachable",
+    })
+  } catch (error) {
+    return NextResponse.json({
+      online: false,
+      configured: true,
+      latencyMs: Date.now() - start,
+      error: error instanceof Error ? error.message : "Health check failed",
+    })
+  }
 }

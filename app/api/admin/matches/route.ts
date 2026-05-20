@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase/server"
+import {
+  finalizeMatchAfterInsert,
+  resolveCurrentSeasonId,
+} from "@/lib/match-result-complete"
 
 export async function GET(request: NextRequest) {
   try {
@@ -201,6 +205,25 @@ export async function PUT(request: NextRequest) {
       .single()
 
     if (error) throw error
+
+    if (status === "completed" && match) {
+      const seasonId =
+        match.season_id ?? (await resolveCurrentSeasonId(supabase))
+      if (seasonId) {
+        const sideEffects = await finalizeMatchAfterInsert(
+          match.id,
+          seasonId,
+          user.id
+        )
+        return NextResponse.json({
+          success: true,
+          match,
+          message: "Match updated successfully",
+          standings_updated: sideEffects.standings_updated,
+          discord_notified: sideEffects.discord_notified,
+        })
+      }
+    }
 
     return NextResponse.json({
       success: true,

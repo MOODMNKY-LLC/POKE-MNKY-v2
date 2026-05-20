@@ -18,6 +18,7 @@ import { toast } from "sonner"
 type AppRole = "admin" | "commissioner" | "coach" | "spectator"
 
 interface RoleMapping {
+  id?: string
   discordRoleId: string
   discordRoleName: string
   appRole: AppRole
@@ -32,6 +33,8 @@ interface DiscordRole {
 
 export function DiscordRolesTab() {
   const [mappings, setMappings] = useState<RoleMapping[]>([])
+  const [guildRoles, setGuildRoles] = useState<DiscordRole[]>([])
+  const [mappingsLoading, setMappingsLoading] = useState(true)
   const [users, setUsers] = useState<any[]>([])
   const [userDiscordRoles, setUserDiscordRoles] = useState<Record<string, DiscordRole[]>>({})
   const [loading, setLoading] = useState(false)
@@ -85,9 +88,53 @@ export function DiscordRolesTab() {
     }
   }, [])
 
+  const loadMappings = useCallback(async () => {
+    setMappingsLoading(true)
+    try {
+      const res = await fetch("/api/admin/discord/role-mappings")
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? "Failed to load mappings")
+      setMappings(
+        (data.mappings ?? []).map(
+          (m: {
+            id: string
+            discord_role_id: string
+            discord_role_name: string
+            app_role: AppRole
+          }) => ({
+            id: m.id,
+            discordRoleId: m.discord_role_id,
+            discordRoleName: m.discord_role_name,
+            appRole: m.app_role,
+          })
+        )
+      )
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : "Failed to load mappings"
+      console.warn("[Discord Roles UI]", msg)
+      setMappings([])
+    } finally {
+      setMappingsLoading(false)
+    }
+  }, [])
+
+  const loadGuildRoles = useCallback(async () => {
+    try {
+      const res = await fetch("/api/discord/roles")
+      const data = await res.json()
+      if (res.ok && Array.isArray(data.roles)) {
+        setGuildRoles(data.roles)
+      }
+    } catch {
+      setGuildRoles([])
+    }
+  }, [])
+
   useEffect(() => {
     loadUsers()
-  }, [loadUsers])
+    loadMappings()
+    loadGuildRoles()
+  }, [loadUsers, loadMappings, loadGuildRoles])
 
   async function syncRoles() {
     setSyncing(true)
@@ -183,14 +230,45 @@ export function DiscordRolesTab() {
                     </DialogHeader>
                     <div className="space-y-4">
                       <div className="space-y-2">
-                        <Label>Discord Role Name</Label>
-                        <Input
-                          placeholder="e.g., @Admin"
-                          value={newMapping.discordRoleName}
-                          onChange={(e) => setNewMapping({ ...newMapping, discordRoleName: e.target.value })}
-                        />
+                        <Label>Discord Role</Label>
+                        {mounted && guildRoles.length > 0 ? (
+                          <Select
+                            value={newMapping.discordRoleId}
+                            onValueChange={(roleId) => {
+                              const role = guildRoles.find((r) => r.id === roleId)
+                              setNewMapping({
+                                ...newMapping,
+                                discordRoleId: roleId,
+                                discordRoleName: role?.name ?? "",
+                              })
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a server role" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {guildRoles.map((r) => (
+                                <SelectItem key={r.id} value={r.id}>
+                                  {r.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Input
+                            placeholder="Exact Discord role name"
+                            value={newMapping.discordRoleName}
+                            onChange={(e) =>
+                              setNewMapping({
+                                ...newMapping,
+                                discordRoleName: e.target.value,
+                                discordRoleId: e.target.value,
+                              })
+                            }
+                          />
+                        )}
                         <p className="text-xs text-muted-foreground">
-                          Enter the exact name of the Discord role (case-insensitive)
+                          Saved to database and used on the next role sync (static defaults still apply as fallback).
                         </p>
                       </div>
                       <div className="space-y-2">
@@ -228,14 +306,35 @@ export function DiscordRolesTab() {
                         Cancel
                       </Button>
                       <Button
-                        onClick={() => {
-                          if (newMapping.discordRoleName) {
-                            setMappings([...mappings, { ...newMapping, discordRoleId: Date.now().toString() }])
-                            setNewMapping({ discordRoleId: "", discordRoleName: "", appRole: "spectator" })
+                        onClick={async () => {
+                          if (!newMapping.discordRoleName || !newMapping.discordRoleId) {
+                            toast.error("Select or enter a Discord role")
+                            return
+                          }
+                          try {
+                            const res = await fetch("/api/admin/discord/role-mappings", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({
+                                discord_role_id: newMapping.discordRoleId,
+                                discord_role_name: newMapping.discordRoleName,
+                                app_role: newMapping.appRole,
+                              }),
+                            })
+                            const data = await res.json()
+                            if (!res.ok) throw new Error(data.error ?? "Failed to save")
+                            setNewMapping({
+                              discordRoleId: "",
+                              discordRoleName: "",
+                              appRole: "spectator",
+                            })
                             setIsMappingDialogOpen(false)
-                            toast.success("Mapping added")
-                          } else {
-                            toast.error("Please enter a Discord role name")
+                            toast.success("Mapping saved")
+                            await loadMappings()
+                          } catch (error: unknown) {
+                            toast.error(
+                              error instanceof Error ? error.message : "Failed to save mapping"
+                            )
                           }
                         }}
                       >
@@ -252,16 +351,25 @@ export function DiscordRolesTab() {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            {mappings.length === 0 ? (
+            {mappingsLoading ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin" />
+              </div>
+            ) : mappings.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No role mappings configured</p>
-                <p className="text-sm mt-2">Add mappings to sync Discord roles to app roles</p>
+                <p>No custom mappings in database</p>
+                <p className="text-sm mt-2">
+                  Static defaults in code still apply until you add mappings here.
+                </p>
               </div>
             ) : (
               <div className="space-y-2">
-                {mappings.map((mapping, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-3 border rounded-lg">
+                {mappings.map((mapping) => (
+                  <div
+                    key={mapping.id ?? mapping.discordRoleId}
+                    className="flex items-center justify-between p-3 border rounded-lg"
+                  >
                     <div className="flex items-center gap-3">
                       <Badge variant="outline">{mapping.discordRoleName}</Badge>
                       <ArrowRight className="h-4 w-4 text-muted-foreground" />
@@ -272,9 +380,22 @@ export function DiscordRolesTab() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => {
-                        setMappings(mappings.filter((_, i) => i !== idx))
-                        toast.success("Mapping removed")
+                      onClick={async () => {
+                        if (!mapping.id) return
+                        try {
+                          const res = await fetch(
+                            `/api/admin/discord/role-mappings?id=${mapping.id}`,
+                            { method: "DELETE" }
+                          )
+                          const data = await res.json()
+                          if (!res.ok) throw new Error(data.error ?? "Delete failed")
+                          toast.success("Mapping removed")
+                          await loadMappings()
+                        } catch (error: unknown) {
+                          toast.error(
+                            error instanceof Error ? error.message : "Failed to remove"
+                          )
+                        }
                       }}
                     >
                       Remove

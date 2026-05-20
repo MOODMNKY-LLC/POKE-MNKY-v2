@@ -513,7 +513,7 @@ export default async function WeeklyMatchesPage({
                 <Link href="/calc">Open full damage calculator</Link>
               </Button>
               <Button asChild variant="outline" size="sm">
-                <Link href="/dashboard/team">My team</Link>
+                <Link href="/dashboard/league-team">My team</Link>
               </Button>
             </div>
           </div>

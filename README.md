@@ -476,7 +476,7 @@ See [`lib/openclaw.ts`](./lib/openclaw.ts) for implementation details.
 - [ ] Content management system
 - [ ] Enhanced voice input (fallback services)
 
-See [PROJECT-ROADMAP.md](./PROJECT-ROADMAP.md) for detailed roadmap.
+See [temp/PROJECT-ROADMAP.md](./temp/PROJECT-ROADMAP.md) for detailed roadmap.
 
 ---
 

@@ -346,10 +346,21 @@ async function handleSubmitCommand(interaction: any) {
 
   try {
     // Call AI parse API
+    const botSecret = process.env.DISCORD_BOT_INTERNAL_SECRET
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    }
+    if (botSecret) {
+      headers["x-internal-bot-secret"] = botSecret
+    }
+
     const response = await fetch(`${APP_URL}/api/ai/parse-result`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: resultText }),
+      headers,
+      body: JSON.stringify({
+        text: resultText,
+        discord_user_id: interaction.user.id,
+      }),
     })
 
     const data = await response.json()
