@@ -3,13 +3,14 @@
 import { useState, useEffect, Suspense } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-import { Users, Calendar, BarChart3, RefreshCw, ArrowRightLeft, CalendarDays } from "lucide-react"
+import { Users, Calendar, BarChart3, RefreshCw, ArrowRightLeft, CalendarDays, Clock } from "lucide-react"
 import Link from "next/link"
 import { LeagueTeamsTab } from "@/components/admin/league/league-teams-tab"
 import { LeagueMatchesTab } from "@/components/admin/league/league-matches-tab"
 import { LeagueStatisticsTab } from "@/components/admin/league/league-statistics-tab"
 import { LeagueSyncLogsTab } from "@/components/admin/league/league-sync-logs-tab"
 import { LeagueSeasonsTab } from "@/components/admin/league/league-seasons-tab"
+import { LeagueCountdownTab } from "@/components/admin/league/league-countdown-tab"
 
 function LeagueManagementContent() {
   const [mounted, setMounted] = useState(false)
@@ -18,7 +19,7 @@ function LeagueManagementContent() {
   const getInitialTab = () => {
     if (typeof window !== "undefined") {
       const hash = window.location.hash.slice(1)
-      if (hash && ["teams", "matches", "statistics", "sync-logs", "seasons"].includes(hash)) {
+      if (hash && ["teams", "matches", "statistics", "sync-logs", "seasons", "countdown"].includes(hash)) {
         return hash
       }
     }
@@ -38,7 +39,7 @@ function LeagueManagementContent() {
     
     const handleHashChange = () => {
       const hash = window.location.hash.slice(1)
-      if (hash && ["teams", "matches", "statistics", "sync-logs", "seasons"].includes(hash)) {
+      if (hash && ["teams", "matches", "statistics", "sync-logs", "seasons", "countdown"].includes(hash)) {
         setActiveTab(hash)
       }
     }
@@ -90,7 +91,7 @@ function LeagueManagementContent() {
 
       {/* Unified Tabs */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6">
           <TabsTrigger value="teams" className="gap-2">
             <Users className="h-4 w-4" />
             <span>Teams</span>
@@ -111,6 +112,10 @@ function LeagueManagementContent() {
             <CalendarDays className="h-4 w-4" />
             <span>Seasons</span>
           </TabsTrigger>
+          <TabsTrigger value="countdown" className="gap-2">
+            <Clock className="h-4 w-4" />
+            <span>Countdown</span>
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="teams" className="mt-6">
@@ -130,6 +135,9 @@ function LeagueManagementContent() {
         </TabsContent>
         <TabsContent value="seasons" className="mt-6">
           <LeagueSeasonsTab />
+        </TabsContent>
+        <TabsContent value="countdown" className="mt-6">
+          <LeagueCountdownTab />
         </TabsContent>
       </Tabs>
     </div>

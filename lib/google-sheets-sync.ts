@@ -4,6 +4,10 @@ import { createServiceRoleClient } from "./supabase/service"
 import { getPokemonDataExtended } from "./pokemon-api-enhanced"
 import { getGoogleServiceAccountCredentials } from "./utils/google-sheets"
 import { parseTeamDataWithAI, type SheetRow } from "./ai-sheet-parser"
+import {
+  shouldUseDataTabTeamParser,
+  syncTeamsFromDataTab,
+} from "@/lib/google-sheets-data-tab"
 
 export interface SyncResult {
   success: boolean
@@ -178,12 +182,16 @@ async function syncTeams(sheet: any, supabase: any, mapping: SheetMapping): Prom
     }
   }
 
+  const detectedHeaders = sheet.headerValues || []
+  if (shouldUseDataTabTeamParser(mapping.sheet_name, detectedHeaders)) {
+    return syncTeamsFromDataTab(rows, detectedHeaders, supabase)
+  }
+
   const errors: string[] = []
   let processed = 0
 
   // Check if first row is actually a header row (contains "Team Name" or similar)
   // If headers are wrong (like "Week 14"), we need to use raw cell access
-  const detectedHeaders = sheet.headerValues || []
   const hasValidHeaders = detectedHeaders.some((h: string) => 
     h && (h.toLowerCase().includes("team") || h.toLowerCase().includes("name") || h.toLowerCase().includes("coach"))
   )

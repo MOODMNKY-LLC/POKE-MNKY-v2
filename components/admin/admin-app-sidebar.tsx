@@ -38,6 +38,7 @@ const adminNavItems = [
       { title: "League Hub", url: "/admin/league" },
       { title: "Teams", url: "/admin/league#teams" },
       { title: "Matches", url: "/admin/league#matches" },
+      { title: "Homepage countdown", url: "/admin/league#countdown" },
       { title: "Trades", url: "/admin/trades" },
       { title: "Draft Pool & Rules", url: "/admin/draft-pool-rules" },
       { title: "Draft Sessions", url: "/admin/draft/sessions" },
