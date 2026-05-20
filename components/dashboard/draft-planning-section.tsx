@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { createBrowserClient } from "@/lib/supabase/client"
 import { getCurrentSeasonWithFallback } from "@/lib/seasons"
+import { resolveCoachTeamForSeason } from "@/lib/coach-team-context"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -86,12 +87,11 @@ export function DraftPlanningSection() {
         // Load user's team
         const { data: { user } } = await supabase.auth.getUser()
         if (user) {
-          const { data: teamData } = await supabase
-            .from("teams")
-            .select("id, name")
-            .eq("coach_id", user.id)
-            .eq("season_id", seasonData.id)
-            .maybeSingle()
+          const { team: teamData } = await resolveCoachTeamForSeason(
+            supabase,
+            user.id,
+            seasonData.id
+          )
 
           if (teamData) {
             const { count: rosterCount } = await supabase

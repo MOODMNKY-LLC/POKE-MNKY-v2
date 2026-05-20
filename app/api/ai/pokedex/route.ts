@@ -6,6 +6,11 @@ import { createServerClient } from '@/lib/supabase/server'
 import { AI_MODELS, createResponseWithMCP } from '@/lib/openai-client'
 import { getPokemonData } from '@/lib/pokemon-api'
 import { NextResponse } from 'next/server'
+import {
+  handleOpenClawChatRequest,
+  isOpenClawConfigured,
+  openClawModeSystemPrompt,
+} from '@/lib/openclaw/chat-route'
 
 export async function POST(request: Request) {
   try {
@@ -17,6 +22,18 @@ export async function POST(request: Request) {
     // For useChat requests, use streamText
     if (isUseChatRequest) {
       const { messages, selectedPokemon, mcpEnabled = true, model } = body
+
+      if (isOpenClawConfigured()) {
+        const supabase = await createServerClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        return handleOpenClawChatRequest(request, {
+          mode: 'pokedex',
+          userId: user?.id ?? null,
+          systemPrompt: openClawModeSystemPrompt('pokedex', {
+            selectedPokemon: selectedPokemon ? String(selectedPokemon) : undefined,
+          }),
+        }, body)
+      }
 
       // Get MCP server URL and API key from environment
       const mcpServerUrl = (process.env.MCP_DRAFT_POOL_SERVER_URL || 'https://mcp-draft-pool.moodmnky.com/mcp').trim()

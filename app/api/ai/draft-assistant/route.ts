@@ -1,9 +1,15 @@
-// Draft Assistant API Route - Updated for useChat compatibility
+// Draft Assistant API Route — OpenClaw gateway (primary) with OpenAI fallback
 import { streamText } from 'ai'
 import { openai } from '@ai-sdk/openai'
 import { convertToModelMessages } from 'ai'
 import { createServerClient } from '@/lib/supabase/server'
 import { AI_MODELS } from '@/lib/openai-client'
+import { resolveCoachTeamForSeason } from '@/lib/coach-team-context'
+import {
+  handleOpenClawChatRequest,
+  isOpenClawConfigured,
+  openClawModeSystemPrompt,
+} from '@/lib/openclaw/chat-route'
 
 export async function POST(request: Request) {
   try {
@@ -17,10 +23,42 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { messages, teamId, seasonId, mcpEnabled = true, model } = body
+    let { messages, teamId, seasonId, mcpEnabled = true, model } = body
+
+    if (!teamId && seasonId) {
+      const { team } = await resolveCoachTeamForSeason(supabase, user.id, seasonId)
+      teamId = team?.id
+    }
+
+    if (!teamId && !seasonId) {
+      const { data: season } = await supabase
+        .from('seasons')
+        .select('id')
+        .eq('is_current', true)
+        .maybeSingle()
+      if (season?.id) {
+        seasonId = season.id
+        const { team } = await resolveCoachTeamForSeason(supabase, user.id, season.id)
+        teamId = team?.id
+      }
+    }
 
     if (!teamId) {
-      return new Response('teamId is required', { status: 400 })
+      return new Response(
+        'teamId is required — link a league team (/dashboard/claim-team, Admin assign, or Your teams) before using Draft Assistant',
+        { status: 400 }
+      )
+    }
+
+    if (isOpenClawConfigured()) {
+      return handleOpenClawChatRequest(request, {
+        mode: 'draft',
+        userId: user.id,
+        systemPrompt: openClawModeSystemPrompt('draft', {
+          teamId: String(teamId),
+          seasonId: seasonId ? String(seasonId) : undefined,
+        }),
+      }, body)
     }
 
     // Get MCP server URL and API key from environment

@@ -1,6 +1,4 @@
-// General Assistant API Route - Unified assistant endpoint
-// Updated to use Vercel AI SDK with toUIMessageStreamResponse pattern (from mnky-command analysis)
-// Now supports Responses API with public tools (web_search, file_search) for all users
+// General Assistant API Route — OpenClaw gateway (primary) with OpenAI fallback
 import {
   streamText,
   convertToModelMessages,
@@ -16,6 +14,11 @@ import {
   convertResponsesAPIToUIMessage 
 } from '@/lib/openai-client'
 import { logger } from '@/lib/logger'
+import {
+  handleOpenClawChatRequest,
+  isOpenClawConfigured,
+  openClawModeSystemPrompt,
+} from '@/lib/openclaw/chat-route'
 
 export async function POST(request: Request) {
   try {
@@ -26,6 +29,14 @@ export async function POST(request: Request) {
     const isAuthenticated = !!user
 
     const body = await request.json()
+
+    if (isOpenClawConfigured()) {
+      return handleOpenClawChatRequest(request, {
+        mode: 'general',
+        userId: user?.id ?? null,
+        systemPrompt: openClawModeSystemPrompt('general'),
+      }, body)
+    }
     const { 
       messages: rawMessages, 
       model = 'gpt-4o', 

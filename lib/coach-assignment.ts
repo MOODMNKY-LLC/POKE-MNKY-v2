@@ -12,21 +12,34 @@ export interface AssignCoachResult {
   message: string
 }
 
+export interface ReleaseCoachResult {
+  success: boolean
+  teamId?: string
+  message: string
+}
+
 /**
  * Assign a coach to a team
  * Creates coach entry if needed, assigns to team
  */
 export async function assignCoachToTeam(
   userId: string,
-  teamId?: string
+  teamId: string
 ): Promise<AssignCoachResult> {
+  if (!teamId) {
+    return {
+      success: false,
+      message:
+        "teamId is required. Auto-assign to the first open slot is disabled; pick an explicit league team.",
+    }
+  }
   const supabase = createServiceRoleClient()
 
   try {
     // Call database function
     const { data: coachId, error } = await supabase.rpc("assign_coach_to_team", {
       p_user_id: userId,
-      p_team_id: teamId || null,
+      p_team_id: teamId,
     })
 
     if (error) {
@@ -55,6 +68,41 @@ export async function assignCoachToTeam(
     return {
       success: false,
       message: error.message || "Failed to assign coach to team",
+    }
+  }
+}
+
+/**
+ * Release coach from a league team (undo mistaken assignment).
+ */
+export async function releaseCoachFromTeam(
+  userId: string,
+  teamId?: string
+): Promise<ReleaseCoachResult> {
+  const supabase = createServiceRoleClient()
+
+  try {
+    const { data: releasedTeamId, error } = await supabase.rpc("release_coach_from_team", {
+      p_user_id: userId,
+      p_team_id: teamId ?? null,
+    })
+
+    if (error) {
+      return {
+        success: false,
+        message: error.message || "Failed to release coach from team",
+      }
+    }
+
+    return {
+      success: true,
+      teamId: releasedTeamId as string | undefined,
+      message: "Coach released from team",
+    }
+  } catch (error: unknown) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Failed to release coach from team",
     }
   }
 }

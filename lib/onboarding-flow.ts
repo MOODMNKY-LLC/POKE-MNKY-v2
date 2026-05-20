@@ -29,12 +29,12 @@ export const ONBOARDING_CHECKLIST: OnboardingChecklistItem[] = [
   {
     id: "coach_assigned",
     title: "Coach assigned",
-    description: "An admin grants coach access and connects your league profile to the right team.",
+    description: "Coach role is active. Claim your league team on the dashboard (or ask an admin to assign you).",
   },
   {
     id: "team_linked",
     title: "Team linked",
-    description: "Your league team appears in the dashboard with roster, budget, and season data.",
+    description: "Use Claim your team to pick the correct open slot — required for draft board and the assistant.",
   },
   {
     id: "team_builder_intro",
