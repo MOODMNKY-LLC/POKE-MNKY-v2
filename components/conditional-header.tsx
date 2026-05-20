@@ -1,6 +1,7 @@
 "use client"
 
 import { usePathname } from "next/navigation"
+import { HomepageCountdown } from "@/components/homepage-countdown"
 import { SiteHeaderWrapper } from "@/components/site-header-wrapper"
 
 /**
@@ -9,13 +10,20 @@ import { SiteHeaderWrapper } from "@/components/site-header-wrapper"
  */
 export function ConditionalHeader() {
   const pathname = usePathname()
-  
+
   // Hide header on dashboard routes
   if (pathname?.startsWith("/dashboard")) {
     return null
   }
 
-  return <SiteHeaderWrapper />
+  const isHome = pathname === "/"
+
+  return (
+    <>
+      <SiteHeaderWrapper />
+      {isHome ? <HomepageCountdown variant="banner" /> : null}
+    </>
+  )
 }
 
 function HeaderSkeleton() {

@@ -8,6 +8,18 @@ type CacheOptions = {
   ttl?: number // Time to live in seconds
 }
 
+/** Vercel KV "internal-*.upstash.io" REST hosts only resolve on Vercel, not local dev. */
+function usesInternalUpstashHost(): boolean {
+  const candidates = [
+    process.env.KV_REST_API_URL,
+    process.env.KV_URL,
+    process.env.UPSTASH_REDIS_REST_URL,
+  ]
+  return candidates.some(
+    (u) => typeof u === 'string' && /internal-[\w-]+\.upstash\.io/i.test(u)
+  )
+}
+
 class RedisCache {
   private client: any = null
   private enabled: boolean = false
@@ -21,6 +33,15 @@ class RedisCache {
       typeof process.env.KV_URL === 'string' &&
       typeof process.env.KV_REST_API_TOKEN === 'string'
     ) {
+      if (usesInternalUpstashHost()) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.info(
+            '[Cache] Skipping Vercel KV in local dev (internal Upstash host does not resolve). Homepage will load without Redis cache.'
+          )
+        }
+        this.enabled = false
+        return
+      }
       try {
         // Dynamic import to avoid bundling issues if @vercel/kv is not installed
         // @vercel/kv is the official Vercel KV client
