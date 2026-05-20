@@ -40,7 +40,8 @@ POKE MNKY is a sophisticated distributed ecosystem that combines **self-hosted b
 
 **Version**: v3  
 **Progress**: ~85% Complete  
-**Status**: Production-ready foundation with core functionality operational
+**Status**: Production-ready foundation with core functionality operational  
+**Last ops update**: May 2026 — in-app Google Sheets team sync, draft pool registry backfill, homepage countdown ([session log](./docs/SESSION-CHANGELOG-2026-05-19.md))
 
 | Component | Status | Completion |
 |-----------|--------|------------|
@@ -61,10 +62,13 @@ POKE MNKY is a sophisticated distributed ecosystem that combines **self-hosted b
 
 ### 🏆 League Management
 - **20-Team League Structure** with divisions, conferences, and seasons
+- **Google Sheets sync** — import teams from the league **Data** tab (Admin → Google Sheets; [guide](./docs/GOOGLE-SHEETS-SYNC-GUIDE.md))
 - **Point-Budget Draft System** with automatic cost calculation and validation
+- **In-app draft pool builder** — `pokemon_master` registry, Generate → Publish ([operations](./docs/DRAFT-IN-APP-OPERATIONS.md))
 - **Match Scheduling & Results** with weekly views and submission workflow
 - **Playoff Bracket Visualization** with tournament tracking
 - **Real-Time Standings** with divisional breakdowns and tiebreakers
+- **Season draft countdown** on homepage (Admin → League → Countdown)
 - **Historical Archives** for past seasons and statistics
 
 ![Standings Page](./docs/screenshots/standings-page.png)
@@ -322,6 +326,10 @@ DISCORD_CLIENT_ID=your_discord_client_id
 DISCORD_CLIENT_SECRET=your_discord_client_secret
 DISCORD_GUILD_ID=your_discord_server_id
 
+# Google Sheets (admin sync)
+GOOGLE_SERVICE_ACCOUNT_EMAIL=your-service-account@project.iam.gserviceaccount.com
+GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+
 # App Configuration
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 # Production: NEXT_PUBLIC_APP_URL=https://poke-mnky.moodmnky.com
@@ -385,21 +393,65 @@ console.log(response);
 - ⚠️ Streaming UI components (in progress)
 - ⚠️ Session persistence (in progress)
 
-See [`lib/openclaw.ts`](./lib/openclaw.ts) for implementation details.
+See [`lib/openclaw.ts`](./lib/openclaw.ts) and [`lib/openclaw/http-chat.ts`](./lib/openclaw/http-chat.ts) for implementation details.
+
+---
+
+## 📋 Recent updates (May 2026)
+
+### Google Sheets → teams
+
+- Admin **Google Sheets** page: **Select recommended** (Data tab only), **Sync Now** always visible with clear disabled reasons.
+- **Data** tab uses fixed column indices (`lib/google-sheets-data-tab.ts`) — ~24 teams with division, conference, record, SOS.
+- Non-standings sheets (Team 1–12, Rules, Pokédex, …) are **skipped** for `teams` sync automatically.
+
+### Draft pool
+
+- **Generate** reads `pokemon_master`; auto-populates registry from `draft_pool` when empty.
+- **Populate registry from draft board** on `/admin/draft-pool-rules` (no CLI required for normal ops).
+- **Game code** filters via `pokemon_games` — leave empty unless that table is populated.
+
+### Homepage
+
+- Draft countdown **banner under the nav** on `/`; configure in Admin → League → **Countdown**.
+
+### Coach & AI
+
+- Coaches can **claim a team** from the dashboard; admins can release assignments.
+- In-app assistant can use **OpenClaw HTTP** completions when the gateway WebSocket path is unavailable.
+
+Full detail: **[docs/SESSION-CHANGELOG-2026-05-19.md](./docs/SESSION-CHANGELOG-2026-05-19.md)**
+
+---
+
 ## 📚 Documentation
+
+### Start here (operators & developers)
+
+| Doc | Audience | Contents |
+|-----|----------|----------|
+| **[Session changelog (May 2026)](./docs/SESSION-CHANGELOG-2026-05-19.md)** | Everyone | What shipped this session: Sheets, draft pool, countdown, coach/AI |
+| **[Google Sheets sync](./docs/GOOGLE-SHEETS-SYNC-GUIDE.md)** | Commissioners | Data tab, Select recommended, Sync Now, troubleshooting |
+| **[Draft in-app operations](./docs/DRAFT-IN-APP-OPERATIONS.md)** | Commissioners | `pokemon_master`, Generate, Publish, game code |
+| **[Data pipeline runbook](./docs/DATA-PIPELINE-RUNBOOK.md)** | DevOps | Sheets vs Notion vs seed; post–DB-reset steps |
+| **[Admin config quick reference](./docs/ADMIN-CONFIG-QUICK-REFERENCE.md)** | Commissioners | Admin routes index |
 
 ### Core docs (in repo)
 
-- **[Changelog](./CHANGELOG.md)** - Version history and v3 release notes
-- **[Design System](./docs/DESIGN-SYSTEM.md)** - Tokens, components, motion
-- **[RLS and Auth Testing](./docs/RLS-AND-AUTH-TESTING.md)** - RLS test matrix and Discord OAuth
+- **[Changelog](./CHANGELOG.md)** — Version history and unreleased May 2026 notes
+- **[Design System](./docs/DESIGN-SYSTEM.md)** — Tokens, components, motion
+- **[RLS and Auth Testing](./docs/RLS-AND-AUTH-TESTING.md)** — RLS test matrix and Discord OAuth
+- **[AGENTS.md](./AGENTS.md)** — Cursor/agent conventions and MCP notes
+- **[Current status summary](./docs/CURRENT-STATUS-SUMMARY.md)** — Feature completion snapshot
 
 ### Detailed guides
 
-- **Database**: `supabase/migrations/` for schema evolution
-- **API**: `app/api/` for endpoint implementations
+- **Database**: `supabase/migrations/` for schema evolution; [DB reset troubleshooting](./docs/SUPABASE-DB-RESET-TROUBLESHOOTING.md)
+- **API**: `app/api/` for endpoint implementations; Mintlify API docs under `docs/mint-docs/` if published
 - **Components**: `components/` for reusable UI components
-- **Server and guides**: `docs/` for infrastructure and feature docs
+- **Draft session wizard**: [CREATE-DRAFT-SESSION-GUIDE.md](./docs/CREATE-DRAFT-SESSION-GUIDE.md)
+- **Discord**: [DISCORD-INTEGRATION-GUIDE.md](./docs/DISCORD-INTEGRATION-GUIDE.md), [slash commands](./docs/DISCORD-SLASH-COMMANDS-REFERENCE.md)
+- **Handoff / product direction**: [hand-offs/poke-mnky-v2-update.md](./hand-offs/poke-mnky-v2-update.md)
 
 ---
 
@@ -520,6 +572,6 @@ This project is proprietary software developed for the "Average at Best Draft Le
 
 **Built with ❤️ for competitive Pokémon trainers**
 
-*Last Updated: February 2026*
+*Last Updated: May 2026*
 
 </div>

@@ -3,7 +3,7 @@
  * Provides app-wide default season resolution with fallback to Season 7
  */
 
-import { createClient } from "@/lib/supabase/client"
+import type { SupabaseClient } from "@supabase/supabase-js"
 
 export interface Season {
   id: string
@@ -27,7 +27,7 @@ export interface Season {
  * @returns Season object or null if no seasons exist
  */
 export async function getCurrentSeasonWithFallback(
-  supabase: ReturnType<typeof createClient>
+  supabase: SupabaseClient
 ): Promise<Season | null> {
   try {
     // Try to get current season first
@@ -79,7 +79,7 @@ export async function getCurrentSeasonWithFallback(
  * Convenience function that returns just the ID
  */
 export async function getCurrentSeasonIdWithFallback(
-  supabase: ReturnType<typeof createClient>
+  supabase: SupabaseClient
 ): Promise<string | null> {
   const season = await getCurrentSeasonWithFallback(supabase)
   return season?.id || null

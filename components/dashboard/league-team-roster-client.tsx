@@ -73,6 +73,11 @@ export function LeagueTeamRosterClient({
   const [roster, setRoster] = React.useState<RosterEntry[]>([])
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState<string | null>(null)
+  const [selectMounted, setSelectMounted] = React.useState(false)
+
+  React.useEffect(() => {
+    setSelectMounted(true)
+  }, [])
 
   React.useEffect(() => {
     setWeek((current) => (weeks.includes(current) ? current : defaultWeek(weeks)))
@@ -134,18 +139,26 @@ export function LeagueTeamRosterClient({
             <Badge variant="secondary" className="w-fit self-start sm:self-end">
               Week {week}
             </Badge>
-            <Select value={String(week)} onValueChange={(v) => setWeek(parseInt(v, 10))}>
-              <SelectTrigger className="h-9 w-full sm:w-[140px]" aria-label="Select matchweek">
-                <SelectValue placeholder="Select week" />
-              </SelectTrigger>
-              <SelectContent align="end">
-                {weeks.map((w) => (
-                  <SelectItem key={w} value={String(w)}>
-                    Week {w}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {selectMounted ? (
+              <Select value={String(week)} onValueChange={(v) => setWeek(parseInt(v, 10))}>
+                <SelectTrigger className="h-9 w-full sm:w-[140px]" aria-label="Select matchweek">
+                  <SelectValue placeholder="Select week" />
+                </SelectTrigger>
+                <SelectContent align="end">
+                  {weeks.map((w) => (
+                    <SelectItem key={w} value={String(w)}>
+                      Week {w}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Skeleton
+                className="h-9 w-full sm:w-[140px]"
+                aria-hidden
+                title="Loading week selector"
+              />
+            )}
           </div>
         </div>
       </CardHeader>
@@ -164,7 +177,7 @@ export function LeagueTeamRosterClient({
           <div className="m-4 rounded-lg border border-dashed border-border/70 bg-muted/20 px-4 py-10 text-center">
             <p className="text-sm font-medium">No roster snapshot for week {week}</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Historical snapshots appear once the week is locked in the league engine.
+              Sync Team 1–12 sheets from Admin → Google Sheets, or historical snapshots appear after matchweek lock-in.
             </p>
           </div>
         ) : (

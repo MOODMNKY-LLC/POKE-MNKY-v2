@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server"
 import { syncLeagueData } from "@/lib/google-sheets-sync"
+import { syncTeamPageRosters } from "@/lib/sync-team-page-rosters"
+import { syncTeamSheetMatches } from "@/lib/sync-team-sheet-matches"
+import { redisCache, CacheKeys } from "@/lib/cache/redis"
+import { isRecommendedTeamsSyncSheet } from "@/lib/google-sheets-sheet-policy"
+import { isBenignSheetSyncMessage } from "@/lib/google-sheets-sheet-utils"
 import { createServerClient } from "@/lib/supabase/server"
 import { createServiceRoleClient } from "@/lib/supabase/service"
 import { extractImagesFromSheet, uploadImageToStorage } from "@/lib/google-sheets-image-extractor"
@@ -120,6 +125,49 @@ export async function POST(request: Request) {
         mappings,
       )
 
+      let rosterSync = { teamsProcessed: 0, picksWritten: 0, errors: [] as string[] }
+      let matchSync = { teamsProcessed: 0, matchesWritten: 0, errors: [] as string[] }
+      const syncedTeamsTab = mappings.some(
+        (m) => m.table_name === "teams" && isRecommendedTeamsSyncSheet(m.sheet_name)
+      )
+      if (syncedTeamsTab && result.recordsProcessed > 0) {
+        try {
+          const credentials = getGoogleServiceAccountCredentials()
+          if (credentials) {
+            const serviceAccountAuth = new JWT({
+              email: credentials.email,
+              key: credentials.privateKey,
+              scopes: ["https://www.googleapis.com/auth/spreadsheets.readonly"],
+            })
+            const doc = new GoogleSpreadsheet(config.spreadsheet_id, serviceAccountAuth)
+            await doc.loadInfo()
+            const sheetTitles = doc.sheetsByIndex.map((s) => s.title)
+            rosterSync = await syncTeamPageRosters(
+              serviceSupabase,
+              config.spreadsheet_id,
+              sheetTitles
+            )
+            console.log(
+              `[Sync] Team page rosters: ${rosterSync.picksWritten} picks across ${rosterSync.teamsProcessed} teams`
+            )
+            matchSync = await syncTeamSheetMatches(
+              serviceSupabase,
+              config.spreadsheet_id,
+              sheetTitles
+            )
+            console.log(
+              `[Sync] Team sheet matches: ${matchSync.matchesWritten} matches across ${matchSync.teamsProcessed} teams`
+            )
+          }
+        } catch (rosterErr) {
+          const msg =
+            rosterErr instanceof Error ? rosterErr.message : "Team page roster/match sync failed"
+          rosterSync.errors.push(msg)
+          matchSync.errors.push(msg)
+          console.error("[Sync] Team page roster/match sync:", msg)
+        }
+      }
+
       // Extract and upload images from sheets
       let imagesExtracted = 0
       const imageErrors: string[] = []
@@ -139,9 +187,12 @@ export async function POST(request: Request) {
           const doc = new GoogleSpreadsheet(config.spreadsheet_id, serviceAccountAuth)
           await doc.loadInfo()
 
-          // Extract images from each enabled sheet (focus on team sheets)
+          // Extract images only from the canonical Data tab (avoids Team 1–12 / empty sheets)
           for (const mapping of mappings) {
-            if (mapping.table_name === "teams" || mapping.sheet_name.toLowerCase().includes("team")) {
+            if (
+              mapping.table_name === "teams" &&
+              isRecommendedTeamsSyncSheet(mapping.sheet_name)
+            ) {
               try {
                 const sheet = doc.sheetsByTitle[mapping.sheet_name] || 
                              doc.sheetsByIndex.find((s) => s.title === mapping.sheet_name)
@@ -209,7 +260,7 @@ export async function POST(request: Request) {
         imageErrors.push(`Image extraction failed: ${imageExtractionError instanceof Error ? imageExtractionError.message : "Unknown error"}`)
       }
 
-      const allErrors = [...result.errors, ...imageErrors]
+      const allErrors = [...result.errors, ...rosterSync.errors, ...matchSync.errors, ...imageErrors]
 
       // Update last sync timestamp (use service client)
       await serviceSupabase
@@ -220,18 +271,33 @@ export async function POST(request: Request) {
         })
         .eq("id", config.id)
 
-      const responseMessage = result.success
-        ? `Successfully synced ${result.recordsProcessed} record(s)${imagesExtracted > 0 ? ` and extracted ${imagesExtracted} team image(s)` : ""}`
-        : allErrors.length > 0
-          ? `Synced ${result.recordsProcessed} record(s) with ${allErrors.length} error(s)`
-          : "Sync completed with errors"
+      const criticalErrors = allErrors.filter((e) => !isBenignSheetSyncMessage(e))
+      const warningCount = allErrors.length - criticalErrors.length
+
+      if (result.recordsProcessed > 0 && redisCache.isEnabled()) {
+        await redisCache.del(CacheKeys.homepageBundle).catch((e) =>
+          console.warn("[Sync] Homepage cache clear failed:", e)
+        )
+      }
+
+      const responseMessage =
+        result.recordsProcessed > 0
+          ? `Successfully synced ${result.recordsProcessed} team record(s)${rosterSync.picksWritten > 0 ? ` and ${rosterSync.picksWritten} roster pick(s) from Team pages` : ""}${matchSync.matchesWritten > 0 ? ` and ${matchSync.matchesWritten} match(es) from Team schedules` : ""}${imagesExtracted > 0 ? ` and extracted ${imagesExtracted} image(s)` : ""}${
+              warningCount > 0
+                ? ` (${warningCount} optional sheet skipped — use "Select recommended" to sync Data only)`
+                : ""
+            }`
+          : allErrors.length > 0
+            ? `Sync completed with ${allErrors.length} issue(s) and no records written`
+            : "Sync completed"
 
       return NextResponse.json({
         success: result.success,
         message: responseMessage,
         recordsProcessed: result.recordsProcessed,
         imagesExtracted,
-        errors: allErrors.slice(0, 10), // Limit errors to prevent huge responses
+        errors: allErrors.slice(0, 10),
+        warnings: result.warnings?.slice(0, 10),
       })
     } catch (syncError) {
       console.error("[Sync] Sync error:", syncError)

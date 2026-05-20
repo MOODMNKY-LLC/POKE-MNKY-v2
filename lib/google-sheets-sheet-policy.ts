@@ -40,8 +40,11 @@ export function getTeamsSyncEligibility(
     { test: /^backend\s+data$/i, reason: "Backend Data is internal reference, not team standings." },
     { test: /^mods\b/i, reason: "Mod discussion sheets are not team standings." },
     { test: /^divisions?$/i, reason: "Divisions layout sheets are not team standings." },
+    { test: /^master\s+data/i, reason: "Master Data Sheet is not the league standings tab." },
     { test: /^draft\s+board/i, reason: "Draft board sheets map to team_rosters, not teams." },
     { test: /^pok[eé]mon\s+list/i, reason: "Pokémon list sheets are not team standings." },
+    { test: /^trade\s+block/i, reason: "Trade Block is not team standings." },
+    { test: /^weekly\s+stats$/i, reason: "Weekly Stats maps to matches, not teams." },
   ]
 
   for (const { test, reason } of blockedNamePatterns) {

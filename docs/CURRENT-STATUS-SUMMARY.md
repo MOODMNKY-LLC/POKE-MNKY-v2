@@ -3,14 +3,35 @@
 **Date**: January 17, 2026  
 **Status**: ✅ Phase 2A Complete - Ready for Phase 2B
 
-## League ops update (2026-05-20)
+## League ops update (May 2026)
 
-See [CURSOR_HANDOFF.md](../CURSOR_HANDOFF.md) for full discovery. Recent implementation:
+**Session log:** [SESSION-CHANGELOG-2026-05-19.md](./SESSION-CHANGELOG-2026-05-19.md)
 
-- Match submit E2E (DB + standings + Discord + activity log): `lib/match-result-complete.ts`, `POST /api/matches/submit`
-- OAuth callback restored at `app/auth/callback/route.ts`
-- Discord role mappings persisted (`discord_role_mappings` + admin API)
-- Supabase security audit (read-only): [SUPABASE-SECURITY-AUDIT-2026.md](./SUPABASE-SECURITY-AUDIT-2026.md)
+### Data & draft (in-app)
+
+| Feature | Status | Doc |
+|---------|--------|-----|
+| Google Sheets → `teams` (Data tab) | ✅ Production path | [GOOGLE-SHEETS-SYNC-GUIDE.md](./GOOGLE-SHEETS-SYNC-GUIDE.md) |
+| Sheet sync guards (skip Team N, Rules, …) | ✅ | `lib/google-sheets-sheet-policy.ts` |
+| `pokemon_master` backfill in app | ✅ | [DRAFT-IN-APP-OPERATIONS.md](./DRAFT-IN-APP-OPERATIONS.md) |
+| Draft pool Generate / Publish | ✅ | `/admin/draft-pool-rules` |
+| Homepage draft countdown banner | ✅ | League → Countdown |
+
+### Coach & AI
+
+| Feature | Status |
+|---------|--------|
+| Claim / release team | ✅ `POST /api/coach/claim-team`, `/api/coach/release-team` |
+| OpenClaw HTTP chat fallback | ✅ `lib/openclaw/http-chat.ts` |
+
+### Earlier (2026-05)
+
+See [CURSOR_HANDOFF.md](../CURSOR_HANDOFF.md). Also:
+
+- Match submit E2E: `lib/match-result-complete.ts`, `POST /api/matches/submit`
+- OAuth callback: `app/auth/callback/route.ts`
+- Discord role mappings: `discord_role_mappings` + admin API
+- Supabase security audit: [SUPABASE-SECURITY-AUDIT-2026.md](./SUPABASE-SECURITY-AUDIT-2026.md)
 
 ---
 

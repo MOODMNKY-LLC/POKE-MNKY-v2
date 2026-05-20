@@ -109,28 +109,21 @@ export async function GET(request: Request) {
     const end = Math.min(Math.max(...toSync), 1025)
     const batchSize = 20
 
-    const functionUrl = `${supabaseUrl}/functions/v1/sync-pokemon-pokeapi`
-    const response = await fetch(functionUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${serviceRoleKey}`,
-      },
-      body: JSON.stringify({
-        start,
-        end,
-        batchSize,
-        rateLimitMs: 50,
-      }),
+    const { invokeSupabaseEdgeFunction } = await import("@/lib/supabase/invoke-edge-function")
+    const invoked = await invokeSupabaseEdgeFunction<Record<string, unknown>>("sync-pokemon-pokeapi", {
+      start,
+      end,
+      batchSize,
+      rateLimitMs: 50,
     })
 
-    const data = await response.json().catch(() => ({}))
+    const data = invoked.data ?? {}
 
-    if (!response.ok) {
+    if (!invoked.ok) {
       return NextResponse.json(
         {
           success: false,
-          error: data.error || `Edge Function failed: ${response.statusText}`,
+          error: invoked.error || (data.error as string) || "Edge Function failed",
         },
         { status: 500 }
       )

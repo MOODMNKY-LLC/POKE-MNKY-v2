@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { getPublicLeagueTeams, type PublicTeamRow } from "@/lib/teams-public"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { PokeballIcon } from "@/components/ui/pokeball-icon"
@@ -8,49 +9,57 @@ export const dynamic = 'force-dynamic'
 
 const divisions = ["Kanto", "Johto", "Hoenn", "Sinnoh"]
 
+function TeamCard({ team }: { team: PublicTeamRow }) {
+  return (
+    <Link href={`/teams/${team.id}`}>
+      <Card className="h-full transition-all hover:border-primary hover:shadow-lg">
+        <CardHeader>
+          <CardTitle className="flex items-start justify-between gap-2">
+            <span className="text-balance">{team.name}</span>
+            <Badge variant="secondary" className="shrink-0 tabular-nums">
+              {team.wins}-{team.losses}
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2 text-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Coach</span>
+              <div className="flex items-center gap-1.5">
+                <PokeballIcon role="coach" size="xs" />
+                <span className="font-medium">{team.coach_name || "—"}</span>
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Differential</span>
+              <span
+                className={`font-medium ${team.differential > 0 ? "text-chart-2" : team.differential < 0 ? "text-destructive" : ""}`}
+              >
+                {team.differential > 0 ? "+" : ""}
+                {team.differential}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Division</span>
+              <span className="font-medium">{team.division || "—"}</span>
+            </div>
+            {team.conference && team.conference !== "TBD" ? (
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Conference</span>
+                <span className="font-medium">{team.conference}</span>
+              </div>
+            ) : null}
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
+  )
+}
+
 export default async function TeamsPage() {
   try {
     const supabase = await createClient()
-    const { data: currentSeason, error: seasonError } = await supabase
-      .from("seasons")
-      .select("id, name")
-      .eq("is_current", true)
-      .maybeSingle()
-
-    if (seasonError) {
-      throw seasonError
-    }
-
-    if (!currentSeason?.id) {
-      return (
-        <>
-          <div className="border-b border-border bg-muted/30 py-8">
-            <div className="container mx-auto px-4 md:px-6">
-              <h1 className="text-4xl font-bold tracking-tight">All Teams</h1>
-              <p className="mt-2 text-muted-foreground">Browse all teams competing in the league</p>
-            </div>
-          </div>
-          <div className="container mx-auto px-4 md:px-6 py-8">
-            <Card>
-              <CardContent className="py-12 text-center">
-                <p className="text-muted-foreground">No current season is set.</p>
-              </CardContent>
-            </Card>
-          </div>
-        </>
-      )
-    }
-
-    const { data: teams, error } = await supabase
-      .from("teams")
-      .select("*")
-      .eq("season_id", currentSeason.id)
-      .order("name")
-
-    if (error) {
-      console.error("[Teams Page] Error fetching teams:", error)
-      throw error
-    }
+    const { teams, seasonName } = await getPublicLeagueTeams(supabase)
 
     if (!teams || teams.length === 0) {
       return (
@@ -84,59 +93,56 @@ export default async function TeamsPage() {
         </div>
 
         <div className="container mx-auto px-4 md:px-6 py-8 space-y-12">
-          {divisions.map((division) => {
-            const divisionTeams = teams?.filter((t) => t.division === division) || []
-            if (divisionTeams.length === 0) return null
+          {seasonName ? (
+            <p className="text-sm text-muted-foreground">{seasonName} · {teams.length} teams</p>
+          ) : null}
+          {(() => {
+            const divisionSet = new Set(divisions)
+            const grouped = divisions
+              .map((division) => ({
+                title: `${division} Division`,
+                badge: teams.find((t) => t.division === division)?.conference,
+                teams: teams.filter((t) => t.division === division),
+              }))
+              .filter((g) => g.teams.length > 0)
 
-            return (
-              <div key={division}>
+            const otherTeams = teams.filter(
+              (t) => !divisionSet.has(t.division) || t.division === "TBD"
+            )
+            if (otherTeams.length > 0) {
+              grouped.push({
+                title: grouped.length > 0 ? "All other teams" : "League teams",
+                badge: undefined,
+                teams: otherTeams,
+              })
+            }
+
+            if (grouped.length === 0) {
+              return (
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {teams.map((team) => (
+                    <TeamCard key={team.id} team={team} />
+                  ))}
+                </div>
+              )
+            }
+
+            return grouped.map((group) => (
+              <div key={group.title}>
                 <div className="mb-4 flex items-center gap-3">
-                  <h2 className="text-2xl font-bold">{division} Division</h2>
-                  <Badge variant="outline">{divisionTeams[0]?.conference} Conference</Badge>
+                  <h2 className="text-2xl font-bold">{group.title}</h2>
+                  {group.badge ? (
+                    <Badge variant="outline">{group.badge} Conference</Badge>
+                  ) : null}
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {divisionTeams.map((team) => (
-                    <Link key={team.id} href={`/teams/${team.id}`}>
-                      <Card className="h-full transition-all hover:border-primary hover:shadow-lg">
-                        <CardHeader>
-                          <CardTitle className="flex items-start justify-between">
-                            <span className="text-balance">{team.name}</span>
-                            <Badge variant="secondary" className="ml-2 shrink-0">
-                              {team.wins}-{team.losses}
-                            </Badge>
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="space-y-2 text-sm">
-                            <div className="flex items-center justify-between">
-                              <span className="text-muted-foreground">Coach</span>
-                              <div className="flex items-center gap-1.5">
-                                <PokeballIcon role="coach" size="xs" />
-                                <span className="font-medium">{team.coach_name}</span>
-                              </div>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <span className="text-muted-foreground">Differential</span>
-                              <span
-                                className={`font-medium ${team.differential > 0 ? "text-chart-2" : team.differential < 0 ? "text-destructive" : ""}`}
-                              >
-                                {team.differential > 0 ? "+" : ""}
-                                {team.differential}
-                              </span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <span className="text-muted-foreground">Division</span>
-                              <span className="font-medium">{team.division}</span>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </Link>
+                  {group.teams.map((team) => (
+                    <TeamCard key={team.id} team={team} />
                   ))}
                 </div>
               </div>
-            )
-          })}
+            ))
+          })()}
         </div>
       </>
     )

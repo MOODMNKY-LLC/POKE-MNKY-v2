@@ -1,68 +1,121 @@
 # Data Pipeline Runbook
 
-This document describes how to populate the app with league data so standings, matches, and draft/rosters work. Choose **Option A** (Google Sheets) or **Option B** (Notion + seed).
+How to populate the app so standings, matches, draft boards, and rosters work. Choose **Option A** (Google Sheets) or **Option B** (Notion + seed).
+
+**May 2026 update:** Teams should come from the spreadsheet **Data** tab via in-app sync. Draft pool generation uses `pokemon_master` with in-app backfill — no CLI required for normal ops.
 
 ---
 
-## Option A: Google Sheets → Supabase migration
+## Option A: Google Sheets → Supabase (recommended for AAB league)
 
-Use when league data currently lives in Google Sheets and you want a one-time or recurring sync.
+Use when league standings and team metadata live in the league Google Spreadsheet.
 
 ### Prerequisites
 
-- Google Service Account with access to the league spreadsheet (JSON key or env vars).
-- Env vars set: `GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` (or equivalent; see `lib/utils/google-sheets.ts`).
-- Supabase: `google_sheets_config` and `sheet_mappings` populated (e.g. via Admin → Google Sheets).
+- Google Service Account with access to the spreadsheet.
+- Env: `GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` (see `lib/utils/google-sheets.ts`).
+- Supabase: `google_sheets_config` and `sheet_mappings` (Admin → Google Sheets → **Save configuration**).
 
-### Steps
+### Steps (teams)
 
-1. **Configure sync** (Admin → Google Sheets, or DB):
-   - Insert/update `google_sheets_config`: `spreadsheet_id` = your sheet ID.
-   - Insert/update `sheet_mappings`: one row per sheet (e.g. Standings → teams, Draft Results → team_rosters, Week Battles → matches), with `enabled = true` and `sync_order` for execution order.
+1. **Configure** — Admin → [Google Sheets](/admin/google-sheets): paste URL, save config.
+2. **Enable sheets** — **Select recommended** (Data tab only) or manually enable **Data** → table `teams`.
+3. **Sync** — **Sync Now** → `POST /api/sync/google-sheets` → expect ~24 rows in `teams`.
+4. **Validate** — Standings, team pages, coach assignment; confirm `division` and `conference` are set.
 
-2. **Run sync**:
-   - **From app**: Call `POST /api/sync/google-sheets` (or the sync route that invokes `syncLeagueData`) as an authenticated admin. Or use Admin → Google Sheets and trigger “Sync” if the UI exposes it.
-   - **From script**: Use `syncLeagueData()` from `lib/google-sheets-sync.ts` with the same config (spreadsheet ID + mappings).
+Full detail: **[GOOGLE-SHEETS-SYNC-GUIDE.md](./GOOGLE-SHEETS-SYNC-GUIDE.md)**.
 
-3. **Validate**:
-   - Check `teams`, `matches`, `draft_picks` / rosters in Supabase (Table Editor or SQL).
-   - Open app: Standings, Matches, Team pages and confirm data and IDs (e.g. `team_id`, `season_id`) line up.
+### Do not
 
-4. **Deprecate Sheets as source of truth**: After validation, treat Supabase as canonical; run sync only for backfills or one-off imports.
+- **Select all** and sync every sheet to `teams` — Team 1–12, Rules, and Pokédex are not standings and will error or pollute logs.
+- Rely on header-based parsing for the **Data** tab — use the dedicated index parser (automatic when sheet name is `Data`).
 
-### Notes
+### Matches / rosters (optional)
 
-- Sync logic lives in `lib/google-sheets-sync.ts` and is invoked by the sync API route. Mapping from sheet columns to DB columns is configurable via `sheet_mappings` / parsers (e.g. `lib/google-sheets-parsers/`).
-- If sync was “disabled in v0”, ensure env vars and config are set in the environment where the sync runs (e.g. Vercel for app-triggered sync).
+Configure additional `sheet_mappings` only when column layout is verified:
+
+| Suggested table | Typical sheet names |
+|-----------------|---------------------|
+| `matches` | Week Battles, Weekly Stats (if structured) |
+| `team_rosters` | Draft Results, Draft Board |
+
+Sync order follows `sync_order` on mappings.
+
+### Implementation map
+
+| Piece | Path |
+|-------|------|
+| Sync orchestration | `lib/google-sheets-sync.ts` |
+| Data tab parser | `lib/google-sheets-data-tab.ts` |
+| Sheet allowlist / skip | `lib/google-sheets-sheet-policy.ts` |
+| API | `app/api/sync/google-sheets/route.ts` |
+| Admin UI | `app/admin/google-sheets/page.tsx` |
+
+### After DB reset
+
+See [SUPABASE-DB-RESET-TROUBLESHOOTING.md](./SUPABASE-DB-RESET-TROUBLESHOOTING.md) and re-run Sheets sync for `teams`.
 
 ---
 
 ## Option B: Notion sync + manual/CSV seed
 
-Use when you prefer Notion as the catalog source or when you don’t have Google Sheets.
+Use for Pokémon catalog / reference data or when Sheets is unavailable.
 
-### Notion sync (catalog / reference data)
+### Notion sync (catalog / reference)
 
-1. **Notion databases**: Ensure Notion workspace has the required databases (e.g. Pokémon catalog, role tags, moves) and relations as per project docs.
-2. **Run Notion pull**:
-   - `POST /api/sync/notion/pull` (full) or `POST /api/sync/notion/pull/incremental` (incremental). Secure with `NOTION_SYNC_SECRET` or equivalent.
-   - Or run the Notion sync worker (see `lib/sync/notion-sync-worker.ts` and sync API routes).
-3. **Validate**: Check Supabase tables populated by Notion sync (e.g. `pokemon`, `role_tags`, `moves`, `notion_mappings`).
+1. Ensure Notion databases exist per project docs.
+2. Run `POST /api/sync/notion/pull` or incremental pull (secure with `NOTION_SYNC_SECRET`).
+3. Validate Supabase tables populated by Notion (`pokemon_unified`, role tags, etc.).
 
 ### League data (teams, rosters, matches)
 
-- **Manual seed**: Insert `seasons`, `teams`, `coaches`, `season_teams`, `draft_picks` (rosters), `matches` via SQL or Supabase Table Editor. Use UUIDs and foreign keys consistent with app (e.g. `team_id`, `season_id`).
-- **CSV import**: Export from Sheets/Notion to CSV, then use a one-off script or Supabase CSV import to load into `teams`, `matches`, `draft_picks`, etc. Map columns to the schema; resolve coach/team/season IDs (e.g. by name lookup) before insert.
+- **Manual seed** — SQL or Table Editor for `seasons`, `teams`, `matches`, etc.
+- **CSV import** — One-off scripts; resolve foreign keys by name.
 
-### Validation
+---
 
-- Same as Option A: confirm standings, matches, and team/roster pages in the app show correct data and no broken links (e.g. missing `season_id`, `team_id`).
+## Draft pool data (in-app)
+
+Separate from Sheets team sync; required before live draft.
+
+| Step | Action |
+|------|--------|
+| 1 | Ensure `draft_pool` has rows with `generation` (published board or import) |
+| 2 | Admin → **Draft pool rules** → **Generate** (auto-fills `pokemon_master` if empty) |
+| 3 | **Publish** → `season_draft_pool` → `draft_pool` |
+| 4 | Verify status API / readiness card |
+
+Guide: **[DRAFT-IN-APP-OPERATIONS.md](./DRAFT-IN-APP-OPERATIONS.md)**.
+
+| API | Purpose |
+|-----|---------|
+| `GET/POST /api/admin/pokemon-master/backfill` | Registry from `draft_pool` |
+| `POST /api/admin/draft-pool-generate` | Build `season_draft_pool` |
+
+**Game code:** optional; requires `pokemon_games` rows. Leave blank for generation-only filters.
+
+---
+
+## Homepage countdown (optional)
+
+Draft/open date for the public homepage banner:
+
+- Admin → **League** → **Countdown** tab, or `league_config` keys `draft_open_at` / season fields.
+- Logic: `lib/league-countdown.ts`, banner in `components/conditional-header.tsx`.
 
 ---
 
 ## Outcome
 
-After either option:
+After Option A + draft pool steps:
 
-- App has real league data: standings, matches, rosters.
-- Draft and free agency (and Discord bot) can resolve teams, seasons, and pool/roster state correctly.
+- `teams` populated for standings and coach flows.
+- `draft_pool` available for draft board and picks.
+- App resolves `season_id`, `team_id`, and pool state for Discord and dashboard.
+
+---
+
+## Related
+
+- [SESSION-CHANGELOG-2026-05-19.md](./SESSION-CHANGELOG-2026-05-19.md)
+- [ADMIN-CONFIG-QUICK-REFERENCE.md](./ADMIN-CONFIG-QUICK-REFERENCE.md)

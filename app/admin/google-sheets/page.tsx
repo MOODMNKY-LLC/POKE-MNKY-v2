@@ -453,10 +453,11 @@ export default function GoogleSheetsConfigPage() {
         percentage: 100,
       })
 
+      const recordsProcessed = result.recordsProcessed || 0
       setSyncResult({
-        success: result.success !== false, // Default to true if not specified
-        message: result.message || `Synced ${result.recordsProcessed || 0} records`,
-        recordsProcessed: result.recordsProcessed || 0,
+        success: recordsProcessed > 0 || result.success !== false,
+        message: result.message || `Synced ${recordsProcessed} records`,
+        recordsProcessed,
         imagesExtracted: result.imagesExtracted || 0,
       })
 

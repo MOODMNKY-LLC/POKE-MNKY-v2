@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { getTeamRosterPicks } from "@/lib/team-roster-display"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
@@ -59,29 +60,20 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ id:
     notFound()
   }
 
-  const { data: team } = await supabase
+  const { data: team, error: teamError } = await supabase
     .from("teams")
     .select("*")
     .eq("id", id)
-    .eq("season_id", currentSeason.id)
     .single()
 
-  if (!team) {
+  if (teamError || !team) {
     notFound()
   }
 
-  const { data: roster } = await supabase
-    .from("draft_picks")
-    .select(
-      `
-      *,
-      pokemon:pokemon_id(name, type1, type2)
-    `,
-    )
-    .eq("season_id", currentSeason.id)
-    .eq("team_id", id)
-    .eq("status", "active")
-    .order("draft_round")
+  const teamSeasonMismatch =
+    team.season_id != null && team.season_id !== currentSeason.id
+
+  const roster = await getTeamRosterPicks(supabase, id, currentSeason.id)
 
   const { data: matchweeks } = await supabase
     .from("matchweeks")
@@ -102,10 +94,11 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ id:
     `,
     )
     .or(`team1_id.eq.${id},team2_id.eq.${id}`)
+    .eq("season_id", currentSeason.id)
     .order("week", { ascending: false })
     .limit(5)
 
-  const rosterCount = roster?.length ?? 0
+  const rosterCount = roster.length
   const matchCount = matches?.length ?? 0
   const recordWinPct = winPct(team.wins, team.losses)
   const winsCount = matches?.filter((m) => m.winner_id === id).length ?? 0
@@ -121,10 +114,19 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ id:
                 <Badge variant="outline">{team.division} Division</Badge>
                 <Badge variant="secondary">{team.conference} Conference</Badge>
                 <Badge variant="outline" className="text-muted-foreground">
-                  {currentSeason.name}
+                  {teamSeasonMismatch ? "Different season" : currentSeason.name}
                 </Badge>
               </div>
-              <h1 className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">{team.name}</h1>
+              <div className="flex flex-wrap items-center gap-4">
+                {team.logo_url ? (
+                  <img
+                    src={team.logo_url}
+                    alt=""
+                    className="h-16 w-16 shrink-0 rounded-lg border border-border object-contain bg-card"
+                  />
+                ) : null}
+                <h1 className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">{team.name}</h1>
+              </div>
               <div className="mt-3 flex items-center gap-2">
                 <PokeballIcon role="coach" size="sm" />
                 <p className="text-base text-muted-foreground sm:text-lg">Coached by {team.coach_name}</p>
@@ -172,7 +174,7 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ id:
       <div className="container mx-auto space-y-8 px-4 py-8 md:px-6">
         <section
           aria-label="Team summary"
-          className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
+          className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"
         >
           <StatMetricCard
             label="Record"
@@ -189,6 +191,16 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ id:
               team.differential > 0 && "text-chart-2",
               team.differential < 0 && "text-destructive",
             )}
+          />
+          <StatMetricCard
+            label="Strength of schedule"
+            value={
+              team.strength_of_schedule != null
+                ? `${Number(team.strength_of_schedule).toFixed(3)}`
+                : "—"
+            }
+            hint="Season SOS from league sheet"
+            icon={TrendingUp}
           />
           <StatMetricCard
             label="Active roster"
@@ -225,7 +237,7 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ id:
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              {roster && roster.length > 0 ? (
+              {roster.length > 0 ? (
                 <ScrollArea className="h-[min(28rem,70vh)] md:h-[min(32rem,65vh)]">
                   <div className="space-y-2 p-4">
                     {roster.map((pick) => (
@@ -235,23 +247,28 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ id:
                       >
                         <div className="flex min-w-0 items-start gap-3">
                           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-                            R{pick.draft_round}
+                            R{pick.draft_round ?? "—"}
                           </div>
                           <div className="min-w-0">
-                            <p className="truncate font-semibold">{pick.pokemon?.name}</p>
-                            <TypeBadges type1={pick.pokemon?.type1} type2={pick.pokemon?.type2} />
+                            <p className="truncate font-semibold capitalize">{pick.pokemon.name}</p>
+                            <TypeBadges type1={pick.pokemon.type1} type2={pick.pokemon.type2} />
                           </div>
                         </div>
-                        <Badge variant="outline" className="w-fit shrink-0 self-start sm:self-center">
-                          Pick #{pick.pick_number}
-                        </Badge>
+                        <div className="flex shrink-0 flex-col items-end gap-1 self-start sm:self-center">
+                          <Badge variant="outline" className="w-fit tabular-nums">
+                            {pick.points_snapshot} pts
+                          </Badge>
+                          {pick.pick_number != null ? (
+                            <span className="text-xs text-muted-foreground">Pick #{pick.pick_number}</span>
+                          ) : null}
+                        </div>
                       </div>
                     ))}
                   </div>
                 </ScrollArea>
               ) : (
                 <p className="py-12 text-center text-sm text-muted-foreground">
-                  No roster data available
+                  No roster synced yet. Run Google Sheets sync (Data tab + Team 1–12 pages) from Admin.
                 </p>
               )}
             </CardContent>
@@ -306,7 +323,7 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ id:
                 </div>
               ) : (
                 <p className="py-12 text-center text-sm text-muted-foreground">
-                  No match history available
+                  No match history synced yet. Run Google Sheets sync (Data tab + Team 1–12 schedules) from Admin.
                 </p>
               )}
             </CardContent>

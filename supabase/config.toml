@@ -394,6 +394,13 @@ allow_dynamic_registration = false
 [functions.discord-interactions]
 verify_jwt = false
 
+# Admin/server invokes these with service secret + apikey (sb_secret_* is not a JWT).
+[functions.ingest-showdown-pokedex]
+verify_jwt = false
+
+[functions.sync-pokemon-pokeapi]
+verify_jwt = false
+
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.

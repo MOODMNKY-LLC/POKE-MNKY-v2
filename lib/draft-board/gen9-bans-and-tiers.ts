@@ -19,6 +19,22 @@ export function determineGeneration(pokemonId: number): number {
   return 9
 }
 
+/** National dex ID range for PokeAPI / pokemon_cache sync (inclusive). */
+export function dexRangeForGeneration(generation: number): { start: number; end: number } {
+  const ranges: Record<number, { start: number; end: number }> = {
+    1: { start: 1, end: 151 },
+    2: { start: 152, end: 251 },
+    3: { start: 252, end: 386 },
+    4: { start: 387, end: 493 },
+    5: { start: 494, end: 649 },
+    6: { start: 650, end: 721 },
+    7: { start: 722, end: 809 },
+    8: { start: 810, end: 905 },
+    9: { start: 906, end: 1025 },
+  }
+  return ranges[generation] ?? { start: 1, end: 1025 }
+}
+
 /** PokeAPI species names (kebab-case) that are banned from the draft pool (league rules; Gen 9). */
 export const GEN9_BANNED_NAMES = new Set([
   "wo-chien",

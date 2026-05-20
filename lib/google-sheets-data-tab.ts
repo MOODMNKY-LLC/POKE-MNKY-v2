@@ -1,6 +1,10 @@
 /**
  * Column layout for the league "Data" tab (matches scripts/sync-data-sheet-to-notion.ts).
  * The sheet has duplicate header labels; index-based reads are required.
+ *
+ * Stats columns (0-based): GP col AB = 27, wins AC = 28, losses AD = 29, diff AE = 30, SOS BE = 56.
+ *
+ * Sheets API fetching lives in `google-sheets-data-tab-fetch.ts` (server-only).
  */
 
 export const DATA_TAB_COL = {
@@ -10,12 +14,15 @@ export const DATA_TAB_COL = {
   logo: 4,
   division: 5,
   conference: 6,
-  gp: 28,
-  wins: 29,
-  losses: 30,
-  differential: 31,
+  gp: 27,
+  wins: 28,
+  losses: 29,
+  differential: 30,
   strengthOfSchedule: 56,
 } as const
+
+/** Wide range so wins/SOS columns are included (getRows() often truncates). */
+export const DATA_TAB_TEAM_VALUE_RANGE = "A2:BE1000"
 
 const SKIP_TEAM_NAME_PATTERN =
   /^(bye|eliminated|budget|tera budget|season stats per team)/i
@@ -29,6 +36,7 @@ export type DataTabTeamRow = {
   losses: number
   differential: number
   strength_of_schedule: number
+  logo_url?: string | null
 }
 
 function cell(row: unknown[], index: number): string {
@@ -99,6 +107,9 @@ export function parseDataTabTeamRow(rawData: unknown[]): DataTabTeamRow | null {
   const losses = toInt(rawData[DATA_TAB_COL.losses]) ?? 0
   const differential = toInt(rawData[DATA_TAB_COL.differential]) ?? 0
   const sosRaw = toNumber(rawData[DATA_TAB_COL.strengthOfSchedule])
+  const logoRaw = cell(rawData, DATA_TAB_COL.logo)
+  const logo_url =
+    logoRaw && /^https?:\/\//i.test(logoRaw) ? logoRaw : logoRaw ? logoRaw : null
 
   return {
     name,
@@ -109,6 +120,7 @@ export function parseDataTabTeamRow(rawData: unknown[]): DataTabTeamRow | null {
     losses: Math.max(0, Math.min(losses, 9999)),
     differential: Math.max(-9999, Math.min(differential, 9999)),
     strength_of_schedule: clampStrengthOfSchedule(sosRaw),
+    logo_url,
   }
 }
 
@@ -135,26 +147,61 @@ export type DataTabSyncResult = {
   errors: string[]
 }
 
+/** Prefer rows with real division/stats when the Data tab repeats team names. */
+export function dataTabTeamRowScore(row: DataTabTeamRow): number {
+  let score = 0
+  if (row.division && row.division !== "TBD") score += 20
+  if (row.conference && row.conference !== "TBD") score += 10
+  if (row.wins + row.losses > 0) score += 15
+  if (row.differential !== 0) score += 5
+  if (row.strength_of_schedule > 0) score += 3
+  if (row.logo_url) score += 2
+  return score
+}
+
+export function dedupeDataTabTeams(rows: DataTabTeamRow[]): DataTabTeamRow[] {
+  const byName = new Map<string, DataTabTeamRow>()
+  for (const row of rows) {
+    const prev = byName.get(row.name)
+    if (!prev || dataTabTeamRowScore(row) >= dataTabTeamRowScore(prev)) {
+      byName.set(row.name, row)
+    }
+  }
+  return [...byName.values()]
+}
+
 /** Sync teams from the wide "Data" tab using fixed column indices. */
 export async function syncTeamsFromDataTab(
-  rows: Array<{ _rawData?: unknown[]; get?: (key: string) => unknown }>,
+  rows: Array<{ _rawData?: unknown[]; get?: (key: string) => unknown }> | unknown[][],
   headerValues: string[],
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: any
+  supabase: any,
+  seasonId: string
 ): Promise<DataTabSyncResult> {
   const errors: string[] = []
   let processed = 0
 
+  const sheetRows = Array.isArray(rows[0])
+    ? (rows as unknown[][]).map((raw) => ({ _rawData: raw }))
+    : (rows as Array<{ _rawData?: unknown[]; get?: (key: string) => unknown }>)
+
+  const parsed: DataTabTeamRow[] = []
+  for (let i = 0; i < sheetRows.length; i++) {
+    const rawData = rowToRawData(sheetRows[i], headerValues)
+    const team = parseDataTabTeamRow(rawData)
+    if (team) parsed.push(team)
+  }
+
+  const teamsToSync = dedupeDataTabTeams(parsed)
   console.log(
-    `[Sync] syncTeams: Using Data tab index parser (${rows.length} sheet rows)`
+    `[Sync] syncTeams: Using Data tab index parser (${sheetRows.length} sheet rows → ${teamsToSync.length} teams after dedupe)`
   )
 
-  for (let i = 0; i < rows.length; i++) {
-    const rawData = rowToRawData(rows[i], headerValues)
-    const team = parseDataTabTeamRow(rawData)
-    if (!team) continue
-
-    const { error } = await supabase.from("teams").upsert(team, { onConflict: "name" })
+  for (const team of teamsToSync) {
+    const { error } = await supabase.from("teams").upsert(
+      { ...team, season_id: seasonId },
+      { onConflict: "name" }
+    )
     if (error) {
       errors.push(`Team ${team.name}: ${error.message}`)
       if (processed === 0 && errors.length <= 3) {
@@ -163,7 +210,7 @@ export async function syncTeamsFromDataTab(
     } else {
       processed++
       if (processed <= 3) {
-        console.log(`[Sync] syncTeams: Synced "${team.name}" (${team.division} / ${team.conference})`)
+        console.log(`[Sync] syncTeams: Synced "${team.name}" (${team.division} / ${team.conference}, ${team.wins}-${team.losses})`)
       }
     }
   }
