@@ -32,6 +32,8 @@ const nextConfig = {
   experimental: {
     // Removed streamdown from optimizePackageImports to prevent Turbopack HMR issues
     // The StreamdownWrapper component handles lazy loading with React.lazy()
+    // Use OS trust store when corporate SSL inspection breaks Turbopack font fetches (Windows/Norton)
+    turbopackUseSystemTlsCerts: true,
   },
 }
 
