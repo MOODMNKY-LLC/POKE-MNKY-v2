@@ -24,6 +24,17 @@ What the handoff doc wants:
 
 This is mostly an evolution of the current system, not a replacement.
 
+### Implemented in app (May 2026 — see docs)
+
+| Handoff theme | Status | Doc |
+|---------------|--------|-----|
+| Google Sheets → app-owned sync | Data tab teams sync, admin UI | `docs/GOOGLE-SHEETS-SYNC-GUIDE.md` |
+| Draft pool builder in app | Generate / Publish, `pokemon_master` backfill | `docs/DRAFT-IN-APP-OPERATIONS.md` |
+| Homepage countdown | Banner under nav, admin Countdown tab | `docs/SESSION-CHANGELOG-2026-05-19.md` |
+| Coach claim team | Dashboard claim flow | `docs/SESSION-CHANGELOG-2026-05-19.md` |
+
+Full session index: **[docs/SESSION-CHANGELOG-2026-05-19.md](../docs/SESSION-CHANGELOG-2026-05-19.md)**
+
 ---
 
 ## Product Direction From Handoff

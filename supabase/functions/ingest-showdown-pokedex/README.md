@@ -75,6 +75,7 @@ Invoke-RestMethod -Uri "http://127.0.0.1:65432/functions/v1/ingest-showdown-poke
     -Method POST `
     -Headers @{
         "Content-Type" = "application/json"
+        "apikey" = $serviceKey
         "Authorization" = "Bearer $serviceKey"
     } `
     -Body '{}'

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { redisCache, CacheKeys, CacheTTL } from "@/lib/cache/redis"
 import type { HomepageTopPokemon } from "@/lib/homepage-types"
+import { getPublicLeagueTeams } from "@/lib/teams-public"
 
 /**
  * Homepage Live Data API — teams + seasonal / weekly top Pokémon (AAB performer strips).
@@ -114,15 +115,7 @@ export async function GET() {
     }
 
     const [teamsResult, weekResult] = await Promise.allSettled([
-      withTimeout(
-        supabase
-          .from("teams")
-          .select("id, name, wins, losses, division, conference, coach_name, avatar_url, differential", { count: "exact" })
-          .order("wins", { ascending: false })
-          .limit(5),
-        queryTimeout,
-        "Teams query"
-      ),
+      withTimeout(getPublicLeagueTeams(supabase), queryTimeout, "Teams query"),
       withTimeout(
         supabase.from("matches").select("week").order("week", { ascending: false }).limit(1),
         queryTimeout,
@@ -133,13 +126,11 @@ export async function GET() {
     let teams: unknown[] = []
     let teamCount = 0
     if (teamsResult.status === "fulfilled") {
-      const result = teamsResult.value
-      if (!result.error && result.data) {
-        teams = result.data
-        teamCount = result.count || 0
-      } else if (result.error) {
-        console.warn("[HomepageLiveData] Teams query error:", result.error)
-      }
+      const { teams: allTeams } = teamsResult.value
+      teamCount = allTeams.length
+      teams = [...allTeams]
+        .sort((a, b) => b.wins - a.wins || a.name.localeCompare(b.name))
+        .slice(0, 5)
     } else {
       console.warn("[HomepageLiveData] Teams query failed:", teamsResult.reason)
     }

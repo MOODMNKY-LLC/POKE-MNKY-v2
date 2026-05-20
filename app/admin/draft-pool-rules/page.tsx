@@ -49,6 +49,14 @@ export default function AdminDraftPoolRulesPage() {
     has_active_session: boolean
   } | null>(null)
   const [publishStatus, setPublishStatus] = useState<string | null>(null)
+  const [masterRegistry, setMasterRegistry] = useState<{
+    pokemon_master_count: number
+    draft_pool_rows_total: number
+    draft_pool_rows_with_generation: number
+    pokemon_games_rows: number
+  } | null>(null)
+  const [backfillStatus, setBackfillStatus] = useState<string | null>(null)
+  const [bootstrapStatus, setBootstrapStatus] = useState<string | null>(null)
 
   useEffect(() => {
     const supabase = createBrowserClient()
@@ -93,8 +101,112 @@ export default function AdminDraftPoolRulesPage() {
           has_active_session: statusData.has_active_session,
         })
       }
+      await refreshMasterRegistry()
     }
     setLoading(false)
+  }
+
+  async function refreshMasterRegistry() {
+    try {
+      const res = await fetch("/api/admin/pokemon-master/backfill")
+      const data = await res.json()
+      if (data.success) {
+        setMasterRegistry({
+          pokemon_master_count: data.pokemon_master_count ?? 0,
+          draft_pool_rows_total: data.draft_pool_rows_total ?? 0,
+          draft_pool_rows_with_generation: data.draft_pool_rows_with_generation ?? 0,
+          pokemon_games_rows: data.pokemon_games_rows ?? 0,
+        })
+      }
+    } catch {
+      setMasterRegistry(null)
+    }
+  }
+
+  async function bootstrapFromShowdown() {
+    if (!season) {
+      setBootstrapStatus("No current season loaded.")
+      return
+    }
+    const gen = filterGen ? parseInt(filterGen, 10) : 9
+    setBootstrapStatus("Seeding from Showdown tiers...")
+    try {
+      const res = await fetch("/api/admin/draft-pool/bootstrap", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ season_id: season.id, generation: Number.isFinite(gen) ? gen : 9 }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setBootstrapStatus(data?.error ?? "Bootstrap failed")
+        return
+      }
+      const parts: string[] = []
+      if (data.catalog?.needed) {
+        const b = data.catalog.before
+        const a = data.catalog.after
+        parts.push(`catalog ${b.unified}→${a.unified} unified`)
+        if (data.catalog.showdown_ingest?.ok) parts.push("Showdown ingest ok")
+        if (data.catalog.pokeapi_sync?.synced) {
+          parts.push(`PokeAPI +${data.catalog.pokeapi_sync.synced}`)
+        }
+        if (data.catalog.pokenode_cache?.synced) {
+          parts.push(`pokenode cache +${data.catalog.pokenode_cache.synced}`)
+        }
+      }
+      if (data.showdown_seed?.inserted) {
+        parts.push(`${data.showdown_seed.inserted} added to draft board`)
+      } else if (data.draft_pool_after > data.draft_pool_before) {
+        parts.push(`${data.draft_pool_after} rows on draft board`)
+      }
+      if (data.master?.upserted) {
+        parts.push(`${data.master.upserted} registered in pokemon_master (${data.master_source})`)
+      }
+      if (data.trimmed_removed) {
+        parts.push(`removed ${data.trimmed_removed} non-Gen-${gen} board rows`)
+      }
+      let msg = parts.length ? parts.join(" · ") : "Bootstrap complete"
+      if (data.warning) msg += `. ${data.warning}`
+      if (!data.ready_for_generate) {
+        msg = `Not ready to generate yet. ${data.warning ?? msg}`
+      } else {
+        msg += " — you can run Generate draft pool next."
+      }
+      setBootstrapStatus(msg)
+      await refreshMasterRegistry()
+      await refreshPoolStatus()
+    } catch {
+      setBootstrapStatus("Request failed")
+    }
+  }
+
+  async function backfillMasterRegistry() {
+    if (!season) {
+      setBackfillStatus("No current season loaded.")
+      return
+    }
+    setBackfillStatus("Building registry...")
+    try {
+      const res = await fetch("/api/admin/pokemon-master/backfill", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ season_id: season.id }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setBackfillStatus(data?.error ?? "Backfill failed")
+        return
+      }
+      let msg = `Registered ${data.upserted ?? 0} Pokémon (${data.after_count ?? 0} in pokemon_master, ${data.source_entries ?? 0} unique names from ${data.draft_pool_rows_scanned ?? 0} board rows)`
+      if (data.warning) msg += `. ${data.warning}`
+      if ((data.upserted ?? 0) === 0) {
+        msg = `Registered 0. ${data.warning ?? "Publish a draft board pool first, then try again."}`
+      }
+      setBackfillStatus(msg)
+      await refreshMasterRegistry()
+    } catch {
+      setBackfillStatus("Request failed")
+    }
   }
 
   async function refreshPoolStatus() {
@@ -174,13 +286,15 @@ export default function AdminDraftPoolRulesPage() {
       const inserted = data?.inserted ?? 0
       const matched = data?.matched ?? 0
       let msg = `Added ${inserted} to season draft pool (${matched} matched filters)`
-      if (data?.warning) msg += `. ${data.warning}`
-      if (inserted === 0 && data?.masters_total === 0) {
-        msg =
-          "Added 0 — pokemon_master is empty. Run scripts/backfill-pokemon-master.ts once, then Generate again."
+      if (data?.backfill?.upserted) {
+        msg = `Auto-built pokemon_master (${data.backfill.upserted} registered). ${msg}`
       }
+      if (data?.warning) msg += `. ${data.warning}`
       setGenerateStatus(msg)
-      if (res.ok) await refreshPoolStatus()
+      if (res.ok) {
+        await refreshPoolStatus()
+        await refreshMasterRegistry()
+      }
     } catch {
       setGenerateStatus("Request failed")
     }
@@ -265,10 +379,81 @@ export default function AdminDraftPoolRulesPage() {
                 Build draft pool from pokemon_master
               </CardTitle>
               <CardDescription>
-                Filter by generation, game (pokemon_games), and legendary/mythical/paradox. Generates season_draft_pool rows.
+                Builds season_draft_pool from the canonical pokemon_master registry. Generate auto-populates the
+                registry from draft_pool when it is empty.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {masterRegistry && (
+                <Alert>
+                  <AlertTitle>Pokémon registry</AlertTitle>
+                  <AlertDescription className="space-y-2 text-sm">
+                    <p>
+                      <strong>{masterRegistry.pokemon_master_count}</strong> species in pokemon_master ·{" "}
+                      <strong>{masterRegistry.draft_pool_rows_total}</strong> rows on draft board (
+                      {masterRegistry.draft_pool_rows_with_generation} with generation set) ·{" "}
+                      <strong>{masterRegistry.pokemon_games_rows}</strong> pokemon_games rows
+                    </p>
+                    {masterRegistry.draft_pool_rows_total === 0 &&
+                      masterRegistry.pokemon_master_count === 0 && (
+                        <div className="space-y-2">
+                          <p className="text-amber-600 dark:text-amber-500">
+                            Cold start: board and registry are empty. Seed from Showdown runs Showdown ingest +
+                            PokeAPI sync (Edge Functions) and pokenode-ts fallback, then builds the draft board and
+                            registry. Then Generate, then Publish. Full sync also lives at{" "}
+                            <Link href="/admin/sync" className="underline">
+                              Admin → Sync
+                            </Link>
+                            .
+                          </p>
+                          <Button
+                            type="button"
+                            variant="default"
+                            size="sm"
+                            onClick={bootstrapFromShowdown}
+                            disabled={bootstrapStatus?.startsWith("Seeding")}
+                          >
+                            0. Seed from Showdown (Gen {filterGen || "9"})
+                          </Button>
+                          {bootstrapStatus && (
+                            <p className="text-muted-foreground text-xs">{bootstrapStatus}</p>
+                          )}
+                        </div>
+                      )}
+                    {masterRegistry.draft_pool_rows_total === 0 &&
+                      masterRegistry.pokemon_master_count > 0 && (
+                        <p className="text-amber-600 dark:text-amber-500">
+                          Draft board is empty but registry has species. Run Generate, then Publish to draft board.
+                        </p>
+                      )}
+                    {masterRegistry.pokemon_master_count === 0 && masterRegistry.draft_pool_rows_total > 0 && (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span>Registry is empty; draft board has rows.</span>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          onClick={backfillMasterRegistry}
+                          disabled={backfillStatus?.startsWith("Building")}
+                        >
+                          Populate registry from draft board
+                        </Button>
+                      </div>
+                    )}
+                    {backfillStatus && <p className="text-muted-foreground text-sm">{backfillStatus}</p>}
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              <Alert>
+                <AlertTitle>Game code (optional)</AlertTitle>
+                <AlertDescription className="text-sm">
+                  Filters to species listed in the <code className="text-xs">pokemon_games</code> table for that code
+                  (e.g. SV for Scarlet/Violet, FRLG). Leave blank to use generation and legendary/mythical/paradox only.
+                  If pokemon_games is empty, any game code returns 0 matches — use generation filter instead.
+                </AlertDescription>
+              </Alert>
+
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <Label>Generation (optional)</Label>
@@ -282,10 +467,13 @@ export default function AdminDraftPoolRulesPage() {
                 <div>
                   <Label>Game code (optional)</Label>
                   <Input
-                    placeholder="e.g. SV, FRLG"
+                    placeholder="Leave empty unless pokemon_games is populated"
                     value={filterGame}
                     onChange={(e) => setFilterGame(e.target.value)}
                   />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    e.g. SV — requires rows in pokemon_games linking species to that game
+                  </p>
                 </div>
               </div>
               <div className="flex flex-wrap gap-6">

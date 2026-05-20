@@ -4,6 +4,11 @@
  */
 
 import { createServiceRoleClient } from "@/lib/supabase/service"
+import {
+  backfillPokemonMasterFromDraftPool,
+  seedPokemonMasterFromCatalog,
+} from "@/lib/pokemon-master-backfill"
+import { hydrateCatalogForBootstrap } from "@/lib/pokemon-catalog-hydrate"
 
 export interface GeneratePoolOptions {
   season_id: string
@@ -20,6 +25,11 @@ export interface GenerateDraftPoolResult {
   filtered: number
   masters_total: number
   warning?: string
+  backfill?: {
+    upserted: number
+    after_count: number
+    source_entries: number
+  }
 }
 
 export async function generateDraftPoolFromMaster(
@@ -35,18 +45,51 @@ export async function generateDraftPoolFromMaster(
     include_paradox = false,
   } = options
 
-  const { count: mastersTotal, error: countErr } = await service
+  let mastersTotal = 0
+  const { count: initialCount, error: countErr } = await service
     .from("pokemon_master")
     .select("id", { count: "exact", head: true })
   if (countErr) throw new Error(countErr.message)
-  if ((mastersTotal ?? 0) === 0) {
-    return {
-      inserted: 0,
-      matched: 0,
-      filtered: 0,
-      masters_total: 0,
-      warning:
-        "pokemon_master is empty. Run: pnpm exec tsx --env-file=.env.local scripts/backfill-pokemon-master.ts",
+  mastersTotal = initialCount ?? 0
+
+  let backfillSummary: GenerateDraftPoolResult["backfill"] | undefined
+  if (mastersTotal === 0) {
+    const backfill = await backfillPokemonMasterFromDraftPool({ season_id })
+    backfillSummary = {
+      upserted: backfill.upserted,
+      after_count: backfill.after_count,
+      source_entries: backfill.source_entries,
+    }
+    mastersTotal = backfill.after_count
+    if (mastersTotal === 0) {
+      const genNum =
+        generation != null && generation !== ""
+          ? parseInt(String(generation), 10)
+          : 9
+      const gen = Number.isFinite(genNum) ? genNum : 9
+      await hydrateCatalogForBootstrap({ generation: gen })
+      const catalog = await seedPokemonMasterFromCatalog({ generation: gen })
+      if (catalog.upserted > 0) {
+        backfillSummary = {
+          upserted: catalog.upserted,
+          after_count: catalog.after_count,
+          source_entries: catalog.source_entries,
+        }
+        mastersTotal = catalog.after_count
+      }
+    }
+    if (mastersTotal === 0) {
+      return {
+        inserted: 0,
+        matched: 0,
+        filtered: 0,
+        masters_total: 0,
+        backfill: backfillSummary,
+        warning:
+          (backfillSummary?.source_entries ?? 0) === 0
+            ? "pokemon_master is empty. Use Seed from Showdown on this page (cold start), sync Poképedia data, or publish a draft board pool, then Generate again."
+            : `pokemon_master is empty; ${backfill.skipped_no_dex} draft_pool entries lacked a national dex. Try Seed from Showdown or Admin → Pokémon.`,
+      }
     }
   }
 
@@ -102,6 +145,7 @@ export async function generateDraftPoolFromMaster(
     filtered: pokemonIds.length,
     masters_total: mastersTotal ?? 0,
     warning,
+    backfill: backfillSummary,
   }
 }
 

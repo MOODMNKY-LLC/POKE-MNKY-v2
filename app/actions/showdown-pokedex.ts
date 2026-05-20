@@ -6,55 +6,33 @@
  * Uses service role key since this is admin-only
  */
 
+import { invokeSupabaseEdgeFunction } from "@/lib/supabase/invoke-edge-function"
+
 export async function triggerShowdownPokedexIngestion() {
   try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-
-    if (!supabaseUrl || !serviceRoleKey) {
-      return {
-        success: false,
-        error: "Missing Supabase configuration",
-      }
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    if (!supabaseUrl) {
+      return { success: false, error: "Missing NEXT_PUBLIC_SUPABASE_URL" }
     }
 
-    // Call Edge Function
     const functionUrl = `${supabaseUrl}/functions/v1/ingest-showdown-pokedex`
-    
     console.log("Calling Edge Function:", functionUrl)
-    
-    const response = await fetch(functionUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${serviceRoleKey}`,
-      },
-      body: JSON.stringify({}),
-    })
 
-    const responseText = await response.text()
-    let result: any
+    const invoked = await invokeSupabaseEdgeFunction<Record<string, unknown>>(
+      "ingest-showdown-pokedex",
+      {},
+      { timeoutMs: 120_000 }
+    )
 
-    try {
-      result = JSON.parse(responseText)
-    } catch (e) {
-      // If response isn't JSON, treat as error
-      console.error("Edge Function returned non-JSON response:", responseText)
+    const result = invoked.data
+
+    if (!invoked.ok) {
+      console.error("Edge Function error:", invoked.data ?? invoked.raw)
       return {
         success: false,
-        error: `Edge Function returned invalid response: ${response.statusText}`,
-        details: responseText,
-      }
-    }
-
-    // Check if the result itself indicates failure
-    if (!response.ok || (result.success === false)) {
-      console.error("Edge Function error:", result)
-      return {
-        success: false,
-        error: result.error || `Edge Function failed: ${response.statusText}`,
-        details: result.errors || result.details || responseText,
-        result, // Include full result for debugging
+        error: invoked.error ?? "Edge Function failed",
+        details: invoked.raw ?? invoked.data,
+        result,
       }
     }
 

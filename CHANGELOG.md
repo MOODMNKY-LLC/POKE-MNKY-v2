@@ -2,6 +2,28 @@
 
 All notable changes for POKE MNKY are documented here.
 
+## [Unreleased] - 2026-05-19
+
+### Added
+
+- **Google Sheets operator UX:** Select recommended (Data tab only), always-visible Sync Now, merged saved mappings in sheet list. Guide: `docs/GOOGLE-SHEETS-SYNC-GUIDE.md`.
+- **Google Sheets Data tab parser:** Index-based team import for wide AAB spreadsheet (`lib/google-sheets-data-tab.ts`).
+- **Sheet sync policy:** Skip per-team pages, Rules, Pokédex, etc. when target table is `teams` (`lib/google-sheets-sheet-policy.ts`).
+- **In-app `pokemon_master` backfill:** `lib/pokemon-master-backfill.ts`, `GET/POST /api/admin/pokemon-master/backfill`, auto-run on draft pool Generate.
+- **Draft pool rules UI:** Registry status, Populate registry button, game code help text.
+- **Homepage draft countdown:** Banner under nav, admin League → Countdown tab, `lib/league-countdown.ts`.
+- **Coach claim team** and **OpenClaw HTTP chat** path (see session changelog).
+
+### Changed
+
+- Draft pool Generate no longer requires CLI `scripts/backfill-pokemon-master.ts` for normal operations.
+- AI sheet parser Zod schemas use `.nullable()` for OpenAI structured outputs compatibility.
+- Local dev: Redis/KV skipped when Upstash URL is Vercel-internal only.
+
+### Documentation
+
+- `docs/SESSION-CHANGELOG-2026-05-19.md`, updated `DRAFT-IN-APP-OPERATIONS.md`, `DATA-PIPELINE-RUNBOOK.md`, `ADMIN-CONFIG-QUICK-REFERENCE.md`, README.
+
 ## [3.0.0] - 2026-02-28
 
 ### Added

@@ -4,6 +4,7 @@ import { createServiceRoleClient } from "./supabase/service"
 import { getPokemonDataExtended } from "./pokemon-api-enhanced"
 import { getGoogleServiceAccountCredentials } from "./utils/google-sheets"
 import { parseTeamDataWithAI, type SheetRow } from "./ai-sheet-parser"
+import { fetchDataTabValueRows } from "@/lib/google-sheets-data-tab-fetch"
 import {
   shouldUseDataTabTeamParser,
   syncTeamsFromDataTab,
@@ -12,11 +13,17 @@ import {
   getTeamsSyncEligibility,
   withTeamPlaceholders,
 } from "@/lib/google-sheets-sheet-policy"
+import { getCurrentSeasonIdWithFallback } from "@/lib/seasons"
+import {
+  isBenignSheetSyncMessage,
+  safeSheetHeaderValues,
+} from "@/lib/google-sheets-sheet-utils"
 
 export interface SyncResult {
   success: boolean
   recordsProcessed: number
   errors: string[]
+  warnings?: string[]
 }
 
 interface SheetMapping {
@@ -88,10 +95,26 @@ export async function syncLeagueData(
 
         console.log(`[Sync] Syncing sheet "${mapping.sheet_name}" to table "${mapping.table_name}"`)
 
-        // Load headers if they exist (required for getRows())
+        const headerValues = safeSheetHeaderValues(sheet)
+
+        if (mapping.table_name === "teams") {
+          const eligibility = getTeamsSyncEligibility(mapping.sheet_name, headerValues)
+          if (!eligibility.allowed) {
+            console.warn(
+              `[Sync] Skipping sheet "${mapping.sheet_name}" — ${eligibility.reason}`
+            )
+            continue
+          }
+        }
+
+        // Load headers if they exist (required for getRows() on some sheets)
         try {
           await sheet.loadHeaderRow()
-          console.log(`[Sync] Loaded headers for "${mapping.sheet_name}":`, sheet.headerValues?.slice(0, 5).join(", "), "...")
+          console.log(
+            `[Sync] Loaded headers for "${mapping.sheet_name}":`,
+            safeSheetHeaderValues(sheet).slice(0, 5).join(", "),
+            "..."
+          )
         } catch (headerError: any) {
           const errorMsg = headerError.message?.toLowerCase() || ""
           if (errorMsg.includes("no values") || errorMsg.includes("header")) {
@@ -105,7 +128,7 @@ export async function syncLeagueData(
 
         switch (mapping.table_name) {
           case "teams":
-            result = await syncTeams(sheet, supabase, mapping)
+            result = await syncTeams(sheet, supabase, mapping, spreadsheetId)
             break
           case "team_rosters":
             result = await syncDraftResults(sheet, supabase, mapping)
@@ -129,7 +152,15 @@ export async function syncLeagueData(
     }
 
     // Log sync result
-    const syncStatus = errors.length > 0 ? (recordsProcessed > 0 ? "partial" : "error") : "success"
+    const blockingErrors = errors.filter((e) => !isBenignSheetSyncMessage(e))
+    const syncStatus =
+      blockingErrors.length > 0
+        ? recordsProcessed > 0
+          ? "partial"
+          : "error"
+        : errors.length > 0
+          ? "partial"
+          : "success"
 
     await supabase.from("sync_log").insert({
       sync_type: "google_sheets",
@@ -139,9 +170,10 @@ export async function syncLeagueData(
     })
 
     return {
-      success: errors.length === 0,
+      success: recordsProcessed > 0 || blockingErrors.length === 0,
       recordsProcessed,
       errors,
+      warnings: errors.filter((e) => isBenignSheetSyncMessage(e)),
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error"
@@ -162,19 +194,34 @@ export async function syncLeagueData(
   }
 }
 
-async function syncTeams(sheet: any, supabase: any, mapping: SheetMapping): Promise<SyncResult> {
-  const detectedHeaders = sheet.headerValues || []
-  const eligibility = getTeamsSyncEligibility(mapping.sheet_name, detectedHeaders)
-  if (!eligibility.allowed) {
-    console.warn(
-      `[Sync] syncTeams: Skipping sheet "${mapping.sheet_name}" — ${eligibility.reason}`
-    )
+async function syncTeams(
+  sheet: any,
+  supabase: any,
+  mapping: SheetMapping,
+  spreadsheetId: string
+): Promise<SyncResult> {
+  const seasonId = await getCurrentSeasonIdWithFallback(supabase)
+  if (!seasonId) {
     return {
-      success: true,
+      success: false,
       recordsProcessed: 0,
-      errors: [],
+      errors: [
+        "No current season configured. Mark a season as is_current in the database before syncing teams.",
+      ],
     }
   }
+
+  const { error: backfillError } = await supabase
+    .from("teams")
+    .update({ season_id: seasonId })
+    .is("season_id", null)
+
+  if (backfillError) {
+    console.warn("[Sync] syncTeams: Could not backfill season_id on existing teams:", backfillError.message)
+  }
+
+  const detectedHeaders = safeSheetHeaderValues(sheet)
+  const headerValues = detectedHeaders
 
   let rows: any[] = []
   
@@ -191,16 +238,32 @@ async function syncTeams(sheet: any, supabase: any, mapping: SheetMapping): Prom
   }
 
   if (rows.length === 0) {
-    console.warn(`[Sync] syncTeams: No rows found in sheet. Headers:`, sheet.headerValues)
+    console.warn(`[Sync] syncTeams: No rows found in sheet. Headers:`, safeSheetHeaderValues(sheet))
     return {
       success: true,
       recordsProcessed: 0,
-      errors: ["No rows found in sheet"],
+      errors: [],
     }
   }
 
   if (shouldUseDataTabTeamParser(mapping.sheet_name, detectedHeaders)) {
-    return syncTeamsFromDataTab(rows, detectedHeaders, supabase)
+    try {
+      const valueRows = await fetchDataTabValueRows(
+        spreadsheetId,
+        mapping.sheet_name === "Data" || mapping.sheet_name.toLowerCase() === "data"
+          ? "Data"
+          : mapping.sheet_name
+      )
+      console.log(
+        `[Sync] syncTeams: Loaded ${valueRows.length} rows from Sheets API (${mapping.sheet_name})`
+      )
+      return syncTeamsFromDataTab(valueRows, detectedHeaders, supabase, seasonId)
+    } catch (fetchError) {
+      const msg =
+        fetchError instanceof Error ? fetchError.message : "Failed to read Data tab via Sheets API"
+      console.warn(`[Sync] syncTeams: Sheets API fallback failed (${msg}); using getRows()`)
+      return syncTeamsFromDataTab(rows, detectedHeaders, supabase, seasonId)
+    }
   }
 
   const errors: string[] = []
@@ -240,8 +303,8 @@ async function syncTeams(sheet: any, supabase: any, mapping: SheetMapping): Prom
         let rawData: any[] = []
         try {
           rawData = (row as any)._rawData || (row as any).raw || []
-          if (rawData.length === 0 && sheet.headerValues && sheet.headerValues.length > 0) {
-            rawData = sheet.headerValues.map((header: string) => {
+          if (rawData.length === 0 && headerValues.length > 0) {
+            rawData = headerValues.map((header: string) => {
               try {
                 return row.get(header) || ""
               } catch (e) {
@@ -264,7 +327,7 @@ async function syncTeams(sheet: any, supabase: any, mapping: SheetMapping): Prom
         sheetRows.push({
           rawData,
           rowIndex: i,
-          headers: sheet.headerValues,
+          headers: headerValues,
         })
       }
       
@@ -289,6 +352,7 @@ async function syncTeams(sheet: any, supabase: any, mapping: SheetMapping): Prom
               losses: teamData.losses,
               differential: teamData.differential,
               strength_of_schedule: teamData.strength_of_schedule,
+              season_id: seasonId,
             })
             const { error } = await supabase.from("teams").upsert(payload, { onConflict: "name" })
             
@@ -451,8 +515,8 @@ async function syncTeams(sheet: any, supabase: any, mapping: SheetMapping): Prom
         rawData = (row as any)._rawData || (row as any).raw || []
         
         // If still empty and we have headers, try to build raw data from row values
-        if (rawData.length === 0 && sheet.headerValues && sheet.headerValues.length > 0) {
-          rawData = sheet.headerValues.map((header: string) => {
+        if (rawData.length === 0 && headerValues.length > 0) {
+          rawData = headerValues.map((header: string) => {
             try {
               return row.get(header) || ""
             } catch (e) {
@@ -462,8 +526,8 @@ async function syncTeams(sheet: any, supabase: any, mapping: SheetMapping): Prom
         }
       } catch (e) {
         // If we can't get raw data, try to build it from available headers
-        if (sheet.headerValues && sheet.headerValues.length > 0) {
-          rawData = sheet.headerValues.map((header: string) => {
+        if (headerValues.length > 0) {
+          rawData = headerValues.map((header: string) => {
             try {
               return row.get(header) || ""
             } catch (e) {
@@ -501,7 +565,7 @@ async function syncTeams(sheet: any, supabase: any, mapping: SheetMapping): Prom
           name: teamData.name,
           coach_name: teamData.coach_name,
           rawData: rawData.slice(0, 5),
-          availableHeaders: sheet.headerValues,
+          availableHeaders: headerValues,
           columnMapping: mapping.column_mapping,
         })
       }
@@ -524,7 +588,7 @@ async function syncTeams(sheet: any, supabase: any, mapping: SheetMapping): Prom
         continue
       }
 
-      const payload = withTeamPlaceholders(teamData)
+      const payload = withTeamPlaceholders({ ...teamData, season_id: seasonId })
       const { error } = await supabase.from("teams").upsert(payload, { onConflict: "name" })
 
       if (error) {
@@ -560,11 +624,11 @@ async function syncDraftResults(sheet: any, supabase: any, mapping: SheetMapping
   }
 
   if (rows.length === 0) {
-    console.warn(`[Sync] syncDraftResults: No rows found in sheet. Headers:`, sheet.headerValues)
+    console.warn(`[Sync] syncDraftResults: No rows found in sheet. Headers:`, safeSheetHeaderValues(sheet))
     return {
       success: true,
       recordsProcessed: 0,
-      errors: ["No rows found in sheet"],
+      errors: [],
     }
   }
 
@@ -686,12 +750,18 @@ async function syncMatches(sheet: any, supabase: any, mapping: SheetMapping): Pr
   }
 
   if (rows.length === 0) {
-    console.warn(`[Sync] syncMatches: No rows found in sheet. Headers:`, sheet.headerValues)
+    console.warn(`[Sync] syncMatches: No rows found in sheet. Headers:`, safeSheetHeaderValues(sheet))
     return {
       success: true,
       recordsProcessed: 0,
-      errors: ["No rows found in sheet"],
+      errors: [],
     }
+  }
+
+  const matchHeaders = safeSheetHeaderValues(sheet)
+  if (matchHeaders.length > 0 && matchHeaders.every((h) => !h || h === "#REF!")) {
+    console.warn(`[Sync] syncMatches: Skipping "${mapping.sheet_name}" — broken formulas (#REF!)`)
+    return { success: true, recordsProcessed: 0, errors: [] }
   }
 
   const errors: string[] = []

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { createServiceRoleClient } from '@/lib/supabase/service'
+import { invokeSupabaseEdgeFunction } from '@/lib/supabase/invoke-edge-function'
 
 interface SyncStatus {
   status: 'idle' | 'running' | 'completed' | 'failed' | 'cancelled'
@@ -128,45 +129,33 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    if (!supabaseUrl || !serviceRoleKey) {
-      return NextResponse.json(
-        { error: 'Missing Supabase configuration' },
-        { status: 500 }
-      )
-    }
-
-    const functionUrl = `${supabaseUrl}/functions/v1/sync-pokemon-pokeapi`
-    const response = await fetch(functionUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${serviceRoleKey}`,
-      },
-      body: JSON.stringify({
-        start,
-        end,
-        batchSize,
-        rateLimitMs,
-        jobId: jobId || undefined,
-      }),
+    const invoked = await invokeSupabaseEdgeFunction<{
+      success?: boolean
+      error?: string
+      hasMore?: boolean
+      jobId?: string
+      nextStart?: number
+      progress?: unknown
+      synced?: number
+      skipped?: number
+      failed?: number
+      totalSynced?: number
+      totalSkipped?: number
+      totalFailed?: number
+    }>('sync-pokemon-pokeapi', {
+      start,
+      end,
+      batchSize,
+      rateLimitMs,
+      jobId: jobId || undefined,
     })
 
-    const data = await response.json().catch(() => ({}))
+    const data = invoked.data ?? {}
 
-    if (!response.ok) {
+    if (!invoked.ok) {
       return NextResponse.json(
-        { error: data.error || `Edge Function failed: ${response.statusText}` },
-        { status: response.status >= 500 ? 500 : 400 }
-      )
-    }
-
-    if (data.success === false) {
-      return NextResponse.json(
-        { error: data.error || 'Sync failed' },
-        { status: 500 }
+        { error: invoked.error || data.error || 'Edge Function failed' },
+        { status: invoked.status >= 500 ? 500 : 400 }
       )
     }
 
