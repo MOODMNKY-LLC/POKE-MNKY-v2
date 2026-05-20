@@ -295,6 +295,21 @@ function suggestTableMapping(
   const normalizedName = sheetName.toLowerCase().trim()
   const normalizedHeaders = headers.map((h) => h.toLowerCase().trim())
 
+  if (normalizedName === "data") {
+    return { table: "teams", confidence: 0.99, columnMapping: {} }
+  }
+
+  if (/^team\s+\d+$/.test(normalizedName)) {
+    return { table: "", confidence: 0, columnMapping: {} }
+  }
+
+  if (
+    /^(rules?|pok[eé]dex|mvp|backend data|mods|divisions?)$/.test(normalizedName) ||
+    normalizedName.startsWith("draft board")
+  ) {
+    return { table: "", confidence: 0, columnMapping: {} }
+  }
+
   // Pattern matching for common sheet names
   const patterns: Array<{
     keywords: string[]
