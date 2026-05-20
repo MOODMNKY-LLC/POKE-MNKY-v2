@@ -32,6 +32,10 @@ export async function GET() {
       ok: true,
       gatewayUrl: config.gatewayUrl,
       agentId: config.agentId,
+      clientId: config.clientId,
+      clientMode: config.clientMode,
+      grantedScopes: client.getScopes(),
+      canChatSend: client.getScopes().includes("operator.write"),
       health: payload,
     })
   } catch (error) {

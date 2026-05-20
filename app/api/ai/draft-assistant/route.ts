@@ -7,7 +7,7 @@ import { AI_MODELS } from '@/lib/openai-client'
 import { resolveCoachTeamForSeason } from '@/lib/coach-team-context'
 import {
   handleOpenClawChatRequest,
-  isOpenClawConfigured,
+  shouldRouteChatToOpenClaw,
   openClawModeSystemPrompt,
 } from '@/lib/openclaw/chat-route'
 
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
       )
     }
 
-    if (isOpenClawConfigured()) {
+    if (shouldRouteChatToOpenClaw()) {
       return handleOpenClawChatRequest(request, {
         mode: 'draft',
         userId: user.id,

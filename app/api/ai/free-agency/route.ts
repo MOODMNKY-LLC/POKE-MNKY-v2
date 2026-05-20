@@ -6,7 +6,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { AI_MODELS } from '@/lib/openai-client'
 import {
   handleOpenClawChatRequest,
-  isOpenClawConfigured,
+  shouldRouteChatToOpenClaw,
   openClawModeSystemPrompt,
 } from '@/lib/openclaw/chat-route'
 
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
       return new Response('teamId is required', { status: 400 })
     }
 
-    if (isOpenClawConfigured()) {
+    if (shouldRouteChatToOpenClaw()) {
       return handleOpenClawChatRequest(request, {
         mode: 'free-agency',
         userId: user.id,

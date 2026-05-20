@@ -4,6 +4,7 @@ import { getOpenClawConfig, buildSessionKey } from "./config"
 import { OpenClawGatewayClient } from "./gateway-client"
 import { extractAssistantDelta, isTerminalChatEvent } from "./events"
 import { extractLatestUserText } from "./messages"
+import { handleOpenClawHttpChatRequest, isOpenClawHttpChatEnabled } from "./http-chat"
 import type { OpenClawAgentMode, OpenClawChatOptions } from "./types"
 
 export function isOpenClawConfigured(): boolean {
@@ -11,14 +12,42 @@ export function isOpenClawConfigured(): boolean {
   return config.enabled && Boolean(config.gatewayToken)
 }
 
+/** True when env suggests OpenClaw is intended (avoid silent OpenAI fallback with a stale key). */
+export function prefersOpenClawChat(): boolean {
+  if (process.env.AI_CHAT_PROVIDER?.trim().toLowerCase() === "openclaw") {
+    return true
+  }
+  if (process.env.AI_CHAT_PROVIDER?.trim().toLowerCase() === "openai") {
+    return false
+  }
+  return Boolean(
+    process.env.OPENCLAW_GATEWAY_TOKEN?.trim() ||
+      process.env.OPENCLAW_AGENT_ID?.trim() ||
+      process.env.OPENCLAW_HOOKS_TOKEN?.trim() ||
+      process.env.OPENCLAW_GATEWAY_URL?.trim()
+  )
+}
+
 export function openClawConfigError(): string {
-  if (!process.env.OPENCLAW_GATEWAY_URL?.trim()) {
-    return "OPENCLAW_GATEWAY_URL is not set"
+  const hasHooksOnly =
+    Boolean(process.env.OPENCLAW_HOOKS_TOKEN?.trim()) &&
+    !process.env.OPENCLAW_GATEWAY_TOKEN?.trim()
+
+  if (hasHooksOnly) {
+    return (
+      "OPENCLAW_GATEWAY_TOKEN is missing. You have OPENCLAW_HOOKS_TOKEN (HTTP /hooks only) — " +
+      "copy gateway.auth.token from the OpenClaw host into OPENCLAW_GATEWAY_TOKEN, not hooks.token."
+    )
   }
   if (!process.env.OPENCLAW_GATEWAY_TOKEN?.trim()) {
     return "OPENCLAW_GATEWAY_TOKEN is not set (use gateway.auth.token, not hooks.token)"
   }
   return "OpenClaw gateway is not configured"
+}
+
+/** Use OpenClaw when fully configured, or fail fast when OpenClaw was clearly intended. */
+export function shouldRouteChatToOpenClaw(): boolean {
+  return isOpenClawConfigured() || prefersOpenClawChat()
 }
 
 /**
@@ -32,7 +61,13 @@ export async function handleOpenClawChatRequest(
   const config = getOpenClawConfig()
 
   if (!config.gatewayToken) {
-    return new Response(openClawConfigError(), { status: 503 })
+    const message = openClawConfigError()
+    const stream = createUIMessageStream({
+      execute: ({ writer }) => {
+        writer.write({ type: "error", errorText: message })
+      },
+    })
+    return createUIMessageStreamResponse({ stream, status: 503 })
   }
 
   let body: Record<string, unknown>
@@ -64,6 +99,17 @@ export async function handleOpenClawChatRequest(
   promptParts.push(userText)
   const outboundMessage = promptParts.join("\n")
 
+  // HTTP /v1/chat/completions uses full operator scopes with the same gateway token
+  // (WS connect often returns auth.scopes: [] on remote gateways).
+  if (isOpenClawHttpChatEnabled()) {
+    return handleOpenClawHttpChatRequest({
+      messages: body.messages,
+      sessionKey,
+      agentId,
+      systemPrompt: options.systemPrompt,
+    })
+  }
+
   const textId = randomUUID()
 
   const stream = createUIMessageStream({
@@ -71,6 +117,7 @@ export async function handleOpenClawChatRequest(
       const client = new OpenClawGatewayClient(config)
       try {
         await client.connect()
+        client.requireScope("operator.write")
 
         await client.request("chat.send", {
           sessionKey,
