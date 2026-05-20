@@ -334,6 +334,58 @@ See [Environment Setup](#environment-setup) section for detailed instructions.
 
 ---
 
+
+### OpenClaw Integration
+
+The app includes **direct OpenClaw Gateway integration** via the `openclaw-node` client. This allows the Next.js app to:
+
+- **Start AI agent runs** from UI interactions (draft analysis, matchup breakdowns, scouting)
+- **Stream responses** in real-time to the user (token-by-token streaming)
+- **Maintain conversation sessions** across page reloads
+- **Handle tool calls** (PokéAPI lookups, Supabase queries, Showdown calculations)
+
+#### Setup
+
+1. **Start the Gateway** (if not running):
+```bash
+openclaw gateway start
+```
+
+2. **Environment Variables** (in `poke-mnky.env`):
+```bash
+OPENCLAW_GATEWAY_URL=ws://localhost:18789
+OPENCLAW_GATEWAY_TOKEN=your-gateway-token
+```
+
+3. **Use in your app**:
+```typescript
+import { initOpenClawClient, runOpenClawAgentSync } from @/lib/openclaw;
+
+// Initialize (do once at app startup)
+initOpenClawClient();
+
+// Run an agent synchronously
+const response = await runOpenClawAgentSync("Analyze this team's type coverage");
+console.log(response);
+```
+
+#### Agents Available
+
+- `main` - General assistant (default)
+- `draft-analyst` - Draft pool analysis, pick value scoring
+- `matchup-analyst` - Weekly matchup previews and recaps
+- `roster-analyst` - Roster health, depth charts, injury impact
+- `league-insights` - Weekly summaries, trends, predictions
+
+#### Current Integration Status
+
+- ✅ Client library installed (`openclaw-node`)
+- ✅ Connection utilities (`lib/openclaw.ts`)
+- ⚠️ Agent orchestration hooks (in progress)
+- ⚠️ Streaming UI components (in progress)
+- ⚠️ Session persistence (in progress)
+
+See [`lib/openclaw.ts`](./lib/openclaw.ts) for implementation details.
 ## 📚 Documentation
 
 ### Core docs (in repo)
@@ -394,6 +446,7 @@ See [Environment Setup](#environment-setup) section for detailed instructions.
 - **5 AI Agents** (Draft, Battle Strategy, Free Agency, Pokédex, General)
 - **Unified Assistant Popup** with multi-modal input (text, voice, files)
 - **POKE MNKY Character Assets** (8 files: 4 icons, 2 avatars PNG, 2 avatars SVG)
+- **OpenClaw Gateway Integration** - Direct agent orchestration from Next.js app
 - **98% Cache Hit Rate** for Pokémon data (30-day TTL)
 - **100% Mobile/PWA Optimized** with safe area support and touch optimization
 
