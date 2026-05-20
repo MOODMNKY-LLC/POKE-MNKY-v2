@@ -14,7 +14,17 @@ export interface GeneratePoolOptions {
   include_paradox?: boolean
 }
 
-export async function generateDraftPoolFromMaster(options: GeneratePoolOptions): Promise<{ inserted: number }> {
+export interface GenerateDraftPoolResult {
+  inserted: number
+  matched: number
+  filtered: number
+  masters_total: number
+  warning?: string
+}
+
+export async function generateDraftPoolFromMaster(
+  options: GeneratePoolOptions
+): Promise<GenerateDraftPoolResult> {
   const service = createServiceRoleClient()
   const {
     season_id,
@@ -24,6 +34,21 @@ export async function generateDraftPoolFromMaster(options: GeneratePoolOptions):
     include_mythical = false,
     include_paradox = false,
   } = options
+
+  const { count: mastersTotal, error: countErr } = await service
+    .from("pokemon_master")
+    .select("id", { count: "exact", head: true })
+  if (countErr) throw new Error(countErr.message)
+  if ((mastersTotal ?? 0) === 0) {
+    return {
+      inserted: 0,
+      matched: 0,
+      filtered: 0,
+      masters_total: 0,
+      warning:
+        "pokemon_master is empty. Run: pnpm exec tsx --env-file=.env.local scripts/backfill-pokemon-master.ts",
+    }
+  }
 
   let query = service.from("pokemon_master").select("id, default_draft_points, is_legendary, is_mythical, is_paradox, generation")
   if (generation != null && generation !== "") {
@@ -51,6 +76,7 @@ export async function generateDraftPoolFromMaster(options: GeneratePoolOptions):
     pokemonIds = pokemonIds.filter((id) => inGame.has(id))
   }
 
+  const matched = filtered.length
   let inserted = 0
   for (const pid of pokemonIds) {
     const points = filtered.find((m) => m.id === pid)?.default_draft_points ?? null
@@ -60,7 +86,23 @@ export async function generateDraftPoolFromMaster(options: GeneratePoolOptions):
     )
     if (!insErr) inserted++
   }
-  return { inserted }
+
+  let warning: string | undefined
+  if (matched === 0) {
+    const genLabel = generation != null && generation !== "" ? `generation ${generation}` : "your filters"
+    warning =
+      game_code && pokemonIds.length === 0 && filtered.length > 0
+        ? `No pokemon_master rows match game_code "${game_code}" (pokemon_games may be empty). Clear the game filter or populate pokemon_games.`
+        : `No pokemon_master rows match ${genLabel} with the current legendary/mythical/paradox toggles.`
+  }
+
+  return {
+    inserted,
+    matched,
+    filtered: pokemonIds.length,
+    masters_total: mastersTotal ?? 0,
+    warning,
+  }
 }
 
 export async function loadArchivedPoolIntoSeason(
