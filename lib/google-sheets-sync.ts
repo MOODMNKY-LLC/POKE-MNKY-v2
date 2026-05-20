@@ -8,6 +8,10 @@ import {
   shouldUseDataTabTeamParser,
   syncTeamsFromDataTab,
 } from "@/lib/google-sheets-data-tab"
+import {
+  getTeamsSyncEligibility,
+  withTeamPlaceholders,
+} from "@/lib/google-sheets-sheet-policy"
 
 export interface SyncResult {
   success: boolean
@@ -159,6 +163,19 @@ export async function syncLeagueData(
 }
 
 async function syncTeams(sheet: any, supabase: any, mapping: SheetMapping): Promise<SyncResult> {
+  const detectedHeaders = sheet.headerValues || []
+  const eligibility = getTeamsSyncEligibility(mapping.sheet_name, detectedHeaders)
+  if (!eligibility.allowed) {
+    console.warn(
+      `[Sync] syncTeams: Skipping sheet "${mapping.sheet_name}" — ${eligibility.reason}`
+    )
+    return {
+      success: true,
+      recordsProcessed: 0,
+      errors: [],
+    }
+  }
+
   let rows: any[] = []
   
   try {
@@ -182,7 +199,6 @@ async function syncTeams(sheet: any, supabase: any, mapping: SheetMapping): Prom
     }
   }
 
-  const detectedHeaders = sheet.headerValues || []
   if (shouldUseDataTabTeamParser(mapping.sheet_name, detectedHeaders)) {
     return syncTeamsFromDataTab(rows, detectedHeaders, supabase)
   }
@@ -264,19 +280,17 @@ async function syncTeams(sheet: any, supabase: any, mapping: SheetMapping): Prom
         // Upsert AI-parsed teams
         for (const teamData of aiResult.teams) {
           try {
-            const { error } = await supabase.from("teams").upsert(
-              {
-                name: teamData.name,
-                coach_name: teamData.coach_name,
-                division: teamData.division,
-                conference: teamData.conference,
-                wins: teamData.wins,
-                losses: teamData.losses,
-                differential: teamData.differential,
-                strength_of_schedule: teamData.strength_of_schedule,
-              },
-              { onConflict: "name" }
-            )
+            const payload = withTeamPlaceholders({
+              name: teamData.name,
+              coach_name: teamData.coach_name,
+              division: teamData.division,
+              conference: teamData.conference,
+              wins: teamData.wins,
+              losses: teamData.losses,
+              differential: teamData.differential,
+              strength_of_schedule: teamData.strength_of_schedule,
+            })
+            const { error } = await supabase.from("teams").upsert(payload, { onConflict: "name" })
             
             if (error) {
               errors.push(`Team ${teamData.name}: ${error.message}`)
@@ -510,8 +524,8 @@ async function syncTeams(sheet: any, supabase: any, mapping: SheetMapping): Prom
         continue
       }
 
-      // Upsert team
-      const { error, data } = await supabase.from("teams").upsert(teamData, { onConflict: "name" })
+      const payload = withTeamPlaceholders(teamData)
+      const { error } = await supabase.from("teams").upsert(payload, { onConflict: "name" })
 
       if (error) {
         console.error(`[Sync] syncTeams: Error upserting team "${teamData.name}":`, error.message)

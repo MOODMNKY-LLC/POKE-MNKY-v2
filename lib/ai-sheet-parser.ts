@@ -22,8 +22,8 @@ const ParsedTeamDataSchema = z.object({
   differential: z.number().int().default(0),
   strength_of_schedule: z.number().default(0),
   confidence: z.number().min(0).max(1),
-  inferred_fields: z.array(z.string()).optional(),
-  warnings: z.array(z.string()).optional(),
+  inferred_fields: z.array(z.string()).nullable(),
+  warnings: z.array(z.string()).nullable(),
 })
 
 export type ParsedTeamData = z.infer<typeof ParsedTeamDataSchema>
@@ -31,7 +31,7 @@ export type ParsedTeamData = z.infer<typeof ParsedTeamDataSchema>
 // Schema for the response containing teams array
 const ParsedTeamsResponseSchema = z.object({
   teams: z.array(ParsedTeamDataSchema),
-  errors: z.array(z.string()).optional(),
+  errors: z.array(z.string()).nullable(),
 })
 
 // Zod schema for parsed match data
@@ -45,8 +45,8 @@ const ParsedMatchDataSchema = z.object({
   differential: z.number().int(),
   status: z.enum(["completed", "scheduled"]),
   confidence: z.number().min(0).max(1),
-  inferred_fields: z.array(z.string()).optional(),
-  warnings: z.array(z.string()).optional(),
+  inferred_fields: z.array(z.string()).nullable(),
+  warnings: z.array(z.string()).nullable(),
 })
 
 export type ParsedMatchData = z.infer<typeof ParsedMatchDataSchema>
@@ -54,7 +54,7 @@ export type ParsedMatchData = z.infer<typeof ParsedMatchDataSchema>
 // Schema for the response containing matches array
 const ParsedMatchesResponseSchema = z.object({
   matches: z.array(ParsedMatchDataSchema),
-  errors: z.array(z.string()).optional(),
+  errors: z.array(z.string()).nullable(),
 })
 
 /**

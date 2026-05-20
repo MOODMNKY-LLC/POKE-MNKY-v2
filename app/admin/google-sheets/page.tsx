@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
+import { isRecommendedTeamsSyncSheet } from "@/lib/google-sheets-sheet-policy"
 import { createBrowserClient } from "@/lib/supabase/client"
 import { AdminLayout } from "@/components/admin/admin-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -68,6 +69,19 @@ interface SheetMapping {
   column_mapping?: Record<string, string>
 }
 
+function mappingToDisplayRow(m: SheetMapping): DetectedSheet {
+  return {
+    sheet_name: m.sheet_name,
+    sheet_index: 0,
+    headers: [],
+    row_count: 0,
+    suggested_table: m.table_name,
+    confidence: 1,
+    column_mapping: m.column_mapping || {},
+    range: m.range || "A1:Z1000",
+  }
+}
+
 export default function GoogleSheetsConfigPage() {
   const [config, setConfig] = useState<GoogleSheetsConfig>({
     spreadsheet_id: "",
@@ -95,6 +109,91 @@ export default function GoogleSheetsConfigPage() {
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [expandedSheet, setExpandedSheet] = useState<string | null>(null) // For manual configuration
+
+  const enabledMappingCount = mappings.filter((m) => m.enabled).length
+
+  const displaySheets = useMemo(() => {
+    const byName = new Map<string, DetectedSheet>()
+    for (const sheet of detectedSheets) {
+      byName.set(sheet.sheet_name, sheet)
+    }
+    for (const m of mappings) {
+      if (!byName.has(m.sheet_name)) {
+        byName.set(m.sheet_name, mappingToDisplayRow(m))
+      }
+    }
+    return Array.from(byName.values())
+  }, [detectedSheets, mappings])
+
+  const allDisplayEnabled =
+    displaySheets.length > 0 &&
+    displaySheets.every(
+      (sheet) => mappings.find((m) => m.sheet_name === sheet.sheet_name)?.enabled
+    )
+
+  const setAllSheetsEnabled = useCallback(
+    (enabled: boolean) => {
+      setMappings((prev) => {
+        const next = [...prev]
+        for (const sheet of displaySheets) {
+          const existingIndex = next.findIndex((m) => m.sheet_name === sheet.sheet_name)
+          if (existingIndex >= 0) {
+            next[existingIndex] = { ...next[existingIndex], enabled }
+          } else if (enabled) {
+            next.push({
+              sheet_name: sheet.sheet_name,
+              table_name:
+                sheet.suggested_table ||
+                (isRecommendedTeamsSyncSheet(sheet.sheet_name) ? "teams" : ""),
+              range: sheet.range,
+              enabled: true,
+              sync_order: next.length + 1,
+              column_mapping: sheet.column_mapping || {},
+            })
+          }
+        }
+        return next
+      })
+    },
+    [displaySheets]
+  )
+
+  const setRecommendedSheetsEnabled = useCallback(() => {
+    setMappings((prev) => {
+      const next = prev.map((m) => ({ ...m, enabled: false }))
+      for (const sheet of displaySheets) {
+        if (!isRecommendedTeamsSyncSheet(sheet.sheet_name)) continue
+        const existingIndex = next.findIndex((m) => m.sheet_name === sheet.sheet_name)
+        if (existingIndex >= 0) {
+          next[existingIndex] = {
+            ...next[existingIndex],
+            enabled: true,
+            table_name: next[existingIndex].table_name || "teams",
+          }
+        } else {
+          next.push({
+            sheet_name: sheet.sheet_name,
+            table_name: "teams",
+            range: sheet.range,
+            enabled: true,
+            sync_order: next.length + 1,
+            column_mapping: sheet.column_mapping || {},
+          })
+        }
+      }
+      return next
+    })
+  }, [displaySheets])
+
+  const syncDisabledReason = !parsedSpreadsheetId
+    ? "Enter a valid spreadsheet URL first"
+    : !config.id
+      ? "Save configuration first"
+      : credentialsConfigured === false
+        ? "Google service account credentials are not configured"
+        : enabledMappingCount === 0
+          ? "Enable at least one sheet to sync"
+          : null
 
   useEffect(() => {
     loadConfig()
@@ -513,7 +612,7 @@ export default function GoogleSheetsConfigPage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {/* Quick Detect Button */}
                     <div className="space-y-2">
                       <Button 
@@ -564,32 +663,6 @@ export default function GoogleSheetsConfigPage() {
                       </div>
                     </div>
 
-                    {/* Sync Button */}
-                    {config.id && mappings.some(m => m.enabled) && (
-                      <div className="space-y-2">
-                        <Button 
-                          onClick={handleManualSync} 
-                          disabled={syncing || !config.id} 
-                          variant="default"
-                          className="w-full bg-primary"
-                        >
-                          {syncing ? (
-                            <>
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                              Syncing...
-                            </>
-                          ) : (
-                            <>
-                              <Download className="h-4 w-4 mr-2" />
-                              Sync Now
-                            </>
-                          )}
-                        </Button>
-                        <div className="text-xs text-muted-foreground px-1">
-                          Syncs enabled sheets to your database, including team data, matches, rosters, and images.
-                        </div>
-                      </div>
-                    )}
                   </div>
                 </div>
               )}
@@ -683,20 +756,79 @@ export default function GoogleSheetsConfigPage() {
               </Card>
             )}
 
-            {/* Detected Sheets */}
-            {detectedSheets.length > 0 && (
+            {/* Sync action — always visible when spreadsheet is set */}
+            {parsedSpreadsheetId && (
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-lg border bg-muted/30">
+                <div>
+                  <div className="font-semibold text-sm">Sync league data</div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {syncDisabledReason ??
+                      `${enabledMappingCount} sheet${enabledMappingCount === 1 ? "" : "s"} enabled for sync`}
+                  </p>
+                </div>
+                <Button
+                  onClick={handleManualSync}
+                  disabled={syncing || !!syncDisabledReason}
+                  variant="default"
+                  className="bg-primary shrink-0"
+                >
+                  {syncing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Syncing...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-4 w-4 mr-2" />
+                      Sync Now
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
+
+            {/* Detected / saved sheet mappings */}
+            {displaySheets.length > 0 && (
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                   <div>
-                    <Label className="text-base font-semibold">Detected Sheets</Label>
+                    <Label className="text-base font-semibold">Sheets to Sync</Label>
                     <div className="text-xs text-muted-foreground mt-1">
                       Configure which sheets to sync. Enable sheets containing team standings, draft results, match data, or team pages.
                     </div>
                   </div>
-                  <Badge variant="secondary">{detectedSheets.length} sheets found</Badge>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant="secondary">{displaySheets.length} sheet{displaySheets.length === 1 ? "" : "s"}</Badge>
+                    <Button
+                      type="button"
+                      variant="default"
+                      size="sm"
+                      onClick={setRecommendedSheetsEnabled}
+                    >
+                      Select recommended
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setAllSheetsEnabled(true)}
+                      disabled={allDisplayEnabled}
+                    >
+                      Select all
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setAllSheetsEnabled(false)}
+                      disabled={enabledMappingCount === 0}
+                    >
+                      Deselect all
+                    </Button>
+                  </div>
                 </div>
                 <div className="space-y-3">
-                  {detectedSheets.map((sheet, index) => {
+                  {displaySheets.map((sheet, index) => {
                     const mapping = mappings.find((m) => m.sheet_name === sheet.sheet_name)
                     return (
                       <Card key={index} className="border-2">
@@ -1073,7 +1205,7 @@ export default function GoogleSheetsConfigPage() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <Button onClick={handleSave} disabled={saving || !parsedSpreadsheetId}>
                   {saving ? (
                     <>
@@ -1087,25 +1219,27 @@ export default function GoogleSheetsConfigPage() {
                     </>
                   )}
                 </Button>
-                {config.id && mappings.some(m => m.enabled) && (
-                  <Button 
-                    onClick={handleManualSync} 
-                    disabled={syncing || !config.id || !parsedSpreadsheetId}
-                    variant="default"
-                    className="bg-primary"
-                  >
-                    {syncing ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Syncing League Data...
-                      </>
-                    ) : (
-                      <>
-                        <Download className="mr-2 h-4 w-4" />
-                        Sync Now
-                      </>
-                    )}
-                  </Button>
+                <Button
+                  onClick={handleManualSync}
+                  disabled={syncing || !!syncDisabledReason}
+                  variant="default"
+                  className="bg-primary"
+                  title={syncDisabledReason ?? undefined}
+                >
+                  {syncing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Syncing League Data...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="mr-2 h-4 w-4" />
+                      Sync Now
+                    </>
+                  )}
+                </Button>
+                {syncDisabledReason && (
+                  <span className="text-xs text-muted-foreground">{syncDisabledReason}</span>
                 )}
               </div>
             </div>
