@@ -63,6 +63,7 @@ export function LeagueTeamManagement() {
   const [generating, setGenerating] = useState(false)
   const [createOpen, setCreateOpen] = useState(false)
   const [editTeam, setEditTeam] = useState<LeagueTeamRow | null>(null)
+  const [editTeamOriginalNumber, setEditTeamOriginalNumber] = useState<number | null>(null)
   const [newTeamName, setNewTeamName] = useState("")
   const [newTeamNumber, setNewTeamNumber] = useState("")
   const [saving, setSaving] = useState(false)
@@ -114,16 +115,12 @@ export function LeagueTeamManagement() {
       const res = await fetch(`/api/admin/seasons/${seasonId}/generate-teams`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ overwrite_placement: false }),
+        body: JSON.stringify({ overwrite_placement: false, assign_slot_numbers: false }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? "Generate failed")
       toast.success(
-        `Generated ${data.teamsCreated} teams (${data.teamsSkipped} existing slots skipped)${
-          data.backfill?.updated
-            ? ` · backfilled ${data.backfill.updated} missing slot numbers`
-            : ""
-        }`
+        `Generated ${data.teamsCreated} team slots (${data.teamsSkipped} existing skipped). Draft order #s can be assigned later.`
       )
       await loadTeams()
     } catch (e) {
@@ -168,15 +165,19 @@ export function LeagueTeamManagement() {
       const res = await fetch(`/api/admin/seasons/${seasonId}/generate-teams`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ overwrite_placement: false, backfill_missing: true }),
+        body: JSON.stringify({
+          overwrite_placement: false,
+          assign_slot_numbers: false,
+          backfill_missing: true,
+        }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? "Backfill failed")
       const count = data.backfill?.updated ?? 0
       if (count === 0) {
-        toast.message("All teams already have slot numbers")
+        toast.message("All teams already have draft order numbers")
       } else {
-        toast.success(`Assigned slot numbers to ${count} team${count === 1 ? "" : "s"}`)
+        toast.success(`Assigned draft order #s to ${count} team${count === 1 ? "" : "s"}`)
       }
       await loadTeams()
     } catch (e) {
@@ -188,15 +189,35 @@ export function LeagueTeamManagement() {
 
   async function handleTeamNumberSave(teamId: string, rawValue: string) {
     const trimmed = rawValue.trim()
-    if (!trimmed) return
+    const current = teams.find((t) => t.id === teamId)
 
-    const parsed = Number(trimmed)
-    if (!Number.isInteger(parsed) || parsed < 1) {
-      toast.error("Team number must be a positive whole number")
+    if (!trimmed) {
+      if (current?.team_number == null) return
+      setSavingTeamNumberId(teamId)
+      try {
+        const res = await fetch(`/api/admin/teams/${teamId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ team_number: null }),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error ?? "Update failed")
+        toast.success("Draft order # cleared")
+        await loadTeams()
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Update failed")
+      } finally {
+        setSavingTeamNumberId(null)
+      }
       return
     }
 
-    const current = teams.find((t) => t.id === teamId)
+    const parsed = Number(trimmed)
+    if (!Number.isInteger(parsed) || parsed < 1) {
+      toast.error("Draft order # must be a positive whole number")
+      return
+    }
+
     if (current?.team_number === parsed) return
 
     setSavingTeamNumberId(teamId)
@@ -208,7 +229,7 @@ export function LeagueTeamManagement() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? "Update failed")
-      toast.success(`Slot #${parsed} saved`)
+      toast.success(`Draft order #${parsed} saved`)
       await loadTeams()
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Update failed")
@@ -221,17 +242,21 @@ export function LeagueTeamManagement() {
     if (!editTeam) return
     setSaving(true)
     try {
+      const payload: Record<string, unknown> = {
+        name: editTeam.name,
+        is_active: editTeam.is_active,
+        claimable: editTeam.claimable,
+        conference: editTeam.conference,
+        division: editTeam.division,
+      }
+      if (editTeam.team_number !== editTeamOriginalNumber) {
+        payload.team_number = editTeam.team_number
+      }
+
       const res = await fetch(`/api/admin/teams/${editTeam.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: editTeam.name,
-          team_number: editTeam.team_number ?? undefined,
-          is_active: editTeam.is_active,
-          claimable: editTeam.claimable,
-          conference: editTeam.conference,
-          division: editTeam.division,
-        }),
+        body: JSON.stringify(payload),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? "Update failed")
@@ -253,8 +278,8 @@ export function LeagueTeamManagement() {
             <div>
               <CardTitle>League teams</CardTitle>
               <CardDescription>
-                Official season team slots — create, edit, and generate from season structure.
-                Coach assignment stays explicit in Coach Assignment below.
+                Official season team slots — create and edit teams before draft order is set.
+                Assign draft order #s when ready; conference and division follow from slot number.
               </CardDescription>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -283,7 +308,7 @@ export function LeagueTeamManagement() {
                 {backfilling ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  "Assign #s"
+                  "Assign draft order"
                 )}
               </Button>
               <Button
@@ -329,7 +354,7 @@ export function LeagueTeamManagement() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>#</TableHead>
+                  <TableHead>Draft #</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Conference</TableHead>
                   <TableHead>Division</TableHead>
@@ -349,7 +374,7 @@ export function LeagueTeamManagement() {
                         defaultValue={team.team_number ?? ""}
                         key={`${team.id}-${team.team_number ?? "empty"}`}
                         disabled={savingTeamNumberId === team.id}
-                        placeholder="—"
+                        placeholder="TBD"
                         onBlur={(e) => handleTeamNumberSave(team.id, e.target.value)}
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
@@ -386,7 +411,14 @@ export function LeagueTeamManagement() {
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" onClick={() => setEditTeam(team)}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setEditTeamOriginalNumber(team.team_number)
+                          setEditTeam(team)
+                        }}
+                      >
                         Edit
                       </Button>
                     </TableCell>
@@ -404,7 +436,8 @@ export function LeagueTeamManagement() {
             <DialogHeader>
               <DialogTitle>Add league team</DialogTitle>
               <DialogDescription>
-                Conference and division are computed from the slot number and season structure.
+                Add a team without a draft order # if order is not set yet. Conference and division
+                are assigned when you set a draft order # later.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -419,14 +452,14 @@ export function LeagueTeamManagement() {
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="team-num">Slot number (optional)</Label>
+                <Label htmlFor="team-num">Draft order # (optional)</Label>
                 <Input
                   id="team-num"
                   type="number"
                   min={1}
                   value={newTeamNumber}
                   onChange={(e) => setNewTeamNumber(e.target.value)}
-                  placeholder="Auto if empty"
+                  placeholder="Leave blank until draft order is set"
                 />
               </div>
             </div>
@@ -446,14 +479,14 @@ export function LeagueTeamManagement() {
               <DialogHeader>
                 <DialogTitle>Edit {editTeam.name}</DialogTitle>
                 <DialogDescription>
-                  Change slot number, visibility, and metadata. Conference and division update
-                  automatically when you change the slot number. Use Coach Assignment to link
-                  coaches.
+                  Change draft order #, visibility, and metadata. Leave draft # blank until order is
+                  determined — conference and division update when a # is assigned. Use Coach
+                  Assignment to link coaches.
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
-                  <Label>Slot number</Label>
+                  <Label>Draft order #</Label>
                   <Input
                     type="number"
                     min={1}
@@ -464,7 +497,7 @@ export function LeagueTeamManagement() {
                         team_number: e.target.value ? Number(e.target.value) : null,
                       })
                     }
-                    placeholder="Assign slot #"
+                    placeholder="TBD until draft order is set"
                   />
                 </div>
                 <div className="grid gap-2">

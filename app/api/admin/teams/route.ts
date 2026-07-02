@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
         "id, name, team_number, coach_name, coach_id, season_id, division, conference, division_id, is_active, claimable, wins, losses, logo_url, avatar_url"
       )
       .eq("season_id", seasonId)
-      .order("team_number", { ascending: true, nullsFirst: false })
+      .order("team_number", { ascending: true, nullsFirst: true })
       .order("name", { ascending: true })
 
     if (error) {

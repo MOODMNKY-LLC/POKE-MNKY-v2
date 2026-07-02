@@ -34,11 +34,13 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     const body = await request.json().catch(() => ({}))
     const overwritePlacement = Boolean(body?.overwrite_placement)
-    const backfillMissing = body?.backfill_missing !== false
+    const assignSlotNumbers = Boolean(body?.assign_slot_numbers)
+    const backfillMissing = Boolean(body?.backfill_missing)
 
     const service = createServiceRoleClient()
     const result = await generateLeagueTeamsForSeason(service, seasonId, {
       overwritePlacement,
+      assignSlotNumbers,
     })
 
     let backfill = { updated: 0, skipped: 0 }
