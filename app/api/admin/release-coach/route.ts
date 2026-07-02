@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase/server"
 import { createServiceRoleClient } from "@/lib/supabase/service"
 import { releaseCoachFromTeam } from "@/lib/coach-assignment"
+import { requireAdminOrCommissioner } from "@/lib/admin-api-auth"
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,26 +21,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const service = createServiceRoleClient()
-    const { data: profile } = await service
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single()
-
-    const { data: adminUser } = await service
-      .from("admin_users")
-      .select("user_id")
-      .eq("user_id", user.id)
-      .single()
-
-    const hasAccess =
-      profile?.role === "admin" ||
-      profile?.role === "commissioner" ||
-      !!adminUser
-
-    if (!hasAccess) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    const gate = await requireAdminOrCommissioner(user.id)
+    if ("error" in gate) {
+      return NextResponse.json({ error: gate.error }, { status: gate.status })
     }
 
     const body = await request.json()
@@ -56,6 +40,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: result.message }, { status: 400 })
     }
 
+    const service = createServiceRoleClient()
     await service.from("user_activity_log").insert({
       user_id: user.id,
       action: "admin_released_coach",

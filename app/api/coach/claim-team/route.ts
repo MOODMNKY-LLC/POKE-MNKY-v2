@@ -9,6 +9,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service"
 import { assignCoachToTeam } from "@/lib/coach-assignment"
 import { resolveCoachTeamForSeason } from "@/lib/coach-team-context"
 import { syncAppRoleToDiscord } from "@/lib/discord-role-sync"
+import { resolveLeagueAdminAccess } from "@/lib/admin-api-auth"
 
 export async function POST(request: NextRequest) {
   try {
@@ -79,7 +80,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (profile.role !== "coach" && profile.role !== "admin" && profile.role !== "commissioner") {
+    const adminAccess = await resolveLeagueAdminAccess(user.id)
+    const shouldPromoteToCoach =
+      !adminAccess.allowed &&
+      profile.role !== "coach" &&
+      profile.role !== "admin" &&
+      profile.role !== "commissioner"
+
+    if (shouldPromoteToCoach) {
       const { error: roleError } = await service
         .from("profiles")
         .update({ role: "coach" })
@@ -100,7 +108,12 @@ export async function POST(request: NextRequest) {
     }
 
     let discordSynced = false
-    if (profile.discord_id && process.env.DISCORD_BOT_TOKEN && process.env.DISCORD_GUILD_ID) {
+    if (
+      profile.discord_id &&
+      process.env.DISCORD_BOT_TOKEN &&
+      process.env.DISCORD_GUILD_ID &&
+      !adminAccess.allowed
+    ) {
       try {
         const syncResult = await syncAppRoleToDiscord(profile.discord_id, "coach", user.id)
         discordSynced = syncResult.success

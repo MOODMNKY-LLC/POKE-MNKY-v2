@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -69,42 +69,108 @@ export function LeagueTeamManagement() {
   const [saving, setSaving] = useState(false)
   const [backfilling, setBackfilling] = useState(false)
   const [savingTeamNumberId, setSavingTeamNumberId] = useState<string | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const skipSeasonTeamsEffectRef = useRef(true)
 
-  const loadSeasons = useCallback(async () => {
+  const fetchSeasons = useCallback(async (): Promise<SeasonOption[]> => {
     const res = await fetch("/api/admin/seasons")
     const data = await res.json()
     if (!res.ok) throw new Error(data.error ?? "Failed to load seasons")
-    const list: SeasonOption[] = data.seasons ?? []
-    setSeasons(list)
-    if (!seasonId && list.length > 0) {
-      const current = list.find((s) => s.is_current) ?? list[0]
-      setSeasonId(current.id)
-    }
-  }, [seasonId])
+    return data.seasons ?? []
+  }, [])
+
+  const fetchTeamsForSeason = useCallback(async (activeSeasonId: string): Promise<LeagueTeamRow[]> => {
+    const res = await fetch(
+      `/api/admin/teams?season_id=${encodeURIComponent(activeSeasonId)}`
+    )
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error ?? "Failed to load teams")
+    return data.teams ?? []
+  }, [])
+
+  const resolveSeasonId = useCallback(
+    (list: SeasonOption[], preferred?: string) => {
+      if (preferred && list.some((s) => s.id === preferred)) return preferred
+      return list.find((s) => s.is_current)?.id ?? list[0]?.id ?? ""
+    },
+    []
+  )
 
   const loadTeams = useCallback(async () => {
-    if (!seasonId) return
+    if (!seasonId) {
+      setTeams([])
+      setLoading(false)
+      return
+    }
     setLoading(true)
+    setLoadError(null)
     try {
-      const res = await fetch(`/api/admin/teams?season_id=${encodeURIComponent(seasonId)}`)
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? "Failed to load teams")
-      setTeams(data.teams ?? [])
+      setTeams(await fetchTeamsForSeason(seasonId))
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to load teams")
+      const message = e instanceof Error ? e.message : "Failed to load teams"
+      setLoadError(message)
+      toast.error(message)
       setTeams([])
     } finally {
       setLoading(false)
     }
-  }, [seasonId])
+  }, [fetchTeamsForSeason, seasonId])
+
+  const refreshAll = useCallback(async () => {
+    setLoading(true)
+    setLoadError(null)
+    try {
+      const list = await fetchSeasons()
+      setSeasons(list)
+      const activeSeasonId = resolveSeasonId(list, seasonId)
+      if (activeSeasonId !== seasonId) {
+        setSeasonId(activeSeasonId)
+      }
+      if (!activeSeasonId) {
+        setTeams([])
+        return
+      }
+      setTeams(await fetchTeamsForSeason(activeSeasonId))
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Failed to load league teams"
+      setLoadError(message)
+      toast.error(message)
+      setTeams([])
+    } finally {
+      setLoading(false)
+    }
+  }, [fetchSeasons, fetchTeamsForSeason, resolveSeasonId, seasonId])
 
   useEffect(() => {
-    loadSeasons().catch((e) => toast.error(e.message))
-  }, [loadSeasons])
+    void (async () => {
+      setLoading(true)
+      setLoadError(null)
+      try {
+        const list = await fetchSeasons()
+        setSeasons(list)
+        const activeSeasonId = resolveSeasonId(list)
+        if (activeSeasonId) {
+          setSeasonId(activeSeasonId)
+          setTeams(await fetchTeamsForSeason(activeSeasonId))
+        } else {
+          setTeams([])
+        }
+      } catch (e) {
+        const message = e instanceof Error ? e.message : "Failed to load league teams"
+        setLoadError(message)
+        toast.error(message)
+        setTeams([])
+      } finally {
+        setLoading(false)
+        skipSeasonTeamsEffectRef.current = false
+      }
+    })()
+  }, [fetchSeasons, fetchTeamsForSeason, resolveSeasonId])
 
   useEffect(() => {
-    if (seasonId) loadTeams()
-  }, [seasonId, loadTeams])
+    if (skipSeasonTeamsEffectRef.current || !seasonId) return
+    void loadTeams()
+  }, [loadTeams, seasonId])
 
   const selectedSeason = seasons.find((s) => s.id === seasonId)
 
@@ -296,7 +362,7 @@ export function LeagueTeamManagement() {
                   ))}
                 </SelectContent>
               </Select>
-              <Button variant="outline" size="sm" onClick={() => loadTeams()} disabled={loading}>
+              <Button variant="outline" size="sm" onClick={() => refreshAll()} disabled={loading}>
                 <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
               </Button>
               <Button
@@ -341,7 +407,9 @@ export function LeagueTeamManagement() {
           )}
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {loadError && !loading ? (
+            <div className="py-8 text-center text-sm text-destructive">{loadError}</div>
+          ) : loading ? (
             <div className="flex items-center gap-2 py-8 text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
               Loading teams…
