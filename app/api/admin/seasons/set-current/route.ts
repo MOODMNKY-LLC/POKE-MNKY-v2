@@ -3,13 +3,13 @@
  *
  * POST /api/admin/seasons/set-current
  * Body: { season_id: string } (UUID of the season to set as current)
- *
- * Sets is_current = false for all seasons, then is_current = true for the given season.
- * Caller must be authenticated; RLS (admin writes seasons) restricts updates to admins.
  */
 
 import { NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase/server"
+import { createServiceRoleClient } from "@/lib/supabase/service"
+import { requireAdminOrCommissioner } from "@/lib/admin-api-auth"
+import { logActivity } from "@/lib/rbac"
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,6 +23,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const gate = await requireAdminOrCommissioner(user.id)
+    if ("error" in gate) {
+      return NextResponse.json({ error: gate.error }, { status: gate.status })
+    }
+
     const body = await request.json().catch(() => ({}))
     const seasonId = typeof body?.season_id === "string" ? body.season_id.trim() : null
 
@@ -33,10 +38,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Ensure exactly one season is current: clear all, then set the selected one
-    const { error: clearError } = await supabase
+    const service = createServiceRoleClient()
+
+    const { error: clearError } = await service
       .from("seasons")
       .update({ is_current: false })
+      .eq("is_current", true)
 
     if (clearError) {
       return NextResponse.json(
@@ -45,7 +52,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await service
       .from("seasons")
       .update({ is_current: true })
       .eq("id", seasonId)
@@ -65,6 +72,12 @@ export async function POST(request: NextRequest) {
         { status: 404 }
       )
     }
+
+    await logActivity(supabase, user.id, "admin_set_current_season", {
+      resource_type: "season",
+      resource_id: seasonId,
+      season_name: data.name,
+    })
 
     return NextResponse.json({
       success: true,
