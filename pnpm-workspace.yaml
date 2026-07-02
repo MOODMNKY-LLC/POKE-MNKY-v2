@@ -1,6 +1,6 @@
 allowBuilds:
   '@tailwindcss/oxide': true
   esbuild: true
-  libpq: true
+  libpq: false
   msw: true
   sharp: true

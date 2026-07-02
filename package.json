@@ -129,7 +129,6 @@
     "openapi-fetch": "^0.12.4",
     "openclaw-node": "^0.9.0",
     "pg": "^8.16.3",
-    "pg-native": "latest",
     "pokenode-ts": "^1.20.0",
     "radix-ui": "^1.4.3",
     "react": "19.2.0",
@@ -173,8 +172,5 @@
     "typescript": "^5.9.3",
     "vite-tsconfig-paths": "^5.1.2",
     "vitest": "^3.2.4"
-  },
-  "trustedDependencies": [
-    "pg-native"
-  ]
+  }
 }
