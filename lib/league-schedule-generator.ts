@@ -1,7 +1,7 @@
 /**
  * Priority-based regular season schedule:
  * divisional → conference → cross-conference; byes only when a team has no slot that week.
- * Each pair plays at most once.
+ * Each pair plays at most once. Each team has at most one bye week when placement allows.
  */
 
 export type MatchPriority = "divisional" | "conference" | "cross_conference"
@@ -31,6 +31,7 @@ export type ScheduleGenerationResult = {
     conference: number
     crossConference: number
     byeWeeks: number
+    maxByesPerTeam: number
   }
 }
 
@@ -73,9 +74,54 @@ export function buildPrioritizedMatchups(teams: TeamForSchedule[]): PrioritizedM
   )
 }
 
+/** Weeks before `weekIndex` (0-based) where the team has no scheduled match yet. */
+export function countPriorByes(
+  teamId: string,
+  weekIndex: number,
+  weekBusy: Set<string>[]
+): number {
+  let byes = 0
+  for (let k = 0; k < weekIndex; k++) {
+    if (!weekBusy[k].has(teamId)) byes++
+  }
+  return byes
+}
+
+/** Total bye weeks for a team across the full regular season. */
+export function countTotalByes(
+  teamId: string,
+  regularSeasonWeeks: number,
+  weekBusy: Set<string>[]
+): number {
+  return countPriorByes(teamId, regularSeasonWeeks, weekBusy)
+}
+
+function canScheduleMatchupInWeek(
+  matchup: PrioritizedMatchup,
+  weekIndex: number,
+  weekBusy: Set<string>[]
+): boolean {
+  return (
+    !weekBusy[weekIndex].has(matchup.team1Id) &&
+    !weekBusy[weekIndex].has(matchup.team2Id)
+  )
+}
+
+function scheduleMatchupInWeek(
+  matchup: PrioritizedMatchup,
+  weekIndex: number,
+  weekBusy: Set<string>[],
+  matches: ScheduledMatch[]
+): void {
+  matches.push({ ...matchup, week: weekIndex + 1 })
+  weekBusy[weekIndex].add(matchup.team1Id)
+  weekBusy[weekIndex].add(matchup.team2Id)
+}
+
 /**
- * Place each matchup in the earliest week both teams are free.
- * Higher-priority matchups claim earlier weeks first.
+ * Fill the calendar week-by-week. Teams may skip at most one week (one bye).
+ * After a team has had a bye, it must be scheduled whenever an opponent is available.
+ * Within each week, higher-priority matchups are scheduled first.
  */
 export function assignMatchupsToWeeks(
   matchups: PrioritizedMatchup[],
@@ -91,28 +137,53 @@ export function assignMatchupsToWeeks(
     () => new Set<string>()
   )
   const matches: ScheduledMatch[] = []
-  const unscheduled: PrioritizedMatchup[] = []
+  const pending = [...matchups]
+  const byeUsed = new Map(teamIds.map((id) => [id, false]))
 
-  for (const matchup of matchups) {
-    let placed = false
-    for (let w = 0; w < regularSeasonWeeks; w++) {
-      if (
-        !weekBusy[w].has(matchup.team1Id) &&
-        !weekBusy[w].has(matchup.team2Id)
-      ) {
-        matches.push({ ...matchup, week: w + 1 })
-        weekBusy[w].add(matchup.team1Id)
-        weekBusy[w].add(matchup.team2Id)
-        placed = true
-        break
+  for (let w = 0; w < regularSeasonWeeks; w++) {
+    let progress = true
+    while (progress) {
+      progress = false
+
+      for (const teamId of teamIds) {
+        if (!byeUsed.get(teamId) || weekBusy[w].has(teamId)) continue
+
+        const mustPlayIdx = pending.findIndex(
+          (matchup) =>
+            (matchup.team1Id === teamId || matchup.team2Id === teamId) &&
+            canScheduleMatchupInWeek(matchup, w, weekBusy)
+        )
+        if (mustPlayIdx >= 0) {
+          const [matchup] = pending.splice(mustPlayIdx, 1)
+          scheduleMatchupInWeek(matchup, w, weekBusy, matches)
+          progress = true
+        }
+      }
+
+      const nextIdx = pending.findIndex((matchup) =>
+        canScheduleMatchupInWeek(matchup, w, weekBusy)
+      )
+      if (nextIdx >= 0) {
+        const [matchup] = pending.splice(nextIdx, 1)
+        scheduleMatchupInWeek(matchup, w, weekBusy, matches)
+        progress = true
       }
     }
-    if (!placed) {
-      unscheduled.push(matchup)
+
+    for (const teamId of teamIds) {
+      if (weekBusy[w].has(teamId)) continue
+      if (!byeUsed.get(teamId)) {
+        byeUsed.set(teamId, true)
+      }
     }
   }
 
   const byesByWeek: Record<number, string[]> = {}
+  const byesPerTeam: Record<string, number> = {}
+  for (const teamId of teamIds) {
+    byesPerTeam[teamId] = countTotalByes(teamId, regularSeasonWeeks, weekBusy)
+  }
+
   let byeWeeks = 0
   for (let w = 0; w < regularSeasonWeeks; w++) {
     const busy = weekBusy[w]
@@ -128,9 +199,12 @@ export function assignMatchupsToWeeks(
     conference: matches.filter((m) => m.priority === "conference").length,
     crossConference: matches.filter((m) => m.priority === "cross_conference").length,
     byeWeeks,
+    maxByesPerTeam: teamIds.length
+      ? Math.max(...teamIds.map((id) => byesPerTeam[id] ?? 0))
+      : 0,
   }
 
-  return { matches, unscheduled, byesByWeek, stats }
+  return { matches, unscheduled: pending, byesByWeek, stats }
 }
 
 export function generatePrioritySchedule(

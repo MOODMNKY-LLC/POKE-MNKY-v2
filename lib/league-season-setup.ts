@@ -35,6 +35,7 @@ export type GenerateScheduleResult = {
     conference: number
     crossConference: number
     byeWeeks: number
+    maxByesPerTeam: number
   }
 }
 
