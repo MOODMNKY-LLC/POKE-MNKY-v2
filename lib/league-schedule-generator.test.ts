@@ -3,6 +3,7 @@ import {
   assignMatchupsToWeeks,
   buildPrioritizedMatchups,
   classifyMatchup,
+  countTotalByes,
   generatePrioritySchedule,
 } from "@/lib/league-schedule-generator"
 
@@ -53,5 +54,29 @@ describe("league-schedule-generator", () => {
     const result = assignMatchupsToWeeks(matchups, teams.map((t) => t.id), 4)
     const divisional = result.matches.find((m) => m.priority === "divisional")
     expect(divisional?.week).toBe(1)
+  })
+
+  it("gives each team at most one bye week when possible", () => {
+    const twelveTeams = Array.from({ length: 12 }, (_, i) => ({
+      id: `t${i}`,
+      conferenceId: i < 6 ? "c1" : "c2",
+      divisionId: i < 3 ? "d1" : i < 6 ? "d2" : i < 9 ? "d3" : "d4",
+    }))
+    const result = generatePrioritySchedule(twelveTeams, 10)
+    expect(result.stats.maxByesPerTeam).toBeLessThanOrEqual(1)
+
+    const weekBusy: Set<string>[] = Array.from({ length: 10 }, () => new Set<string>())
+    for (const match of result.matches) {
+      weekBusy[match.week - 1].add(match.team1Id)
+      weekBusy[match.week - 1].add(match.team2Id)
+    }
+    for (const team of twelveTeams) {
+      expect(countTotalByes(team.id, 10, weekBusy)).toBeLessThanOrEqual(1)
+    }
+  })
+
+  it("limits byes for smaller leagues when the calendar allows", () => {
+    const result = generatePrioritySchedule(teams, 4)
+    expect(result.stats.maxByesPerTeam).toBeLessThanOrEqual(1)
   })
 })
