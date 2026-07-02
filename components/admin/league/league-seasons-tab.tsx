@@ -24,6 +24,9 @@ interface SeasonRow {
   is_current: boolean
   start_date?: string | null
   end_date?: string | null
+  conference_count?: number | null
+  division_count?: number | null
+  team_slot_count?: number | null
 }
 
 export function LeagueSeasonsTab() {
@@ -47,7 +50,9 @@ export function LeagueSeasonsTab() {
     try {
       const { data, error } = await supabase
         .from("seasons")
-        .select("id, name, season_id, is_current, start_date, end_date")
+        .select(
+          "id, name, season_id, is_current, start_date, end_date, conference_count, division_count, team_slot_count"
+        )
         .order("start_date", { ascending: false })
       if (error) throw error
       setSeasons((data as SeasonRow[]) ?? [])
@@ -168,6 +173,7 @@ export function LeagueSeasonsTab() {
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Season ID</TableHead>
+                <TableHead>Structure</TableHead>
                 <TableHead>Start</TableHead>
                 <TableHead>End</TableHead>
                 <TableHead>Status</TableHead>
@@ -177,8 +183,8 @@ export function LeagueSeasonsTab() {
             <TableBody>
               {seasons.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                    No seasons found. Create a season from Admin → Pokémon Catalog.
+                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                    No seasons found. Create a season from this tab.
                   </TableCell>
                 </TableRow>
               ) : (
@@ -186,6 +192,10 @@ export function LeagueSeasonsTab() {
                   <TableRow key={season.id}>
                     <TableCell className="font-medium">{season.name}</TableCell>
                     <TableCell className="font-mono text-sm">{season.season_id ?? "—"}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {season.conference_count ?? 2}c · {season.division_count ?? 4}d ·{" "}
+                      {season.team_slot_count ?? "—"} slots
+                    </TableCell>
                     <TableCell>{season.start_date ?? "—"}</TableCell>
                     <TableCell>{season.end_date ?? "—"}</TableCell>
                     <TableCell>

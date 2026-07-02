@@ -35,9 +35,12 @@ export async function GET() {
 
   const { data: teams, error } = await supabase
     .from("teams")
-    .select("id, name, division, conference, logo_url, avatar_url, coach_id")
+    .select("id, name, team_number, division, conference, logo_url, avatar_url, coach_id")
     .eq("season_id", season.id)
+    .eq("is_active", true)
+    .eq("claimable", true)
     .is("coach_id", null)
+    .order("team_number", { ascending: true, nullsFirst: false })
     .order("name", { ascending: true })
 
   if (error) {

@@ -23,8 +23,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Profile not found" }, { status: 404 })
   }
 
-  if (profile.role !== "coach") {
-    return NextResponse.json({ error: "Only coaches can set current team" }, { status: 403 })
+  if (
+    profile.role !== "coach" &&
+    profile.role !== "admin" &&
+    profile.role !== "commissioner"
+  ) {
+    return NextResponse.json({ error: "Coach access required" }, { status: 403 })
   }
 
   const body = await request.json().catch(() => ({}))

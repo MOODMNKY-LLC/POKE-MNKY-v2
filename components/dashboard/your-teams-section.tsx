@@ -118,12 +118,12 @@ export function YourTeamsSection() {
             Your teams
           </CardTitle>
           <CardDescription className="text-xs">
-            No league team linked yet. Claim the team that matches your Discord or commissioner assignment.
+            No league team linked yet. Link the team that matches your Discord or commissioner assignment.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Button asChild size="sm">
-            <Link href="/dashboard/claim-team">Claim your team</Link>
+            <Link href="/dashboard/league-team?claim=1">Link league team</Link>
           </Button>
         </CardContent>
       </Card>

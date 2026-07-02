@@ -34,7 +34,7 @@ export const ONBOARDING_CHECKLIST: OnboardingChecklistItem[] = [
   {
     id: "team_linked",
     title: "Team linked",
-    description: "Use Claim your team to pick the correct open slot — required for draft board and the assistant.",
+    description: "Link your league team under Dashboard → League team — required for draft board and the assistant.",
   },
   {
     id: "team_builder_intro",

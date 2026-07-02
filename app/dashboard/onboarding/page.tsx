@@ -249,8 +249,8 @@ export default function CoachOnboardingPage() {
                 )}
                 {currentVisibleStepId === "team_linked" && (
                   <p className="text-sm text-muted-foreground">
-                    Claim your league team explicitly (no auto-assign). Once linked, the dashboard and draft
-                    assistant use your team from Supabase.
+                    Link your league team explicitly from League team (no auto-assign). Once linked,
+                    the dashboard and draft assistant use your team from Supabase.
                   </p>
                 )}
                 {currentVisibleStepId === "team_builder_intro" && (
@@ -267,7 +267,7 @@ export default function CoachOnboardingPage() {
                 <div className="flex flex-wrap gap-2">
                   {currentVisibleStepId === "team_linked" && (
                     <Button asChild size="sm">
-                      <Link href="/dashboard/claim-team">Claim your team</Link>
+                      <Link href="/dashboard/league-team?claim=1">Link league team</Link>
                     </Button>
                   )}
                   {notionGuideUrl && (

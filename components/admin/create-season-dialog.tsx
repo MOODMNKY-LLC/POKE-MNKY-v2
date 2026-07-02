@@ -32,6 +32,10 @@ export function CreateSeasonDialog({
   const [startDate, setStartDate] = React.useState("")
   const [endDate, setEndDate] = React.useState("")
   const [setAsCurrent, setSetAsCurrent] = React.useState(true)
+  const [conferenceCount, setConferenceCount] = React.useState("2")
+  const [divisionCount, setDivisionCount] = React.useState("4")
+  const [teamSlotCount, setTeamSlotCount] = React.useState("12")
+  const [generateTeams, setGenerateTeams] = React.useState(true)
   const [submitting, setSubmitting] = React.useState(false)
 
   const reset = React.useCallback(() => {
@@ -40,6 +44,10 @@ export function CreateSeasonDialog({
     setStartDate(today)
     setEndDate("")
     setSetAsCurrent(true)
+    setConferenceCount("2")
+    setDivisionCount("4")
+    setTeamSlotCount("12")
+    setGenerateTeams(true)
   }, [])
 
   React.useEffect(() => {
@@ -61,13 +69,20 @@ export function CreateSeasonDialog({
           start_date: startDate || undefined,
           end_date: endDate.trim() || undefined,
           set_as_current: setAsCurrent,
+          conference_count: Number(conferenceCount) || 2,
+          division_count: Number(divisionCount) || 4,
+          team_slot_count: Number(teamSlotCount) || 12,
+          generate_teams: generateTeams,
         }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Failed to create season")
+      const gen = data.teamGeneration
       toast({
         title: "Season created",
-        description: `"${data.season?.name}" has been created${setAsCurrent ? " and set as current" : ""}.`,
+        description: `"${data.season?.name}" created${setAsCurrent ? " (current)" : ""}${
+          gen ? ` — ${gen.teamsCreated} team slots generated` : ""
+        }.`,
       })
       onOpenChange(false)
       onCreated?.()
@@ -84,12 +99,13 @@ export function CreateSeasonDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[480px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>Create Season</DialogTitle>
             <DialogDescription>
-              Add a new season. Name must be unique. Start date is required.
+              Define the season shell first: conferences, divisions, and team slots. Optionally
+              generate official league teams immediately.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -103,24 +119,78 @@ export function CreateSeasonDialog({
                 required
               />
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="season-start">Start date</Label>
-              <Input
-                id="season-start"
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                required
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-2">
+                <Label htmlFor="season-start">Start date</Label>
+                <Input
+                  id="season-start"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="season-end">End date (optional)</Label>
+                <Input
+                  id="season-end"
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                />
+              </div>
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="season-end">End date (optional)</Label>
-              <Input
-                id="season-end"
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="grid gap-2">
+                <Label htmlFor="conf-count">Conferences</Label>
+                <Input
+                  id="conf-count"
+                  type="number"
+                  min={1}
+                  max={8}
+                  value={conferenceCount}
+                  onChange={(e) => setConferenceCount(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="div-count">Divisions</Label>
+                <Input
+                  id="div-count"
+                  type="number"
+                  min={1}
+                  max={12}
+                  value={divisionCount}
+                  onChange={(e) => setDivisionCount(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="slot-count">Team slots</Label>
+                <Input
+                  id="slot-count"
+                  type="number"
+                  min={1}
+                  max={48}
+                  value={teamSlotCount}
+                  onChange={(e) => setTeamSlotCount(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Slot assignment: conference cycles by team number (odd/even for 2 conferences);
+              division cycles across division count (e.g. Team 1 → C1/D1, Team 2 → C2/D2).
+            </p>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="generate-teams"
+                checked={generateTeams}
+                onCheckedChange={(v) => setGenerateTeams(v === true)}
               />
+              <Label htmlFor="generate-teams" className="font-normal cursor-pointer">
+                Generate league team slots now
+              </Label>
             </div>
             <div className="flex items-center space-x-2">
               <Checkbox
@@ -146,7 +216,7 @@ export function CreateSeasonDialog({
               {submitting ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                "Create"
+                "Create season"
               )}
             </Button>
           </DialogFooter>
