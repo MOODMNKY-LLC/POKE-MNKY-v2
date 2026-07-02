@@ -12,11 +12,17 @@ import { toast } from "sonner"
 type ClaimableTeam = {
   id: string
   name: string
+  team_number?: number | null
   division?: string | null
   conference?: string | null
 }
 
-export function ClaimTeamForm() {
+type ClaimTeamFormProps = {
+  /** After successful claim, navigate here (default: /dashboard) */
+  redirectTo?: string
+}
+
+export function ClaimTeamForm({ redirectTo = "/dashboard" }: ClaimTeamFormProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [claimingId, setClaimingId] = useState<string | null>(null)
@@ -64,7 +70,7 @@ export function ClaimTeamForm() {
         return
       }
       toast.success(data.message ?? `Linked to ${teamName}`)
-      router.push("/dashboard")
+      router.push(redirectTo)
       router.refresh()
     } catch {
       toast.error("Failed to claim team")
@@ -92,9 +98,9 @@ export function ClaimTeamForm() {
           </CardTitle>
           <CardDescription>
             You are assigned to <strong>{currentTeamName}</strong>
-            {seasonName ? ` (${seasonName})` : ""}. Wrong team? Release from{" "}
-            <Link href="/dashboard" className="underline">
-              Dashboard → Your teams
+            {seasonName ? ` (${seasonName})` : ""}.             Wrong team? Release from{" "}
+            <Link href="/dashboard/league-team" className="underline">
+              League team management
             </Link>{" "}
             first, then claim the correct slot below.
           </CardDescription>
@@ -137,6 +143,11 @@ export function ClaimTeamForm() {
                 <CardTitle className="text-base flex items-center gap-2">
                   <Users className="h-4 w-4 text-muted-foreground" />
                   {team.name}
+                  {team.team_number != null && (
+                    <Badge variant="outline" className="font-normal">
+                      Slot {team.team_number}
+                    </Badge>
+                  )}
                 </CardTitle>
                 {(team.division || team.conference) && (
                   <CardDescription>

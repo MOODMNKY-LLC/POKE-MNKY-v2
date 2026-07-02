@@ -23,7 +23,7 @@ export async function GET() {
     return NextResponse.json({ error: "Profile not found" }, { status: 404 })
   }
 
-  if (profile.role !== "coach") {
+  if (profile.role !== "coach" && profile.role !== "admin" && profile.role !== "commissioner") {
     return NextResponse.json({ teams: [], message: "Not a coach" })
   }
 
@@ -39,8 +39,11 @@ export async function GET() {
 
   const { data: teams, error: teamsError } = await supabase
     .from("teams")
-    .select("id, name, avatar_url, logo_url, wins, losses, differential, division, conference, season_id")
+    .select(
+      "id, name, team_number, avatar_url, logo_url, wins, losses, differential, division, conference, season_id"
+    )
     .eq("coach_id", coach.id)
+    .order("team_number", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: false })
 
   if (teamsError) {
@@ -58,6 +61,7 @@ export async function GET() {
   const result = (teams ?? []).map((t) => ({
     id: t.id,
     name: t.name,
+    team_number: t.team_number,
     avatar_url: t.avatar_url,
     logo_url: t.logo_url,
     wins: t.wins,

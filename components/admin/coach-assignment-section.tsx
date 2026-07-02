@@ -29,6 +29,7 @@ interface Coach {
 interface Team {
   id: string
   name: string
+  team_number?: number | null
   coach_id: string | null
   coach_name: string | null
   division: string | null
@@ -147,26 +148,42 @@ export function CoachAssignmentSection() {
 
       setCoaches(coachesList)
 
-      // Load teams
-      const { data: teamsData, error: teamsError } = await supabase
+      // Load teams for current season
+      const { data: currentSeason } = await supabase
+        .from("seasons")
+        .select("id")
+        .eq("is_current", true)
+        .maybeSingle()
+
+      let teamsQuery = supabase
         .from("teams")
         .select(
           `
           id,
           name,
+          team_number,
           coach_id,
           division,
           conference,
+          season_id,
           coaches:coach_id(id, user_id, display_name)
         `
         )
+        .order("team_number", { ascending: true, nullsFirst: false })
         .order("name")
+
+      if (currentSeason?.id) {
+        teamsQuery = teamsQuery.eq("season_id", currentSeason.id)
+      }
+
+      const { data: teamsData, error: teamsError } = await teamsQuery
 
       if (teamsError) throw teamsError
 
       const teamsList: Team[] = (teamsData || []).map((t: any) => ({
         id: t.id,
         name: t.name,
+        team_number: t.team_number,
         coach_id: t.coach_id,
         coach_name: t.coaches?.display_name || null,
         division: t.division,
@@ -440,6 +457,7 @@ export function CoachAssignmentSection() {
                   <SelectContent>
                     {unassignedTeams.map((t) => (
                       <SelectItem key={t.id} value={t.id}>
+                        {t.team_number != null ? `#${t.team_number} · ` : ""}
                         {t.name}
                       </SelectItem>
                     ))}
@@ -477,7 +495,10 @@ export function CoachAssignmentSection() {
                 {teams.map((team) => (
                   <SelectItem key={team.id} value={team.id}>
                     <div className="flex items-center justify-between w-full">
-                      <span>{team.name}</span>
+                      <span>
+                        {team.team_number != null ? `#${team.team_number} · ` : ""}
+                        {team.name}
+                      </span>
                       {team.coach_id ? (
                         <Badge variant="secondary" className="ml-2">
                           {team.coach_name || "Assigned"}
