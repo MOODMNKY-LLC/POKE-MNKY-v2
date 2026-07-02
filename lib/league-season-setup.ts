@@ -214,6 +214,8 @@ export async function generateLeagueTeamsForSeason(
     conferenceNames?: string[]
     divisionNames?: string[]
     overwritePlacement?: boolean
+    /** When false (default), team slots are created without draft-order numbers. */
+    assignSlotNumbers?: boolean
   }
 ): Promise<GenerateTeamsResult> {
   const { data: season, error: seasonError } = await supabase
@@ -248,9 +250,54 @@ export async function generateLeagueTeamsForSeason(
     divisionNames: options?.divisionNames,
   })
 
+  const assignSlotNumbers = options?.assignSlotNumbers ?? false
+
   let teamsCreated = 0
   let teamsSkipped = 0
 
+  if (!assignSlotNumbers) {
+    const { count: existingCount, error: countError } = await supabase
+      .from("teams")
+      .select("*", { count: "exact", head: true })
+      .eq("season_id", seasonId)
+
+    if (countError) {
+      throw new Error(countError.message)
+    }
+
+    const current = existingCount ?? 0
+    teamsSkipped = Math.min(current, structure.teamSlotCount)
+
+    for (let slotIndex = current + 1; slotIndex <= structure.teamSlotCount; slotIndex++) {
+      const teamPayload = {
+        name: defaultTeamSlotName(slotIndex),
+        coach_name: "Unassigned",
+        division: "TBD",
+        conference: "TBD",
+        season_id: seasonId,
+        division_id: null,
+        team_number: null,
+        is_active: true,
+        claimable: true,
+      }
+
+      const { data: insertedTeam, error: insertError } = await supabase
+        .from("teams")
+        .insert(teamPayload)
+        .select("id")
+        .single()
+
+      if (insertError || !insertedTeam) {
+        throw new Error(insertError?.message ?? "Failed to create team slot")
+      }
+      teamsCreated++
+
+      await supabase.from("season_teams").upsert(
+        { season_id: seasonId, team_id: insertedTeam.id },
+        { onConflict: "season_id,team_id" }
+      )
+    }
+  } else {
   for (const placement of placements) {
     const divisionId = findDivisionId(
       divisions,
@@ -301,6 +348,7 @@ export async function generateLeagueTeamsForSeason(
       { season_id: seasonId, team_id: insertedTeam.id },
       { onConflict: "season_id,team_id" }
     )
+  }
   }
 
   // Link season_teams for all teams in batch (cleaner second pass)
@@ -412,7 +460,25 @@ export async function assignTeamSlotNumber(
   return data
 }
 
-/** Assign slot numbers to teams missing team_number (e.g. legacy Google Sheets rows). */
+/** Remove draft-order slot number without changing coach or team name. */
+export async function clearTeamSlotNumber(supabase: SupabaseClient, teamId: string) {
+  const { data, error } = await supabase
+    .from("teams")
+    .update({
+      team_number: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", teamId)
+    .select("*")
+    .single()
+
+  if (error) {
+    throw new Error(error.message)
+  }
+  return data
+}
+
+/** Assign slot numbers to teams missing team_number (e.g. after draft order is set). */
 export async function backfillMissingTeamNumbers(
   supabase: SupabaseClient,
   seasonId: string
@@ -463,7 +529,7 @@ export async function updateTeamMetadata(
   patch: {
     name?: string
     coach_name?: string
-    team_number?: number
+    team_number?: number | null
     is_active?: boolean
     claimable?: boolean
     conference?: string
@@ -478,7 +544,10 @@ export async function updateTeamMetadata(
 
   if (team_number !== undefined) {
     const { conference: _c, division: _d, division_id: _did, ...restWithoutPlacement } = rest
-    const updated = await assignTeamSlotNumber(supabase, teamId, team_number)
+    const updated =
+      team_number === null
+        ? await clearTeamSlotNumber(supabase, teamId)
+        : await assignTeamSlotNumber(supabase, teamId, team_number)
     const placementRest = Object.keys(restWithoutPlacement)
     if (placementRest.length === 0) {
       return updated
@@ -532,17 +601,38 @@ export async function createLeagueTeam(
     throw new Error("Season not found")
   }
 
-  let teamNumber = input.teamNumber
-  if (!teamNumber) {
-    const { data: maxRow } = await supabase
+  const hasExplicitSlot = input.teamNumber !== undefined && input.teamNumber !== null
+
+  if (!hasExplicitSlot) {
+    const { data: team, error } = await supabase
       .from("teams")
-      .select("team_number")
-      .eq("season_id", input.seasonId)
-      .order("team_number", { ascending: false })
-      .limit(1)
-      .maybeSingle()
-    teamNumber = (maxRow?.team_number ?? 0) + 1
+      .insert({
+        name: input.name.trim(),
+        coach_name: "Unassigned",
+        season_id: input.seasonId,
+        team_number: null,
+        conference: "TBD",
+        division: "TBD",
+        division_id: null,
+        is_active: input.isActive ?? true,
+        claimable: input.claimable ?? true,
+        coach_id: null,
+      })
+      .select("*")
+      .single()
+
+    if (error || !team) {
+      throw new Error(error?.message ?? "Failed to create team")
+    }
+
+    await supabase
+      .from("season_teams")
+      .upsert({ season_id: input.seasonId, team_id: team.id }, { onConflict: "season_id,team_id" })
+
+    return team
   }
+
+  const teamNumber = input.teamNumber!
 
   const structure: SeasonLeagueStructure = {
     conferenceCount: season.conference_count ?? 2,
