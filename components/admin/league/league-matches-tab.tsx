@@ -45,8 +45,14 @@ import {
 import Link from "next/link"
 import { toast } from "sonner"
 import { format } from "date-fns"
-import { createBrowserClient } from "@/lib/supabase/client"
 import { QuickLinksCard } from "@/components/admin/quick-links-card"
+
+interface SeasonOption {
+  id: string
+  name: string
+  is_current?: boolean
+  regular_season_weeks?: number | null
+}
 
 interface Team {
   id: string
@@ -78,6 +84,7 @@ interface Match {
 }
 
 interface MatchesResponse {
+  season: SeasonOption | null
   matches: Match[]
   pagination: {
     total: number
@@ -88,9 +95,13 @@ interface MatchesResponse {
 }
 
 export function LeagueMatchesTab() {
+  const [seasons, setSeasons] = useState<SeasonOption[]>([])
+  const [seasonId, setSeasonId] = useState<string>("")
+  const [selectedSeason, setSelectedSeason] = useState<SeasonOption | null>(null)
   const [matches, setMatches] = useState<Match[]>([])
   const [teams, setTeams] = useState<Team[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null)
@@ -127,55 +138,101 @@ export function LeagueMatchesTab() {
     replay_url: "",
   })
 
-  const loadTeams = useCallback(async () => {
-    try {
-      const supabase = createBrowserClient()
-      const { data, error } = await supabase
-        .from("teams")
-        .select("id, name, coach_name, division, conference")
-        .order("name")
+  const loadSeasons = useCallback(async (): Promise<SeasonOption[]> => {
+    const res = await fetch("/api/admin/seasons")
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error ?? "Failed to load seasons")
+    return data.seasons ?? []
+  }, [])
 
-      if (error) throw error
-      setTeams(data || [])
-    } catch (error: any) {
+  const loadTeams = useCallback(async (activeSeasonId: string) => {
+    if (!activeSeasonId) {
+      setTeams([])
+      return
+    }
+    try {
+      const res = await fetch(
+        `/api/admin/teams?season_id=${encodeURIComponent(activeSeasonId)}`
+      )
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? "Failed to load teams")
+      setTeams(data.teams ?? [])
+    } catch (error: unknown) {
       console.error("Error loading teams:", error)
-      toast.error("Failed to load teams")
+      toast.error(error instanceof Error ? error.message : "Failed to load teams")
+      setTeams([])
     }
   }, [])
 
   const loadMatches = useCallback(async () => {
+    if (!seasonId) {
+      setMatches([])
+      setLoading(false)
+      return
+    }
+
     try {
       setLoading(true)
+      setLoadError(null)
 
       const params = new URLSearchParams()
+      params.append("season_id", seasonId)
       if (weekFilter !== "all") params.append("week", weekFilter)
       if (statusFilter !== "all") params.append("status", statusFilter)
       if (isPlayoffFilter !== "all") params.append("is_playoff", isPlayoffFilter)
-      params.append("limit", "100")
+      params.append("limit", "500")
 
       const response = await fetch(`/api/admin/matches?${params.toString()}`)
+      const data: MatchesResponse = await response.json()
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || "Failed to fetch matches")
+        throw new Error((data as { error?: string }).error || "Failed to fetch matches")
       }
 
-      const data: MatchesResponse = await response.json()
+      setSelectedSeason(data.season)
       setMatches(data.matches)
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error loading matches:", error)
-      toast.error(error.message || "Failed to load matches")
+      const message = error instanceof Error ? error.message : "Failed to load matches"
+      setLoadError(message)
+      toast.error(message)
+      setMatches([])
     } finally {
       setLoading(false)
     }
-  }, [weekFilter, statusFilter, isPlayoffFilter])
+  }, [seasonId, weekFilter, statusFilter, isPlayoffFilter])
 
   useEffect(() => {
-    loadTeams()
-  }, [loadTeams])
+    void (async () => {
+      setLoading(true)
+      setLoadError(null)
+      try {
+        const list = await loadSeasons()
+        setSeasons(list)
+        const activeSeasonId =
+          list.find((s) => s.is_current)?.id ?? list[0]?.id ?? ""
+        if (activeSeasonId) {
+          setSeasonId(activeSeasonId)
+        }
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : "Failed to load seasons"
+        setLoadError(message)
+        toast.error(message)
+      } finally {
+        setLoading(false)
+      }
+    })()
+  }, [loadSeasons])
 
   useEffect(() => {
-    loadMatches()
-  }, [loadMatches])
+    if (!seasonId) return
+    void loadTeams(seasonId)
+  }, [loadTeams, seasonId])
+
+  useEffect(() => {
+    if (!seasonId) return
+    void loadMatches()
+  }, [loadMatches, seasonId])
 
   const handleCreate = async () => {
     try {
@@ -193,6 +250,7 @@ export function LeagueMatchesTab() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          season_id: seasonId,
           week: parseInt(formData.week),
           team1_id: formData.team1_id,
           team2_id: formData.team2_id,
@@ -340,7 +398,14 @@ export function LeagueMatchesTab() {
     }
   }
 
-  if (loading && matches.length === 0) {
+  const weekOptions = (() => {
+    const fromSeason = selectedSeason?.regular_season_weeks ?? 0
+    const fromMatches = matches.reduce((max, m) => Math.max(max, m.week), 0)
+    const maxWeek = Math.max(fromSeason, fromMatches, 10)
+    return Array.from({ length: maxWeek }, (_, i) => i + 1)
+  })()
+
+  if (loading && matches.length === 0 && !loadError) {
     return (
       <div className="space-y-6">
         <Card>
@@ -366,12 +431,30 @@ export function LeagueMatchesTab() {
                 <Calendar className="h-5 w-5" />
                 Match Management
               </CardTitle>
-              <CardDescription>Create, edit, and manage league matches</CardDescription>
+              <CardDescription>
+                View and edit the schedule for the selected season. Legacy Google Sheets
+                matches without a season are hidden here.
+              </CardDescription>
             </div>
-            <Button onClick={() => setIsCreateDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Create Match
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Select value={seasonId} onValueChange={setSeasonId}>
+                <SelectTrigger className="w-[220px]">
+                  <SelectValue placeholder="Season" />
+                </SelectTrigger>
+                <SelectContent>
+                  {seasons.map((season) => (
+                    <SelectItem key={season.id} value={season.id}>
+                      {season.name}
+                      {season.is_current ? " (current)" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button onClick={() => setIsCreateDialogOpen(true)} disabled={!seasonId}>
+                <Plus className="h-4 w-4 mr-2" />
+                Create Match
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -384,7 +467,7 @@ export function LeagueMatchesTab() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Weeks</SelectItem>
-                  {Array.from({ length: 20 }, (_, i) => i + 1).map((week) => (
+                  {weekOptions.map((week) => (
                     <SelectItem key={week} value={week.toString()}>
                       Week {week}
                     </SelectItem>
@@ -434,15 +517,24 @@ export function LeagueMatchesTab() {
         <CardHeader>
           <CardTitle>Matches</CardTitle>
           <CardDescription>
+            {selectedSeason
+              ? `${selectedSeason.name}${selectedSeason.is_current ? " (current)" : ""} — `
+              : ""}
             {matches.length > 0
               ? `Showing ${matches.length} matches`
-              : "No matches found"}
+              : "No matches for this season"}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {matches.length === 0 ? (
+          {loadError && !loading ? (
+            <div className="py-12 text-center text-sm text-destructive">{loadError}</div>
+          ) : matches.length === 0 ? (
             <div className="py-12 text-center text-muted-foreground">
-              No matches found. Create a new match to get started.
+              No matches for this season yet. Use{" "}
+              <Link href="/admin/league#seasons" className="underline underline-offset-4">
+                Seasons → Generate schedule
+              </Link>{" "}
+              to build the regular-season slate, or create a match manually.
             </div>
           ) : (
             <div className="rounded-md border">
