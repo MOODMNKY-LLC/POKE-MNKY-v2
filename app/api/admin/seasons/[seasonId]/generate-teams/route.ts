@@ -7,7 +7,10 @@ import { NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase/server"
 import { createServiceRoleClient } from "@/lib/supabase/service"
 import { requireAdminOrCommissioner } from "@/lib/admin-api-auth"
-import { generateLeagueTeamsForSeason } from "@/lib/league-season-setup"
+import {
+  backfillMissingTeamNumbers,
+  generateLeagueTeamsForSeason,
+} from "@/lib/league-season-setup"
 import { logActivity } from "@/lib/rbac"
 
 type RouteContext = { params: Promise<{ seasonId: string }> }
@@ -31,19 +34,26 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     const body = await request.json().catch(() => ({}))
     const overwritePlacement = Boolean(body?.overwrite_placement)
+    const backfillMissing = body?.backfill_missing !== false
 
     const service = createServiceRoleClient()
     const result = await generateLeagueTeamsForSeason(service, seasonId, {
       overwritePlacement,
     })
 
+    let backfill = { updated: 0, skipped: 0 }
+    if (backfillMissing) {
+      backfill = await backfillMissingTeamNumbers(service, seasonId)
+    }
+
     await logActivity(supabase, user.id, "admin_generated_league_teams", {
       resource_type: "season",
       resource_id: seasonId,
       ...result,
+      backfill,
     })
 
-    return NextResponse.json({ success: true, ...result })
+    return NextResponse.json({ success: true, ...result, backfill })
   } catch (err) {
     const message = err instanceof Error ? err.message : "Internal server error"
     return NextResponse.json({ error: message }, { status: 500 })

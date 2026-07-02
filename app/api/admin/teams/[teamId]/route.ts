@@ -34,6 +34,9 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
     if (typeof body?.name === "string" && body.name.trim()) patch.name = body.name.trim()
     if (typeof body?.coach_name === "string") patch.coach_name = body.coach_name.trim()
+    if (typeof body?.team_number === "number" && Number.isInteger(body.team_number)) {
+      patch.team_number = body.team_number
+    }
     if (typeof body?.is_active === "boolean") patch.is_active = body.is_active
     if (typeof body?.claimable === "boolean") patch.claimable = body.claimable
     if (typeof body?.conference === "string") patch.conference = body.conference.trim()

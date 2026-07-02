@@ -66,6 +66,8 @@ export function LeagueTeamManagement() {
   const [newTeamName, setNewTeamName] = useState("")
   const [newTeamNumber, setNewTeamNumber] = useState("")
   const [saving, setSaving] = useState(false)
+  const [backfilling, setBackfilling] = useState(false)
+  const [savingTeamNumberId, setSavingTeamNumberId] = useState<string | null>(null)
 
   const loadSeasons = useCallback(async () => {
     const res = await fetch("/api/admin/seasons")
@@ -117,7 +119,11 @@ export function LeagueTeamManagement() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? "Generate failed")
       toast.success(
-        `Generated ${data.teamsCreated} teams (${data.teamsSkipped} existing slots skipped)`
+        `Generated ${data.teamsCreated} teams (${data.teamsSkipped} existing slots skipped)${
+          data.backfill?.updated
+            ? ` · backfilled ${data.backfill.updated} missing slot numbers`
+            : ""
+        }`
       )
       await loadTeams()
     } catch (e) {
@@ -155,6 +161,62 @@ export function LeagueTeamManagement() {
     }
   }
 
+  async function handleBackfillNumbers() {
+    if (!seasonId) return
+    setBackfilling(true)
+    try {
+      const res = await fetch(`/api/admin/seasons/${seasonId}/generate-teams`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ overwrite_placement: false, backfill_missing: true }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? "Backfill failed")
+      const count = data.backfill?.updated ?? 0
+      if (count === 0) {
+        toast.message("All teams already have slot numbers")
+      } else {
+        toast.success(`Assigned slot numbers to ${count} team${count === 1 ? "" : "s"}`)
+      }
+      await loadTeams()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Backfill failed")
+    } finally {
+      setBackfilling(false)
+    }
+  }
+
+  async function handleTeamNumberSave(teamId: string, rawValue: string) {
+    const trimmed = rawValue.trim()
+    if (!trimmed) return
+
+    const parsed = Number(trimmed)
+    if (!Number.isInteger(parsed) || parsed < 1) {
+      toast.error("Team number must be a positive whole number")
+      return
+    }
+
+    const current = teams.find((t) => t.id === teamId)
+    if (current?.team_number === parsed) return
+
+    setSavingTeamNumberId(teamId)
+    try {
+      const res = await fetch(`/api/admin/teams/${teamId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ team_number: parsed }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? "Update failed")
+      toast.success(`Slot #${parsed} saved`)
+      await loadTeams()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Update failed")
+    } finally {
+      setSavingTeamNumberId(null)
+    }
+  }
+
   async function handleSaveEdit() {
     if (!editTeam) return
     setSaving(true)
@@ -164,6 +226,7 @@ export function LeagueTeamManagement() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: editTeam.name,
+          team_number: editTeam.team_number ?? undefined,
           is_active: editTeam.is_active,
           claimable: editTeam.claimable,
           conference: editTeam.conference,
@@ -210,6 +273,18 @@ export function LeagueTeamManagement() {
               </Select>
               <Button variant="outline" size="sm" onClick={() => loadTeams()} disabled={loading}>
                 <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleBackfillNumbers}
+                disabled={!seasonId || backfilling || loading}
+              >
+                {backfilling ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Assign #s"
+                )}
               </Button>
               <Button
                 variant="outline"
@@ -266,8 +341,22 @@ export function LeagueTeamManagement() {
               <TableBody>
                 {teams.map((team) => (
                   <TableRow key={team.id}>
-                    <TableCell className="font-mono text-xs">
-                      {team.team_number ?? "—"}
+                    <TableCell className="w-[88px]">
+                      <Input
+                        type="number"
+                        min={1}
+                        className="h-8 w-16 font-mono text-xs"
+                        defaultValue={team.team_number ?? ""}
+                        key={`${team.id}-${team.team_number ?? "empty"}`}
+                        disabled={savingTeamNumberId === team.id}
+                        placeholder="—"
+                        onBlur={(e) => handleTeamNumberSave(team.id, e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.currentTarget.blur()
+                          }
+                        }}
+                      />
                     </TableCell>
                     <TableCell className="font-medium">{team.name}</TableCell>
                     <TableCell>{team.conference}</TableCell>
@@ -357,11 +446,27 @@ export function LeagueTeamManagement() {
               <DialogHeader>
                 <DialogTitle>Edit {editTeam.name}</DialogTitle>
                 <DialogDescription>
-                  Slot #{editTeam.team_number ?? "—"} · change visibility and metadata only; use
-                  Coach Assignment to link coaches.
+                  Change slot number, visibility, and metadata. Conference and division update
+                  automatically when you change the slot number. Use Coach Assignment to link
+                  coaches.
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label>Slot number</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={editTeam.team_number ?? ""}
+                    onChange={(e) =>
+                      setEditTeam({
+                        ...editTeam,
+                        team_number: e.target.value ? Number(e.target.value) : null,
+                      })
+                    }
+                    placeholder="Assign slot #"
+                  />
+                </div>
                 <div className="grid gap-2">
                   <Label>Name</Label>
                   <Input

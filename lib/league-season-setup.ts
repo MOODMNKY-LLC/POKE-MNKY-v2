@@ -324,12 +324,146 @@ export async function generateLeagueTeamsForSeason(
   }
 }
 
+async function loadSeasonStructureForTeam(
+  supabase: SupabaseClient,
+  seasonId: string,
+  teamNumberHint?: number
+): Promise<SeasonLeagueStructure> {
+  const { data: season } = await supabase
+    .from("seasons")
+    .select("conference_count, division_count, team_slot_count")
+    .eq("id", seasonId)
+    .single()
+
+  if (!season) {
+    throw new Error("Season not found")
+  }
+
+  return {
+    conferenceCount: season.conference_count ?? 2,
+    divisionCount: season.division_count ?? 4,
+    teamSlotCount: season.team_slot_count ?? teamNumberHint ?? 12,
+  }
+}
+
+/** Assign slot number and recompute conference/division from season structure. */
+export async function assignTeamSlotNumber(
+  supabase: SupabaseClient,
+  teamId: string,
+  teamNumber: number
+) {
+  if (!Number.isInteger(teamNumber) || teamNumber < 1) {
+    throw new Error("Team number must be a positive integer")
+  }
+
+  const { data: team } = await supabase
+    .from("teams")
+    .select("id, season_id")
+    .eq("id", teamId)
+    .single()
+
+  if (!team?.season_id) {
+    throw new Error("Team not found")
+  }
+
+  const { data: conflict } = await supabase
+    .from("teams")
+    .select("id")
+    .eq("season_id", team.season_id)
+    .eq("team_number", teamNumber)
+    .neq("id", teamId)
+    .maybeSingle()
+
+  if (conflict?.id) {
+    throw new Error(`Slot number ${teamNumber} is already used in this season`)
+  }
+
+  const structure = await loadSeasonStructureForTeam(supabase, team.season_id, teamNumber)
+  const { conferences, divisions } = await ensureConferencesAndDivisions(
+    supabase,
+    team.season_id,
+    structure
+  )
+
+  const placement = computeTeamSlotPlacement(teamNumber, structure)
+  const divisionId = findDivisionId(
+    divisions,
+    placement.conferenceNumber,
+    placement.divisionNumber,
+    conferences
+  )
+
+  const { data, error } = await supabase
+    .from("teams")
+    .update({
+      team_number: teamNumber,
+      conference: placement.conferenceLabel,
+      division: placement.divisionLabel,
+      division_id: divisionId,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", teamId)
+    .select("*")
+    .single()
+
+  if (error) {
+    throw new Error(error.message)
+  }
+  return data
+}
+
+/** Assign slot numbers to teams missing team_number (e.g. legacy Google Sheets rows). */
+export async function backfillMissingTeamNumbers(
+  supabase: SupabaseClient,
+  seasonId: string
+): Promise<{ updated: number; skipped: number }> {
+  const { data: teamsMissing } = await supabase
+    .from("teams")
+    .select("id, name")
+    .eq("season_id", seasonId)
+    .is("team_number", null)
+    .order("name", { ascending: true })
+
+  if (!teamsMissing?.length) {
+    return { updated: 0, skipped: 0 }
+  }
+
+  const { data: numbered } = await supabase
+    .from("teams")
+    .select("team_number")
+    .eq("season_id", seasonId)
+    .not("team_number", "is", null)
+
+  const used = new Set((numbered ?? []).map((t) => t.team_number as number))
+  let nextCandidate = 1
+
+  function takeNextAvailable(): number {
+    while (used.has(nextCandidate)) {
+      nextCandidate++
+    }
+    const n = nextCandidate
+    used.add(n)
+    nextCandidate++
+    return n
+  }
+
+  let updated = 0
+  for (const row of teamsMissing) {
+    const slot = takeNextAvailable()
+    await assignTeamSlotNumber(supabase, row.id, slot)
+    updated++
+  }
+
+  return { updated, skipped: 0 }
+}
+
 export async function updateTeamMetadata(
   supabase: SupabaseClient,
   teamId: string,
   patch: {
     name?: string
     coach_name?: string
+    team_number?: number
     is_active?: boolean
     claimable?: boolean
     conference?: string
@@ -339,9 +473,35 @@ export async function updateTeamMetadata(
     avatar_url?: string | null
   }
 ) {
+  const { team_number, ...rest } = patch
+  const hasRest = Object.keys(rest).length > 0
+
+  if (team_number !== undefined) {
+    const { conference: _c, division: _d, division_id: _did, ...restWithoutPlacement } = rest
+    const updated = await assignTeamSlotNumber(supabase, teamId, team_number)
+    const placementRest = Object.keys(restWithoutPlacement)
+    if (placementRest.length === 0) {
+      return updated
+    }
+    const { data, error } = await supabase
+      .from("teams")
+      .update({ ...restWithoutPlacement, updated_at: new Date().toISOString() })
+      .eq("id", teamId)
+      .select("*")
+      .single()
+    if (error) {
+      throw new Error(error.message)
+    }
+    return data
+  }
+
+  if (!hasRest) {
+    throw new Error("No valid fields to update")
+  }
+
   const { data, error } = await supabase
     .from("teams")
-    .update({ ...patch, updated_at: new Date().toISOString() })
+    .update({ ...rest, updated_at: new Date().toISOString() })
     .eq("id", teamId)
     .select("*")
     .single()
