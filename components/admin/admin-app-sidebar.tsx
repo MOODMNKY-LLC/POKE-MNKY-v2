@@ -22,7 +22,7 @@ import { AdminNavMain } from "@/components/admin/sidebar-07/admin-nav-main"
 import { AdminNavProjects, type AdminActiveSession } from "@/components/admin/sidebar-07/admin-nav-projects"
 import { AdminNavUser } from "@/components/admin/sidebar-07/admin-nav-user"
 import { SupabaseManager } from "@/components/platform/supabase-manager"
-import { CreateSeasonDialog } from "@/components/admin/create-season-dialog"
+import { StartNewSeasonWizard } from "@/components/admin/start-new-season-wizard"
 
 const adminNavItems = [
   {
@@ -173,7 +173,7 @@ export function AdminAppSidebar(props: React.ComponentProps<typeof Sidebar>) {
         open={platformOpen}
         onOpenChange={setPlatformOpen}
       />
-      <CreateSeasonDialog
+      <StartNewSeasonWizard
         open={createSeasonOpen}
         onOpenChange={setCreateSeasonOpen}
         onCreated={loadSeasons}

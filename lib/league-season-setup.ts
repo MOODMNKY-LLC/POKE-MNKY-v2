@@ -9,6 +9,7 @@ import {
   defaultTeamSlotName,
   type SeasonLeagueStructure,
 } from "@/lib/league-structure"
+import { generatePrioritySchedule } from "@/lib/league-schedule-generator"
 
 export type CreateSeasonInput = {
   name: string
@@ -19,8 +20,22 @@ export type CreateSeasonInput = {
   divisionCount?: number
   teamSlotCount?: number
   generateTeams?: boolean
+  generateSchedule?: boolean
   conferenceNames?: string[]
   divisionNames?: string[]
+  regularSeasonWeeks?: number
+  playoffWeeks?: number
+}
+
+export type GenerateScheduleResult = {
+  matchesCreated: number
+  unscheduled: number
+  stats: {
+    divisional: number
+    conference: number
+    crossConference: number
+    byeWeeks: number
+  }
 }
 
 export type GenerateTeamsResult = {
@@ -158,6 +173,179 @@ function findDivisionId(
   return division?.id ?? null
 }
 
+export async function createMatchweeksForSeason(
+  supabase: SupabaseClient,
+  seasonId: string,
+  startDate: string,
+  regularSeasonWeeks: number,
+  playoffWeeks: number
+) {
+  const totalWeeks = regularSeasonWeeks + playoffWeeks
+  if (totalWeeks < 1) return
+
+  const baseDate = new Date(`${startDate}T12:00:00`)
+  for (let w = 1; w <= totalWeeks; w++) {
+    const weekStart = new Date(baseDate)
+    weekStart.setDate(weekStart.getDate() + (w - 1) * 7)
+    const weekEnd = new Date(weekStart)
+    weekEnd.setDate(weekEnd.getDate() + 6)
+
+    const { error } = await supabase.from("matchweeks").upsert(
+      {
+        season_id: seasonId,
+        week_number: w,
+        start_date: weekStart.toISOString().slice(0, 10),
+        end_date: weekEnd.toISOString().slice(0, 10),
+        is_playoff: w > regularSeasonWeeks,
+      },
+      { onConflict: "season_id,week_number" }
+    )
+
+    if (error) {
+      throw new Error(error.message)
+    }
+  }
+}
+
+type TeamScheduleRow = {
+  id: string
+  team_number: number | null
+  division_id: string | null
+  divisions: { conference_id: string } | { conference_id: string }[] | null
+}
+
+function resolveConferenceId(team: TeamScheduleRow): string | null {
+  const div = team.divisions
+  if (!div) return null
+  if (Array.isArray(div)) return div[0]?.conference_id ?? null
+  return div.conference_id ?? null
+}
+
+export async function generateSeasonSchedule(
+  supabase: SupabaseClient,
+  seasonId: string,
+  options?: { replaceExisting?: boolean }
+): Promise<GenerateScheduleResult> {
+  const { data: season, error: seasonError } = await supabase
+    .from("seasons")
+    .select(
+      "id, regular_season_weeks, conference_count, division_count, team_slot_count"
+    )
+    .eq("id", seasonId)
+    .single()
+
+  if (seasonError || !season) {
+    throw new Error("Season not found")
+  }
+
+  const regularWeeks = season.regular_season_weeks ?? 10
+  if (regularWeeks < 1) {
+    throw new Error("Season regular_season_weeks must be at least 1")
+  }
+
+  const { data: teamRows, error: teamsError } = await supabase
+    .from("teams")
+    .select("id, team_number, division_id, divisions(conference_id)")
+    .eq("season_id", seasonId)
+    .eq("is_active", true)
+    .order("team_number", { ascending: true, nullsFirst: false })
+    .order("name", { ascending: true })
+
+  if (teamsError) {
+    throw new Error(teamsError.message)
+  }
+
+  const teams = (teamRows ?? []) as TeamScheduleRow[]
+  if (teams.length < 2) {
+    throw new Error("At least 2 active teams are required to generate a schedule")
+  }
+
+  const structure: SeasonLeagueStructure = {
+    conferenceCount: season.conference_count ?? 2,
+    divisionCount: season.division_count ?? 4,
+    teamSlotCount: season.team_slot_count ?? teams.length,
+  }
+
+  const { conferences, divisions } = await ensureConferencesAndDivisions(
+    supabase,
+    seasonId,
+    structure
+  )
+
+  let virtualSlot = 1
+  const teamsForSchedule = teams.map((team) => {
+    let divisionId = team.division_id
+    let conferenceId = resolveConferenceId(team)
+
+    if (!divisionId || !conferenceId) {
+      const slotNumber = team.team_number ?? virtualSlot++
+      const placement = computeTeamSlotPlacement(slotNumber, structure)
+      divisionId =
+        divisionId ??
+        findDivisionId(
+          divisions,
+          placement.conferenceNumber,
+          placement.divisionNumber,
+          conferences
+        )
+      if (!conferenceId && divisionId) {
+        const div = divisions.find((d) => d.id === divisionId)
+        conferenceId = div?.conference_id ?? null
+      }
+    }
+
+    return {
+      id: team.id,
+      divisionId,
+      conferenceId,
+    }
+  })
+
+  const schedule = generatePrioritySchedule(teamsForSchedule, regularWeeks)
+
+  if (options?.replaceExisting) {
+    await supabase
+      .from("matches")
+      .delete()
+      .eq("season_id", seasonId)
+      .eq("is_playoff", false)
+  }
+
+  const { data: matchweeks } = await supabase
+    .from("matchweeks")
+    .select("id, week_number")
+    .eq("season_id", seasonId)
+    .eq("is_playoff", false)
+
+  const matchweekIdsByWeek: Record<number, string> = {}
+  for (const mw of matchweeks ?? []) {
+    matchweekIdsByWeek[mw.week_number] = mw.id
+  }
+
+  let matchesCreated = 0
+  for (const m of schedule.matches) {
+    const { error } = await supabase.from("matches").insert({
+      season_id: seasonId,
+      week: m.week,
+      matchweek_id: matchweekIdsByWeek[m.week] ?? null,
+      team1_id: m.team1Id,
+      team2_id: m.team2Id,
+      is_playoff: false,
+      status: "scheduled",
+    })
+    if (error) {
+      throw new Error(error.message)
+    }
+    matchesCreated++
+  }
+
+  return {
+    matchesCreated,
+    unscheduled: schedule.unscheduled.length,
+    stats: schedule.stats,
+  }
+}
+
 export async function createSeasonWithStructure(
   supabase: SupabaseClient,
   input: CreateSeasonInput
@@ -165,6 +353,18 @@ export async function createSeasonWithStructure(
   const conferenceCount = input.conferenceCount ?? 2
   const divisionCount = input.divisionCount ?? 4
   const teamSlotCount = input.teamSlotCount ?? 12
+  const regularSeasonWeeks = input.regularSeasonWeeks ?? 10
+  const playoffWeeks = input.playoffWeeks ?? 4
+
+  if (teamSlotCount < 6 || teamSlotCount > 20) {
+    throw new Error("team_slot_count must be between 6 and 20")
+  }
+  if (conferenceCount !== 2) {
+    throw new Error("conference_count must be 2")
+  }
+  if (divisionCount < 1 || divisionCount > 4) {
+    throw new Error("division_count must be between 1 and 4")
+  }
 
   if (input.setAsCurrent) {
     await supabase.from("seasons").update({ is_current: false }).eq("is_current", true)
@@ -180,6 +380,8 @@ export async function createSeasonWithStructure(
       conference_count: conferenceCount,
       division_count: divisionCount,
       team_slot_count: teamSlotCount,
+      regular_season_weeks: regularSeasonWeeks,
+      playoff_weeks: playoffWeeks,
     })
     .select("*")
     .single()
@@ -196,6 +398,22 @@ export async function createSeasonWithStructure(
 
   await upsertCanonicalLeagueConfig(supabase, season.id, structure)
 
+  await ensureConferencesAndDivisions(
+    supabase,
+    season.id,
+    structure,
+    input.conferenceNames,
+    input.divisionNames
+  )
+
+  await createMatchweeksForSeason(
+    supabase,
+    season.id,
+    input.startDate,
+    regularSeasonWeeks,
+    playoffWeeks
+  )
+
   let teamGen: GenerateTeamsResult | null = null
   if (input.generateTeams) {
     teamGen = await generateLeagueTeamsForSeason(supabase, season.id, {
@@ -204,7 +422,14 @@ export async function createSeasonWithStructure(
     })
   }
 
-  return { season, teamGeneration: teamGen }
+  let scheduleGen: GenerateScheduleResult | null = null
+  if (input.generateSchedule) {
+    scheduleGen = await generateSeasonSchedule(supabase, season.id, {
+      replaceExisting: true,
+    })
+  }
+
+  return { season, teamGeneration: teamGen, scheduleGeneration: scheduleGen }
 }
 
 export async function generateLeagueTeamsForSeason(

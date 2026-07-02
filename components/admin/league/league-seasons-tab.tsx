@@ -15,7 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { CreateSeasonDialog } from "@/components/admin/create-season-dialog"
+import { StartNewSeasonWizard } from "@/components/admin/start-new-season-wizard"
 
 interface SeasonRow {
   id: string
@@ -26,7 +26,8 @@ interface SeasonRow {
   end_date?: string | null
   conference_count?: number | null
   division_count?: number | null
-  team_slot_count?: number | null
+  regular_season_weeks?: number | null
+  playoff_weeks?: number | null
 }
 
 export function LeagueSeasonsTab() {
@@ -34,6 +35,7 @@ export function LeagueSeasonsTab() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [settingId, setSettingId] = useState<string | null>(null)
+  const [schedulingId, setSchedulingId] = useState<string | null>(null)
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [supabase, setSupabase] = useState<ReturnType<typeof createBrowserClient> | null>(null)
   const { toast } = useToast()
@@ -51,7 +53,7 @@ export function LeagueSeasonsTab() {
       const { data, error } = await supabase
         .from("seasons")
         .select(
-          "id, name, season_id, is_current, start_date, end_date, conference_count, division_count, team_slot_count"
+          "id, name, season_id, is_current, start_date, end_date, conference_count, division_count, team_slot_count, regular_season_weeks, playoff_weeks"
         )
         .order("start_date", { ascending: false })
       if (error) throw error
@@ -79,6 +81,33 @@ export function LeagueSeasonsTab() {
     if (!supabase) return
     loadSeasons()
   }, [supabase, loadSeasons])
+
+  async function handleGenerateSchedule(seasonId: string) {
+    setSchedulingId(seasonId)
+    try {
+      const res = await fetch(`/api/admin/seasons/${seasonId}/generate-schedule`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ replace_existing: true }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Failed to generate schedule")
+      toast({
+        title: "Schedule generated",
+        description: `${data.matchesCreated} matches created${
+          data.unscheduled > 0 ? ` · ${data.unscheduled} matchups need more weeks` : ""
+        }`,
+      })
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to generate schedule",
+        variant: "destructive",
+      })
+    } finally {
+      setSchedulingId(null)
+    }
+  }
 
   async function handleSetCurrent(seasonId: string) {
     setSettingId(seasonId)
@@ -163,7 +192,7 @@ export function LeagueSeasonsTab() {
             </div>
             <Button onClick={() => setCreateDialogOpen(true)} className="shrink-0 gap-2">
               <Plus className="h-4 w-4" />
-              Create Season
+              Start a new season
             </Button>
           </div>
         </CardHeader>
@@ -174,6 +203,7 @@ export function LeagueSeasonsTab() {
                 <TableHead>Name</TableHead>
                 <TableHead>Season ID</TableHead>
                 <TableHead>Structure</TableHead>
+                <TableHead>Weeks</TableHead>
                 <TableHead>Start</TableHead>
                 <TableHead>End</TableHead>
                 <TableHead>Status</TableHead>
@@ -183,7 +213,7 @@ export function LeagueSeasonsTab() {
             <TableBody>
               {seasons.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                     No seasons found. Create a season from this tab.
                   </TableCell>
                 </TableRow>
@@ -194,7 +224,11 @@ export function LeagueSeasonsTab() {
                     <TableCell className="font-mono text-sm">{season.season_id ?? "—"}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {season.conference_count ?? 2}c · {season.division_count ?? 4}d ·{" "}
-                      {season.team_slot_count ?? "—"} slots
+                      {season.team_slot_count ?? "—"} teams
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {season.regular_season_weeks ?? "—"} reg
+                      {season.playoff_weeks != null ? ` + ${season.playoff_weeks} po` : ""}
                     </TableCell>
                     <TableCell>{season.start_date ?? "—"}</TableCell>
                     <TableCell>{season.end_date ?? "—"}</TableCell>
@@ -208,7 +242,19 @@ export function LeagueSeasonsTab() {
                         <span className="text-muted-foreground text-sm">—</span>
                       )}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={schedulingId === season.id}
+                        onClick={() => handleGenerateSchedule(season.id)}
+                      >
+                        {schedulingId === season.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          "Generate schedule"
+                        )}
+                      </Button>
                       <Button
                         variant="outline"
                         size="sm"
@@ -229,7 +275,7 @@ export function LeagueSeasonsTab() {
           </Table>
         </CardContent>
       </Card>
-      <CreateSeasonDialog
+      <StartNewSeasonWizard
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
         onCreated={loadSeasons}
