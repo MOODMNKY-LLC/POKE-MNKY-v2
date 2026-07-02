@@ -71,17 +71,54 @@ export default async function StandingsPage() {
     .eq("is_current", true)
     .single()
 
-  const { data: allTeams } = season
+    const { data: standingsRows, error: standingsError } = season
     ? await supabase
-        .from("teams")
-        .select("*")
+        .from("v_regular_team_rankings")
+        .select(
+          "team_id, team_name, conference, division, wins, losses, differential, sos, league_rank"
+        )
         .eq("season_id", season.id)
-        .order("wins", { ascending: false })
-        .order("differential", { ascending: false })
-        .order("name", { ascending: true })
-    : { data: [] as Team[] }
+        .order("league_rank", { ascending: true })
+    : { data: [], error: null }
 
-  const teams = (allTeams ?? []) as Team[]
+  if (standingsError) {
+    console.error("[standings] view fetch error:", standingsError)
+  }
+
+  const teamIds = (standingsRows ?? []).map((r) => r.team_id)
+  const { data: teamMeta } =
+    teamIds.length > 0
+      ? await supabase
+          .from("teams")
+          .select(
+            "id, coach_name, regular_wins, regular_losses, playoff_wins, playoff_losses, wins, losses, differential"
+          )
+          .in("id", teamIds)
+      : { data: [] }
+
+  const metaById = new Map((teamMeta ?? []).map((t) => [t.id, t]))
+
+  const teams: Team[] = (standingsRows ?? []).map((row) => {
+    const meta = metaById.get(row.team_id)
+    return {
+      id: row.team_id,
+      name: row.team_name,
+      coach_name: meta?.coach_name ?? "",
+      division: row.division ?? "",
+      conference: row.conference ?? "",
+      wins: row.wins,
+      losses: row.losses,
+      differential: row.differential,
+      strength_of_schedule: row.sos ?? 0.5,
+      league_rank: row.league_rank,
+      regular_wins: row.wins,
+      regular_losses: row.losses,
+      playoff_wins: meta?.playoff_wins ?? 0,
+      playoff_losses: meta?.playoff_losses ?? 0,
+      created_at: "",
+      updated_at: "",
+    }
+  })
   const summary = computeStandingsSummary(teams)
 
   const lanceTeams = teams.filter((t) => t.conference === "Lance")
@@ -116,7 +153,8 @@ export default async function StandingsPage() {
                 League Standings
               </h1>
               <p className="mt-2 text-base text-muted-foreground sm:text-lg">
-                Rankings, records, and strength of schedule across conferences and divisions.
+                Regular-season rankings, records, and strength of schedule across conferences and
+                divisions.
               </p>
               {summary.leader ? (
                 <p className="mt-4 text-sm text-muted-foreground">
@@ -264,7 +302,7 @@ export default async function StandingsPage() {
           <TabsContent value="all">
             <StandingsCard
               title="Overall Standings"
-              description="Sorted by wins, then point differential."
+              description="Regular season only — sorted by league rank (W/L, diff, H2H, streak, SOS)."
               teams={teams}
             />
           </TabsContent>

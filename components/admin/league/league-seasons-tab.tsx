@@ -16,6 +16,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { StartNewSeasonWizard } from "@/components/admin/start-new-season-wizard"
+import { UnscheduledScheduleAckDialog } from "@/components/admin/league/unscheduled-schedule-ack-dialog"
 
 interface SeasonRow {
   id: string
@@ -26,6 +27,7 @@ interface SeasonRow {
   end_date?: string | null
   conference_count?: number | null
   division_count?: number | null
+  team_slot_count?: number | null
   regular_season_weeks?: number | null
   playoff_weeks?: number | null
 }
@@ -36,7 +38,13 @@ export function LeagueSeasonsTab() {
   const [error, setError] = useState<string | null>(null)
   const [settingId, setSettingId] = useState<string | null>(null)
   const [schedulingId, setSchedulingId] = useState<string | null>(null)
+  const [playoffsId, setPlayoffsId] = useState<string | null>(null)
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
+  const [unscheduledAck, setUnscheduledAck] = useState<{
+    unscheduled: number
+    matchesCreated: number
+    stats?: { divisional: number; conference: number; crossConference: number; maxByesPerTeam: number }
+  } | null>(null)
   const [supabase, setSupabase] = useState<ReturnType<typeof createBrowserClient> | null>(null)
   const { toast } = useToast()
 
@@ -92,12 +100,18 @@ export function LeagueSeasonsTab() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Failed to generate schedule")
-      toast({
-        title: "Schedule generated",
-        description: `${data.matchesCreated} matches created${
-          data.unscheduled > 0 ? ` · ${data.unscheduled} matchups need more weeks` : ""
-        }`,
-      })
+      if (data.unscheduled > 0) {
+        setUnscheduledAck({
+          unscheduled: data.unscheduled,
+          matchesCreated: data.matchesCreated,
+          stats: data.stats,
+        })
+      } else {
+        toast({
+          title: "Schedule generated",
+          description: `${data.matchesCreated} matches created`,
+        })
+      }
     } catch (err) {
       toast({
         title: "Error",
@@ -106,6 +120,36 @@ export function LeagueSeasonsTab() {
       })
     } finally {
       setSchedulingId(null)
+    }
+  }
+
+  async function handleGeneratePlayoffs(seasonId: string) {
+    setPlayoffsId(seasonId)
+    try {
+      const res = await fetch(`/api/admin/seasons/${seasonId}/generate-playoffs`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ replace_existing: true }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Failed to generate playoffs")
+
+      const byeCount = data.seeding?.round1ByeTeams?.length ?? 0
+      const eliminated = data.seeding?.eliminated?.length ?? 0
+      toast({
+        title: "Playoffs seeded",
+        description: `${data.matchesCreated} ${data.firstPlayoffRoundLabel ?? "Round 1"} matches · ${data.seeding?.seeds?.length ?? 0} teams seeded${
+          byeCount > 0 ? ` · ${byeCount} round-1 byes` : ""
+        }${eliminated > 0 ? ` · ${eliminated} eliminated` : ""}`,
+      })
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to generate playoffs",
+        variant: "destructive",
+      })
+    } finally {
+      setPlayoffsId(null)
     }
   }
 
@@ -242,7 +286,8 @@ export function LeagueSeasonsTab() {
                         <span className="text-muted-foreground text-sm">—</span>
                       )}
                     </TableCell>
-                    <TableCell className="text-right space-x-2">
+                    <TableCell className="text-right">
+                      <div className="flex flex-wrap justify-end gap-2">
                       <Button
                         variant="outline"
                         size="sm"
@@ -258,6 +303,18 @@ export function LeagueSeasonsTab() {
                       <Button
                         variant="outline"
                         size="sm"
+                        disabled={playoffsId === season.id}
+                        onClick={() => handleGeneratePlayoffs(season.id)}
+                      >
+                        {playoffsId === season.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          "Generate playoffs"
+                        )}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
                         disabled={season.is_current || settingId === season.id}
                         onClick={() => handleSetCurrent(season.id)}
                       >
@@ -267,6 +324,7 @@ export function LeagueSeasonsTab() {
                           "Set as current"
                         )}
                       </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -280,6 +338,21 @@ export function LeagueSeasonsTab() {
         onOpenChange={setCreateDialogOpen}
         onCreated={loadSeasons}
       />
+      {unscheduledAck ? (
+        <UnscheduledScheduleAckDialog
+          open
+          unscheduledCount={unscheduledAck.unscheduled}
+          matchesCreated={unscheduledAck.matchesCreated}
+          stats={unscheduledAck.stats}
+          onAcknowledge={() => {
+            setUnscheduledAck(null)
+            toast({
+              title: "Schedule generated",
+              description: `${unscheduledAck.matchesCreated} matches created · ${unscheduledAck.unscheduled} unscheduled (acknowledged)`,
+            })
+          }}
+        />
+      ) : null}
     </div>
   )
 }

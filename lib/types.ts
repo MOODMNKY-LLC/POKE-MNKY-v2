@@ -8,6 +8,13 @@ export interface Team {
   losses: number
   differential: number
   strength_of_schedule: number
+  regular_wins?: number
+  regular_losses?: number
+  regular_differential?: number
+  playoff_wins?: number
+  playoff_losses?: number
+  playoff_differential?: number
+  league_rank?: number
   logo_url?: string
   created_at: string
   updated_at: string

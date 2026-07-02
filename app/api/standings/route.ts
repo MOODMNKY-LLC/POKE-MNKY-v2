@@ -37,23 +37,46 @@ export async function GET() {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
+    const teamIds = (standings ?? []).map((r) => r.team_id)
+    const { data: teamTotals } =
+      teamIds.length > 0
+        ? await supabase
+            .from("teams")
+            .select(
+              "id, regular_wins, regular_losses, playoff_wins, playoff_losses, wins, losses, differential"
+            )
+            .in("id", teamIds)
+        : { data: [] }
+
+    const totalsById = new Map((teamTotals ?? []).map((t) => [t.id, t]))
+
     return NextResponse.json({
       season: currentSeason,
       standings:
-        (standings || []).map((row) => ({
-          id: row.team_id,
-          season_id: row.season_id,
-          name: row.team_name,
-          conference: row.conference,
-          division: row.division,
-          wins: row.wins,
-          losses: row.losses,
-          differential: row.differential,
-          current_streak: row.active_win_streak,
-          streak_type: row.active_win_streak > 0 ? "W" : null,
-          strength_of_schedule: row.sos,
-          league_rank: row.league_rank,
-        })) || [],
+        (standings || []).map((row) => {
+          const totals = totalsById.get(row.team_id)
+          return {
+            id: row.team_id,
+            season_id: row.season_id,
+            name: row.team_name,
+            conference: row.conference,
+            division: row.division,
+            wins: row.wins,
+            losses: row.losses,
+            differential: row.differential,
+            regular_wins: row.wins,
+            regular_losses: row.losses,
+            playoff_wins: totals?.playoff_wins ?? 0,
+            playoff_losses: totals?.playoff_losses ?? 0,
+            season_wins: totals?.wins ?? row.wins,
+            season_losses: totals?.losses ?? row.losses,
+            season_differential: totals?.differential ?? row.differential,
+            current_streak: row.active_win_streak,
+            streak_type: row.active_win_streak > 0 ? "W" : null,
+            strength_of_schedule: row.sos,
+            league_rank: row.league_rank,
+          }
+        }) || [],
     })
   } catch (error) {
     console.error("[v0] Standings error:", error)
