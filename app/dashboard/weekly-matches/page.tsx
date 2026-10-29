@@ -1,4 +1,3 @@
-import { AppSidebar } from "@/components/app-sidebar"
 import { WeekSelector, type WeekOption } from "@/components/dashboard/weekly-matches/week-selector"
 import {
   Breadcrumb,
@@ -12,11 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { ShineBorder } from "@/components/ui/shine-border"
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar"
+import { SidebarTrigger } from "@/components/ui/sidebar"
 import { createClient } from "@/lib/supabase/server"
 import { getCurrentUserProfile, canAccessCoachFeatures } from "@/lib/rbac"
 import { Calendar, ClipboardList, Shield, Swords, Trophy } from "lucide-react"
@@ -216,9 +211,7 @@ export default async function WeeklyMatchesPage({
   const opponentTeamCaptains = await loadRosterCaptains(supabase, opponentTeam?.id ?? null, seasonId, selectedWeek)
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
+    <>
         <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
           <div className="flex items-center gap-2 px-4">
             <SidebarTrigger className="-ml-1" />
@@ -313,7 +306,13 @@ export default async function WeeklyMatchesPage({
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button asChild size="sm">
+                        <Link href="/matches/submit">Submit result</Link>
+                      </Button>
+                      <Button asChild variant="outline" size="sm">
+                        <Link href="/matches">Match Center</Link>
+                      </Button>
                       <Button asChild variant="outline" size="sm">
                         <Link href="/schedule">League schedule</Link>
                       </Button>
@@ -518,7 +517,6 @@ export default async function WeeklyMatchesPage({
             </div>
           </div>
         </div>
-      </SidebarInset>
-    </SidebarProvider>
+    </>
   )
 }
