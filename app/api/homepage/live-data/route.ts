@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 import { redisCache, CacheKeys, CacheTTL } from "@/lib/cache/redis"
 import type { HomepageTopPokemon } from "@/lib/homepage-types"
 import { getPublicLeagueTeams } from "@/lib/teams-public"
+import { getMarkedCurrentSeason } from "@/lib/seasons"
 
 /**
  * Homepage Live Data API — teams + seasonal / weekly top Pokémon (AAB performer strips).
@@ -27,17 +28,16 @@ type Bundle = {
 
 async function aggregateTopPokemon(
   supabase: Awaited<ReturnType<typeof createClient>>,
-  matchIds: string[] | null,
+  matchIds: string[],
   limit: number,
   queryTimeout: number
 ): Promise<HomepageTopPokemon[]> {
-  let q = supabase.from("pokemon_stats").select("pokemon_id, kills, match_id")
+  if (matchIds.length === 0) return []
 
-  if (matchIds && matchIds.length > 0) {
-    q = q.in("match_id", matchIds)
-  } else {
-    q = q.limit(10000)
-  }
+  const q = supabase
+    .from("pokemon_stats")
+    .select("pokemon_id, kills, match_id")
+    .in("match_id", matchIds)
 
   const result = await withTimeout(q, queryTimeout, "pokemon_stats aggregate")
   if (result.error) {
@@ -114,13 +114,9 @@ export async function GET() {
       })
     }
 
-    const [teamsResult, weekResult] = await Promise.allSettled([
+    const [teamsResult, seasonResult] = await Promise.allSettled([
       withTimeout(getPublicLeagueTeams(supabase), queryTimeout, "Teams query"),
-      withTimeout(
-        supabase.from("matches").select("week").order("week", { ascending: false }).limit(1),
-        queryTimeout,
-        "Max week query"
-      ),
+      withTimeout(getMarkedCurrentSeason(supabase), queryTimeout, "Current season query"),
     ])
 
     let teams: unknown[] = []
@@ -136,28 +132,39 @@ export async function GET() {
     }
 
     let currentWeek: number | null = null
-    let weeklyMatchIds: string[] | null = null
+    let seasonMatchIds: string[] = []
+    let weeklyMatchIds: string[] = []
 
-    if (weekResult.status === "fulfilled" && !weekResult.value.error) {
-      const w = weekResult.value.data?.[0]?.week
-      if (typeof w === "number") {
-        currentWeek = w
-        const mids = await withTimeout(
-          supabase.from("matches").select("id").eq("week", w),
-          queryTimeout,
-          "Match ids for week"
-        )
-        if (!mids.error && mids.data?.length) {
-          weeklyMatchIds = mids.data.map((m: { id: string }) => m.id)
+    const seasonId =
+      seasonResult.status === "fulfilled" ? seasonResult.value?.id ?? null : null
+    if (seasonResult.status === "rejected") {
+      console.warn("[HomepageLiveData] Current season query failed:", seasonResult.reason)
+    }
+
+    if (seasonId) {
+      const seasonMatches = await withTimeout(
+        supabase.from("matches").select("id, week").eq("season_id", seasonId),
+        queryTimeout,
+        "Current season matches"
+      )
+      if (seasonMatches.error) {
+        console.warn("[HomepageLiveData] Season matches query error:", seasonMatches.error)
+      } else {
+        const rows = (seasonMatches.data ?? []) as { id: string; week: number | null }[]
+        seasonMatchIds = rows.map((row) => row.id)
+        const weeks = rows
+          .map((row) => row.week)
+          .filter((week): week is number => typeof week === "number")
+        currentWeek = weeks.length > 0 ? Math.max(...weeks) : null
+        if (currentWeek != null) {
+          weeklyMatchIds = rows.filter((row) => row.week === currentWeek).map((row) => row.id)
         }
       }
     }
 
     const [topPokemonSeasonal, topPokemonWeekly] = await Promise.all([
-      aggregateTopPokemon(supabase, null, 5, queryTimeout),
-      weeklyMatchIds && weeklyMatchIds.length > 0
-        ? aggregateTopPokemon(supabase, weeklyMatchIds, 5, queryTimeout)
-        : Promise.resolve([] as HomepageTopPokemon[]),
+      aggregateTopPokemon(supabase, seasonMatchIds, 5, queryTimeout),
+      aggregateTopPokemon(supabase, weeklyMatchIds, 5, queryTimeout),
     ])
 
     const bundle: Bundle = {

@@ -86,6 +86,23 @@ export async function getCurrentSeasonIdWithFallback(
 }
 
 /**
+ * Season row with `is_current = true`.
+ * Does not fall back to archived seasons.
+ */
+export async function getMarkedCurrentSeason(
+  supabase: SupabaseClient
+): Promise<Pick<Season, "id" | "name"> | null> {
+  const { data, error } = await supabase
+    .from("seasons")
+    .select("id, name")
+    .eq("is_current", true)
+    .maybeSingle()
+
+  if (error || !data?.id) return null
+  return { id: data.id, name: data.name }
+}
+
+/**
  * Get the season ID to use for the draft board.
  * Sources from draft_pool so the board shows the pool that is actually populated.
  *

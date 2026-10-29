@@ -20,6 +20,16 @@ export const getMatchesQuerySchema = z.object({
     .refine((n) => n === undefined || (Number.isInteger(n) && n >= 1), {
       message: "week must be a positive integer",
     }),
+  season_id: z
+    .string()
+    .optional()
+    .transform((s) => {
+      if (s === undefined || s.trim() === "") return undefined
+      return s.trim()
+    })
+    .refine((s) => s === undefined || z.string().uuid().safeParse(s).success, {
+      message: "season_id must be a uuid",
+    }),
 })
 
 export type GetMatchesQuery = z.infer<typeof getMatchesQuerySchema>

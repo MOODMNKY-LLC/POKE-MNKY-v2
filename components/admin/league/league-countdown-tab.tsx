@@ -30,7 +30,7 @@ type CountdownApiResponse = {
   timezone: string
   homepagePreview: NextEventPayload
   seasons: SeasonOption[]
-  season7Defaults: {
+  season8Defaults: {
     draft_date: string
     draft_time: string
     draft_open_at_utc: string
@@ -43,7 +43,7 @@ export function LeagueCountdownTab() {
   const [saving, setSaving] = useState(false)
   const [data, setData] = useState<CountdownApiResponse | null>(null)
   const [seasonId, setSeasonId] = useState<string>("")
-  const [draftDate, setDraftDate] = useState("2026-08-15")
+  const [draftDate, setDraftDate] = useState("2027-03-20")
   const [draftTime, setDraftTime] = useState("14:00")
 
   const load = useCallback(async () => {
@@ -56,7 +56,7 @@ export function LeagueCountdownTab() {
 
       const current =
         json.seasons.find((s) => s.is_current) ??
-        json.seasons.find((s) => s.name === "Season 7") ??
+        json.seasons.find((s) => s.name === "Season 8") ??
         json.seasons[0]
       if (current) {
         setSeasonId(current.id)
@@ -80,12 +80,14 @@ export function LeagueCountdownTab() {
     load()
   }, [load])
 
-  function applySeason7Defaults() {
+  function applySeason8Defaults() {
     if (!data) return
-    const s7 = data.seasons.find((s) => s.name === "Season 7")
-    if (s7) setSeasonId(s7.id)
-    setDraftDate(data.season7Defaults.draft_date)
-    setDraftTime(data.season7Defaults.draft_time)
+    const season8 =
+      data.seasons.find((s) => s.is_current) ??
+      data.seasons.find((s) => s.name === "Season 8")
+    if (season8) setSeasonId(season8.id)
+    setDraftDate(data.season8Defaults.draft_date)
+    setDraftTime(data.season8Defaults.draft_time)
   }
 
   async function handleSave() {
@@ -146,8 +148,8 @@ export function LeagueCountdownTab() {
           <CardDescription>
             Sets the public landing-page countdown from{" "}
             <code className="text-xs">seasons.draft_open_at</code> (stored in UTC, shown in{" "}
-            {HOMEPAGE_COUNTDOWN_TIMEZONE.replace("_", " ")}). The soonest upcoming draft across
-            all seasons drives the homepage timer.
+            {HOMEPAGE_COUNTDOWN_TIMEZONE.replace("_", " ")}). The current season
+            drives the homepage timer.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -223,9 +225,9 @@ export function LeagueCountdownTab() {
               )}
               Save draft start
             </Button>
-            <Button type="button" variant="outline" onClick={applySeason7Defaults} className="gap-2">
+            <Button type="button" variant="outline" onClick={applySeason8Defaults} className="gap-2">
               <Sparkles className="h-4 w-4" />
-              Season 7 preset (Aug 15, 2026 · 2:00 PM)
+              Season 8 preset (Mar 20, 2027 · 2:00 PM)
             </Button>
           </div>
         </CardContent>

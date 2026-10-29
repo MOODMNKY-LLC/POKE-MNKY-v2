@@ -32,4 +32,24 @@ describe("getMatchesQuerySchema", () => {
     const result = getMatchesQuerySchema.safeParse({ week: "0" })
     expect(result.success).toBe(false)
   })
+
+  it("accepts an explicit season_id and treats a blank value as unset", () => {
+    const seasonId = "11111111-1111-4111-8111-111111111111"
+    const explicit = getMatchesQuerySchema.safeParse({ season_id: seasonId })
+    expect(explicit.success).toBe(true)
+    if (explicit.success) {
+      expect(explicit.data.season_id).toBe(seasonId)
+    }
+
+    const blank = getMatchesQuerySchema.safeParse({ season_id: "  " })
+    expect(blank.success).toBe(true)
+    if (blank.success) {
+      expect(blank.data.season_id).toBeUndefined()
+    }
+  })
+
+  it("rejects a non-uuid season_id", () => {
+    const result = getMatchesQuerySchema.safeParse({ season_id: "season-7" })
+    expect(result.success).toBe(false)
+  })
 })
