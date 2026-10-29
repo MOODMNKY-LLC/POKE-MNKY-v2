@@ -1,7 +1,9 @@
 /**
  * Copy a previous season or archived pool into the current season.
  * Board rows are marked available. Draft picks are not copied.
- * Idempotent: upserts by season + pokemon, and leaves target rows that are already drafted.
+ * Idempotent: the database function upserts by season + pokemon and leaves
+ * target rows that are already drafted. Both tables are written in one RPC
+ * so a failure rolls the copy back.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js"
@@ -15,11 +17,9 @@ import {
   type DraftPoolCopySourceKind,
   type DraftPoolCopySourceRow,
   type DraftPoolCopySources,
-  type DraftPoolCopyWrite,
   type ExistingDraftPoolRow,
   type SeasonCandidate,
   type SeasonDraftPoolCopySourceRow,
-  type SeasonDraftPoolCopyWrite,
 } from "@/lib/draft-pool-copy-plan"
 import { createServiceRoleClient } from "@/lib/supabase/service"
 
@@ -27,6 +27,7 @@ export type { DraftPoolCopySourceKind, DraftPoolCopySources } from "@/lib/draft-
 
 const PAGE_SIZE = 1000
 const WRITE_BATCH = 200
+const COPY_RPC = "apply_current_season_draft_pool_copy"
 
 export class CopyDraftPoolError extends Error {
   constructor(
@@ -81,19 +82,6 @@ async function fetchAll<T>(
     if (rows.length < PAGE_SIZE) break
   }
   return all
-}
-
-async function upsertBatches(
-  service: SupabaseClient,
-  table: "draft_pool" | "season_draft_pool",
-  rows: DraftPoolCopyWrite[] | SeasonDraftPoolCopyWrite[],
-  onConflict: string
-): Promise<void> {
-  for (let index = 0; index < rows.length; index += WRITE_BATCH) {
-    const batch = rows.slice(index, index + WRITE_BATCH)
-    const { error } = await service.from(table).upsert(batch, { onConflict })
-    if (error) throw new CopyDraftPoolError(error.message, 500)
-  }
 }
 
 async function loadSeasons(service: SupabaseClient): Promise<SeasonRow[]> {
@@ -211,7 +199,9 @@ async function loadBoardRows(
     ? await fetchAll<DraftPoolCopySourceRow & { status?: string | null }>((from, to) =>
         service
           .from("draft_pool")
-          .select("pokemon_name, point_value, pokemon_id, generation, status")
+          .select(
+            "pokemon_name, point_value, pokemon_id, generation, status, is_tera_banned, tera_captain_eligible"
+          )
           .eq("season_id", seasonId)
           .order("id", { ascending: true })
           .range(from, to)
@@ -219,7 +209,9 @@ async function loadBoardRows(
     : await fetchAll<DraftPoolCopySourceRow & { status?: string | null }>((from, to) =>
         service
           .from("draft_pool")
-          .select("pokemon_name, point_value, pokemon_id, status")
+          .select(
+            "pokemon_name, point_value, pokemon_id, status, is_tera_banned, tera_captain_eligible"
+          )
           .eq("season_id", seasonId)
           .order("id", { ascending: true })
           .range(from, to)
@@ -230,6 +222,8 @@ async function loadBoardRows(
     point_value: row.point_value,
     pokemon_id: row.pokemon_id ?? null,
     generation: row.generation ?? null,
+    is_tera_banned: row.is_tera_banned ?? null,
+    tera_captain_eligible: row.tera_captain_eligible ?? null,
   }))
 }
 
@@ -436,8 +430,7 @@ export async function copyDraftPoolIntoCurrentSeason(
     throw new CopyDraftPoolError("Nothing to copy into the current season.", 400)
   }
 
-  await upsertBatches(service, "season_draft_pool", seasonPlan, "season_id,pokemon_id")
-  await upsertBatches(service, "draft_pool", boardPlan.writes, "season_id,pokemon_name")
+  const applied = await applyDraftPoolCopy(service, current.id, seasonPlan, boardPlan.writes)
 
   return {
     target_season_id: current.id,
@@ -445,9 +438,44 @@ export async function copyDraftPoolIntoCurrentSeason(
     source_kind: input.source,
     source_id: resolved.sourceId,
     source_label: resolved.sourceLabel,
-    season_draft_pool_upserted: seasonPlan.length,
-    draft_pool_upserted: boardPlan.writes.length,
-    draft_pool_skipped_drafted: boardPlan.skippedDrafted.length,
+    season_draft_pool_upserted: applied.season_draft_pool_upserted,
+    draft_pool_upserted: applied.draft_pool_upserted,
+    draft_pool_skipped_drafted: Math.max(
+      applied.draft_pool_skipped_drafted,
+      boardPlan.skippedDrafted.length
+    ),
+  }
+}
+
+type AppliedDraftPoolCopy = {
+  season_draft_pool_upserted: number
+  draft_pool_upserted: number
+  draft_pool_skipped_drafted: number
+}
+
+async function applyDraftPoolCopy(
+  service: SupabaseClient,
+  targetSeasonId: string,
+  seasonRows: ReturnType<typeof planSeasonDraftPoolCopy>,
+  boardRows: ReturnType<typeof planDraftPoolCopy>["writes"]
+): Promise<AppliedDraftPoolCopy> {
+  const { data, error } = await service.rpc(COPY_RPC, {
+    p_target_season_id: targetSeasonId,
+    p_season_rows: seasonRows,
+    p_board_rows: boardRows,
+  })
+
+  if (error) {
+    const message = error.message || "Draft pool copy failed"
+    const status = /active draft session/i.test(message) ? 409 : 500
+    throw new CopyDraftPoolError(message, status)
+  }
+
+  const applied = (data ?? {}) as Partial<AppliedDraftPoolCopy>
+  return {
+    season_draft_pool_upserted: applied.season_draft_pool_upserted ?? seasonRows.length,
+    draft_pool_upserted: applied.draft_pool_upserted ?? boardRows.length,
+    draft_pool_skipped_drafted: applied.draft_pool_skipped_drafted ?? 0,
   }
 }
 

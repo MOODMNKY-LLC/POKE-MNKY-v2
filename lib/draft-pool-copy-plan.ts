@@ -15,6 +15,7 @@ export type DraftPoolCopySourceRow = {
   pokemon_id?: number | null
   generation?: number | null
   is_tera_banned?: boolean | null
+  tera_captain_eligible?: boolean | null
 }
 
 export type ExistingDraftPoolRow = {
@@ -34,7 +35,8 @@ export type DraftPoolCopyWrite = {
   drafted_at: null
   drafted_by_team_id: null
   banned_reason: null
-  is_tera_banned?: boolean
+  is_tera_banned: boolean
+  tera_captain_eligible: boolean
   updated_at: string
 }
 
@@ -78,6 +80,23 @@ export type DraftPoolCopySources = {
   current_season: { id: string; name: string } | null
   previous_season: DraftPoolCopySeasonSummary | null
   archived_pools: ArchivedPoolCopySummary[]
+}
+
+/**
+ * Carry Tera flags from the source row.
+ * When the source omits eligibility, a banned Pokémon is not captain-eligible.
+ */
+export function teraFlagsForCopy(source: {
+  is_tera_banned?: boolean | null
+  tera_captain_eligible?: boolean | null
+}): { is_tera_banned: boolean; tera_captain_eligible: boolean } {
+  const isTeraBanned = source.is_tera_banned === true
+  const teraCaptainEligible =
+    source.tera_captain_eligible == null ? !isTeraBanned : source.tera_captain_eligible === true
+  return {
+    is_tera_banned: isTeraBanned,
+    tera_captain_eligible: teraCaptainEligible,
+  }
 }
 
 export function clampCopiedPointValue(value: number | null | undefined): number {
@@ -138,13 +157,11 @@ export function planDraftPoolCopy(args: {
       drafted_at: null,
       drafted_by_team_id: null,
       banned_reason: null,
+      ...teraFlagsForCopy(source),
       updated_at: now,
     }
     if (includeGeneration) {
       write.generation = source.generation ?? null
-    }
-    if (typeof source.is_tera_banned === "boolean") {
-      write.is_tera_banned = source.is_tera_banned
     }
     writes.push(write)
   }
