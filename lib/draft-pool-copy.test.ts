@@ -11,8 +11,10 @@ const SEASON_9 = "season-9"
 const ARCHIVE_ID = "archive-1"
 const MASTER_ID = "master-snorlax"
 
-function createFake(tables: Record<string, Row[]>) {
+function createFake(tables: Record<string, Row[]>, options?: { failRpc?: boolean }) {
   const touched: string[] = []
+  const rpcCalls: Array<{ name: string; args: Record<string, unknown> }> = []
+  const upsertCalls: string[] = []
 
   const client = {
     from(table: string) {
@@ -64,6 +66,7 @@ function createFake(tables: Record<string, Row[]>) {
           return Promise.resolve({ data: rows[0] ?? null, error: null, count: rows.length })
         },
         upsert(rows: Row[], options: { onConflict: string }) {
+          upsertCalls.push(table)
           const keys = options.onConflict.split(",").map((key) => key.trim())
           const tableRows = tables[table] ?? []
           tables[table] = tableRows
@@ -95,9 +98,83 @@ function createFake(tables: Record<string, Row[]>) {
 
       return builder
     },
+    async rpc(name: string, args: Record<string, unknown>) {
+      rpcCalls.push({ name, args })
+      if (options?.failRpc) {
+        return { data: null, error: { message: "copy failed before commit" } }
+      }
+
+      const snapshot = structuredClone(tables)
+      try {
+        const seasonRows = (args.p_season_rows ?? []) as Row[]
+        const boardRows = (args.p_board_rows ?? []) as Row[]
+        const targetSeasonId = args.p_target_season_id
+
+        const seasonTable = tables.season_draft_pool ?? []
+        tables.season_draft_pool = seasonTable
+        for (const row of seasonRows) {
+          const index = seasonTable.findIndex(
+            (existing) =>
+              existing.season_id === targetSeasonId && existing.pokemon_id === row.pokemon_id
+          )
+          const next = { ...row, season_id: targetSeasonId }
+          if (index >= 0) seasonTable[index] = { ...seasonTable[index], ...next }
+          else seasonTable.push({ id: `season-${seasonTable.length + 1}`, ...next })
+        }
+
+        const boardTable = tables.draft_pool ?? []
+        tables.draft_pool = boardTable
+        let skipped = 0
+        for (const row of boardRows) {
+          const index = boardTable.findIndex(
+            (existing) =>
+              existing.season_id === targetSeasonId &&
+              String(existing.pokemon_name).toLowerCase() === String(row.pokemon_name).toLowerCase()
+          )
+          if (index >= 0 && boardTable[index]?.status === "drafted") {
+            skipped += 1
+            continue
+          }
+          const next = {
+            ...row,
+            season_id: targetSeasonId,
+            status: "available",
+            draft_pick_number: null,
+            draft_round: null,
+            drafted_at: null,
+            drafted_by_team_id: null,
+            banned_reason: null,
+          }
+          if (index >= 0) boardTable[index] = { ...boardTable[index], ...next }
+          else boardTable.push({ id: `board-${boardTable.length + 1}`, ...next })
+        }
+
+        return {
+          data: {
+            season_draft_pool_upserted: seasonRows.length,
+            draft_pool_upserted: boardRows.length - skipped,
+            draft_pool_skipped_drafted: skipped,
+          },
+          error: null,
+        }
+      } catch (error) {
+        for (const key of Object.keys(tables)) delete tables[key]
+        Object.assign(tables, snapshot)
+        return {
+          data: null,
+          error: { message: error instanceof Error ? error.message : "copy failed" },
+        }
+      }
+    },
   }
 
-  return { client: client as unknown as SupabaseClient, touched, tables }
+  return {
+    client: client as unknown as SupabaseClient,
+    touched,
+    tables,
+    rpcCalls,
+    upsertCalls,
+  }
 }
 
 function seedLeague() {
@@ -147,6 +224,8 @@ function seedLeague() {
         draft_round: 1,
         draft_pick_number: 3,
         drafted_at: "2026-04-01",
+        is_tera_banned: true,
+        tera_captain_eligible: false,
       },
       {
         id: "board-open",
@@ -156,6 +235,8 @@ function seedLeague() {
         pokemon_id: 143,
         generation: 1,
         status: "available",
+        is_tera_banned: false,
+        tera_captain_eligible: true,
       },
     ],
     season_draft_pool: [
@@ -227,6 +308,20 @@ describe("copyDraftPoolIntoCurrentSeason", () => {
       expect(row.drafted_at).toBeNull()
     }
     expect(copied.map((row) => row.pokemon_name).sort()).toEqual(["Pikachu", "Snorlax"])
+    expect(copied.find((row) => row.pokemon_name === "Pikachu")).toMatchObject({
+      is_tera_banned: true,
+      tera_captain_eligible: false,
+    })
+    expect(copied.find((row) => row.pokemon_name === "Snorlax")).toMatchObject({
+      is_tera_banned: false,
+      tera_captain_eligible: true,
+    })
+    expect(fake.rpcCalls).toHaveLength(1)
+    expect(fake.rpcCalls[0]?.name).toBe("apply_current_season_draft_pool_copy")
+    expect(fake.upsertCalls).toEqual([])
+    const rpcArgs = fake.rpcCalls[0]?.args
+    expect(Array.isArray(rpcArgs?.p_board_rows)).toBe(true)
+    expect(Array.isArray(rpcArgs?.p_season_rows)).toBe(true)
 
     const builder = fake.tables.season_draft_pool.filter((row) => row.season_id === SEASON_8)
     expect(builder).toEqual([
@@ -282,7 +377,28 @@ describe("copyDraftPoolIntoCurrentSeason", () => {
       pokemon_id: 143,
       point_value: 18,
       drafted_by_team_id: null,
+      is_tera_banned: false,
+      tera_captain_eligible: true,
     })
+    expect(fake.rpcCalls).toHaveLength(1)
+    expect(fake.upsertCalls).toEqual([])
+  })
+
+  it("writes neither table when the copy function fails", async () => {
+    const fake = seedLeague()
+    const failing = createFake(fake.tables, { failRpc: true })
+    const beforeBoard = failing.tables.draft_pool.length
+    const beforeSeason = failing.tables.season_draft_pool.length
+
+    await expect(
+      copyDraftPoolIntoCurrentSeason({ source: "previous_season" }, failing.client)
+    ).rejects.toThrow(/copy failed before commit/)
+
+    expect(failing.tables.draft_pool).toHaveLength(beforeBoard)
+    expect(failing.tables.season_draft_pool).toHaveLength(beforeSeason)
+    expect(failing.tables.draft_pool.some((row) => row.season_id === SEASON_8)).toBe(false)
+    expect(failing.rpcCalls).toHaveLength(1)
+    expect(failing.upsertCalls).toEqual([])
   })
 
   it("lists the previous season rather than a later one", async () => {

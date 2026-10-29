@@ -21,6 +21,7 @@ describe("planDraftPoolCopy", () => {
           pokemon_id: 25,
           generation: 1,
           is_tera_banned: true,
+          tera_captain_eligible: false,
         },
         {
           pokemon_name: "  Charizard ",
@@ -46,9 +47,14 @@ describe("planDraftPoolCopy", () => {
     expect(writes[0]).toMatchObject({
       pokemon_name: "Pikachu",
       is_tera_banned: true,
+      tera_captain_eligible: false,
       point_value: 12,
     })
-    expect(writes[1]?.pokemon_name).toBe("Charizard")
+    expect(writes[1]).toMatchObject({
+      pokemon_name: "Charizard",
+      is_tera_banned: false,
+      tera_captain_eligible: true,
+    })
   })
 
   it("does not duplicate names and leaves pokemon already drafted on the target", () => {
