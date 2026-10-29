@@ -2,27 +2,52 @@ import { createClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { getMarkedCurrentSeason } from "@/lib/seasons"
+
+type ScheduleTeam = {
+  name: string | null
+  coach_name: string | null
+  division: string | null
+}
+
+type ScheduleMatch = {
+  id: string
+  week: number
+  winner_id: string | null
+  team1_id: string
+  team2_id: string
+  team1_score: number | null
+  team2_score: number | null
+  differential: number | null
+  team1: ScheduleTeam | null
+  team2: ScheduleTeam | null
+}
 
 export default async function SchedulePage() {
   const supabase = await createClient()
+  const season = await getMarkedCurrentSeason(supabase)
 
-  // Fetch all regular season matches
-  const { data: matches } = await supabase
-    .from("matches")
-    .select(
-      `
+  const { data: matches } = season
+    ? await supabase
+        .from("matches")
+        .select(
+          `
       *,
       team1:team1_id(name, coach_name, division),
       team2:team2_id(name, coach_name, division),
       winner:winner_id(name)
     `,
-    )
-    .eq("is_playoff", false)
-    .order("week")
-    .order("created_at")
+        )
+        .eq("is_playoff", false)
+        .eq("season_id", season.id)
+        .order("week")
+        .order("created_at")
+    : { data: [] as ScheduleMatch[] }
+
+  const scheduleMatches = (matches ?? []) as ScheduleMatch[]
 
   // Group matches by week
-  const matchesByWeek = matches?.reduce(
+  const matchesByWeek = scheduleMatches.reduce(
     (acc, match) => {
       const week = match.week
       if (!acc[week]) {
@@ -31,7 +56,7 @@ export default async function SchedulePage() {
       acc[week].push(match)
       return acc
     },
-    {} as Record<number, typeof matches>,
+    {} as Record<number, ScheduleMatch[]>,
   )
 
   const weeks = Object.keys(matchesByWeek || {})
@@ -39,7 +64,7 @@ export default async function SchedulePage() {
     .sort((a, b) => a - b)
   const currentWeek = weeks.length > 0 ? weeks[Math.floor(weeks.length / 2)] : 1
 
-  function MatchCard({ match }: { match: any }) {
+  function MatchCard({ match }: { match: ScheduleMatch }) {
     const hasResult = match.winner_id !== null
 
     return (
@@ -62,7 +87,7 @@ export default async function SchedulePage() {
             >
               <div className="flex-1">
                 <div className="font-semibold">{match.team1?.name}</div>
-                <div className="text-xs text-muted-foreground">{match.team1?.coach}</div>
+                <div className="text-xs text-muted-foreground">{match.team1?.coach_name}</div>
               </div>
               {hasResult && <div className="text-2xl font-bold">{match.team1_score}</div>}
             </div>
@@ -80,14 +105,14 @@ export default async function SchedulePage() {
             >
               <div className="flex-1">
                 <div className="font-semibold">{match.team2?.name}</div>
-                <div className="text-xs text-muted-foreground">{match.team2?.coach}</div>
+                <div className="text-xs text-muted-foreground">{match.team2?.coach_name}</div>
               </div>
               {hasResult && <div className="text-2xl font-bold">{match.team2_score}</div>}
             </div>
 
             {hasResult && (
               <div className="mt-3 border-t border-border pt-3 text-center text-xs text-muted-foreground">
-                Differential: {Math.abs(match.differential)}
+                Differential: {Math.abs(match.differential ?? 0)}
               </div>
             )}
           </div>
@@ -101,7 +126,11 @@ export default async function SchedulePage() {
         <div className="border-b border-border bg-muted/30 py-8">
           <div className="container mx-auto px-4 md:px-6">
             <h1 className="text-4xl font-bold tracking-tight">Match Schedule</h1>
-            <p className="mt-2 text-muted-foreground">View all regular season matchups and results</p>
+            <p className="mt-2 text-muted-foreground">
+              {season
+                ? `${season.name} regular-season matchups and results`
+                : "Regular-season matchups for the current season will appear here"}
+            </p>
           </div>
         </div>
 

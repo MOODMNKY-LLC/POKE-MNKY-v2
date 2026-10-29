@@ -15,9 +15,9 @@ export async function GET() {
       .select(
         "id, name, start_date, end_date, draft_open_at, draft_close_at, is_current"
       )
-      .order("is_current", { ascending: false })
+      .eq("is_current", true)
       .order("start_date", { ascending: false })
-      .limit(20)
+      .limit(5)
 
     if (error) {
       console.warn("[next-event] seasons error:", error)
