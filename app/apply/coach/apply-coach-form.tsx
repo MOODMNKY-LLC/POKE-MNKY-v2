@@ -178,7 +178,11 @@ export function ApplyCoachForm() {
           disabled={locked}
         />
         <Label htmlFor="liability" className="font-normal leading-snug">
-          I acknowledge league liability and conduct expectations (placeholder — replace with your legal text).
+          I agree to the Average At Best Battle League Season 8 coach conduct expectations. I will
+          compete in good faith, report results honestly, treat coaches and officials with respect, and
+          follow commissioner decisions on rules, scheduling, and disputes. I understand participation is
+          voluntary and the league is not liable for match outcomes, scheduling changes, or Discord
+          communications.
         </Label>
       </div>
 
