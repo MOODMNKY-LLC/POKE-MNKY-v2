@@ -1,7 +1,16 @@
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
-import { resolveCurrentSeasonId } from "@/lib/match-result-complete"
 import { createServiceRoleClient } from "@/lib/supabase/service"
+import {
+  draftCtaDescription,
+  draftHeroDescription,
+  draftLiveProgressDescription,
+  draftPoolCountLabel,
+  draftSeasonLabel,
+  draftSnakeOrderDescription,
+  draftTeamCountLabel,
+  type DraftLandingSeason,
+} from "@/lib/draft-landing-copy"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -24,14 +33,52 @@ import {
   Sparkles,
 } from "lucide-react"
 
-export default async function DraftLandingPage() {
-  let seasonId: string | undefined
+async function loadDraftLanding(): Promise<DraftLandingSeason & { signedIn: boolean; seasonId?: string }> {
+  const sessionClient = await createClient()
+  const {
+    data: { user },
+  } = await sessionClient.auth.getUser()
+
+  let reader = sessionClient
   try {
-    const supabase = createServiceRoleClient()
-    seasonId = (await resolveCurrentSeasonId(supabase)) ?? undefined
+    reader = createServiceRoleClient()
   } catch {
-    const supabase = await createClient()
-    seasonId = (await resolveCurrentSeasonId(supabase)) ?? undefined
+    reader = sessionClient
+  }
+
+  const { data: season, error: seasonError } = await reader
+    .from("seasons")
+    .select("id, name, team_slot_count")
+    .eq("is_current", true)
+    .maybeSingle()
+
+  if (seasonError || !season?.id) {
+    return { signedIn: Boolean(user), name: null, teamSlotCount: null, poolSize: null }
+  }
+
+  const { count, error: countError } = await reader
+    .from("draft_pool")
+    .select("id", { count: "exact", head: true })
+    .eq("season_id", season.id)
+
+  const teamSlotCount = typeof season.team_slot_count === "number" ? season.team_slot_count : null
+
+  return {
+    signedIn: Boolean(user),
+    seasonId: season.id,
+    name: season.name ?? null,
+    teamSlotCount,
+    poolSize: countError ? null : (count ?? 0),
+  }
+}
+
+export default async function DraftLandingPage() {
+  const landing = await loadDraftLanding()
+  const seasonId = landing.seasonId
+  const seasonCopy: DraftLandingSeason = {
+    name: landing.name,
+    teamSlotCount: landing.teamSlotCount,
+    poolSize: landing.poolSize,
   }
 
   return (
@@ -67,13 +114,13 @@ export default async function DraftLandingPage() {
                     </span>
                   </h1>
                   <p className="w-full max-w-full text-muted-foreground text-base sm:text-lg md:text-xl text-pretty break-words">
-                    Build your championship team through strategic point-budget drafting. With 120 points per team and a snake draft format, every pick matters. Select from 749 available Pokemon organized by competitive tiers.
+                    {draftHeroDescription(seasonCopy)}
                   </p>
                 </div>
               </BlurFade>
 
               <BlurFade delay={0.2}>
-                <div className="flex flex-col gap-3 min-[400px]:flex-row w-full max-w-md">
+                <div className="flex flex-col gap-3 min-[400px]:flex-row w-full max-w-3xl flex-wrap">
                   <Button
                     asChild
                     size="lg"
@@ -91,6 +138,13 @@ export default async function DraftLandingPage() {
                       Team Builder
                     </Link>
                   </Button>
+                  {landing.signedIn ? (
+                    <Button asChild variant="secondary" size="lg" className="tap-target w-full min-[400px]:w-auto">
+                      <Link href="/dashboard/draft" className="flex items-center justify-center">
+                        Coach draft board
+                      </Link>
+                    </Button>
+                  ) : null}
                 </div>
               </BlurFade>
 
@@ -101,8 +155,12 @@ export default async function DraftLandingPage() {
                     <span className="whitespace-nowrap">120 Point Budget</span>
                   </Badge>
                   <Badge variant="secondary" className="gap-1.5 px-2 sm:px-3 py-1.5 text-xs sm:text-sm flex-shrink-0">
+                    <Trophy className="h-3.5 w-3.5 flex-shrink-0" />
+                    <span className="whitespace-nowrap">{draftSeasonLabel(seasonCopy.name)}</span>
+                  </Badge>
+                  <Badge variant="secondary" className="gap-1.5 px-2 sm:px-3 py-1.5 text-xs sm:text-sm flex-shrink-0">
                     <Users className="h-3.5 w-3.5 flex-shrink-0" />
-                    <span className="whitespace-nowrap">20 Teams</span>
+                    <span className="whitespace-nowrap">{draftTeamCountLabel(seasonCopy.teamSlotCount)}</span>
                   </Badge>
                   <Badge variant="secondary" className="gap-1.5 px-2 sm:px-3 py-1.5 text-xs sm:text-sm flex-shrink-0">
                     <Clock className="h-3.5 w-3.5 flex-shrink-0" />
@@ -110,7 +168,7 @@ export default async function DraftLandingPage() {
                   </Badge>
                   <Badge variant="secondary" className="gap-1.5 px-2 sm:px-3 py-1.5 text-xs sm:text-sm flex-shrink-0">
                     <Sparkles className="h-3.5 w-3.5 flex-shrink-0" />
-                    <span className="whitespace-nowrap">749 Pokemon</span>
+                    <span className="whitespace-nowrap">{draftPoolCountLabel(seasonCopy.poolSize)}</span>
                   </Badge>
                 </div>
               </BlurFade>
@@ -177,7 +235,7 @@ export default async function DraftLandingPage() {
                   <div className="flex-1 space-y-2">
                     <h3 className="font-semibold text-lg">Snake Draft Format</h3>
                     <p className="text-sm text-muted-foreground">
-                      Round 1 goes Team 1 → Team 20, then Round 2 reverses (Team 20 → Team 1). This ensures fairness and strategic depth as teams adapt to each round's order.
+                      {draftSnakeOrderDescription(seasonCopy.teamSlotCount)}
                     </p>
                   </div>
                 </div>
@@ -231,7 +289,7 @@ export default async function DraftLandingPage() {
                   <div className="flex-1 space-y-2">
                     <h3 className="font-semibold text-lg">Real-Time Updates</h3>
                     <p className="text-sm text-muted-foreground">
-                      Watch picks happen live with real-time updates. See which Pokemon are available, track team budgets, and monitor draft progress across all 20 teams.
+                      {draftLiveProgressDescription(seasonCopy.teamSlotCount)}
                     </p>
                   </div>
                 </div>
@@ -302,7 +360,11 @@ export default async function DraftLandingPage() {
                 <div className="flex-1 space-y-2">
                   <h3 className="font-semibold text-lg">Draft Begins</h3>
                   <p className="text-muted-foreground">
-                    On draft day, all 20 coaches join the draft room. The first team makes their pick, starting Round 1. Each pick consumes points from your 120-point budget.
+                    On draft day,{" "}
+                    {landing.teamSlotCount != null && landing.teamSlotCount > 0
+                      ? `all ${landing.teamSlotCount.toLocaleString("en-US")} coaches`
+                      : "coaches"}{" "}
+                    join the draft room. The first team makes their pick, starting Round 1. Each pick consumes points from your 120-point budget.
                   </p>
                 </div>
               </div>
@@ -433,12 +495,12 @@ export default async function DraftLandingPage() {
                   Ready to Draft Your Team?
                 </h2>
                 <p className="mx-auto max-w-[600px] text-muted-foreground text-lg md:text-xl text-balance">
-                  Join 20 coaches competing in Season 5. Build your championship roster through strategic point-budget drafting with real-time updates and AI-powered insights.
+                  {draftCtaDescription(seasonCopy)}
                 </p>
               </div>
             </BlurFade>
             <BlurFade delay={0.2}>
-              <div className="flex flex-col gap-3 min-[400px]:flex-row justify-center items-center w-full max-w-md mx-auto">
+              <div className="flex flex-col gap-3 min-[400px]:flex-row justify-center items-center w-full max-w-3xl mx-auto flex-wrap">
                 <Button
                   asChild
                   size="lg"
@@ -456,6 +518,13 @@ export default async function DraftLandingPage() {
                     View Standings
                   </Link>
                 </Button>
+                {landing.signedIn ? (
+                  <Button asChild variant="secondary" size="lg" className="tap-target w-full min-[400px]:w-auto">
+                    <Link href="/dashboard/draft" className="flex items-center justify-center">
+                      Coach draft board
+                    </Link>
+                  </Button>
+                ) : null}
               </div>
             </BlurFade>
           </div>
