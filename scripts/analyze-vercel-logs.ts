@@ -45,7 +45,7 @@ function main() {
     // Error entries
     const errors = logs.filter((l) => l.responseStatusCode >= 400)
     if (errors.length > 0) {
-      console.log(`\n=== Error Entries (${errors.length} total) ===")
+      console.log(`\n=== Error Entries (${errors.length} total) ===`)
       errors.slice(-10).forEach((l, i) => {
         console.log(`\n${i + 1}. [${l.TimeUTC}] Status: ${l.responseStatusCode}`)
         console.log(`   Request ID: ${l.requestId}`)
@@ -62,7 +62,7 @@ function main() {
     // Success entries
     const successes = logs.filter((l) => l.responseStatusCode === 200)
     if (successes.length > 0) {
-      console.log(`\n=== Recent Success Entries (last 5) ===")
+      console.log(`\n=== Recent Success Entries (last 5) ===`)
       successes.slice(-5).forEach((l, i) => {
         console.log(`\n${i + 1}. [${l.TimeUTC}]`)
         console.log(`   Request ID: ${l.requestId}`)
@@ -76,7 +76,7 @@ function main() {
     // Messages containing "Notion Webhook"
     const notionLogs = logs.filter((l) => l.message?.includes("Notion Webhook"))
     if (notionLogs.length > 0) {
-      console.log(`\n=== Notion Webhook Logs (${notionLogs.length} total) ===")
+      console.log(`\n=== Notion Webhook Logs (${notionLogs.length} total) ===`)
       notionLogs.slice(-10).forEach((l, i) => {
         console.log(`\n${i + 1}. [${l.TimeUTC}] Status: ${l.responseStatusCode}`)
         console.log(`   Request ID: ${l.requestId}`)
