@@ -127,27 +127,36 @@ export function getCountdownParts(targetIso: string, now = new Date()): Countdow
   }
 }
 
-/** Season 7 draft: August 15, 2026 at 2:00 PM Chicago (CDT → 19:00 UTC). */
-export const SEASON_7_DRAFT_LOCAL = {
-  date: "2026-08-15",
+/** Season 8 draft preset: March 20, 2027 at 2:00 PM Chicago (CDT → 19:00 UTC). */
+export const SEASON_8_DRAFT_LOCAL = {
+  date: "2027-03-20",
   time: "14:00",
 } as const
 
-export function season7DraftUtcIso(): string {
-  return zonedLocalToUtcIso(SEASON_7_DRAFT_LOCAL.date, SEASON_7_DRAFT_LOCAL.time)
+export function season8DraftUtcIso(): string {
+  return zonedLocalToUtcIso(SEASON_8_DRAFT_LOCAL.date, SEASON_8_DRAFT_LOCAL.time)
 }
 
 /**
  * Pick the homepage countdown target from season rows.
- * Priority: soonest future draft_open_at → draft_close during window → season start/end.
+ * Only seasons with `is_current` can drive the timer. Archived rows whose
+ * `draft_open_at` is in the past and `draft_close_at` is null are ignored,
+ * so they cannot stay on "Draft in progress".
+ * Priority: soonest future draft_open_at on the current season → an open
+ * draft window that still has a close time → current season start/end →
+ * current-season draft that has opened without a close time.
  */
 export function resolveNextCountdownFromSeasons(
   seasons: SeasonCountdownRow[],
   now = new Date()
 ): NextEventPayload {
   const nowMs = now.getTime()
+  const currentSeasons = seasons.filter((s) => s.is_current)
+  if (currentSeasons.length === 0) {
+    return fallbackNone()
+  }
 
-  const withDraftOpen = seasons.filter((s) => s.draft_open_at)
+  const withDraftOpen = currentSeasons.filter((s) => s.draft_open_at)
   const futureDrafts = withDraftOpen
     .map((s) => ({ season: s, at: new Date(s.draft_open_at!).getTime() }))
     .filter((x) => x.at > nowMs)
@@ -167,10 +176,9 @@ export function resolveNextCountdownFromSeasons(
   }
 
   const activeDraft = withDraftOpen.find((s) => {
+    if (!s.draft_close_at) return false
     const open = new Date(s.draft_open_at!).getTime()
-    const close = s.draft_close_at
-      ? new Date(s.draft_close_at).getTime()
-      : Number.POSITIVE_INFINITY
+    const close = new Date(s.draft_close_at).getTime()
     return open <= nowMs && close > nowMs
   })
 
@@ -189,7 +197,7 @@ export function resolveNextCountdownFromSeasons(
     }
   }
 
-  const current = seasons.find((s) => s.is_current) ?? seasons[0] ?? null
+  const current = currentSeasons[0]
   if (!current) {
     return fallbackNone()
   }
@@ -227,7 +235,13 @@ export function resolveNextCountdownFromSeasons(
 
   const pastDraft = withDraftOpen
     .map((s) => ({ season: s, at: new Date(s.draft_open_at!).getTime() }))
-    .filter((x) => x.at <= nowMs)
+    .filter((x) => {
+      if (x.at > nowMs) return false
+      // A close time that has already passed is not a live draft.
+      // A null close on the current season still means the draft is open.
+      if (!x.season.draft_close_at) return true
+      return new Date(x.season.draft_close_at).getTime() > nowMs
+    })
     .sort((a, b) => b.at - a.at)[0]
 
   if (pastDraft) {

@@ -195,8 +195,8 @@ export default function HomePage() {
               </Badge>
               <CardTitle className="text-2xl tracking-tight sm:text-3xl">Need coach access?</CardTitle>
               <CardDescription className="mx-auto max-w-2xl text-pretty">
-                Discord sign-in routes coaches into the private workflow. If you are joining the staff queue, start
-                with the application stub and finish the full form when it is ready.
+                Discord sign-in opens the coach workflow. New coaches submit the Season 8 application
+                for staff review.
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-3 sm:flex-row sm:justify-center">

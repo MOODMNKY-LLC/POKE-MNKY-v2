@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { getMatchesQuerySchema } from "@/lib/validation/matches"
 import { validationError, internalError } from "@/lib/api-error"
+import { getMarkedCurrentSeason } from "@/lib/seasons"
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -13,11 +14,18 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const parsed = getMatchesQuerySchema.safeParse({
       week: searchParams.get("week") ?? undefined,
+      season_id: searchParams.get("season_id") ?? undefined,
     })
     if (!parsed.success) {
       return validationError("Invalid query", parsed.error.errors)
     }
-    const { week } = parsed.data
+    const { week, season_id: requestedSeasonId } = parsed.data
+    const seasonId =
+      requestedSeasonId ?? (await getMarkedCurrentSeason(supabase))?.id ?? null
+
+    if (!seasonId) {
+      return NextResponse.json({ matches: [] })
+    }
 
     let query = supabase
       .from("matches")
@@ -29,6 +37,7 @@ export async function GET(request: Request) {
         winner:teams!matches_winner_id_fkey(id, name)
       `,
       )
+      .eq("season_id", seasonId)
       .order("week", { ascending: true })
       .order("created_at", { ascending: true })
 

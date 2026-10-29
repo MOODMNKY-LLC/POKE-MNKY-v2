@@ -12,7 +12,7 @@ import { hasAnyRole, UserRole } from "@/lib/rbac"
 import {
   HOMEPAGE_COUNTDOWN_TIMEZONE,
   resolveNextCountdownFromSeasons,
-  season7DraftUtcIso,
+  season8DraftUtcIso,
   splitUtcIsoToChicagoLocal,
   zonedLocalToUtcIso,
   type SeasonCountdownRow,
@@ -90,10 +90,10 @@ export async function GET() {
       timezone: HOMEPAGE_COUNTDOWN_TIMEZONE,
       homepagePreview,
       seasons: seasonsWithLocal,
-      season7Defaults: {
-        draft_date: "2026-08-15",
+      season8Defaults: {
+        draft_date: "2027-03-20",
         draft_time: "14:00",
-        draft_open_at_utc: season7DraftUtcIso(),
+        draft_open_at_utc: season8DraftUtcIso(),
       },
     })
   } catch (e) {
