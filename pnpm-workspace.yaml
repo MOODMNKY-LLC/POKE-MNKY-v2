@@ -1,3 +1,8 @@
+# CI uses pnpm 9, which treats this file as a workspace manifest and rejects
+# `pnpm store path` when `packages` is missing. This repo is a single package.
+packages:
+  - "."
+
 allowBuilds:
   '@tailwindcss/oxide': true
   esbuild: true

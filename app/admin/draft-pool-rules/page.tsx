@@ -9,8 +9,9 @@ import { Checkbox } from "@/components/ui/checkbox"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { createBrowserClient } from "@/lib/supabase/client"
-import { Settings, Database, Loader2, Archive, FolderOpen, Upload } from "lucide-react"
+import { Settings, Database, Loader2, Archive, FolderOpen, Upload, Copy } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { draftPoolCopyConfirmMessage, type DraftPoolCopySources } from "@/lib/draft-pool-copy-plan"
 
 interface Season {
   id: string
@@ -57,6 +58,11 @@ export default function AdminDraftPoolRulesPage() {
   } | null>(null)
   const [backfillStatus, setBackfillStatus] = useState<string | null>(null)
   const [bootstrapStatus, setBootstrapStatus] = useState<string | null>(null)
+  const [copySources, setCopySources] = useState<DraftPoolCopySources | null>(null)
+  const [copySourceKind, setCopySourceKind] = useState<"previous_season" | "archived_pool">("previous_season")
+  const [archivedPoolId, setArchivedPoolId] = useState("")
+  const [copyStatus, setCopyStatus] = useState<string | null>(null)
+  const [copying, setCopying] = useState(false)
 
   useEffect(() => {
     const supabase = createBrowserClient()
@@ -84,12 +90,28 @@ export default function AdminDraftPoolRulesPage() {
       .single()
     setSeason(seasonData ?? null)
     if (seasonData?.id) {
-      const [rulesRes, poolsRes] = await Promise.all([
+      const [rulesRes, poolsRes, sourcesRes] = await Promise.all([
         supabase.from("season_rules").select("id, season_id, rule_category, rule_key, rule_value").eq("season_id", seasonData.id),
         fetch(`/api/admin/draft-pools/archived?season_id=${seasonData.id}`).then((r) => r.json()),
+        fetch("/api/admin/draft-pools/copy-sources").then((r) => r.json()),
       ])
       setRules(rulesRes?.data ?? [])
       if (poolsRes?.success) setArchivedPools(poolsRes.pools ?? [])
+      if (sourcesRes?.success) {
+        const sources: DraftPoolCopySources = {
+          current_season: sourcesRes.current_season ?? null,
+          previous_season: sourcesRes.previous_season ?? null,
+          archived_pools: sourcesRes.archived_pools ?? [],
+        }
+        setCopySources(sources)
+        setCopySourceKind((current) => {
+          if (current === "previous_season" && !sources.previous_season && sources.archived_pools.length > 0) {
+            return "archived_pool"
+          }
+          return current
+        })
+        setArchivedPoolId((current) => current || sources.archived_pools[0]?.id || "")
+      }
       const statusRes = await fetch(`/api/admin/draft-pools/status?season_id=${seasonData.id}`)
       const statusData = await statusRes.json()
       if (statusData.success) {
@@ -221,6 +243,61 @@ export default function AdminDraftPoolRulesPage() {
         ready_for_draft: statusData.ready_for_draft,
         has_active_session: statusData.has_active_session,
       })
+    }
+  }
+
+  async function copyIntoCurrentSeason() {
+    if (!season || !copySources || copying) return
+    const previous = copySources.previous_season
+    const archive = copySources.archived_pools.find((pool) => pool.id === archivedPoolId) ?? null
+    const sourceLabel =
+      copySourceKind === "previous_season"
+        ? (previous?.name ?? "the previous season")
+        : (archive?.name ?? "the archived pool")
+    const draftPoolCount =
+      copySourceKind === "previous_season" ? (previous?.draft_pool_count ?? 0) : (archive?.included_count ?? 0)
+    const seasonDraftPoolCount =
+      copySourceKind === "previous_season" ? (previous?.season_draft_pool_count ?? 0) : (archive?.included_count ?? 0)
+    const confirmed = window.confirm(
+      draftPoolCopyConfirmMessage({
+        targetSeasonName: season.name,
+        sourceLabel,
+        draftPoolCount,
+        seasonDraftPoolCount,
+      })
+    )
+    if (!confirmed) return
+
+    setCopying(true)
+    setCopyStatus("Copying...")
+    try {
+      const res = await fetch("/api/admin/draft-pools/copy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          source: copySourceKind,
+          archived_pool_id: copySourceKind === "archived_pool" ? archivedPoolId : undefined,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setCopyStatus(data?.error ?? "Copy failed")
+        return
+      }
+      const parts = [
+        `${data.draft_pool_upserted ?? 0} board rows`,
+        `${data.season_draft_pool_upserted ?? 0} season pool rows`,
+      ]
+      if (data.draft_pool_skipped_drafted) {
+        parts.push(`${data.draft_pool_skipped_drafted} already drafted left unchanged`)
+      }
+      setCopyStatus(`Copied from ${data.source_label ?? sourceLabel}: ${parts.join(", ")}.`)
+      await refreshPoolStatus()
+      await refreshMasterRegistry()
+    } catch {
+      setCopyStatus("Request failed")
+    } finally {
+      setCopying(false)
     }
   }
 
@@ -369,6 +446,82 @@ export default function AdminDraftPoolRulesPage() {
                   ))}
                 </ul>
               )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Copy className="h-5 w-5" />
+                Copy a pool into this season
+              </CardTitle>
+              <CardDescription>
+                Fill {season.name}&apos;s draft board and season pool from the previous season or an archived pool.
+                Every copied Pokémon is marked available. Draft picks are not copied. Pokémon already drafted this
+                season stay drafted. Running it again updates the same rows.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="draft-pool-copy-source">Source</Label>
+                  <select
+                    id="draft-pool-copy-source"
+                    className="border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
+                    value={copySourceKind}
+                    onChange={(event) => {
+                      const value = event.target.value
+                      if (value === "previous_season" || value === "archived_pool") {
+                        setCopySourceKind(value)
+                      }
+                    }}
+                  >
+                    <option value="previous_season" disabled={!copySources?.previous_season}>
+                      Previous season
+                      {copySources?.previous_season
+                        ? `: ${copySources.previous_season.name} (${copySources.previous_season.draft_pool_count} board, ${copySources.previous_season.season_draft_pool_count} builder)`
+                        : " (none)"}
+                    </option>
+                    <option value="archived_pool" disabled={!copySources?.archived_pools.length}>
+                      Archived pool
+                    </option>
+                  </select>
+                </div>
+                {copySourceKind === "archived_pool" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="draft-pool-copy-archive">Archived pool</Label>
+                    <select
+                      id="draft-pool-copy-archive"
+                      className="border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
+                      value={archivedPoolId}
+                      onChange={(event) => setArchivedPoolId(event.target.value)}
+                    >
+                      {copySources?.archived_pools.map((pool) => (
+                        <option key={pool.id} value={pool.id}>
+                          {pool.name}
+                          {pool.season_name ? ` (${pool.season_name})` : ""} — {pool.included_count} Pokémon
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+              <Button
+                type="button"
+                onClick={copyIntoCurrentSeason}
+                disabled={
+                  copying ||
+                  (copySourceKind === "previous_season" &&
+                    (!copySources?.previous_season ||
+                      (copySources.previous_season.draft_pool_count === 0 &&
+                        copySources.previous_season.season_draft_pool_count === 0))) ||
+                  (copySourceKind === "archived_pool" &&
+                    !(copySources?.archived_pools.find((pool) => pool.id === archivedPoolId)?.included_count))
+                }
+              >
+                {copying ? "Copying..." : "Copy into current season"}
+              </Button>
+              {copyStatus && <p className="text-sm text-muted-foreground">{copyStatus}</p>}
             </CardContent>
           </Card>
 

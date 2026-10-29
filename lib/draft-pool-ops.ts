@@ -179,3 +179,5 @@ export async function loadArchivedPoolIntoSeason(
   }
   return { inserted, total: poolRows.length }
 }
+
+export { copyDraftPoolIntoCurrentSeason, getDraftPoolCopySources } from "@/lib/draft-pool-copy"
