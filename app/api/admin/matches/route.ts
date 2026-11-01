@@ -6,6 +6,7 @@ import {
   finalizeMatchAfterInsert,
   resolveCurrentSeasonId,
 } from "@/lib/match-result-complete"
+import { signedMatchDifferential } from "@/lib/sheet-standings"
 
 async function requireAdminMatchesActor(request: NextRequest) {
   const supabase = await createServerClient()
@@ -264,7 +265,17 @@ export async function PUT(request: NextRequest) {
     if (winner_id !== undefined) updateData.winner_id = winner_id
     if (team1_score !== undefined) updateData.team1_score = team1_score
     if (team2_score !== undefined) updateData.team2_score = team2_score
-    if (differential !== undefined) updateData.differential = differential
+    if (
+      typeof updateData.team1_score === "number" &&
+      typeof updateData.team2_score === "number"
+    ) {
+      updateData.differential = signedMatchDifferential(
+        updateData.team1_score,
+        updateData.team2_score,
+      )
+    } else if (differential !== undefined) {
+      updateData.differential = differential
+    }
     if (scheduled_time !== undefined) updateData.scheduled_time = scheduled_time
     if (played_at !== undefined) updateData.played_at = played_at
     if (status !== undefined) updateData.status = status

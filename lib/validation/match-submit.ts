@@ -8,7 +8,8 @@ export const matchSubmitBodySchema = z
     winner_id: z.string().uuid(),
     team1_score: z.number().int().min(0),
     team2_score: z.number().int().min(0),
-    differential: z.number().int().min(0).optional(),
+    /** Ignored on write. Stored differential is team1_score - team2_score. */
+    differential: z.number().int().optional(),
     replay_url: z.string().max(2048).optional().nullable(),
     notes: z.string().max(2000).optional().nullable(),
     season_id: z.string().uuid().optional(),

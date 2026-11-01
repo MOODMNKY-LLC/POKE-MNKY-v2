@@ -12,6 +12,11 @@ import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import type { Team } from "@/lib/types"
 
+function formatStreak(team: Team) {
+  if (!team.streak_type || !team.current_streak) return "—"
+  return `${team.streak_type}${team.current_streak}`
+}
+
 function formatDiff(value: number) {
   const prefix = value > 0 ? "+" : ""
   return `${prefix}${value}`
@@ -91,6 +96,10 @@ function TeamMobileCard({ team, rank }: { team: Team; rank: number }) {
             {(team.strength_of_schedule ?? 0.5).toFixed(3)}
           </dd>
         </div>
+        <div>
+          <dt className="text-muted-foreground">Streak</dt>
+          <dd className="tabular-nums font-medium">{formatStreak(team)}</dd>
+        </div>
       </dl>
     </div>
   )
@@ -123,7 +132,8 @@ export function StandingsTeamTable({ teams }: { teams: Team[] }) {
               <TableHead className="text-center w-14">W</TableHead>
               <TableHead className="text-center w-14">L</TableHead>
               <TableHead className="text-center w-16">Diff</TableHead>
-              <TableHead className="text-center w-20 pr-4">SoS</TableHead>
+              <TableHead className="text-center w-20">SoS</TableHead>
+              <TableHead className="text-center w-20 pr-4">Streak</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -158,8 +168,11 @@ export function StandingsTeamTable({ teams }: { teams: Team[] }) {
                 <TableCell className={cn("text-center tabular-nums", diffClassName(team.differential))}>
                   {formatDiff(team.differential)}
                 </TableCell>
-                <TableCell className="text-center tabular-nums text-muted-foreground pr-4">
+                <TableCell className="text-center tabular-nums text-muted-foreground">
                   {(team.strength_of_schedule ?? 0.5).toFixed(3)}
+                </TableCell>
+                <TableCell className="pr-4 text-center tabular-nums font-medium">
+                  {formatStreak(team)}
                 </TableCell>
               </TableRow>
             ))}

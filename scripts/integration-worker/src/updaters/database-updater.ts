@@ -46,7 +46,7 @@ export class DatabaseUpdater {
         : null,
       team1_score: parsedResult.team1Score,
       team2_score: parsedResult.team2Score,
-      differential: parsedResult.differential,
+      differential: parsedResult.team1Score - parsedResult.team2Score,
       replay_url: parsedResult.replayUrl,
       status: 'completed' as const,
       played_at: new Date().toISOString(),
@@ -126,17 +126,23 @@ export class DatabaseUpdater {
       const team1Stats = teamStats.get(match.team1_id)!;
       const team2Stats = teamStats.get(match.team2_id)!;
 
-      // Update wins/losses
+      // Signed margin is team1_score - team2_score (same convention as lib/sheet-standings.ts).
+      const signed =
+        match.team1_score != null && match.team2_score != null
+          ? match.team1_score - match.team2_score
+          : match.differential;
+      team1Stats.differential += signed;
+      team2Stats.differential -= signed;
+
       if (match.winner_id === match.team1_id) {
         team1Stats.wins++;
         team2Stats.losses++;
-        team1Stats.differential += match.differential;
-        team2Stats.differential -= match.differential;
       } else if (match.winner_id === match.team2_id) {
         team2Stats.wins++;
         team1Stats.losses++;
-        team2Stats.differential += match.differential;
-        team1Stats.differential -= match.differential;
+      } else {
+        team1Stats.losses++;
+        team2Stats.losses++;
       }
     }
 

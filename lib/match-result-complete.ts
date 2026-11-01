@@ -8,6 +8,7 @@ import {
   UserRole,
   canManageTeam,
 } from "@/lib/rbac"
+import { signedMatchDifferential } from "@/lib/sheet-standings"
 import {
   matchSubmitBodySchema,
   type MatchSubmitBody,
@@ -140,9 +141,7 @@ export async function completeMatchResult(
     throw new Error("No current season configured")
   }
 
-  const differential =
-    parsed.differential ??
-    Math.abs(parsed.team1_score - parsed.team2_score)
+  const differential = signedMatchDifferential(parsed.team1_score, parsed.team2_score)
 
   const row = {
     week: parsed.week,

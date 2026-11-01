@@ -52,6 +52,88 @@ describe("buildTeamRankInputsFromMatches", () => {
     expect(alpha.sos).toBeGreaterThan(0)
   })
 
+  it("uses signed scores when the stored differential is absolute and team1 lost", () => {
+    const matches = [
+      {
+        team1_id: "a",
+        team2_id: "b",
+        winner_id: "b",
+        week: 1,
+        status: "completed",
+        team1_score: 2,
+        team2_score: 5,
+        differential: 3,
+      },
+    ]
+
+    const result = buildTeamRankInputsFromMatches(teams, matches)
+    expect(result.find((team) => team.teamId === "a")?.differential).toBe(-3)
+    expect(result.find((team) => team.teamId === "b")?.differential).toBe(3)
+  })
+
+  it("counts a double forfeit as a loss for both teams", () => {
+    const matches = [
+      {
+        team1_id: "a",
+        team2_id: "b",
+        winner_id: null,
+        week: 1,
+        status: "completed",
+        team1_score: 0,
+        team2_score: 0,
+        outcome_type: "double_forfeit",
+      },
+    ]
+
+    const result = buildTeamRankInputsFromMatches(teams, matches)
+    const alpha = result.find((team) => team.teamId === "a")!
+    const beta = result.find((team) => team.teamId === "b")!
+    expect(alpha.wins).toBe(0)
+    expect(alpha.losses).toBe(1)
+    expect(alpha.streakLetter).toBe("L")
+    expect(alpha.streakLen).toBe(1)
+    expect(beta.losses).toBe(1)
+    expect(beta.activeWinStreak).toBe(-1)
+  })
+
+  it("averages each opponent once and does not weight by division", () => {
+    const matches = [
+      {
+        team1_id: "a",
+        team2_id: "b",
+        winner_id: "b",
+        week: 1,
+        status: "completed",
+        team1_score: 1,
+        team2_score: 2,
+      },
+      {
+        team1_id: "a",
+        team2_id: "b",
+        winner_id: "b",
+        week: 2,
+        status: "completed",
+        team1_score: 1,
+        team2_score: 2,
+      },
+      {
+        team1_id: "a",
+        team2_id: "c",
+        winner_id: "a",
+        week: 3,
+        status: "completed",
+        team1_score: 4,
+        team2_score: 1,
+      },
+    ]
+
+    const result = buildTeamRankInputsFromMatches(teams, matches)
+    const alpha = result.find((team) => team.teamId === "a")!
+    expect(alpha.sos).toBeCloseTo(0.5)
+    expect(alpha.losses).toBe(2)
+    expect(alpha.wins).toBe(1)
+  })
+
   it("ignores incomplete matches", () => {
     const matches = [
       {

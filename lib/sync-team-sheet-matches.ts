@@ -8,6 +8,7 @@ import { JWT } from "google-auth-library"
 import { fetchDataTabValueRows } from "@/lib/google-sheets-data-tab-fetch"
 import { buildSheetTeamIdToNameMap } from "@/lib/sync-team-page-rosters"
 import { getCurrentSeasonIdWithFallback } from "@/lib/seasons"
+import { signedMatchDifferential } from "@/lib/sheet-standings"
 import { getGoogleServiceAccountCredentials } from "@/lib/utils/google-sheets"
 
 export type TeamSheetMatchSyncResult = {
@@ -295,7 +296,7 @@ export async function syncTeamSheetMatches(
       )
       continue
     }
-    const differential = Math.abs(draft.team1Score - draft.team2Score)
+    const differential = signedMatchDifferential(draft.team1Score, draft.team2Score)
     const { error: insertError } = await supabase.from("matches").insert({
       season_id: seasonId,
       week: draft.week,

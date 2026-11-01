@@ -1,19 +1,24 @@
 /**
- * Derive regular-season standings inputs from completed matches for playoff seeding.
+ * Derive regular-season standings inputs from completed matches.
+ * Ranking rules live in lib/sheet-standings.ts (unweighted distinct-opponent SOS,
+ * last-result streaks, double forfeits as a loss for both teams).
  */
 
 import type { TeamRankInput } from "@/lib/playoff-seeding"
 import {
-  SOS_WEIGHT_INTER_CONFERENCE,
-  SOS_WEIGHT_INTRA_CONFERENCE,
-  SOS_WEIGHT_INTRA_DIVISION,
-} from "@/lib/playoff-seeding"
+  SHEET_REGULAR_SEASON_WEEKS,
+  applyCompletedMatch,
+  type SideRecord,
+  type StreakLetter,
+} from "@/lib/sheet-standings"
 
 export type TeamMeta = {
   id: string
   name: string
   conference: string
   division: string
+  coachName?: string | null
+  isBye?: boolean
 }
 
 export type RegularSeasonMatchRow = {
@@ -25,113 +30,118 @@ export type RegularSeasonMatchRow = {
   team1_score?: number | null
   team2_score?: number | null
   differential?: number | null
+  outcome_type?: string | null
+  is_playoff?: boolean | null
+  id?: string | null
+}
+
+export type BuildTeamRankInputsOptions = {
+  /** Weeks 1..N count. Defaults to the sheet's 8 regular-season weeks. */
+  regularSeasonWeeks?: number
 }
 
 function isCompleted(status: string | null | undefined): boolean {
   return (status ?? "completed").toLowerCase() === "completed"
 }
 
-function sosWeight(
-  team: TeamMeta,
-  opponent: TeamMeta
-): number {
-  if (team.division && opponent.division && team.division === opponent.division) {
-    return SOS_WEIGHT_INTRA_DIVISION
-  }
-  if (team.conference && opponent.conference && team.conference === opponent.conference) {
-    return SOS_WEIGHT_INTRA_CONFERENCE
-  }
-  return SOS_WEIGHT_INTER_CONFERENCE
+function inRegularSeason(match: RegularSeasonMatchRow, regularSeasonWeeks: number): boolean {
+  if (match.is_playoff) return false
+  return match.week >= 1 && match.week <= regularSeasonWeeks
 }
 
 export function buildTeamRankInputsFromMatches(
   teams: TeamMeta[],
-  matches: RegularSeasonMatchRow[]
+  matches: RegularSeasonMatchRow[],
+  options: BuildTeamRankInputsOptions = {},
 ): TeamRankInput[] {
-  const teamById = new Map(teams.map((t) => [t.id, t]))
-  const completed = matches.filter((m) => m.winner_id && isCompleted(m.status))
+  const regularSeasonWeeks = options.regularSeasonWeeks ?? SHEET_REGULAR_SEASON_WEEKS
+  const completed = matches
+    .filter((match) => isCompleted(match.status) && inRegularSeason(match, regularSeasonWeeks))
+    .sort((a, b) => a.week - b.week || (a.id ?? "").localeCompare(b.id ?? ""))
 
-  const record = new Map<string, { wins: number; losses: number; differential: number }>()
+  const record = new Map<string, SideRecord>()
   for (const team of teams) {
     record.set(team.id, { wins: 0, losses: 0, differential: 0 })
   }
 
+  const letters = new Map<string, StreakLetter[]>()
+  const opponents = new Map<string, string[]>()
+  for (const team of teams) {
+    letters.set(team.id, [])
+    opponents.set(team.id, [])
+  }
+
   for (const match of completed) {
-    const t1 = record.get(match.team1_id)
-    const t2 = record.get(match.team2_id)
-    if (!t1 || !t2 || !match.winner_id) continue
+    applyCompletedMatch(record, {
+      team1Id: match.team1_id,
+      team2Id: match.team2_id,
+      winnerId: match.winner_id,
+      team1Score: match.team1_score,
+      team2Score: match.team2_score,
+      differential: match.differential,
+      outcomeType: match.outcome_type,
+    })
 
-    if (match.winner_id === match.team1_id) {
-      t1.wins++
-      t2.losses++
-    } else if (match.winner_id === match.team2_id) {
-      t2.wins++
-      t1.losses++
-    }
-
-    const diff =
-      match.differential ??
-      (match.team1_score != null && match.team2_score != null
-        ? match.team1_score - match.team2_score
-        : null)
-    if (diff != null) {
-      t1.differential += diff
-      t2.differential -= diff
-    }
+    const bothLose = match.outcome_type === "double_forfeit" || match.winner_id == null
+    const team1Letter: StreakLetter = !bothLose && match.winner_id === match.team1_id ? "W" : "L"
+    const team2Letter: StreakLetter = !bothLose && match.winner_id === match.team2_id ? "W" : "L"
+    letters.get(match.team1_id)?.push(team1Letter)
+    letters.get(match.team2_id)?.push(team2Letter)
+    opponents.get(match.team1_id)?.push(match.team2_id)
+    opponents.get(match.team2_id)?.push(match.team1_id)
   }
 
   const winPct = (teamId: string): number => {
-    const r = record.get(teamId)
-    if (!r) return 0
-    const games = r.wins + r.losses
+    const row = record.get(teamId)
+    if (!row) return 0
+    const games = row.wins + row.losses
     if (games === 0) return 0
-    return r.wins / games
+    return row.wins / games
   }
 
   const sosByTeam = new Map<string, number>()
   for (const team of teams) {
-    let weightedSum = 0
-    let weightTotal = 0
-    for (const match of completed) {
-      let opponentId: string | null = null
-      if (match.team1_id === team.id) opponentId = match.team2_id
-      else if (match.team2_id === team.id) opponentId = match.team1_id
-      if (!opponentId) continue
-      const opponent = teamById.get(opponentId)
-      if (!opponent) continue
-      const weight = sosWeight(team, opponent)
-      weightedSum += weight * winPct(opponentId)
-      weightTotal += weight
+    const seen = new Set<string>()
+    const distinct: string[] = []
+    for (const opponentId of opponents.get(team.id) ?? []) {
+      if (seen.has(opponentId) || !record.has(opponentId)) continue
+      seen.add(opponentId)
+      distinct.push(opponentId)
     }
-    sosByTeam.set(team.id, weightTotal > 0 ? weightedSum / weightTotal : 0)
-  }
-
-  const streakByTeam = new Map<string, number>()
-  for (const team of teams) {
-    const teamMatches = completed
-      .filter((m) => m.team1_id === team.id || m.team2_id === team.id)
-      .sort((a, b) => b.week - a.week)
-
-    let streak = 0
-    for (const match of teamMatches) {
-      if (match.winner_id === team.id) streak++
-      else break
-    }
-    streakByTeam.set(team.id, streak)
+    const percents = distinct.map((opponentId) => winPct(opponentId))
+    sosByTeam.set(
+      team.id,
+      percents.length > 0 ? percents.reduce((sum, value) => sum + value, 0) / percents.length : 0,
+    )
   }
 
   return teams.map((team) => {
-    const r = record.get(team.id) ?? { wins: 0, losses: 0, differential: 0 }
+    const row = record.get(team.id) ?? { wins: 0, losses: 0, differential: 0 }
+    const teamLetters = letters.get(team.id) ?? []
+    const streakLetter: StreakLetter =
+      teamLetters.length > 0 ? teamLetters[teamLetters.length - 1]! : "W"
+    let streakLen = 0
+    for (let index = teamLetters.length - 1; index >= 0; index -= 1) {
+      if (teamLetters[index] !== streakLetter) break
+      streakLen += 1
+    }
+    const activeWinStreak = streakLen === 0 ? 0 : streakLetter === "L" ? -streakLen : streakLen
+
     return {
       teamId: team.id,
       teamName: team.name,
+      coachName: team.coachName ?? "",
       conference: team.conference,
       division: team.division,
-      wins: r.wins,
-      losses: r.losses,
-      differential: r.differential,
-      activeWinStreak: streakByTeam.get(team.id) ?? 0,
+      wins: row.wins,
+      losses: row.losses,
+      differential: row.differential,
+      activeWinStreak,
+      streakLetter,
+      streakLen,
       sos: sosByTeam.get(team.id) ?? 0,
+      isBye: team.isBye === true,
+      gamesPlayed: row.wins + row.losses,
     }
   })
 }

@@ -8,6 +8,8 @@ export interface Team {
   losses: number
   differential: number
   strength_of_schedule: number
+  streak_type?: "W" | "L" | null
+  current_streak?: number
   regular_wins?: number
   regular_losses?: number
   regular_differential?: number

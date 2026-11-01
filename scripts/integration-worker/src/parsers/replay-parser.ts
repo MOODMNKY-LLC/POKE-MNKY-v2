@@ -9,7 +9,7 @@ export interface ParsedReplayResult {
   winner: 'p1' | 'p2' | null; // null for tie
   team1Score: number; // KOs for team1
   team2Score: number; // KOs for team2
-  differential: number; // Absolute difference
+  differential: number; // team1Score - team2Score
   replayUrl: string;
   battleLog: string[];
   faints: Array<{
@@ -95,7 +95,7 @@ export class ReplayParser {
       }
     }
 
-    const differential = Math.abs(team1Score - team2Score);
+    const differential = team1Score - team2Score;
     const replayUrl = `${this.showdownServerUrl}/replay/${roomId}`;
 
     return {
