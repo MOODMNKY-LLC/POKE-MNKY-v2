@@ -5,8 +5,8 @@ interface BracketMatchProps {
     id: string
     team1?: { name: string }
     team2?: { name: string }
-    team1_score: number
-    team2_score: number
+    team1_score?: number
+    team2_score?: number
     winner_id?: string
     team1_id: string
     team2_id: string

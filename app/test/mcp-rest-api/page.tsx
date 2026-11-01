@@ -617,7 +617,7 @@ export default function MCPRestAPIPlaygroundPage() {
                       Get Team Budget
                     </CardTitle>
                     <CardDescription>
-                      Get team's draft budget information
+                      Get team&apos;s draft budget information
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">

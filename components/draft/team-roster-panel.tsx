@@ -30,6 +30,14 @@ interface TeamRosterPanelProps {
   initialBudget?: DraftBudgetSnapshot | null
 }
 
+type RosterQueryRow = {
+  id: string
+  pokemon: { name?: string } | null
+  pokemon_id: string
+  draft_points: number | null
+  draft_round: number | null
+}
+
 interface RosterPick {
   id: string
   pokemon_name: string
@@ -197,8 +205,8 @@ export function TeamRosterPanel(props: TeamRosterPanelProps) {
 
         if (rosterResult.data && !cancelled) {
           const picks: RosterPick[] = rosterResult.data
-            .filter((r) => r.pokemon)
-            .map((r) => ({
+            .filter((r: RosterQueryRow) => r.pokemon)
+            .map((r: RosterQueryRow) => ({
               id: r.id,
               pokemon_name: (r.pokemon as { name?: string })?.name || "Unknown",
               pokemon_id: r.pokemon_id,
@@ -256,13 +264,15 @@ export function TeamRosterPanel(props: TeamRosterPanelProps) {
           table: "draft_budgets",
           filter: "team_id=eq." + teamId,
         },
-        (payload) => {
-          const row = payload.new as {
+        (payload: {
+          new: {
             season_id?: string
             total_points: number
             spent_points: number
             remaining_points: number
           }
+        }) => {
+          const row = payload.new
           if (row.season_id === seasonId) {
             setBudget({
               total: row.total_points,

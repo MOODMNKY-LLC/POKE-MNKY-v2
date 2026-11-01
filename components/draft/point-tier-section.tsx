@@ -13,6 +13,15 @@ interface Pokemon {
   types?: string[]
 }
 
+function toPokemonId(value: string | number | null | undefined): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : null
+  }
+  return null
+}
+
 interface PointTierSectionProps {
   points: number
   pokemon: Pokemon[]
@@ -47,7 +56,7 @@ export function PointTierSection({
                 name: p.name,
                 point_value: p.point_value,
                 generation: p.generation || 1,
-                pokemon_id: p.pokemon_id ?? null,
+                pokemon_id: toPokemonId(p.pokemon_id),
                 status: p.status || "available",
                 types: p.types,
               }}

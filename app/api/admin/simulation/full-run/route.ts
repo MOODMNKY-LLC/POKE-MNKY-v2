@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
       .select("id")
       .eq("season_id", seasonId)
 
-    let teamIds = (teams ?? []).map((t: { id: string }) => t.id)
+    const teamIds = (teams ?? []).map((t: { id: string }) => t.id)
     if (teamIds.length < 2) {
       const names = ["Mock Draft Team A", "Mock Draft Team B", "Mock Draft Team C"]
       for (const name of names) {

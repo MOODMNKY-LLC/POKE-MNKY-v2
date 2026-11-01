@@ -94,6 +94,8 @@ export function PokemonCompactCard({
     )
   }
 
+  if (!pokemon) return null
+
   const typeColors = getPokemonTypeColors(pokemon.types)
   const hp = pokemon.base_stats.hp
 

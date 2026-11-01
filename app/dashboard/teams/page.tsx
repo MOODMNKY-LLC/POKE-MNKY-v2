@@ -134,7 +134,7 @@ export default async function TeamsPage() {
                 <Card>
                   <CardContent className="py-12 text-center">
                     <p className="text-muted-foreground mb-4">
-                      You haven't created any teams yet.
+                      You haven&apos;t created any teams yet.
                     </p>
                     <Button asChild>
                       <Link href="/dashboard/teams/create">

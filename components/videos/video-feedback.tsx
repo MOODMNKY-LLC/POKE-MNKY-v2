@@ -241,13 +241,13 @@ export function VideoFeedback({ videoId }: VideoFeedbackProps) {
                   <span className="font-medium">
                     {item.profiles?.display_name || 'Anonymous'}
                   </span>
-                  {item.rating && (
+                  {item.rating != null && (
                     <div className="flex gap-0.5">
                       {[1, 2, 3, 4, 5].map((star) => (
                         <Star
                           key={star}
                           className={`h-3 w-3 ${
-                            star <= item.rating
+                            star <= (item.rating ?? 0)
                               ? 'fill-yellow-400 text-yellow-400'
                               : 'text-muted-foreground'
                           }`}

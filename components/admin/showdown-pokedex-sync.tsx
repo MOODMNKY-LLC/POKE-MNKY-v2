@@ -52,6 +52,33 @@ interface SyncProgress {
   timestamp: string
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null
+}
+
+function isIngestionSummary(value: unknown): value is NonNullable<IngestionResult["summary"]> {
+  if (!isRecord(value) || !isRecord(value.counts)) return false
+  const counts = value.counts
+  return (
+    typeof value.processed === "number" &&
+    typeof value.errors === "number" &&
+    typeof value.duration === "string" &&
+    typeof counts.raw === "number" &&
+    typeof counts.pokemon === "number" &&
+    typeof counts.types === "number" &&
+    typeof counts.abilities === "number"
+  )
+}
+
+function toIngestionResult(value: unknown): IngestionResult | null {
+  if (!isRecord(value) || typeof value.success !== "boolean") return null
+  return {
+    success: value.success,
+    summary: isIngestionSummary(value.summary) ? value.summary : undefined,
+    error: typeof value.error === "string" ? value.error : undefined,
+  }
+}
+
 export function ShowdownPokedexSync() {
   const [loading, setLoading] = useState(false)
   const [clearing, setClearing] = useState(false)
@@ -78,8 +105,9 @@ export function ShowdownPokedexSync() {
     })
     
     channel
-      .on('broadcast', { event: 'progress_update' }, (payload) => {
-        const progress = payload.payload as SyncProgress
+      .on('broadcast', { event: 'progress_update' }, (payload: { payload?: SyncProgress }) => {
+        const progress = payload.payload
+        if (!progress) return
         setSyncProgress(progress)
         
         // If complete or error, clear progress and reset loading state immediately
@@ -236,18 +264,21 @@ export function ShowdownPokedexSync() {
     try {
       const result = await triggerShowdownPokedexIngestion()
 
-      if (result.success && result.result) {
+      const rawResult = "result" in result ? result.result : undefined
+      const ingestionResult = toIngestionResult(rawResult)
+      const summary = ingestionResult?.summary
+
+      if (result.success && ingestionResult) {
         // Check if the result itself indicates failure (even if trigger was successful)
-        const ingestionResult = result.result
-        if (ingestionResult.success === false || (ingestionResult.summary && ingestionResult.summary.processed === 0 && ingestionResult.summary.errors > 0)) {
+        if (ingestionResult.success === false || (summary != null && summary.processed === 0 && summary.errors > 0)) {
           if (fallbackTimeoutRef.current) {
             clearTimeout(fallbackTimeoutRef.current)
             fallbackTimeoutRef.current = null
           }
           setLastIngestion({
             success: false,
-            error: ingestionResult.error || `All ${ingestionResult.summary?.errors || 0} entries failed`,
-            summary: ingestionResult.summary,
+            error: ingestionResult.error || `All ${summary?.errors || 0} entries failed`,
+            summary,
           })
           setSyncProgress(null)
           setLoading(false)
@@ -266,10 +297,12 @@ export function ShowdownPokedexSync() {
           clearTimeout(fallbackTimeoutRef.current)
           fallbackTimeoutRef.current = null
         }
+        const errorMessage = "error" in result && typeof result.error === "string" ? result.error : "Failed to trigger ingestion"
+        const fallbackSummary = isRecord(rawResult) && isIngestionSummary(rawResult.summary) ? rawResult.summary : undefined
         setLastIngestion({
           success: false,
-          error: result.error || "Failed to trigger ingestion",
-          summary: result.result?.summary, // Include summary if available
+          error: errorMessage,
+          summary: fallbackSummary,
         })
         setSyncProgress(null)
         setLoading(false)

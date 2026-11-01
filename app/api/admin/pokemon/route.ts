@@ -452,7 +452,7 @@ export async function GET(request: NextRequest) {
       }
 
       // Get base stats from batch-fetched map
-      let baseStats = statsMap.get(pokemonId) || null
+      const baseStats = statsMap.get(pokemonId) || null
       
       // Debug logging for base stats
       if (pokemonId <= 3) {

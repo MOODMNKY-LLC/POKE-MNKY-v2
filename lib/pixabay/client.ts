@@ -261,7 +261,7 @@ export class PixabayClient {
       const words = slugWithoutId.split('-')
       
       // Handle common patterns like "lofi" prefix and instrument suffixes
-      let titleWords: string[] = []
+      const titleWords: string[] = []
       let hasLofi = false
       let instrument: string | null = null
       

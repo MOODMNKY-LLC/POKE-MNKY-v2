@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation"
 import { HomepageCountdown } from "@/components/homepage-countdown"
 import { SiteHeaderWrapper } from "@/components/site-header-wrapper"
+import { Skeleton } from "@/components/ui/skeleton"
 
 /**
  * Conditionally renders the site header based on the current route.

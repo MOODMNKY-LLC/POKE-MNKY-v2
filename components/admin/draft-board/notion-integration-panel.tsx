@@ -25,7 +25,7 @@ export function NotionIntegrationPanel() {
           </p>
           <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-2">
             <li>Visual organization (Gallery/Kanban views)</li>
-            <li>Bulk operations (check/uncheck "Added to Draft Board")</li>
+            <li>Bulk operations (check/uncheck &quot;Added to Draft Board&quot;)</li>
             <li>Rich filtering and grouping</li>
             <li>Collaborative editing</li>
             <li>Version history</li>

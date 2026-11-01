@@ -288,21 +288,21 @@ export function DiscordBotStatusTab() {
             <div>
               <h3 className="font-semibold mb-2">2. Role Sync to App</h3>
               <p className="text-sm text-muted-foreground">
-                The bot syncs the Discord role to the app, updating the user's profile role accordingly.
+                The bot syncs the Discord role to the app, updating the user&apos;s profile role accordingly.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold mb-2">3. Coach Entry Creation</h3>
               <p className="text-sm text-muted-foreground">
-                If the user doesn't have a coach entry yet, one is automatically created in the database.
+                If the user doesn&apos;t have a coach entry yet, one is automatically created in the database.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold mb-2">4. Team Assignment</h3>
               <p className="text-sm text-muted-foreground">
-                The bot automatically assigns the coach to an available team (or creates one if needed). The user's
+                The bot automatically assigns the coach to an available team (or creates one if needed). The user&apos;s
                 profile is updated with the team_id.
               </p>
             </div>
@@ -321,7 +321,7 @@ export function DiscordBotStatusTab() {
             <AlertTitle>Important: Role Mapping</AlertTitle>
             <AlertDescription>
               Role mappings are configured in <code className="bg-muted px-1 rounded">lib/discord-role-sync.ts</code>.
-              See the "Roles & Sync" tab to view and manage role mappings.
+              See the &quot;Roles & Sync&quot; tab to view and manage role mappings.
             </AlertDescription>
           </Alert>
         </CardContent>

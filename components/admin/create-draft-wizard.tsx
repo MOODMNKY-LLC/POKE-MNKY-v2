@@ -381,10 +381,10 @@ export function CreateDraftWizard({ onSuccess, onCancel }: CreateDraftWizardProp
             <Label>Draft Pool Source</Label>
             <Select
               value={state.draftPoolSource}
-              onValueChange={(v) =>
-                update("draftPoolSource", v as WizardState["draftPoolSource"]) ||
+              onValueChange={(v) => {
+                update("draftPoolSource", v as WizardState["draftPoolSource"])
                 update("draftPoolConfig", {})
-              }
+              }}
             >
               <SelectTrigger>
                 <SelectValue />

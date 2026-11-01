@@ -12,6 +12,18 @@ interface Pokemon {
   status?: "available" | "drafted" | "banned" | "unavailable"
 }
 
+function toPoolStatus(status: string): NonNullable<Pokemon["status"]> {
+  switch (status) {
+    case "available":
+    case "drafted":
+    case "banned":
+    case "unavailable":
+      return status
+    default:
+      return "available"
+  }
+}
+
 interface DraftBoardServerProps {
   sessionId: string
   currentTeamId: string | null
@@ -33,7 +45,10 @@ export async function DraftBoardServer({
   const supabase = createServiceRoleClient()
 
   // Fetch available Pokemon server-side
-  const pokemon = await draftSystem.getAvailablePokemon(seasonId, {})
+  const pokemon = (await draftSystem.getAvailablePokemon(seasonId, {})).map((p) => ({
+    ...p,
+    status: toPoolStatus(p.status),
+  }))
 
   // Fetch drafted Pokemon server-side
   let draftedPokemon: string[] = []

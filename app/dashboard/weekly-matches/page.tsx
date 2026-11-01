@@ -394,7 +394,7 @@ export default async function WeeklyMatchesPage({
                     </div>
                   ) : (
                     <div className="text-sm text-muted-foreground">
-                      Pick a scheduled week to load the opponent's rank and form from Supabase.
+                      Pick a scheduled week to load the opponent&apos;s rank and form from Supabase.
                     </div>
                   )}
                 </CardContent>
@@ -407,7 +407,7 @@ export default async function WeeklyMatchesPage({
                     Tera captains
                   </CardTitle>
                   <CardDescription>
-                    Your flagged Tera captains versus the opponent's flagged Tera captains.
+                    Your flagged Tera captains versus the opponent&apos;s flagged Tera captains.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>

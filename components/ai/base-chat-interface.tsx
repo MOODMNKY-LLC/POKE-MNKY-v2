@@ -15,9 +15,10 @@
  * This is the foundation for all agent-specific chat interfaces.
  */
 
-import { useState, Fragment, useEffect, useCallback, useRef, useMemo } from "react"
+import { useState, Fragment, useEffect, useCallback, useRef, useMemo, type MouseEvent } from "react"
 import { useChat } from "@ai-sdk/react"
-import { CopyIcon, RefreshCcwIcon, RotateCcw, SendIcon, Loader2 } from "lucide-react"
+import { Book as BookIcon, CopyIcon, RefreshCcwIcon, RotateCcw, SendIcon, Loader2, Sparkles } from "lucide-react"
+import type { BundledLanguage } from "shiki"
 import { PromptInputWrapper, type PromptInputMessage } from "./prompt-input-wrapper"
 import { PokeMnkyAssistant, PokeMnkyPremium } from "@/components/ui/poke-mnky-avatar"
 import { BlurFade } from "@/components/ui/blur-fade"
@@ -44,8 +45,6 @@ import { CodeBlock } from "@/components/ai-elements/code-block"
 import { Loader } from "@/components/ai-elements/loader"
 import { QuickActions } from "@/components/ai/quick-actions"
 import { cn } from "@/lib/utils"
-import type { UIMessage, ToolUIPart } from "ai"
-
 export interface BaseChatInterfaceProps {
   /** API endpoint for chat */
   apiEndpoint: string
@@ -261,9 +260,9 @@ export function BaseChatInterface({
     // If we were loading and now we're not, focus the input as backup
     // Primary focus happens immediately after send, this is just a safety net
     if ((previousStatusRef.current === "submitted" || previousStatusRef.current === "streaming") && 
-        status === "idle" && 
+        status === "ready" && 
         inputRef.current &&
-        document.activeElement !== inputRef.current) {
+        document.activeElement !== textareaRef.current) {
       requestAnimationFrame(() => {
         inputRef.current?.focus()
       })
@@ -321,7 +320,7 @@ export function BaseChatInterface({
     }
     // Use requestAnimationFrame to defer the state update to avoid setState during render
     requestAnimationFrame(() => {
-      if (onSendMessageReadyRef.current && sendMessage) {
+      if (onSendMessageReadyRef.current) {
         onSendMessageReadyRef.current(sendMessageWrapper)
       }
     })
@@ -336,8 +335,8 @@ export function BaseChatInterface({
     }
   }, [])
 
-  const handleSubmit = (message?: { text: string }) => {
-    const messageText = message?.text || input.trim()
+  const handleSubmit = (message?: { text: string } | MouseEvent<HTMLButtonElement>) => {
+    const messageText = message && "text" in message ? message.text : input.trim()
     if (!messageText || isLoading) return
     sendMessage({ text: messageText })
     setInput("")
@@ -507,7 +506,7 @@ export function BaseChatInterface({
                           <div className="flex items-center gap-2 w-full">
                             <BookIcon className="h-4 w-4 shrink-0" />
                             <span className="font-medium flex-1">{part.title || part.url}</span>
-                            {part.tool && (
+                            {"tool" in part && typeof part.tool === "string" && (
                               <Badge variant="outline" className="text-xs shrink-0">
                                 {part.tool}
                               </Badge>
@@ -521,6 +520,16 @@ export function BaseChatInterface({
 
                 {/* Message Content */}
                 {message.parts.map((part, i) => {
+                  const legacyCode = part as { type: string; code?: unknown; language?: unknown }
+                  // Older transcripts may include a code part that the AI SDK message union omits.
+                  if (legacyCode.type === "code" && typeof legacyCode.code === "string") {
+                    const language = (typeof legacyCode.language === "string" ? legacyCode.language : "txt") as BundledLanguage
+                    return (
+                      <BlurFade key={`${message.id}-code-${i}`} direction="up" delay={i * 0.1}>
+                        <CodeBlock code={legacyCode.code} language={language} />
+                      </BlurFade>
+                    )
+                  }
                   switch (part.type) {
                     case "text":
                       return (
@@ -561,42 +570,35 @@ export function BaseChatInterface({
                         </BlurFade>
                       )
 
-                    case "tool-call":
-                      // ToolUIPart from AI SDK
-                      const toolPart = part as ToolUIPart
-                      // Guard against undefined toolPart or missing properties
-                      if (!toolPart || !toolPart.type) {
+                    case "tool-call": {
+                      const toolPart = part
+                      if (!toolPart.type) {
                         return null
                       }
+                      const toolName = toolPart.type.replace(/^tool-/, "") || "Tool Call"
                       return (
                         <BlurFade key={`${message.id}-tool-${i}`} direction="up" delay={i * 0.1}>
                           <Tool>
                             <ToolHeader
-                              title={toolPart.toolName || "Tool Call"}
+                              title={toolName}
                               type={toolPart.type}
                               state={toolPart.state || "output-available"}
                             />
                             <ToolContent>
-                              {toolPart.input && (
+                              {toolPart.input != null ? (
                                 <ToolInput input={toolPart.input} />
-                              )}
-                              {(toolPart.output || toolPart.errorText) && (
+                              ) : null}
+                              {toolPart.output != null || toolPart.errorText ? (
                                 <ToolOutput 
                                   output={toolPart.output} 
                                   errorText={toolPart.errorText} 
                                 />
-                              )}
+                              ) : null}
                             </ToolContent>
                           </Tool>
                         </BlurFade>
                       )
-
-                    case "code":
-                      return (
-                        <BlurFade key={`${message.id}-code-${i}`} direction="up" delay={i * 0.1}>
-                          <CodeBlock code={part.code} language={part.language} />
-                        </BlurFade>
-                      )
+                    }
 
                     default:
                       return null

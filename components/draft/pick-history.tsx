@@ -14,6 +14,16 @@ interface PickHistoryProps {
   limit?: number
 }
 
+type RosterJoinRow = {
+  id: string
+  pokemon: { name?: string } | null
+  team: { name?: string } | null
+  draft_round: number | null
+  draft_order: number | null
+  draft_points: number | null
+  created_at: string
+}
+
 interface Pick {
   id: string
   pokemon_name: string
@@ -75,11 +85,11 @@ export function PickHistory({ sessionId, limit = 10 }: PickHistoryProps) {
 
         if (data) {
           const formattedPicks: Pick[] = data
-            .filter(r => r.pokemon && r.team)
-            .map(r => ({
+            .filter((r: RosterJoinRow) => r.pokemon && r.team)
+            .map((r: RosterJoinRow) => ({
               id: r.id,
-              pokemon_name: (r.pokemon as any).name,
-              team_name: (r.team as any).name,
+              pokemon_name: r.pokemon?.name ?? "",
+              team_name: r.team?.name ?? "",
               round: r.draft_round || 0,
               pick_number: r.draft_order || 0,
               point_value: r.draft_points || 0,
@@ -159,7 +169,11 @@ export function PickHistory({ sessionId, limit = 10 }: PickHistoryProps) {
       </CardHeader>
       <CardContent>
         {pickItems.length > 0 ? (
-          <AnimatedList items={pickItems} />
+          <AnimatedList>
+            {pickItems.map((item) => (
+              <div key={item.id}>{item.content}</div>
+            ))}
+          </AnimatedList>
         ) : (
           <p className="text-sm text-muted-foreground text-center py-4">
             No picks yet

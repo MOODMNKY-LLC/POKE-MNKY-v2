@@ -643,7 +643,7 @@ export default function MCPRestTestPage() {
     if (!state.response) {
       return (
         <div className="py-8 text-center text-sm text-muted-foreground">
-          No response yet. Click "Execute" to test the API.
+          No response yet. Click &quot;Execute&quot; to test the API.
         </div>
       )
     }

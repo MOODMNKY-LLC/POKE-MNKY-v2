@@ -24,6 +24,10 @@ export async function GET(request: Request) {
       resolvedSeasonId = season.id
     }
 
+    if (!resolvedSeasonId) {
+      return NextResponse.json({ success: false, error: "No active season found" }, { status: 404 })
+    }
+
     const draftSystem = new DraftSystem()
     const session = await draftSystem.getActiveSession(resolvedSeasonId)
 

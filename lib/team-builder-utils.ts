@@ -22,7 +22,7 @@ export function convertToShowdownPokemon(pokemon: PokemonDisplayData): ParsedPok
     : [];
 
   // Map base_stats to evs format (spa/spd instead of special_attack/special_defense)
-  let evs: Record<string, number> | undefined = undefined;
+  const evs: Record<string, number> | undefined = undefined;
   if (pokemon.base_stats) {
     // Use base stats as a starting point for EVs (optional, can be removed)
     // For now, we'll leave EVs undefined so users can set them in Showdown

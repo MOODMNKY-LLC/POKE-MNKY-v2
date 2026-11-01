@@ -17,9 +17,9 @@ export default function OfflinePage() {
               <WifiOff className="h-8 w-8 text-muted-foreground" />
             </div>
           </div>
-          <CardTitle className="text-2xl">You're Offline</CardTitle>
+          <CardTitle className="text-2xl">You&apos;re Offline</CardTitle>
           <CardDescription>
-            It looks like you've lost your internet connection. Please check your network settings and try again.
+            It looks like you&apos;ve lost your internet connection. Please check your network settings and try again.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -45,7 +45,7 @@ export default function OfflinePage() {
           </div>
           <div className="rounded-lg bg-muted p-4">
             <p className="text-sm text-muted-foreground">
-              <strong>Tip:</strong> Some content may still be available offline if you've visited it before.
+              <strong>Tip:</strong> Some content may still be available offline if you&apos;ve visited it before.
             </p>
           </div>
         </CardContent>

@@ -10,6 +10,7 @@ import {
   Sword,
   Sparkles,
   ClipboardList,
+  type LucideIcon,
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { getCurrentUserProfile, canAccessCoachFeatures, type UserProfile } from "@/lib/rbac"
@@ -53,7 +54,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       .select("name, avatar_url, logo_url")
       .eq("id", userProfile.team_id)
       .single()
-      .then(({ data }) => setCoachTeam(data))
+      .then(({ data }: { data: { name: string; avatar_url?: string | null; logo_url?: string | null } | null }) => setCoachTeam(data))
   }, [userProfile?.team_id])
 
   // Listen for open-profile-sheet event (from Settings, command palette, etc.)
@@ -64,7 +65,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   }, [])
 
   // Dashboard-only navigation items (all routes must be within /dashboard/*)
-  const navItems = [
+  const navItems: Array<{
+    title: string
+    url: string
+    icon: LucideIcon
+    isActive?: boolean
+    items?: { title: string; url: string }[]
+  }> = [
     {
       title: "Dashboard",
       url: "/dashboard",
@@ -245,7 +252,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   // Prepare team data for TeamSwitcher (if coach)
   const teamData =
-    canAccessCoachFeatures(userProfile)
+    userProfile && canAccessCoachFeatures(userProfile)
       ? [
           {
             name: coachTeam?.name ?? userProfile.display_name ?? "My Team",

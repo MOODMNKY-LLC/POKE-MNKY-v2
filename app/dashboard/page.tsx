@@ -76,7 +76,7 @@ export default async function DashboardPage() {
   // Fetch team data, roster for coach card, and overview stats for coaches
   let team = null
   let coachRoster: { pokemon_name: string; point_value: number }[] = []
-  let overviewStats: {
+  const overviewStats: {
     team_record?: { wins: number; losses: number; differential: number }
     draft_budget?: { total: number; spent: number; remaining: number }
     roster_count?: number

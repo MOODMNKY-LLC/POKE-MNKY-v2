@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, type CSSProperties } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, Trash2, Save, Sparkles, Loader2, Download } from "lucide-react"
@@ -439,7 +439,7 @@ export function TeamBuilder({ surface }: { surface: TeamBuilderSurface }) {
                     itemSize={56}
                     width="100%"
                   >
-                    {({ index, style }) => {
+                    {({ index, style }: { index: number; style: CSSProperties }) => {
                       const pokemon = filteredAvailable[index]
                       return (
                         <div style={style} key={pokemon.pokemon_id} className="px-2">

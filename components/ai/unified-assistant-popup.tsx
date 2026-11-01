@@ -104,7 +104,7 @@ export function UnifiedAssistantPopup({
     console.log("[UnifiedAssistantPopup] isMinimized state changed:", isMinimized)
   }, [isMinimized])
   
-  const recognitionRef = useRef<SpeechRecognition | null>(null)
+  const recognitionRef = useRef<BrowserSpeechRecognition | null>(null)
   const synthRef = useRef<SpeechSynthesis | null>(null)
 
   // Detect context from current route
@@ -127,9 +127,9 @@ export function UnifiedAssistantPopup({
   // Initialize speech recognition
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const SpeechRecognition = window.SpeechRecognition || (window as any).webkitSpeechRecognition
-      if (SpeechRecognition) {
-        recognitionRef.current = new SpeechRecognition()
+      const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition
+      if (SpeechRecognitionCtor) {
+        recognitionRef.current = new SpeechRecognitionCtor()
         recognitionRef.current.continuous = false
         recognitionRef.current.interimResults = false
         recognitionRef.current.lang = "en-US"
@@ -562,10 +562,21 @@ export function UnifiedAssistantPopup({
   )
 }
 
-// Extend Window interface for Speech Recognition
+type BrowserSpeechRecognition = {
+  continuous: boolean
+  interimResults: boolean
+  lang: string
+  onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null
+  onerror: (() => void) | null
+  start: () => void
+  stop: () => void
+}
+
+type BrowserSpeechRecognitionCtor = new () => BrowserSpeechRecognition
+
 declare global {
   interface Window {
-    SpeechRecognition: typeof SpeechRecognition
-    webkitSpeechRecognition: typeof SpeechRecognition
+    SpeechRecognition?: BrowserSpeechRecognitionCtor
+    webkitSpeechRecognition?: BrowserSpeechRecognitionCtor
   }
 }

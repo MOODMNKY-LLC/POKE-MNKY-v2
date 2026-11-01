@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     if (!parsed.success) {
       return apiError('match_id is required and must be a valid UUID', 400, {
         code: 'VALIDATION_ERROR',
-        details: parsed.error.errors,
+        details: parsed.error.issues,
       });
     }
     const { match_id } = parsed.data;

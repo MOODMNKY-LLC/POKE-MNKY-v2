@@ -10,7 +10,7 @@ import { VideoPlayerModal } from './video-player-modal';
 import { Search, Grid3x3, List, Loader2 } from 'lucide-react';
 import type { YouTubeVideo } from '@/lib/youtube/types';
 
-type ViewMode = 'grid' | 'list';
+export type ViewMode = 'grid' | 'list';
 type SortOption = 'newest' | 'oldest' | 'views' | 'likes';
 
 export function VideoGallery() {

@@ -69,13 +69,15 @@ export function DraftBudgetSummary({
           table: "draft_budgets",
           filter: `team_id=eq.${teamId}`,
         },
-        (payload) => {
-          const row = payload.new as {
+        (payload: {
+          new: {
             season_id?: string
             total_points: number
             spent_points: number
             remaining_points: number
           }
+        }) => {
+          const row = payload.new
           if (row.season_id === seasonId) {
             setBudget({
               total: row.total_points,

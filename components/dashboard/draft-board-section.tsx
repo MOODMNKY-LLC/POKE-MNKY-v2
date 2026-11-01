@@ -142,7 +142,7 @@ export function DraftBoardSection() {
           .on(
             "broadcast",
             { event: "INSERT" },
-            (payload) => {
+            (payload: { new?: Partial<DraftSession> }) => {
               console.log("Pick made:", payload)
             }
           )
@@ -153,7 +153,7 @@ export function DraftBoardSection() {
           .on(
             "broadcast",
             { event: "UPDATE" },
-            (payload) => {
+            (payload: { new?: Partial<DraftSession> }) => {
               if (mounted) {
                 setSession((prev) => prev ? { ...prev, ...payload.new } : null)
               }
@@ -193,6 +193,8 @@ export function DraftBoardSection() {
   // Also fetch team if we have seasonId but no session
   useEffect(() => {
     if (!supabase || !seasonId || session) return // Skip if we have a session
+    const activeSeasonId = seasonId
+    const client = supabase
     
     let mounted = true
 
@@ -200,10 +202,10 @@ export function DraftBoardSection() {
       if (!mounted) return
 
       try {
-        const { data: { user } } = await supabase.auth.getUser().catch(() => ({ data: { user: null }, error: null }))
+        const { data: { user } } = await client.auth.getUser().catch(() => ({ data: { user: null }, error: null }))
         
         if (mounted && user) {
-          const { team: teamData } = await resolveCoachTeamForSeason(supabase, user.id, seasonId)
+          const { team: teamData } = await resolveCoachTeamForSeason(client, user.id, activeSeasonId)
           if (mounted && teamData) {
             setCurrentTeam(teamData)
           }
@@ -305,9 +307,11 @@ export function DraftBoardSection() {
     )
   }
 
+  if (!session) return null
+
   return (
     <div className="space-y-6">
-      <DraftHeader session={session} currentTeam={currentTeam} />
+      <DraftHeader session={session} currentTeam={currentTeam} seasonId={session.season_id} />
       {!currentTeam?.id && (
         <Alert>
           <AlertCircle className="h-4 w-4" />

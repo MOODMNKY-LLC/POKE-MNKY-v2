@@ -61,6 +61,10 @@ export async function GET(request: Request) {
       seasonId = season.id
     }
 
+    if (!seasonId) {
+      return NextResponse.json({ success: false, error: "No current season found" }, { status: 404 })
+    }
+
     const cacheKey = getDraftAvailableCacheKey(seasonId, minPoints, maxPoints, generation, search, limit)
     const cached = draftAvailableCache.get(cacheKey)
     if (cached && cached.expires > Date.now()) {
@@ -260,8 +264,8 @@ export async function GET(request: Request) {
       rpcList.map((p: any) => ({ pokemon_name: p.pokemon_name, pokemon_id: p.pokemon_id }))
     )
 
-    let statusByName = new Map<string, string>()
-    let teraByName = new Map<string, boolean>()
+    const statusByName = new Map<string, string>()
+    const teraByName = new Map<string, boolean>()
     const { data: draftPoolRows } = await supabase
       .from("draft_pool")
       .select("pokemon_name, status, tera_captain_eligible")

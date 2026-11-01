@@ -190,7 +190,7 @@ export function DamagePreview({ attacker, defender, move, generation = 9 }: Dama
             {minDamage} - {maxDamage}
           </div>
           <div className="text-sm text-muted-foreground">
-            {minPercent.toFixed(1)}% - {maxPercent.toFixed(1)}% of {defender.name}'s HP
+            {minPercent.toFixed(1)}% - {maxPercent.toFixed(1)}% of {defender.name}&apos;s HP
           </div>
         </div>
 

@@ -203,6 +203,9 @@ When asked about 'points', refer to draft point costs in the league draft pool. 
           ],
         })
 
+        if (!("output" in response)) {
+          throw new Error("Expected a completed Responses API result")
+        }
         const firstOutput = response.output?.[0]
         const messageText =
           firstOutput && firstOutput.type === 'message'

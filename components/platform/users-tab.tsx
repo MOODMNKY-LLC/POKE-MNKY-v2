@@ -16,38 +16,38 @@ export function UsersTab({ projectRef }: { projectRef: string }) {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
 
-  useEffect(() => {
-    async function fetchUsers() {
-      const supabase = createBrowserClient()
-      // Query profiles table instead of coaches
-      const { data, error } = await supabase
-        .from("profiles")
-        .select(
-          `
-          id,
-          username,
-          display_name,
-          role,
-          discord_id,
-          discord_username,
-          team_id,
-          is_active,
-          created_at,
-          teams:team_id(name)
-        `,
-        )
-        .order("created_at", { ascending: false })
-        .limit(100)
+  async function fetchUsers() {
+    const supabase = createBrowserClient()
+    // Query profiles table instead of coaches
+    const { data, error } = await supabase
+      .from("profiles")
+      .select(
+        `
+        id,
+        username,
+        display_name,
+        role,
+        discord_id,
+        discord_username,
+        team_id,
+        is_active,
+        created_at,
+        teams:team_id(name)
+      `,
+      )
+      .order("created_at", { ascending: false })
+      .limit(100)
 
-      if (error) {
-        console.error("Error fetching users:", error)
-      } else {
-        setUsers(data || [])
-        setFilteredUsers(data || [])
-      }
-      setLoading(false)
+    if (error) {
+      console.error("Error fetching users:", error)
+    } else {
+      setUsers(data || [])
+      setFilteredUsers(data || [])
     }
+    setLoading(false)
+  }
 
+  useEffect(() => {
     fetchUsers()
   }, [])
 

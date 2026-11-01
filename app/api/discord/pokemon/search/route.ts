@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
       .limit(limit)
 
     // Get owned Pokemon IDs if excluding owned
-    let ownedPokemonIds = new Set<string>()
+    const ownedPokemonIds = new Set<string>()
     if (excludeOwned && seasonId) {
       // Get all owned Pokemon for the season
       const { data: ownedPicks } = await supabase

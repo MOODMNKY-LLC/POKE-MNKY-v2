@@ -133,7 +133,7 @@ export function CoachCard({ team, userId, onTeamUpdated }: CoachCardProps) {
       <Card>
         <CardContent className="pt-6">
           <div className="text-center py-8 text-muted-foreground">
-            <p>You're not assigned to a team yet.</p>
+            <p>You&apos;re not assigned to a team yet.</p>
             <p className="text-sm mt-2">
               Contact an admin to get assigned to a team, or wait for automatic assignment when you receive the Coach role in Discord.
             </p>

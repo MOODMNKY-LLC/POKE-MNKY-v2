@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect } from "react"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { AlertCircle } from "lucide-react"
@@ -31,7 +32,7 @@ export default function DashboardError({
         <CardContent className="flex gap-3">
           <Button onClick={reset}>Try again</Button>
           <Button variant="outline" asChild>
-            <a href="/">Go home</a>
+            <Link href="/">Go home</Link>
           </Button>
         </CardContent>
       </Card>

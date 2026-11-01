@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get league rules from league_config table
-    let leagueRules: LeagueRules = {
+    const leagueRules: LeagueRules = {
       teamSize: { min: 6, max: 10 },
       maxLevel: 50
     };

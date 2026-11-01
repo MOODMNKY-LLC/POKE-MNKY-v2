@@ -63,7 +63,7 @@ export function DraftBoardAnalysisCard() {
         .order("created_at", { ascending: false })
       if (data?.length) {
         setSeasons(data)
-        const current = data.find((s) => s.is_current)
+        const current = data.find((s: Season) => s.is_current)
         setSeasonId(current?.id ?? data[0].id)
       }
     }

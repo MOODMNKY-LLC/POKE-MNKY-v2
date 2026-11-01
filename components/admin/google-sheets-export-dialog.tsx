@@ -48,10 +48,17 @@ const formSchema = z.object({
   sheet_name: z.string().min(1, "Sheet name is required"),
   season_id: z.string().min(1, "Season is required"),
   action: z.enum(["create", "add"]),
-  format: z.enum(["draft-board", "table"]).default("draft-board"),
+  format: z.enum(["draft-board", "table"]),
 })
 
 type FormValues = z.infer<typeof formSchema>
+
+type ExistingSheetInfo = {
+  exists: boolean
+  row_count?: number
+  last_modified?: string
+  approximate_data_rows?: number
+}
 
 interface GoogleSheetsExportDialogProps {
   onExportComplete?: () => void
@@ -65,7 +72,7 @@ export function GoogleSheetsExportDialog({ onExportComplete }: GoogleSheetsExpor
   const [seasonsLoading, setSeasonsLoading] = useState(true)
   const [showOverwriteConfirm, setShowOverwriteConfirm] = useState(false)
   const [pendingExport, setPendingExport] = useState<FormValues | null>(null)
-  const [existingSheetInfo, setExistingSheetInfo] = useState<{ exists: boolean; rowCount?: number; lastModified?: string } | null>(null)
+  const [existingSheetInfo, setExistingSheetInfo] = useState<ExistingSheetInfo | null>(null)
   const [checkingSheet, setCheckingSheet] = useState(false)
   const { toast } = useToast()
 
@@ -171,7 +178,7 @@ export function GoogleSheetsExportDialog({ onExportComplete }: GoogleSheetsExpor
     await performExport(values)
   }
 
-  async function checkSheetExists(spreadsheetIdOrUrl: string, sheetName: string): Promise<{ exists: boolean; row_count?: number; last_modified?: string; approximate_data_rows?: number }> {
+  async function checkSheetExists(spreadsheetIdOrUrl: string, sheetName: string): Promise<ExistingSheetInfo> {
     try {
       const spreadsheetId = extractSpreadsheetId(spreadsheetIdOrUrl)
       if (!spreadsheetId) {
@@ -308,6 +315,7 @@ export function GoogleSheetsExportDialog({ onExportComplete }: GoogleSheetsExpor
         sheet_name: "Draft Board",
         season_id: defaultSeasonId,
         action: "create",
+        format: "draft-board",
       })
     }
   }
@@ -363,7 +371,7 @@ export function GoogleSheetsExportDialog({ onExportComplete }: GoogleSheetsExpor
                   </FormControl>
                   <FormDescription>
                     Name of the sheet to create or update. If the sheet exists and action is
-                    "add", it will be updated.
+                    &quot;add&quot;, it will be updated.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -509,7 +517,7 @@ export function GoogleSheetsExportDialog({ onExportComplete }: GoogleSheetsExpor
               <span>⚠️</span> Confirm Overwrite
             </DialogTitle>
             <DialogDescription>
-              You are about to <strong>completely overwrite</strong> the sheet "{pendingExport?.sheet_name}" in the spreadsheet.
+              You are about to <strong>completely overwrite</strong> the sheet &quot;{pendingExport?.sheet_name}&quot; in the spreadsheet.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-4">
@@ -520,7 +528,7 @@ export function GoogleSheetsExportDialog({ onExportComplete }: GoogleSheetsExpor
                   📊 Current Sheet Information (Will Be Deleted):
                 </p>
                 <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
-                  <li><strong>Sheet Name:</strong> "{pendingExport?.sheet_name}"</li>
+                  <li><strong>Sheet Name:</strong> &quot;{pendingExport?.sheet_name}&quot;</li>
                   {existingSheetInfo.row_count !== undefined && (
                     <li><strong>Total Rows:</strong> {existingSheetInfo.row_count.toLocaleString()} rows</li>
                   )}
@@ -540,7 +548,7 @@ export function GoogleSheetsExportDialog({ onExportComplete }: GoogleSheetsExpor
             {existingSheetInfo && !existingSheetInfo.exists && (
               <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-md p-4">
                 <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                  ℹ️ Sheet "{pendingExport?.sheet_name}" does not exist. It will be created.
+                  ℹ️ Sheet &quot;{pendingExport?.sheet_name}&quot; does not exist. It will be created.
                 </p>
               </div>
             )}
@@ -551,9 +559,9 @@ export function GoogleSheetsExportDialog({ onExportComplete }: GoogleSheetsExpor
                 ⚠️ Warning: This action cannot be undone automatically
               </p>
               <ul className="text-sm text-orange-700 dark:text-orange-300 space-y-1 list-disc list-inside">
-                <li>All existing data in "{pendingExport?.sheet_name}" will be permanently deleted</li>
+                <li>All existing data in &quot;{pendingExport?.sheet_name}&quot; will be permanently deleted</li>
                 <li>You can recover it from Google Sheets version history (File → Version history → See version history)</li>
-                <li>Consider using "Create new sheet" instead to preserve existing data</li>
+                <li>Consider using &quot;Create new sheet&quot; instead to preserve existing data</li>
               </ul>
             </div>
 

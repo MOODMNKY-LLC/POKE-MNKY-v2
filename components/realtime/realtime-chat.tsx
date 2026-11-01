@@ -37,11 +37,11 @@ export function RealtimeChat({ channel }: { channel: string }) {
   useEffect(() => {
     if (!supabase) return
 
-    supabase.auth.getUser().then(({ data }) => setUser(data.user))
+    supabase.auth.getUser().then(({ data }: { data: { user: { id: string; email?: string | null } | null } }) => setUser(data.user))
 
     const chatChannel = supabase
       .channel(channel)
-      .on("broadcast", { event: "message" }, ({ payload }) => {
+      .on("broadcast", { event: "message" }, ({ payload }: { payload: Message }) => {
         setMessages((prev) => [...prev, payload])
       })
       .subscribe()

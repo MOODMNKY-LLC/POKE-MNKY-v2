@@ -30,8 +30,9 @@ export function PWAInstallPrompt() {
       return
     }
 
-    // Check if running as PWA
-    if (window.navigator.standalone === true) {
+    // iOS Safari exposes navigator.standalone, which is absent from the DOM Navigator type.
+    const navigatorWithStandalone = window.navigator as Navigator & { standalone?: boolean }
+    if (navigatorWithStandalone.standalone === true) {
       setIsInstalled(true)
       return
     }

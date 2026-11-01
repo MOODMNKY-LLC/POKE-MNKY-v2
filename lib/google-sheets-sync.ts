@@ -548,7 +548,7 @@ async function syncTeams(
       
       // Try to get values using all possible column names
       // Use database field names for getValue
-      let teamData = {
+      const teamData = {
         name: getValue(row, "name", rawData) || null,
         coach_name: getValue(row, "coach_name", rawData) || "Unknown Coach", // Default value for NOT NULL constraint
         division: getValue(row, "division", rawData) || null,

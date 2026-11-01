@@ -22,7 +22,8 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    let { messages, teamId, seasonId, mcpEnabled = true, model } = body
+    const { messages, mcpEnabled = true, model } = body
+    let { teamId, seasonId } = body
 
     if (!teamId && seasonId) {
       const { team } = await resolveCoachTeamForSeason(supabase, user.id, seasonId)
