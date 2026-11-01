@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
       sheet_name: sheet_name,
       row_count: actualRowCount,
       approximate_data_rows: rowCount,
-      last_modified: sheet.modified ? new Date(sheet.modified).toLocaleString() : "Unknown",
+      last_modified: "Unknown",
       message: `Sheet "${sheet_name}" exists with approximately ${actualRowCount} rows`,
     })
   } catch (error: any) {

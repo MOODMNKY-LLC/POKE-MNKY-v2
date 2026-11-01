@@ -55,7 +55,7 @@ export async function GET(request: Request) {
         .eq("is_current", true)
         .single()
 
-      if (!season) {
+      if (!season?.id) {
         return NextResponse.json({ success: false, error: "No current season found" }, { status: 404 })
       }
       seasonId = season.id
@@ -121,7 +121,12 @@ export async function GET(request: Request) {
           .order("point_value", { ascending: false })
           .order("pokemon_name", { ascending: true })
           .limit(1000)
-        dataWithTera = fallback.data
+        dataWithTera =
+          fallback.data?.map((row) => ({
+            ...row,
+            generation: null,
+            types: null,
+          })) ?? null
         errorWithTera = fallback.error
       }
 
@@ -270,16 +275,30 @@ export async function GET(request: Request) {
       }
     })
 
-    const pokemonWithGen = rpcList.map((p: any) => {
+    const pokemonWithGen: Array<{
+      pokemon_name: string
+      point_value: number
+      pokemon_id: number | null
+      generation: number | null
+      status: string
+      tera_captain_eligible?: boolean | null
+      types?: string[]
+    }> = rpcList.map((p: {
+      pokemon_name?: string | null
+      point_value?: number | null
+      pokemon_id?: number | null
+      generation?: number | null
+      status?: string | null
+    }) => {
       const nameKey = p.pokemon_name?.toLowerCase()
       const display = nameKey ? displayMap.get(nameKey) : null
       return {
-        pokemon_name: p.pokemon_name,
-        point_value: p.point_value,
+        pokemon_name: p.pokemon_name ?? "",
+        point_value: p.point_value ?? 0,
         pokemon_id: display?.pokemon_id ?? p.pokemon_id ?? null,
         generation: display?.generation ?? p.generation ?? null,
-        status: (statusByName.get(nameKey) ?? p.status) as string,
-        tera_captain_eligible: teraByName.get(nameKey),
+        status: statusByName.get(nameKey ?? "") ?? p.status ?? "available",
+        tera_captain_eligible: nameKey ? teraByName.get(nameKey) : undefined,
         types: display?.types?.length ? display.types : undefined,
       }
     })

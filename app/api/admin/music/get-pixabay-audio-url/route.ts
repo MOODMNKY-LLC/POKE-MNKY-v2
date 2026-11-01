@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
           }
           
           // Also try looking for data attributes or JSON-LD that might contain the URL
-          const jsonLdMatch = pageHtml.match(/<script[^>]*type=["']application\/ld\+json["'][^>]*>(.*?)<\/script>/is)
+          const jsonLdMatch = pageHtml.match(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/i)
           if (jsonLdMatch) {
             try {
               const jsonLd = JSON.parse(jsonLdMatch[1])

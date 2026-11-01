@@ -109,7 +109,9 @@ export async function POST(request: NextRequest) {
       try {
         const result = await syncNotionToSupabase(supabaseUrl, serviceRoleKey, syncOptions)
         const scopeArr = syncOptions.scope || []
-        const isDraftBoardOnly = scopeArr.includes("draft_board") && (scopeArr.length === 1 || scopeArr.every((s) => s === "draft_board"))
+        const isDraftBoardOnly =
+          scopeArr.includes("draft_board") &&
+          (scopeArr.length === 1 || scopeArr.every((s: string) => s === "draft_board"))
         const pokemonSynced = isDraftBoardOnly && result.stats.draft_board
           ? (result.stats.draft_board.synced ?? 0)
           : result.stats.pokemon.created + result.stats.pokemon.updated

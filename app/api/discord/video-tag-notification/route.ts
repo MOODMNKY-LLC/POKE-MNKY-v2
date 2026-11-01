@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     const [taggedUser, taggedByUser, video] = await Promise.all([
       supabase.from('profiles').select('display_name, discord_id').eq('id', taggedUserId).single(),
       supabase.from('profiles').select('display_name').eq('id', taggedByUserId).single(),
-      supabase.from('videos').select('title, youtube_url').eq('youtube_video_id', videoId).single(),
+      supabase.from('videos').select('id, title, youtube_url').eq('youtube_video_id', videoId).single(),
     ]);
 
     if (!taggedUser.data || !taggedByUser.data || !video.data) {

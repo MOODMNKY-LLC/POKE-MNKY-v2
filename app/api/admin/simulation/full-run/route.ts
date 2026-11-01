@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase/server"
 import { createServiceRoleClient } from "@/lib/supabase/service"
-import { DraftSystem } from "@/lib/draft-system"
+import { DraftSystem, type DraftSession } from "@/lib/draft-system"
 import { generateRoundRobinSchedule } from "@/lib/league-simulation/schedule-generator"
 import { generatePlayoffRound1Only } from "@/lib/league-simulation/playoff-bracket-generator"
 import { generateMockResult, type ResultStrategy } from "@/lib/league-simulation/mock-result-generator"
@@ -14,6 +14,18 @@ import { updateStandingsFromMatches } from "@/lib/league-simulation/standings-up
 import { recordSimulationRun, updateSimulationRun } from "@/lib/league-simulation/simulation-engine"
 
 const MOCK_SEASON_NAME = "Mock Draft Demo"
+
+type DraftSessionStatus = DraftSession["status"]
+
+function isDraftSessionStatus(value: string | null | undefined): value is DraftSessionStatus {
+  return (
+    value === "pending" ||
+    value === "active" ||
+    value === "paused" ||
+    value === "completed" ||
+    value === "cancelled"
+  )
+}
 
 function isSimulationApiKeyValid(request: NextRequest): boolean {
   const key =
@@ -154,9 +166,13 @@ export async function POST(request: NextRequest) {
     if (!session) {
       session = await draftSystem.createSession(seasonId, teamIds, { draftType: "snake" })
     }
+    if (!session) {
+      return NextResponse.json({ error: "Failed to create draft session" }, { status: 500 })
+    }
+    let draftSession: DraftSession = session
     let pickCount = 0
-    while (session.status !== "completed") {
-      const turn = await draftSystem.getCurrentTurn(session.id)
+    while (draftSession.status !== "completed") {
+      const turn = await draftSystem.getCurrentTurn(draftSession.id)
       if (!turn) break
       const { data: budget } = await admin
         .from("draft_budgets")
@@ -175,11 +191,19 @@ export async function POST(request: NextRequest) {
         .limit(1)
         .maybeSingle()
       if (!avail) break
-      const res = await draftSystem.makePick(session.id, turn.teamId, avail.pokemon_name)
+      const res = await draftSystem.makePick(draftSession.id, turn.teamId, avail.pokemon_name)
       if (!res.success) break
       pickCount++
-      const { data: upd } = await admin.from("draft_sessions").select("status").eq("id", session.id).single()
-      session = { ...session, status: (upd?.status as string) ?? session.status }
+      const { data: upd } = await admin
+        .from("draft_sessions")
+        .select("status")
+        .eq("id", draftSession.id)
+        .single()
+      const nextStatus = upd?.status
+      draftSession = {
+        ...draftSession,
+        status: isDraftSessionStatus(nextStatus) ? nextStatus : draftSession.status,
+      }
     }
 
     const { data: mw } = await admin

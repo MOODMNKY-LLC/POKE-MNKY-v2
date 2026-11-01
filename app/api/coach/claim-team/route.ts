@@ -9,6 +9,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service"
 import { assignCoachToTeam } from "@/lib/coach-assignment"
 import { resolveCoachTeamForSeason } from "@/lib/coach-team-context"
 import { syncAppRoleToDiscord } from "@/lib/discord-role-sync"
+import { UserRole } from "@/lib/rbac"
 import { resolveLeagueAdminAccess } from "@/lib/admin-api-auth"
 
 export async function POST(request: NextRequest) {
@@ -115,7 +116,7 @@ export async function POST(request: NextRequest) {
       !adminAccess.allowed
     ) {
       try {
-        const syncResult = await syncAppRoleToDiscord(profile.discord_id, "coach", user.id)
+        const syncResult = await syncAppRoleToDiscord(profile.discord_id, UserRole.COACH, user.id)
         discordSynced = syncResult.success
       } catch {
         discordSynced = false

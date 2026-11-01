@@ -14,11 +14,33 @@ import {
   convertResponsesAPIToUIMessage 
 } from '@/lib/openai-client'
 import { logger } from '@/lib/logger'
+import type { EasyInputMessage, ResponseInput, Tool } from 'openai/resources/responses/responses'
 import {
   handleOpenClawChatRequest,
   openClawModeSystemPrompt,
   shouldRouteChatToOpenClaw,
 } from '@/lib/openclaw/chat-route'
+
+function toResponseInput(
+  messages: ReturnType<typeof convertUIMessagesToResponsesAPIFormat>,
+): ResponseInput {
+  const input: EasyInputMessage[] = []
+  for (const message of messages) {
+    const content: Array<
+      { type: 'input_text'; text: string } | { type: 'input_image'; image_url: string; detail: 'auto' }
+    > = []
+    for (const part of message.content) {
+      if (part.type === 'input_text' && typeof part.text === 'string') {
+        content.push({ type: 'input_text', text: part.text })
+      } else if (part.type === 'input_image' && typeof part.image_url === 'string') {
+        content.push({ type: 'input_image', image_url: part.image_url, detail: 'auto' })
+      }
+    }
+    if (content.length === 0) continue
+    input.push({ role: message.role, content })
+  }
+  return input
+}
 
 export async function POST(request: Request) {
   try {
@@ -177,45 +199,47 @@ Be friendly, helpful, and knowledgeable. Always use available tools (file_search
 
         // Build tools array for Responses API
         // Note: Responses API does NOT accept require_approval on tools - omit it to avoid 400
-        const tools: Array<{
-          type: "mcp" | "function" | "web_search" | "file_search" | "code_interpreter"
-          server_label?: string
-          server_url?: string
-          server_description?: string
-          allowed_tools?: string[]
-          authorization?: string
-          vector_store_ids?: string[]
-          [key: string]: any
-        }> = []
+        const tools: Tool[] = []
 
         // Public tools (available to all users)
         tools.push({ type: "web_search" })
 
-        // File search - use vector store if configured
-        const vectorStoreId = process.env.OPENAI_VECTOR_STORE_ID
-        if (vectorStoreId) {
+        // File search requires vector store ids in the Responses API.
+        const responsesVectorStoreId = process.env.OPENAI_VECTOR_STORE_ID
+        if (responsesVectorStoreId) {
           tools.push({
             type: "file_search",
-            vector_store_ids: [vectorStoreId],
+            vector_store_ids: [responsesVectorStoreId],
           })
         } else if (files && Array.isArray(files) && files.length > 0) {
-          tools.push({ type: "file_search" })
+          logger.debug('[General Assistant] file_search skipped: vector store id required', {
+            fileCount: files.length,
+          })
         }
 
         // MCP tools (only for authenticated users)
         if (effectiveMcpEnabled) {
           const mcpServerUrl = process.env.MCP_DRAFT_POOL_SERVER_URL || 'https://mcp-draft-pool.moodmnky.com/mcp'
           const mcpApiKey = process.env.MCP_API_KEY
+          const mcpDescription =
+            "Access to POKE MNKY draft pool and team data. Provides 9 tools: get_available_pokemon, get_draft_status, get_team_budget, get_team_picks, get_pokemon_types, get_smogon_meta, get_ability_mechanics, get_move_mechanics, analyze_pick_value."
 
-          tools.push({
-            type: "mcp",
-            server_label: "poke-mnky-draft-pool",
-            server_url: mcpServerUrl,
-            server_description: "Access to POKE MNKY draft pool and team data. Provides 9 tools: get_available_pokemon, get_draft_status, get_team_budget, get_team_picks, get_pokemon_types, get_smogon_meta, get_ability_mechanics, get_move_mechanics, analyze_pick_value.",
-            ...(mcpApiKey && {
+          if (mcpApiKey) {
+            tools.push({
+              type: "mcp",
+              server_label: "poke-mnky-draft-pool",
+              server_url: mcpServerUrl,
+              server_description: mcpDescription,
               authorization: `Bearer ${mcpApiKey}`,
-            }),
-          })
+            })
+          } else {
+            tools.push({
+              type: "mcp",
+              server_label: "poke-mnky-draft-pool",
+              server_url: mcpServerUrl,
+              server_description: mcpDescription,
+            })
+          }
         }
 
         logger.debug('[General Assistant] Using Responses API:', {
@@ -230,7 +254,7 @@ Be friendly, helpful, and knowledgeable. Always use available tools (file_search
         // Call Responses API
         const response = await openaiClient.responses.create({
           model,
-          input: responsesInput,
+          input: toResponseInput(responsesInput),
           tools: tools.length > 0 ? tools : undefined,
           stream: false, // Start with non-streaming, can enable later
         })
@@ -427,20 +451,19 @@ Be friendly, helpful, and knowledgeable. Always use available tools (file_search
 
     // Stream text with tool call limits (from mnky-command pattern)
     // IMPORTANT: toolChoice: 'auto' ensures tools are used when appropriate
-    // maxSteps limits tool call loops to prevent infinite recursion
-    // Using maxSteps instead of stopWhen for better compatibility with useChat
+    // stopWhen limits tool call loops to prevent infinite recursion
     const result = await streamText({
       model: openai(model),
       system: systemMessage,
       messages: modelMessages, // Use 'messages' not 'prompt' - convertToModelMessages returns message array
       tools,
       toolChoice: tools ? 'auto' : undefined, // Explicitly enable tool usage when tools are available
-      maxSteps: tools ? 5 : 1, // Allow multi-step tool calls when MCP enabled (matches other routes)
-      // Note: Unauthenticated users get maxSteps: 1 (no tool calls)
+      stopWhen: stepCountIs(tools ? 5 : 1), // Allow multi-step tool calls when MCP enabled (matches other routes)
+      // Note: Unauthenticated users get a single step (no tool calls)
       onStepFinish: (step) => {
         // Log step information for debugging
         logger.debug('[General Assistant] Step finished:', {
-          stepNumber: step.stepType,
+          finishReason: step.finishReason,
           hasText: !!step.text,
           textPreview: step.text ? step.text.substring(0, 100) : null,
           hasToolCalls: !!(step.toolCalls && step.toolCalls.length > 0),
@@ -452,7 +475,9 @@ Be friendly, helpful, and knowledgeable. Always use available tools (file_search
         
         // Log full step object for debugging (first time only)
         if (step.toolCalls && step.toolCalls.length > 0 && !step.toolResults) {
-          logger.debug('[General Assistant] 🔍 DEBUG: Full step object:', JSON.stringify(step, null, 2).substring(0, 1000))
+          logger.debug('[General Assistant] 🔍 DEBUG: Full step object:', {
+            step: JSON.stringify(step, null, 2).substring(0, 1000),
+          })
         }
         
         // Log tool calls when they happen
@@ -575,8 +600,12 @@ Be friendly, helpful, and knowledgeable. Always use available tools (file_search
       consumeSseStream: consumeStream,
     })
   } catch (error) {
-    logger.error('[General Assistant] Error:', error)
-    logger.error('[General Assistant] Error stack:', error instanceof Error ? error.stack : 'No stack')
+    logger.error('[General Assistant] Error', {
+      error: error instanceof Error ? error.message : String(error),
+    })
+    logger.error('[General Assistant] Error stack', {
+      stack: error instanceof Error ? error.stack : 'No stack',
+    })
     return new Response(
       error instanceof Error ? error.message : 'Assistant failed',
       { status: 500 }

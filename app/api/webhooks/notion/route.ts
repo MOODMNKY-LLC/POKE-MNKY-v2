@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
       const raw = JSON.parse(body)
       const parsed = notionWebhookPayloadSchema.safeParse(raw)
       if (!parsed.success) {
-        return badRequest("Invalid webhook payload structure", parsed.error.errors)
+        return badRequest("Invalid webhook payload structure", parsed.error.issues)
       }
       payload = parsed.data
     } catch {
@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
       "page.created",
     ]
 
-    if (!relevantEvents.includes(eventType)) {
+    if (typeof eventType !== "string" || !relevantEvents.includes(eventType)) {
       logger.debug("Notion webhook ignored: event type", { requestId, eventType })
       return NextResponse.json({ success: true, message: "Event type ignored" })
     }
@@ -217,7 +217,9 @@ export async function POST(request: NextRequest) {
     // Execute sync via after() so completion callback runs even after response is sent.
     // Without this, serverless functions terminate and the job status never updates.
     const syncOptions = {
-      scope: ["draft_board"] as const,
+      scope: ["draft_board"] as Array<
+        "pokemon" | "role_tags" | "moves" | "coaches" | "teams" | "draft_board"
+      >,
       incremental: true,
       since: new Date(Date.now() - 5 * 60 * 1000), // Last 5 minutes
     }
