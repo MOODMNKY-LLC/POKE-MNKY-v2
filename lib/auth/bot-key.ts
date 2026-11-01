@@ -30,30 +30,31 @@ export function extractBotKey(request: NextRequest): string | null {
   return authHeader.trim()
 }
 
-/**
- * Validate bot key is present and, when DISCORD_BOT_API_KEY is set, matches it.
- * Use this for Discord app API routes so only the configured bot can call them.
- * Accepts Authorization: Bearer <key> or X-Discord-Bot-Key: <key> (Vercel may strip Authorization).
- */
-export function validateBotKeyPresent(request: NextRequest): {
+export type BotKeyDecision = {
   valid: boolean
   botKey: string | null
   error?: string
-} {
-  const botKey = extractBotKey(request)
-  const hasAuth = !!request.headers.get("authorization")
-  const hasXKey = !!request.headers.get(DISCORD_BOT_KEY_HEADER)
-  const hasApiKey = !!request.headers.get(API_KEY_HEADER)
+}
 
-  if (!botKey) {
-    console.warn(
-      "[bot-key] Auth failed: has Authorization:",
-      hasAuth,
-      "has X-Discord-Bot-Key:",
-      hasXKey,
-      "has X-API-Key:",
-      hasApiKey
-    )
+/**
+ * Fail closed: a missing server key rejects every caller, including ones that send a key.
+ * A configured key must match exactly.
+ */
+export function evaluateBotKey(
+  presentedKey: string | null,
+  expectedKey: string | undefined
+): BotKeyDecision {
+  const expected = expectedKey?.trim() ?? ""
+  if (!expected) {
+    return {
+      valid: false,
+      botKey: null,
+      error: "Bot API key is not configured",
+    }
+  }
+
+  const presented = presentedKey?.trim() ?? ""
+  if (!presented) {
     return {
       valid: false,
       botKey: null,
@@ -61,8 +62,7 @@ export function validateBotKeyPresent(request: NextRequest): {
     }
   }
 
-  const expectedKey = process.env.DISCORD_BOT_API_KEY
-  if (expectedKey != null && expectedKey.trim() !== "" && botKey !== expectedKey.trim()) {
+  if (presented !== expected) {
     return {
       valid: false,
       botKey: null,
@@ -70,8 +70,28 @@ export function validateBotKeyPresent(request: NextRequest): {
     }
   }
 
-  return {
-    valid: true,
-    botKey,
+  return { valid: true, botKey: presented }
+}
+
+/**
+ * Validate bot key is present and matches DISCORD_BOT_API_KEY.
+ * Use this for Discord app API routes so only the configured bot can call them.
+ * Accepts Authorization: Bearer <key> or X-Discord-Bot-Key: <key> (Vercel may strip Authorization).
+ */
+export function validateBotKeyPresent(request: NextRequest): BotKeyDecision {
+  const botKey = extractBotKey(request)
+  const decision = evaluateBotKey(botKey, process.env.DISCORD_BOT_API_KEY)
+  if (!decision.valid && !botKey) {
+    console.warn(
+      "[bot-key] Auth failed: has Authorization:",
+      !!request.headers.get("authorization"),
+      "has X-Discord-Bot-Key:",
+      !!request.headers.get(DISCORD_BOT_KEY_HEADER),
+      "has X-API-Key:",
+      !!request.headers.get(API_KEY_HEADER),
+      "server key configured:",
+      Boolean(process.env.DISCORD_BOT_API_KEY?.trim())
+    )
   }
+  return decision
 }

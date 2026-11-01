@@ -1,9 +1,13 @@
 // Pokédex endpoint using Responses API with MCP tools
 import { NextRequest, NextResponse } from "next/server"
+import { requireSignedInUser } from "@/lib/admin-api-auth"
 import { openai, AI_MODELS, createResponseWithMCP } from "@/lib/openai-client"
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireSignedInUser()
+    if ("response" in auth) return auth.response
+
     const body = await request.json()
     const { query, useMCP = true } = body
 
