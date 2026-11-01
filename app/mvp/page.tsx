@@ -2,101 +2,98 @@ import { createClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Trophy, Zap, Target } from "lucide-react"
+import { aggregateMvpStats, type MvpStatRow } from "@/lib/mvp-standings"
+import { listStandingsSeasons, pickStandingsSeason } from "@/lib/standings-season"
 
-export default async function MVPPage() {
+type StatQueryRow = {
+  pokemon_id: string
+  kills: number | null
+  team_id: string
+  matches: { season_id: string } | { season_id: string }[] | null
+}
+
+function seasonIdFromMatch(match: StatQueryRow["matches"]): string | null {
+  if (!match) return null
+  if (Array.isArray(match)) return match[0]?.season_id ?? null
+  return match.season_id ?? null
+}
+
+export default async function MVPPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ season?: string }>
+}) {
+  const { season: requestedSeason } = await searchParams
   const supabase = await createClient()
+  const seasons = await listStandingsSeasons(supabase).catch((error: unknown) => {
+    console.error("[mvp] season list error:", error)
+    return []
+  })
+  const season = pickStandingsSeason(seasons, requestedSeason)
+  const seasonLabel = season?.name ?? "Current Season"
 
-  // Check if pokemon_stats table has kills column (league stats)
-  let allStats: any[] = []
-  
+  let statRows: MvpStatRow[] = []
+  let missingKillsColumn = false
+
   try {
-    const testResult = await supabase
+    let statsQuery = supabase
       .from("pokemon_stats")
-      .select("pokemon_id, kills, team_id")
-      .limit(1)
+      .select("pokemon_id, kills, team_id, matches!inner(season_id)")
+    if (season?.id) statsQuery = statsQuery.eq("matches.season_id", season.id)
 
-    if (testResult.error && testResult.error.code === '42703') {
-      // Column doesn't exist - pokemon_stats is the pokedex version, not league stats
-      // Return empty state
-      return (
-        <div className="container mx-auto px-4 py-8">
-          <h1 className="text-3xl font-bold mb-6">MVP Standings</h1>
-          <p className="text-muted-foreground">No match statistics available yet. Stats will appear here once matches are recorded.</p>
-        </div>
-      )
-    }
+    const statsResult = await statsQuery
 
-    // Table has kills column - fetch all stats
-    const statsResult = await supabase
-      .from("pokemon_stats")
-      .select("pokemon_id, kills, team_id")
-      .order("kills", { ascending: false })
-
-    if (statsResult.error) {
+    if (statsResult.error && statsResult.error.code === "42703") {
+      missingKillsColumn = true
+    } else if (statsResult.error) {
       console.error("Error fetching pokemon stats:", statsResult.error)
-      allStats = []
     } else {
-      allStats = statsResult.data || []
+      statRows = ((statsResult.data ?? []) as StatQueryRow[]).flatMap((stat) => {
+        const seasonId = seasonIdFromMatch(stat.matches)
+        if (!seasonId) return []
+        return [{
+          pokemonId: stat.pokemon_id,
+          teamId: stat.team_id,
+          kills: stat.kills ?? 0,
+          seasonId,
+        }]
+      })
     }
   } catch (error) {
     console.error("Exception fetching pokemon stats:", error)
-    allStats = []
   }
 
-  if (!allStats || allStats.length === 0) {
+  if (missingKillsColumn) {
     return (
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-6">MVP Standings</h1>
-        <p className="text-muted-foreground">No stats available yet.</p>
+        <p className="text-muted-foreground">No match statistics available yet. Stats will appear here once matches are recorded.</p>
       </div>
     )
   }
 
-  // Fetch pokemon and team data separately
-  const pokemonIds = [...new Set(allStats.map((stat: any) => stat.pokemon_id))]
-  const teamIds = [...new Set(allStats.map((stat: any) => stat.team_id))]
+  const pokemonIds = [...new Set(statRows.map((stat) => stat.pokemonId))]
+  const teamIds = [...new Set(statRows.map((stat) => stat.teamId))]
 
-  const { data: pokemonData } = await supabase
-    .from("pokemon")
-    .select("id, name, type1, type2")
-    .in("id", pokemonIds)
+  const { data: pokemonData } = pokemonIds.length
+    ? await supabase.from("pokemon").select("id, name, type1, type2").in("id", pokemonIds)
+    : { data: [] }
 
-  const { data: teamData } = await supabase
-    .from("teams")
-    .select("id, name, division")
-    .in("id", teamIds)
+  const { data: teamData } = teamIds.length
+    ? await supabase.from("teams").select("id, name, division").in("id", teamIds)
+    : { data: [] }
 
-  // Combine the data
-  const statsWithRelations = allStats.map((stat: any) => ({
-    ...stat,
-    pokemon: pokemonData?.find((p: any) => p.id === stat.pokemon_id) || null,
-    team: teamData?.find((t: any) => t.id === stat.team_id) || null,
-  }))
+  const pokemonById = new Map((pokemonData ?? []).map((pokemon) => [pokemon.id, pokemon]))
+  const teamById = new Map((teamData ?? []).map((team) => [team.id, team]))
 
-  // Aggregate kills per pokemon
-  const pokemonKills = new Map<string, any>()
-
-  statsWithRelations.forEach((stat) => {
-    const pokemonId = stat.pokemon_id
-    if (!pokemonKills.has(pokemonId)) {
-      pokemonKills.set(pokemonId, {
-        pokemon: stat.pokemon,
-        team: stat.team,
-        totalKills: 0,
-        matches: 0,
-      })
-    }
-    const current = pokemonKills.get(pokemonId)
-    current.totalKills += stat.kills
-    current.matches += 1
-  })
-
-  const topPokemon = Array.from(pokemonKills.values())
-    .sort((a, b) => b.totalKills - a.totalKills)
+  const topPokemon = aggregateMvpStats(statRows)
     .slice(0, 50)
     .map((stat) => ({
-      ...stat,
-      name: stat.pokemon?.name || "Unknown",
+      pokemon_id: stat.pokemonId,
+      totalKills: stat.totalKills,
+      matches: stat.matches,
+      team: teamById.get(stat.teamId) ?? null,
+      name: pokemonById.get(stat.pokemonId)?.name || "Unknown",
       avgKills: stat.matches > 0 ? (stat.totalKills / stat.matches).toFixed(1) : "0.0",
     }))
 
@@ -109,12 +106,39 @@ export default async function MVPPage() {
         {/* Hero Section */}
         <div className="border-b border-border bg-gradient-to-r from-accent/20 via-primary/20 to-accent/20 py-12">
           <div className="container text-center">
-            <div className="mb-4 flex items-center justify-center gap-2">
+            <div className="mb-4 flex flex-wrap items-center justify-center gap-2">
               <Trophy className="h-8 w-8 text-accent" />
               <Badge className="bg-accent text-accent-foreground">MVP Race</Badge>
+              <Badge variant="secondary">{seasonLabel}</Badge>
+              {seasons.length > 0 ? (
+                <form action="/mvp" className="flex items-center gap-2">
+                  <label htmlFor="mvp-season" className="sr-only">
+                    Season
+                  </label>
+                  <select
+                    id="mvp-season"
+                    name="season"
+                    defaultValue={season?.id ?? ""}
+                    className="h-8 rounded-md border border-border bg-background px-2 text-sm"
+                  >
+                    {seasons.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {option.name}
+                        {option.is_current ? " (current)" : ""}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="submit"
+                    className="h-8 rounded-md border border-border bg-background px-3 text-sm font-medium hover:bg-muted"
+                  >
+                    Show
+                  </button>
+                </form>
+              ) : null}
             </div>
             <h1 className="text-5xl font-bold tracking-tight">Most Valuable Pokemon</h1>
-            <p className="mt-2 text-lg text-muted-foreground">Top performers by knockout stats</p>
+            <p className="mt-2 text-lg text-muted-foreground">Top performers by knockout stats for {seasonLabel}</p>
           </div>
         </div>
 

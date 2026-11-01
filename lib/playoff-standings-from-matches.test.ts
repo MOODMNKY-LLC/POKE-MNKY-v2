@@ -134,6 +134,51 @@ describe("buildTeamRankInputsFromMatches", () => {
     expect(alpha.wins).toBe(1)
   })
 
+  it("gives a bye team a loss for every regular week with no match and does not change real records", () => {
+    const withBye = [
+      ...teams,
+      { id: "bye", name: "Bye 1", conference: "West", division: "C", isBye: true },
+    ]
+    const matches = [
+      {
+        team1_id: "a",
+        team2_id: "b",
+        winner_id: "a",
+        week: 1,
+        status: "completed",
+        team1_score: 6,
+        team2_score: 4,
+        differential: 2,
+      },
+      {
+        team1_id: "bye",
+        team2_id: "a",
+        winner_id: "a",
+        week: 9,
+        status: "completed",
+        is_playoff: true,
+        outcome_type: "bye",
+        team1_score: 0,
+        team2_score: 0,
+      },
+    ]
+
+    const result = buildTeamRankInputsFromMatches(withBye, matches)
+    const alpha = result.find((team) => team.teamId === "a")!
+    const bye = result.find((team) => team.teamId === "bye")!
+    expect(alpha).toMatchObject({ wins: 1, losses: 0, differential: 2, sos: 0 })
+    expect(bye).toMatchObject({
+      wins: 0,
+      losses: 8,
+      differential: 0,
+      gamesPlayed: 8,
+      streakLetter: "L",
+      streakLen: 8,
+      sos: 0,
+      activeWinStreak: -8,
+    })
+  })
+
   it("ignores incomplete matches", () => {
     const matches = [
       {

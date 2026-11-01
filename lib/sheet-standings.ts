@@ -205,8 +205,9 @@ export function teamStatsFromSchedules(
     let wins = 0
     let losses = 0
     let differential = 0
-    const letters: StreakLetter[] = []
     const opponents: string[] = []
+    const lettersByWeek = new Map<number, StreakLetter[]>()
+    const isBye = team.isBye ?? team.teamNumber > 10
 
     for (const game of team.schedule) {
       if (game.week < 1 || game.week > regularWeeks) continue
@@ -222,9 +223,27 @@ export function teamStatsFromSchedules(
       else if (result === "L") losses += 1
 
       if (result === "W" || result === "L") {
-        letters.push(result)
+        const weekLetters = lettersByWeek.get(game.week) ?? []
+        weekLetters.push(result)
+        lettersByWeek.set(game.week, weekLetters)
         differential += ownKills - opponentKills
       }
+    }
+
+    const letters: StreakLetter[] = []
+    if (isBye) {
+      for (let week = 1; week <= regularWeeks; week += 1) {
+        const weekLetters = lettersByWeek.get(week)
+        if (weekLetters && weekLetters.length > 0) {
+          letters.push(...weekLetters)
+          continue
+        }
+        losses += 1
+        letters.push("L")
+      }
+    } else {
+      const weeks = [...lettersByWeek.keys()].sort((a, b) => a - b)
+      for (const week of weeks) letters.push(...(lettersByWeek.get(week) ?? []))
     }
 
     const streak = trailingStreak(letters)
@@ -234,7 +253,7 @@ export function teamStatsFromSchedules(
       teamNumber: team.teamNumber,
       division: team.division,
       conference: team.conference ?? "",
-      isBye: team.isBye ?? team.teamNumber > 10,
+      isBye,
       gp: wins + losses,
       wins,
       losses,
@@ -293,6 +312,35 @@ export function signedMatchDifferential(
 
 function emptySideRecord(): SideRecord {
   return { wins: 0, losses: 0, differential: 0 }
+}
+
+/**
+ * A bye team with no completed game in a regular-season week takes a loss that week.
+ * The sheet's bye-vs-bye rows do that; they are not stored as matches.
+ * Missing weeks do not change differential or anyone else's schedule.
+ */
+export function missingByeWeekCount(
+  weeksPlayed: ReadonlySet<number> | undefined,
+  regularSeasonWeeks: number,
+): number {
+  let missing = 0
+  for (let week = 1; week <= regularSeasonWeeks; week += 1) {
+    if (!weeksPlayed?.has(week)) missing += 1
+  }
+  return missing
+}
+
+export function applyMissingByeWeekLosses(
+  records: Map<string, SideRecord>,
+  weeksPlayed: ReadonlyMap<string, ReadonlySet<number>>,
+  byeTeamIds: Iterable<string>,
+  regularSeasonWeeks: number,
+): void {
+  for (const teamId of byeTeamIds) {
+    if (!records.has(teamId)) records.set(teamId, emptySideRecord())
+    const row = records.get(teamId)!
+    row.losses += missingByeWeekCount(weeksPlayed.get(teamId), regularSeasonWeeks)
+  }
 }
 
 /**

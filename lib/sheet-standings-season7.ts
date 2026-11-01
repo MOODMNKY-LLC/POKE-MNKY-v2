@@ -18,8 +18,8 @@ export const SEASON_7_STANDINGS: Season7Standing[] = [
   { team: "Daycare Dittos", coach: "Daycare", division: "Hoenn", conference: "Leon", gp: 8, wins: 5, losses: 3, differential: 3, sos: 0.46, streakLetter: "W", streakLen: 1 },
   { team: "Leicester Lycanrocs", coach: "Leicester", division: "Sinnoh", conference: "Leon", gp: 8, wins: 5, losses: 3, differential: 11, sos: 0.46, streakLetter: "W", streakLen: 1 },
   { team: "Michigan Meowscaradas", coach: "Michigan", division: "Sinnoh", conference: "Leon", gp: 8, wins: 1, losses: 7, differential: -20, sos: 0.59, streakLetter: "L", streakLen: 4 },
-  { team: "Bye 1", coach: "", division: "Hoenn", conference: "Leon", gp: 0, wins: 0, losses: 0, differential: 0, sos: 0, streakLetter: "W", streakLen: 0, isBye: true },
-  { team: "Bye 2", coach: "", division: "Sinnoh", conference: "Leon", gp: 0, wins: 0, losses: 0, differential: 0, sos: 0, streakLetter: "W", streakLen: 0, isBye: true },
+  { team: "Bye 1", coach: "", division: "Hoenn", conference: "Leon", gp: 8, wins: 0, losses: 8, differential: 0, sos: 0, streakLetter: "L", streakLen: 8, isBye: true },
+  { team: "Bye 2", coach: "", division: "Sinnoh", conference: "Leon", gp: 8, wins: 0, losses: 8, differential: 0, sos: 0, streakLetter: "L", streakLen: 8, isBye: true },
 ]
 
 export const SEASON_7_OVERALL_ORDER = [

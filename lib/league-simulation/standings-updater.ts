@@ -6,12 +6,23 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js"
-import { applyCompletedMatch, type SideRecord } from "@/lib/sheet-standings"
+import {
+  SHEET_REGULAR_SEASON_WEEKS,
+  applyCompletedMatch,
+  applyMissingByeWeekLosses,
+  type SideRecord,
+} from "@/lib/sheet-standings"
 
 type TeamStats = SideRecord
 
 function emptyStats(): TeamStats {
   return { wins: 0, losses: 0, differential: 0 }
+}
+
+function noteWeek(weeksPlayed: Map<string, Set<number>>, teamId: string, week: number) {
+  const played = weeksPlayed.get(teamId) ?? new Set<number>()
+  played.add(week)
+  weeksPlayed.set(teamId, played)
 }
 
 function applyMatch(
@@ -44,27 +55,55 @@ export async function updateStandingsFromMatches(
   const { data: matches, error: matchError } = await supabase
     .from("matches")
     .select(
-      "team1_id, team2_id, winner_id, team1_score, team2_score, differential, is_playoff, outcome_type"
+      "team1_id, team2_id, winner_id, team1_score, team2_score, differential, is_playoff, outcome_type, week"
     )
     .eq("season_id", seasonId)
     .eq("status", "completed")
 
-  if (matchError || !matches?.length) {
+  if (matchError) {
     return { updated: 0 }
   }
 
   const regularStats = new Map<string, TeamStats>()
   const playoffStats = new Map<string, TeamStats>()
+  const regularWeeksPlayed = new Map<string, Set<number>>()
 
-  for (const m of matches) {
+  for (const m of matches ?? []) {
     const bucket = m.is_playoff ? playoffStats : regularStats
     applyMatch(bucket, m)
+    if (!m.is_playoff && typeof m.week === "number") {
+      noteWeek(regularWeeksPlayed, m.team1_id, m.week)
+      noteWeek(regularWeeksPlayed, m.team2_id, m.week)
+    }
   }
+
+  const { data: seasonRow } = await supabase
+    .from("seasons")
+    .select("regular_season_weeks")
+    .eq("id", seasonId)
+    .maybeSingle()
+  const { data: byeRows } = await supabase
+    .from("teams")
+    .select("id")
+    .eq("season_id", seasonId)
+    .eq("is_bye", true)
+
+  const regularSeasonWeeks = seasonRow?.regular_season_weeks ?? SHEET_REGULAR_SEASON_WEEKS
+  applyMissingByeWeekLosses(
+    regularStats,
+    regularWeeksPlayed,
+    (byeRows ?? []).map((team) => team.id),
+    regularSeasonWeeks,
+  )
 
   const allTeamIds = new Set<string>([
     ...regularStats.keys(),
     ...playoffStats.keys(),
   ])
+
+  if (allTeamIds.size === 0) {
+    return { updated: 0 }
+  }
 
   let updated = 0
   for (const teamId of allTeamIds) {
