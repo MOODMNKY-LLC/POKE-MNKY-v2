@@ -1,12 +1,26 @@
 import { NextResponse } from "next/server"
 import { openai, AI_MODELS } from "@/lib/openai-client"
+import { requireSignedInUser } from "@/lib/admin-api-auth"
 import { createServerClient } from "@/lib/supabase/server"
+
+const TEAM_ID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 export async function POST(request: Request) {
   try {
+    const auth = await requireSignedInUser()
+    if ("response" in auth) return auth.response
+
     const supabase = await createServerClient()
     const body = await request.json()
     const { team_id, question } = body
+
+    if (typeof team_id !== "string" || !TEAM_ID_PATTERN.test(team_id)) {
+      return NextResponse.json({ error: "team_id must be a UUID" }, { status: 400 })
+    }
+    if (typeof question !== "string" || !question.trim() || question.length > 4000) {
+      return NextResponse.json({ error: "question is required" }, { status: 400 })
+    }
 
     // Get team context
     const { data: team } = await supabase

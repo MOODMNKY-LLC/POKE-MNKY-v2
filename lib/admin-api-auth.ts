@@ -2,6 +2,8 @@
  * Admin / commissioner gate for league management API routes.
  */
 
+import { NextResponse } from "next/server"
+import { createClient } from "@/lib/supabase/server"
 import { createServiceRoleClient } from "@/lib/supabase/service"
 
 export type AdminActor = {
@@ -87,4 +89,47 @@ export async function requireAdminOrCommissioner(
     return { error: access.error, status: access.status }
   }
   return { userId: access.userId, role: access.role }
+}
+
+export function unauthorizedJson(error = "Unauthorized", status = 401): NextResponse {
+  return NextResponse.json({ error }, { status })
+}
+
+/** 401 when signed out, 403 when the profile is not a league admin. */
+export async function leagueAdminDeniedResponse(userId: string): Promise<NextResponse | null> {
+  const gate = await requireAdminOrCommissioner(userId)
+  if ("error" in gate) {
+    return unauthorizedJson(gate.error, gate.status)
+  }
+  return null
+}
+
+export async function requireLeagueAdmin(): Promise<
+  { userId: string; role: string } | { response: NextResponse }
+> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) {
+    return { response: unauthorizedJson() }
+  }
+  const gate = await requireAdminOrCommissioner(user.id)
+  if ("error" in gate) {
+    return { response: unauthorizedJson(gate.error, gate.status) }
+  }
+  return { userId: gate.userId, role: gate.role }
+}
+
+export async function requireSignedInUser(): Promise<
+  { userId: string } | { response: NextResponse }
+> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) {
+    return { response: unauthorizedJson() }
+  }
+  return { userId: user.id }
 }

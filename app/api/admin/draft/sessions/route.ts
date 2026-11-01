@@ -1,3 +1,4 @@
+import { requireLeagueAdmin } from "@/lib/admin-api-auth"
 import { createServiceRoleClient } from "@/lib/supabase/service"
 import { NextRequest, NextResponse } from "next/server"
 
@@ -7,6 +8,9 @@ import { NextRequest, NextResponse } from "next/server"
  */
 export async function GET(request: NextRequest) {
   try {
+    const admin = await requireLeagueAdmin()
+    if ("response" in admin) return admin.response
+
     const supabase = createServiceRoleClient()
     const { searchParams } = new URL(request.url)
 

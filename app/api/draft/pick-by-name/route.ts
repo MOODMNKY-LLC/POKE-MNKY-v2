@@ -8,8 +8,10 @@
  */
 
 import { NextRequest, NextResponse } from "next/server"
+import { requireSignedInUser } from "@/lib/admin-api-auth"
 import { createServiceRoleClient } from "@/lib/supabase/service"
 import { DraftSystem } from "@/lib/draft-system"
+import { teamWriteDeniedResponse } from "@/lib/team-write-auth"
 
 const pickByNameSchema = {
   season_id: "string",
@@ -34,6 +36,9 @@ function validateBody(body: unknown): { season_id: string; team_id: string; poke
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireSignedInUser()
+    if ("response" in auth) return auth.response
+
     const body = await request.json()
     const parsed = validateBody(body)
     if (!parsed) {
@@ -44,6 +49,9 @@ export async function POST(request: NextRequest) {
     }
 
     const { season_id, team_id, pokemon_name } = parsed
+    const teamDenied = await teamWriteDeniedResponse(auth.userId, team_id)
+    if (teamDenied) return teamDenied
+
     const supabase = createServiceRoleClient()
     const draftSystem = new DraftSystem()
 

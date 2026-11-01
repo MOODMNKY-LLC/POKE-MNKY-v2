@@ -478,6 +478,11 @@ async function handleDraftCommand(interaction: any) {
     // Get user's team using new endpoint
     const teamResponse = await fetch(
       `${APP_URL}/api/discord/team?discord_id=${discordId}`,
+      {
+        headers: {
+          "x-discord-bot-key": process.env.DISCORD_BOT_API_KEY || "",
+        },
+      },
     )
 
     if (!teamResponse.ok) {
@@ -594,6 +599,11 @@ async function handleDraftMyTeamCommand(interaction: any) {
     // Get user's team
     const teamResponse = await fetch(
       `${APP_URL}/api/discord/team?discord_id=${discordId}`,
+      {
+        headers: {
+          "x-discord-bot-key": process.env.DISCORD_BOT_API_KEY || "",
+        },
+      },
     )
     const teamData = await teamResponse.json()
 
@@ -770,6 +780,7 @@ async function handleShowdownLinkCommand(interaction: any) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "x-discord-bot-key": process.env.DISCORD_BOT_API_KEY || "",
       },
       body: JSON.stringify({
         discord_id: discordId,
