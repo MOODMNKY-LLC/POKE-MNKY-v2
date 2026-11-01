@@ -12,9 +12,11 @@
  */
 
 import { createServiceRoleClient } from "@/lib/supabase/service"
+import { getSupabaseEdgeFunctionKey } from "@/lib/supabase/invoke-edge-function"
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!
+// Edge functions require the new secret key (sb_secret_…) in the apikey header.
+const EDGE_FUNCTION_KEY = getSupabaseEdgeFunctionKey()
 
 /**
  * Call Edge Function
@@ -30,7 +32,7 @@ async function callEdgeFunction(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+        apikey: EDGE_FUNCTION_KEY,
       },
       body: JSON.stringify(body),
     })

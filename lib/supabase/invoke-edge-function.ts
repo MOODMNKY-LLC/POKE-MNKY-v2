@@ -1,44 +1,44 @@
 /**
  * Invoke Supabase Edge Functions from Next.js server code with correct auth headers.
  *
- * Local dev often uses sb_secret_* / sb_publishable_* keys (not JWTs). Those must be sent
- * as `apikey`, not only as Authorization Bearer, or the gateway returns "Missing authorization header".
+ * The project uses the new API keys (sb_secret_* / sb_publishable_*). These are not JWTs,
+ * so they must be sent in the `apikey` header only — sending them as `Authorization: Bearer`
+ * makes the gateway reject the request with "Invalid JWT" when verify_jwt is on.
+ *
+ * Our admin edge functions (pokepedia-*, sync-pokepedia, ingest-showdown-pokedex,
+ * sync-pokemon-pokeapi) run with verify_jwt = false and authorize in code: the `apikey`
+ * header (or Bearer token) must equal one of the project's secret keys. Publishable/anon
+ * keys are rejected with 401, so they are intentionally NOT used as a fallback here.
  */
 
-export function getSupabaseEdgeFunctionKey(): string {
-  const key =
-    process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() ||
-    process.env.SUPABASE_SECRET_KEY?.trim() ||
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() ||
-    process.env.SUPABASE_ANON_KEY?.trim()
-
-  if (!key) {
-    throw new Error(
-      "Missing Supabase API key. Set SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_SECRET_KEY) in .env.local."
-    )
-  }
-  return key
+function isSecretKey(key: string | undefined): key is string {
+  return !!key && key.startsWith("sb_secret_")
 }
 
-/** Headers required by Supabase Functions gateway (local + hosted). */
+export function getSupabaseEdgeFunctionKey(): string {
+  const secret = process.env.SUPABASE_SECRET_KEY?.trim()
+  if (isSecretKey(secret)) return secret
+
+  // Some environments still store the new secret key under the legacy variable name.
+  const legacyName = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()
+  if (isSecretKey(legacyName)) return legacyName
+
+  throw new Error(
+    "Missing Supabase secret key. Set SUPABASE_SECRET_KEY (sb_secret_…) in the server environment. " +
+      "Legacy JWT service_role keys and publishable/anon keys are not accepted by the edge functions."
+  )
+}
+
+/** Headers for invoking admin edge functions (local + hosted). */
 export function getSupabaseEdgeFunctionHeaders(
   extra?: Record<string, string>
 ): Record<string, string> {
   const key = getSupabaseEdgeFunctionKey()
-  const headers: Record<string, string> = {
+  return {
     "Content-Type": "application/json",
     apikey: key,
     ...extra,
   }
-
-  // Legacy JWT keys (eyJ…) validate as Bearer; new sb_* keys rely on apikey (see config verify_jwt).
-  if (key.startsWith("eyJ")) {
-    headers.Authorization = `Bearer ${key}`
-  } else {
-    headers.Authorization = `Bearer ${key}`
-  }
-
-  return headers
 }
 
 export type InvokeEdgeFunctionResult<T> = {

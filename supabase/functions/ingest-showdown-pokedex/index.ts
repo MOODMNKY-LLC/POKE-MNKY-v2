@@ -12,8 +12,12 @@
  * - Manually via API route (admin panel)
  */
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import {
+  createAdminClient,
+  healthcheckResponse,
+  isAuthorizedRequest,
+  unauthorizedResponse,
+} from "../_shared/supabase-admin.ts"
 
 const POKEDEX_URL = "https://play.pokemonshowdown.com/data/pokedex.json"
 const CORS_HEADERS = {
@@ -55,22 +59,23 @@ interface PokedexData {
   [showdownId: string]: ShowdownPokemon
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: CORS_HEADERS })
   }
 
-  try {
-    // Initialize Supabase client
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    
-    if (!supabaseUrl || !supabaseServiceKey) {
-      throw new Error("Missing Supabase configuration")
-    }
+  // verify_jwt is off (sb_secret_ keys are not JWTs); require a project secret key.
+  if (!isAuthorizedRequest(req)) return unauthorizedResponse(CORS_HEADERS)
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+  try {
+    // Admin client authenticated with the project's secret key
+    const supabase = createAdminClient()
+
+    const reqBody = (await req.json().catch(() => ({}))) as { healthcheck?: boolean }
+    if (reqBody.healthcheck) {
+      return await healthcheckResponse("ingest-showdown-pokedex", supabase, "pokemon_showdown", CORS_HEADERS)
+    }
 
     // Helper function to broadcast progress updates
     const broadcastProgress = async (phase: string, current: number, total: number, message?: string) => {
