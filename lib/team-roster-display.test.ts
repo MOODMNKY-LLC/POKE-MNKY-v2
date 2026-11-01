@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { normalizeEmbeddedPokemon, toTeamRosterPick } from "@/lib/team-roster-display"
+import { normalizeEmbeddedPokemon, picksActiveDuringWeek, toTeamRosterPick, type TeamRosterPick } from "@/lib/team-roster-display"
 
 const row = {
   id: "pick-1",
@@ -42,5 +42,32 @@ describe("toTeamRosterPick", () => {
 
   it("falls back to Unknown only when no name is present", () => {
     expect(toTeamRosterPick({ ...row, pokemon: null }).pokemon.name).toBe("Unknown")
+  })
+})
+
+describe("picksActiveDuringWeek", () => {
+  const pick = (partial: Partial<TeamRosterPick>): TeamRosterPick => ({
+    id: "1",
+    pokemon_id: "p",
+    draft_round: 1,
+    pick_number: 1,
+    points_snapshot: 10,
+    start_date: "2026-08-15",
+    end_date: null,
+    is_tera_captain: false,
+    tera_types: [],
+    pokemon: { name: "Pikachu", type1: "electric", type2: null },
+    ...partial,
+  })
+
+  it("keeps a pokemon until the day after its end date", () => {
+    const rows = [
+      pick({ id: "active", end_date: null }),
+      pick({ id: "gone", end_date: "2026-09-13" }),
+    ]
+    const week4 = picksActiveDuringWeek(rows, "2026-09-14", "2026-09-20")
+    expect(week4.map((row) => row.id)).toEqual(["active"])
+    const week3 = picksActiveDuringWeek(rows, "2026-09-07", "2026-09-13")
+    expect(week3.map((row) => row.id)).toEqual(["active", "gone"])
   })
 })

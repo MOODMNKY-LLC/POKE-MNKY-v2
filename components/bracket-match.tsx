@@ -12,9 +12,10 @@ interface BracketMatchProps {
     team2_id: string
   }
   placeholder?: string
+  bye?: boolean
 }
 
-export function BracketMatch({ match, placeholder }: BracketMatchProps) {
+export function BracketMatch({ match, placeholder, bye = false }: BracketMatchProps) {
   if (!match) {
     return (
       <Card className="w-full min-w-[200px] bg-muted/20">
@@ -34,14 +35,16 @@ export function BracketMatch({ match, placeholder }: BracketMatchProps) {
           className={`flex items-center justify-between ${hasResult && match.winner_id === match.team1_id ? "font-bold text-foreground" : "text-muted-foreground"}`}
         >
           <span className="truncate text-sm">{match.team1?.name || "TBD"}</span>
-          {hasResult && <span className="ml-2 font-bold">{match.team1_score}</span>}
+          {hasResult && !bye && <span className="ml-2 font-bold">{match.team1_score}</span>}
+          {bye && match.team1?.name?.startsWith("Bye") ? <span className="ml-2 text-xs">Bye</span> : null}
         </div>
         <div className="h-px bg-border" />
         <div
           className={`flex items-center justify-between ${hasResult && match.winner_id === match.team2_id ? "font-bold text-foreground" : "text-muted-foreground"}`}
         >
           <span className="truncate text-sm">{match.team2?.name || "TBD"}</span>
-          {hasResult && <span className="ml-2 font-bold">{match.team2_score}</span>}
+          {hasResult && !bye && <span className="ml-2 font-bold">{match.team2_score}</span>}
+          {bye && match.team2?.name?.startsWith("Bye") ? <span className="ml-2 text-xs">Bye</span> : null}
         </div>
       </CardContent>
     </Card>

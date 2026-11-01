@@ -22,6 +22,7 @@ type PlayoffMatch = {
   team2_id: string
   team1_score: number
   team2_score: number
+  outcome_type: string | null
   team1?: NamedSide
   team2?: NamedSide
   winner: NamedSide | null
@@ -63,6 +64,7 @@ function toPlayoffMatch(value: unknown): PlayoffMatch | null {
     team2_id: readId(row.team2_id),
     team1_score: readScore(row.team1_score),
     team2_score: readScore(row.team2_score),
+    outcome_type: typeof row.outcome_type === "string" ? row.outcome_type : null,
     team1: readSide(row.team1) ?? undefined,
     team2: readSide(row.team2) ?? undefined,
     winner: readSide(row.winner),
@@ -198,6 +200,7 @@ export default async function PlayoffsPage({
                                 team1_id: match.team1_id,
                                 team2_id: match.team2_id,
                               }}
+                              bye={match.outcome_type === "bye"}
                             />
                           ))}
                           {roundMatches.length === 0

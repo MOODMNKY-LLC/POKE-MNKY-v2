@@ -15,6 +15,7 @@ export type PublicTeamRow = {
   logo_url?: string | null
   avatar_url?: string | null
   season_id?: string | null
+  is_bye?: boolean
 }
 
 /**
@@ -54,7 +55,7 @@ export async function getPublicLeagueTeams(
   }
 
   const select =
-    "id, name, coach_name, division, conference, wins, losses, differential, strength_of_schedule, logo_url, avatar_url, season_id"
+    "id, name, coach_name, division, conference, wins, losses, differential, strength_of_schedule, logo_url, avatar_url, season_id, is_bye"
 
   const load = async (filterSeason: boolean) => {
     let q = supabase.from("teams").select(select).order("wins", { ascending: false }).order("name")

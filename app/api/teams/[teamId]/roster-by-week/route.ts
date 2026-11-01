@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
-import { getTeamRosterPicks } from "@/lib/team-roster-display"
+import { getTeamRosterPicks, picksActiveDuringWeek, weekBounds } from "@/lib/team-roster-display"
 
 export async function GET(
   request: NextRequest,
@@ -54,18 +54,21 @@ export async function GET(
     }>
     if (snapshot.length === 0) {
       const active = await getTeamRosterPicks(supabase, teamId, seasonId)
+      const { data: season } = await supabase.from("seasons").select("start_date").eq("id", seasonId).maybeSingle()
+      const bounds = season?.start_date ? weekBounds(season.start_date, weekNumber) : null
+      const weekPicks = bounds ? picksActiveDuringWeek(active, bounds.start, bounds.end) : active
       return NextResponse.json({
         team_id: teamId,
         season_id: seasonId,
         week_number: weekNumber,
-        roster: active.map((p) => ({
+        roster: weekPicks.map((p) => ({
           pokemon_id: p.pokemon_id,
           pokemon_name: p.pokemon.name,
           point_value: p.points_snapshot,
-          is_tera_captain: false,
-          tera_types: [] as string[],
+          is_tera_captain: p.is_tera_captain,
+          tera_types: p.tera_types,
         })),
-        source: active.length > 0 ? "active_draft_picks" : "empty",
+        source: weekPicks.length > 0 ? "active_draft_picks" : "empty",
       })
     }
 

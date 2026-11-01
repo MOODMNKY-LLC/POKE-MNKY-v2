@@ -122,7 +122,10 @@ export default async function TeamDetailPage({
     : await matchesQuery
   const rosterCount = roster.length
   const matchCount = matches?.length ?? 0
-  const recordWinPct = winPct(team.wins, team.losses)
+  const regularWins = team.regular_wins ?? team.wins
+  const regularLosses = team.regular_losses ?? team.losses
+  const regularDiff = team.regular_differential ?? team.differential
+  const recordWinPct = winPct(regularWins, regularLosses)
   const winsCount = matches?.filter((m) => m.winner_id === id).length ?? 0
 
   return (
@@ -166,6 +169,9 @@ export default async function TeamDetailPage({
                   <span className="tabular-nums text-foreground">{recordWinPct}%</span>
                 </div>
                 <Progress value={recordWinPct} className="mt-2 h-2" />
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Regular season {regularWins}-{regularLosses} ({formatDiff(regularDiff)}). Playoffs {team.playoff_wins ?? 0}-{team.playoff_losses ?? 0}.
+                </p>
               </div>
             </div>
 
@@ -174,9 +180,9 @@ export default async function TeamDetailPage({
                 <CardContent className="p-4 text-center">
                   <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Record</p>
                   <p className="mt-1 text-2xl font-bold tabular-nums">
-                    <NumberTicker value={team.wins} />
+                    <NumberTicker value={regularWins} />
                     <span className="text-muted-foreground">-</span>
-                    <NumberTicker value={team.losses} delay={0.05} />
+                    <NumberTicker value={regularLosses} delay={0.05} />
                   </p>
                 </CardContent>
               </Card>
@@ -190,8 +196,8 @@ export default async function TeamDetailPage({
                       team.differential < 0 && "text-destructive",
                     )}
                   >
-                    {team.differential > 0 ? "+" : ""}
-                    <NumberTicker value={team.differential} delay={0.1} />
+                    {regularDiff > 0 ? "+" : ""}
+                    <NumberTicker value={regularDiff} delay={0.1} />
                   </p>
                 </CardContent>
               </Card>
@@ -207,13 +213,13 @@ export default async function TeamDetailPage({
         >
           <StatMetricCard
             label="Record"
-            value={`${team.wins}-${team.losses}`}
+            value={`${regularWins}-${regularLosses}`}
             hint={`${recordWinPct}% win rate`}
             icon={TrendingUp}
           />
           <StatMetricCard
             label="Point differential"
-            value={formatDiff(team.differential)}
+            value={formatDiff(regularDiff)}
             hint="KOs scored minus allowed"
             icon={Swords}
             valueClassName={cn(
@@ -281,6 +287,7 @@ export default async function TeamDetailPage({
                           <div className="min-w-0">
                             <p className="truncate font-semibold capitalize">{pick.pokemon.name}</p>
                             <TypeBadges type1={pick.pokemon.type1} type2={pick.pokemon.type2} />
+                            {pick.is_tera_captain ? <Badge variant="outline">Tera</Badge> : null}
                           </div>
                         </div>
                         <div className="flex shrink-0 flex-col items-end gap-1 self-start sm:self-center">

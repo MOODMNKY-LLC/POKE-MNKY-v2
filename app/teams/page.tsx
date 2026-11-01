@@ -96,10 +96,12 @@ export default async function TeamsPage({
   try {
     const { season: requestedSeason } = await searchParams
     const supabase = await createClient()
-    const { teams, seasonName, seasonId, seasons } = await getPublicLeagueTeams(supabase, {
+    const loaded = await getPublicLeagueTeams(supabase, {
       requestedSeason,
       scope: "live",
     })
+    const teams = loaded.teams.filter((team) => !team.is_bye)
+    const { seasonName, seasonId, seasons } = loaded
 
     if (!teams || teams.length === 0) {
       return (
