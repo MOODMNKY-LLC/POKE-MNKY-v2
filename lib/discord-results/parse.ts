@@ -157,7 +157,7 @@ export function parseResultPost(input: {
     thirdParty,
     tieReported,
     confidence,
-    queue: confidence === "low" ? "LOW_CONFIDENCE" : null,
+    queue: null,
     week: empty.week,
   }
 }
