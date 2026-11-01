@@ -12,6 +12,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { PokeballIcon } from "@/components/ui/pokeball-icon"
+import { isMatchPlayed } from "@/lib/match-display"
 
 type MatchRow = {
   id: string
@@ -150,7 +151,7 @@ export function MatchesBrowser({
                     <p className="text-sm text-muted-foreground">
                       {match.team1?.coach_name}
                     </p>
-                    {match.status === "completed" && (
+                    {isMatchPlayed(match) && (
                       <p className="text-2xl font-bold mt-2">
                         {match.team1_score ?? 0}
                       </p>
@@ -159,12 +160,12 @@ export function MatchesBrowser({
 
                   <div className="text-center">
                     <Trophy className="h-6 w-6 mx-auto text-primary mb-2" />
-                    {match.status === "completed" ? (
+                    {isMatchPlayed(match) ? (
                       <p className="text-sm font-medium">
                         Winner: {match.winner?.name}
                       </p>
                     ) : (
-                      <p className="text-sm text-muted-foreground">VS</p>
+                      <p className="text-sm text-muted-foreground">Upcoming</p>
                     )}
                   </div>
 
@@ -175,7 +176,7 @@ export function MatchesBrowser({
                     <p className="text-sm text-muted-foreground">
                       {match.team2?.coach_name}
                     </p>
-                    {match.status === "completed" && (
+                    {isMatchPlayed(match) && (
                       <p className="text-2xl font-bold mt-2">
                         {match.team2_score ?? 0}
                       </p>

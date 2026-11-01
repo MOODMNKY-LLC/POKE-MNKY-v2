@@ -18,6 +18,7 @@ type PlayoffMatch = {
   id: string
   playoff_round: string | number | null
   winner_id: string | null
+  status: string | null
   team1_id: string
   team2_id: string
   team1_score: number
@@ -60,6 +61,7 @@ function toPlayoffMatch(value: unknown): PlayoffMatch | null {
     playoff_round:
       typeof playoffRound === "string" || typeof playoffRound === "number" ? playoffRound : null,
     winner_id: winnerId || null,
+    status: typeof row.status === "string" ? row.status : null,
     team1_id: readId(row.team1_id),
     team2_id: readId(row.team2_id),
     team1_score: readScore(row.team1_score),
@@ -196,7 +198,8 @@ export default async function PlayoffsPage({
                                 team1_score: match.team1_score,
                                 team2_score: match.team2_score,
                                 // BracketMatch detects an unfinished match with winner_id !== null, but its prop type omits null.
-                                winner_id: (match.winner_id ?? null) as string | undefined,
+                                winner_id: match.winner_id,
+                                status: match.status,
                                 team1_id: match.team1_id,
                                 team2_id: match.team2_id,
                               }}
