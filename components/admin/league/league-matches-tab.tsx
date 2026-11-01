@@ -21,6 +21,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
+import { isMatchPlayed } from "@/lib/match-display"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Dialog,
@@ -583,7 +584,7 @@ export function LeagueMatchesTab() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        {match.team1_score !== null && match.team2_score !== null ? (
+                        {isMatchPlayed(match) && match.team1_score !== null && match.team2_score !== null ? (
                           <div className="font-medium">
                             {match.team1_score} - {match.team2_score}
                             {match.differential && (

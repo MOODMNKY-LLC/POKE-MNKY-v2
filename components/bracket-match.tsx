@@ -1,4 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card"
+import { isMatchPlayed } from "@/lib/match-display"
 
 interface BracketMatchProps {
   match?: {
@@ -7,7 +8,8 @@ interface BracketMatchProps {
     team2?: { name: string }
     team1_score?: number
     team2_score?: number
-    winner_id?: string
+    winner_id?: string | null
+    status?: string | null
     team1_id: string
     team2_id: string
   }
@@ -26,7 +28,7 @@ export function BracketMatch({ match, placeholder, bye = false }: BracketMatchPr
     )
   }
 
-  const hasResult = match.winner_id !== null
+  const hasResult = match.status != null ? isMatchPlayed(match) : match.winner_id != null
 
   return (
     <Card className="w-full min-w-[200px] transition-all hover:border-primary">

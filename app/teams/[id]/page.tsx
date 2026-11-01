@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { getTeamRosterPicks } from "@/lib/team-roster-display"
 import { listPublicFreeAgency } from "@/lib/free-agency-history"
+import { isMatchPlayed, teamMatchMark } from "@/lib/match-display"
 import { listStandingsSeasons, pickStandingsSeason } from "@/lib/standings-season"
 import { SeasonSwitcher } from "@/components/league/season-switcher"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -121,12 +122,13 @@ export default async function TeamDetailPage({
     ? await matchesQuery.eq("season_id", rosterSeasonId)
     : await matchesQuery
   const rosterCount = roster.length
-  const matchCount = matches?.length ?? 0
+  const playedMatches = matches?.filter((match) => isMatchPlayed(match)) ?? []
+  const matchCount = playedMatches.length
   const regularWins = team.regular_wins ?? team.wins
   const regularLosses = team.regular_losses ?? team.losses
   const regularDiff = team.regular_differential ?? team.differential
   const recordWinPct = winPct(regularWins, regularLosses)
-  const winsCount = matches?.filter((m) => m.winner_id === id).length ?? 0
+  const winsCount = playedMatches.filter((match) => teamMatchMark(match, id) === "W").length
 
   return (
     <>
@@ -323,7 +325,7 @@ export default async function TeamDetailPage({
                 <div className="divide-y divide-border">
                   {matches.map((match) => {
                     const isTeam1 = match.team1_id === id
-                    const isWinner = match.winner_id === id
+                    const mark = teamMatchMark(match, id)
                     const opponent = isTeam1 ? match.team2?.name : match.team1?.name
                     const teamScore = isTeam1 ? match.team1_score : match.team2_score
                     const opponentScore = isTeam1 ? match.team2_score : match.team1_score
@@ -334,25 +336,33 @@ export default async function TeamDetailPage({
                         className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
                       >
                         <div className="flex min-w-0 items-center gap-3">
-                          <Badge
-                            variant={isWinner ? "default" : "secondary"}
-                            className={cn(
-                              "h-8 w-8 shrink-0 justify-center rounded-full p-0 text-sm font-bold",
-                              isWinner && "bg-chart-2 text-chart-2-foreground hover:bg-chart-2/90",
-                            )}
-                          >
-                            {isWinner ? "W" : "L"}
-                          </Badge>
+                          {mark === "upcoming" ? (
+                            <Badge variant="outline" className="shrink-0">
+                              Upcoming
+                            </Badge>
+                          ) : (
+                            <Badge
+                              variant={mark === "W" ? "default" : "secondary"}
+                              className={cn(
+                                "h-8 w-8 shrink-0 justify-center rounded-full p-0 text-sm font-bold",
+                                mark === "W" && "bg-chart-2 text-chart-2-foreground hover:bg-chart-2/90",
+                              )}
+                            >
+                              {mark}
+                            </Badge>
+                          )}
                           <div className="min-w-0">
                             <p className="truncate font-medium">vs {opponent}</p>
                             <p className="text-xs text-muted-foreground">Week {match.week}</p>
                           </div>
                         </div>
-                        <p className="text-xl font-bold tabular-nums sm:text-right">
-                          {teamScore}
-                          <span className="mx-1 text-muted-foreground">–</span>
-                          {opponentScore}
-                        </p>
+                        {mark === "upcoming" ? null : (
+                          <p className="text-xl font-bold tabular-nums sm:text-right">
+                            {teamScore}
+                            <span className="mx-1 text-muted-foreground">–</span>
+                            {opponentScore}
+                          </p>
+                        )}
                       </div>
                     )
                   })}

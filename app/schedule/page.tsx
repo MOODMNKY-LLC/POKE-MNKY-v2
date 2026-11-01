@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { listStandingsSeasons, pickStandingsSeason } from "@/lib/standings-season"
+import { isMatchPlayed } from "@/lib/match-display"
 import { SeasonSwitcher } from "@/components/league/season-switcher"
 
 type ScheduleTeam = {
@@ -15,6 +16,7 @@ type ScheduleTeam = {
   id: string
   week: number
   playoff_round?: string | null
+  status?: string | null
   winner_id: string | null
   team1_id: string
   team2_id: string
@@ -89,7 +91,7 @@ export default async function SchedulePage({
   }
 
   function MatchCard({ match }: { match: ScheduleMatch }) {
-    const hasResult = match.winner_id !== null
+    const hasResult = isMatchPlayed(match)
 
     return (
       <Card className="overflow-hidden">
