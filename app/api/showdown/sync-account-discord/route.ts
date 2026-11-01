@@ -10,8 +10,33 @@
  */
 
 import { createServiceRoleClient } from '@/lib/supabase/service'
+import { createServerClient } from '@/lib/supabase/server'
+import { extractBotKey } from '@/lib/auth/bot-key'
 import { generateShowdownPassword, getChallengeString, cleanShowdownUsername } from '@/lib/showdown/sync'
 import { NextRequest, NextResponse } from 'next/server'
+
+async function authorizeShowdownSync(request: NextRequest, discordId: string): Promise<NextResponse | null> {
+  const expectedKey = process.env.DISCORD_BOT_API_KEY?.trim()
+  const presentedKey = extractBotKey(request)
+  if (expectedKey && presentedKey === expectedKey) return null
+
+  const supabase = await createServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('discord_id')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  if (!profile?.discord_id || String(profile.discord_id) !== discordId) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+  return null
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,6 +53,9 @@ export async function POST(request: NextRequest) {
 
     // Ensure discord_id is a string (Discord IDs are strings in database)
     const discordId = String(discord_id).trim()
+
+    const denied = await authorizeShowdownSync(request, discordId)
+    if (denied) return denied
 
     // Verify service role key is configured
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {

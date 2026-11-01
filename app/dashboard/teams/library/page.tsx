@@ -101,13 +101,6 @@ export default async function TeamLibraryPage() {
                     Error Code: {stockTeamsError.code}
                   </p>
                 )}
-                <div className="mt-4">
-                  <Button asChild variant="outline" size="sm">
-                    <Link href="/api/debug/stock-teams" target="_blank">
-                      Debug Stock Teams
-                    </Link>
-                  </Button>
-                </div>
               </CardContent>
             </Card>
           ) : teamsByFormat && Object.keys(teamsByFormat).length > 0 ? (
@@ -152,15 +145,8 @@ export default async function TeamLibraryPage() {
                   To populate stock teams, run <code className="rounded bg-muted px-1">npm run db:seed:showdown</code> or <code className="rounded bg-muted px-1">npm run db:seed:showdown:ts</code>. See docs/STOCK-TEAMS.md.
                 </p>
                 <p className="text-xs text-muted-foreground mb-4 max-w-md mx-auto">
-                  If you already ran the seed: ensure the app uses the <strong>same database</strong>. Open Debug Query and check <code className="rounded bg-muted px-1">appDatabase</code>; use that project&apos;s connection string as <code className="rounded bg-muted px-1">POSTGRES_URL</code> when seeding.
+                  If you already ran the seed, point <code className="rounded bg-muted px-1">POSTGRES_URL</code> at the same database this app uses.
                 </p>
-                <div className="flex gap-2 justify-center">
-                  <Button asChild variant="outline" size="sm">
-                    <Link href="/api/debug/stock-teams" target="_blank">
-                      Debug Query
-                    </Link>
-                  </Button>
-                </div>
               </CardContent>
             </Card>
           )}

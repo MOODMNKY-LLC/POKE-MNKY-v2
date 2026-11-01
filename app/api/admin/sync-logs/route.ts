@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from "next/server"
+import { leagueAdminDeniedResponse } from "@/lib/admin-api-auth"
 import { createServerClient } from "@/lib/supabase/server"
 
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createServerClient()
-    
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+    const adminDenied = await leagueAdminDeniedResponse(user.id)
+    if (adminDenied) return adminDenied
+
     // Get query parameters
     const searchParams = request.nextUrl.searchParams
     const syncType = searchParams.get("sync_type")

@@ -23,6 +23,8 @@
 
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { requireSignedInUser } from "@/lib/admin-api-auth"
+import { teamWriteDeniedResponse } from "@/lib/team-write-auth"
 import { draftPickSchema } from "@/lib/validation/draft"
 import { mapRPCError } from "@/lib/supabase/rpc-error-map"
 import {
@@ -34,6 +36,9 @@ import {
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireSignedInUser()
+    if ("response" in auth) return auth.response
+
     const body = await request.json()
 
     // Validate request body
@@ -51,6 +56,9 @@ export async function POST(request: NextRequest) {
       pick_number,
       notes,
     } = validationResult.data
+
+    const teamDenied = await teamWriteDeniedResponse(auth.userId, team_id)
+    if (teamDenied) return teamDenied
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY

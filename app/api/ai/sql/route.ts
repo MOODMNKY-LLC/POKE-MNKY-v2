@@ -1,5 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { leagueAdminDeniedResponse } from "@/lib/admin-api-auth"
 import { createServerClient } from "@/lib/supabase/server"
+import { configuredSupabaseProjectRef } from "@/lib/proxy-allowlists"
 import { getOpenAI } from "@/lib/openai-client"
 import createClient from "openapi-fetch"
 import type { paths } from "@/lib/management-api-schema"
@@ -77,14 +79,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const adminDenied = await leagueAdminDeniedResponse(user.id)
+    if (adminDenied) return adminDenied
+
     const { prompt, projectRef } = await request.json()
 
     if (!prompt) {
       return NextResponse.json({ message: "Prompt is required." }, { status: 400 })
     }
 
-    // Extract and validate projectRef
-    let ref = projectRef
+    // Only this app's project. Ignore a client-supplied ref that points elsewhere.
+    const configuredRef = configuredSupabaseProjectRef()
+    let ref = configuredRef || ""
+    if (projectRef && projectRef !== "default" && projectRef !== "" && projectRef !== ref && projectRef !== "local") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    }
     if (!ref || ref === "default" || ref === "") {
       // Fallback: extract from Supabase URL
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ""

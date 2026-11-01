@@ -8,10 +8,17 @@
  */
 
 import { createServiceRoleClient } from '@/lib/supabase/service'
+import { extractBotKey } from '@/lib/auth/bot-key'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
   try {
+    const expectedKey = process.env.DISCORD_BOT_API_KEY?.trim()
+    const presentedKey = extractBotKey(request)
+    if (!expectedKey || presentedKey !== expectedKey) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const { searchParams } = new URL(request.url)
     const discordId = searchParams.get('discord_id')
 

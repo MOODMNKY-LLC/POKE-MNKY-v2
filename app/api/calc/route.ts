@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { calculate, Generations, Pokemon, Move, Field } from "@smogon/calc"
 
+/** Local @smogon/calc only. No model credits and no service-role access, so this stays public. */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()

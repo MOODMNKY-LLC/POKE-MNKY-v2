@@ -1,3 +1,4 @@
+import { requireLeagueAdmin } from "@/lib/admin-api-auth"
 import { createServiceRoleClient } from "@/lib/supabase/service"
 import { NextRequest, NextResponse } from "next/server"
 
@@ -10,6 +11,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const admin = await requireLeagueAdmin()
+    if ("response" in admin) return admin.response
+
     const { id } = await params
     const supabase = createServiceRoleClient()
     const { data: session, error } = await supabase
@@ -43,6 +47,9 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const admin = await requireLeagueAdmin()
+    if ("response" in admin) return admin.response
+
     const { id } = await params
     const supabase = createServiceRoleClient()
     const body = await request.json()
@@ -118,6 +125,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const admin = await requireLeagueAdmin()
+    if ("response" in admin) return admin.response
+
     const { id } = await params
     const supabase = createServiceRoleClient()
 

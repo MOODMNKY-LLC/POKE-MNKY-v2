@@ -6,6 +6,7 @@
  * Creates a Notion sync workflow in n8n programmatically.
  */
 
+import { leagueAdminDeniedResponse } from "@/lib/admin-api-auth"
 import { NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase/server"
 import { createNotionSyncWorkflow } from "@/lib/n8n/workflow-manager"
@@ -19,6 +20,9 @@ export async function POST(request: NextRequest) {
     if (authError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
+    const adminDenied = await leagueAdminDeniedResponse(user.id)
+    if (adminDenied) return adminDenied
+
 
     const body = await request.json()
     const { webhook_url, sync_api_url, discord_webhook_url } = body
