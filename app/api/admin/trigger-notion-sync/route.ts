@@ -7,6 +7,7 @@
  * This endpoint handles authentication and forwards the request to /api/sync/notion/pull.
  */
 
+import { leagueAdminDeniedResponse } from "@/lib/admin-api-auth"
 import { NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase/server"
 
@@ -19,6 +20,9 @@ export async function POST(request: NextRequest) {
     if (authError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
+    const adminDenied = await leagueAdminDeniedResponse(user.id)
+    if (adminDenied) return adminDenied
+
 
     // Get request body
     const body = await request.json()

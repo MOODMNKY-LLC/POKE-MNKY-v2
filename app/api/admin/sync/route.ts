@@ -1,3 +1,4 @@
+import { leagueAdminDeniedResponse } from "@/lib/admin-api-auth"
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { createServiceRoleClient } from '@/lib/supabase/service'
@@ -72,6 +73,9 @@ export async function GET(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    const adminDenied = await leagueAdminDeniedResponse(user.id)
+    if (adminDenied) return adminDenied
+
 
     const { searchParams } = new URL(request.url)
     const jobId = searchParams.get('jobId')
@@ -118,6 +122,9 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    const adminDenied = await leagueAdminDeniedResponse(user.id)
+    if (adminDenied) return adminDenied
+
 
     const body = await request.json().catch(() => ({}))
     const { start = 1, end = 1025, batchSize = 50, rateLimitMs = 100, jobId } = body
@@ -190,6 +197,9 @@ export async function DELETE(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    const adminDenied = await leagueAdminDeniedResponse(user.id)
+    if (adminDenied) return adminDenied
+
 
     let jobId: string | undefined
     try {

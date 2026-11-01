@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { leagueAdminDeniedResponse } from "@/lib/admin-api-auth"
 import { createServerClient } from "@/lib/supabase/server"
 import { createServiceRoleClient } from "@/lib/supabase/service"
 import { PokemonClient } from "pokenode-ts"
@@ -101,6 +102,9 @@ export async function GET(request: NextRequest) {
       console.log("[Admin Pokemon API] Unauthorized - no user")
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
+
+    const adminDenied = await leagueAdminDeniedResponse(user.id)
+    if (adminDenied) return adminDenied
 
     console.log("[Admin Pokemon API] User authenticated:", user.id)
 

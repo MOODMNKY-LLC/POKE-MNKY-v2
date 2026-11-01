@@ -11,6 +11,7 @@
 
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { requireLeagueAdmin } from "@/lib/admin-api-auth"
 import { getPokemonDataExtended } from "@/lib/pokemon-api-enhanced"
 
 const supabase = createClient(
@@ -42,6 +43,9 @@ const STARTER_POKEMON_IDS = [
 
 export async function GET(request: Request) {
   try {
+    const admin = await requireLeagueAdmin()
+    if ("response" in admin) return admin.response
+
     const url = new URL(request.url)
     const limit = parseInt(url.searchParams.get("limit") || "27")
     const pokemonIds = STARTER_POKEMON_IDS.slice(0, limit)
@@ -58,6 +62,9 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const admin = await requireLeagueAdmin()
+    if ("response" in admin) return admin.response
+
     const body = await request.json().catch(() => ({}))
     const pokemonIds = body.pokemonIds || STARTER_POKEMON_IDS
 

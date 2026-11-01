@@ -14,7 +14,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { UserAvatar } from "@/components/ui/user-avatar"
 import { PokeballIcon } from "@/components/ui/pokeball-icon"
-import { MessageSquare, Sparkles, Menu, Database, Brain, Trophy, Calendar, Users, BookOpen, LogOut, Info, Loader2, CheckCircle2, Swords, ChevronDown, FileText, LayoutDashboard, ClipboardList, PlayCircle, TestTube, Library, History, Shield, Target } from "lucide-react"
+import { MessageSquare, Sparkles, Menu, Database, Brain, Trophy, Calendar, Users, BookOpen, LogOut, Info, Loader2, CheckCircle2, Swords, ChevronDown, FileText, LayoutDashboard, ClipboardList, PlayCircle, Library, History, Shield, Target } from "lucide-react"
 import { ThemeSwitcher } from "@/components/theme-switcher"
 import { ScrollingText } from "@/components/ui/scrolling-text"
 import { HeaderMusicPlayer } from "@/components/music/header-music-player"
@@ -409,18 +409,6 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
                     PokéAPI Documentation
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/test/mcp-rest-api" className="cursor-pointer">
-                    <TestTube className="mr-2 h-4 w-4" />
-                    API Playground
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/test-mcp" className="cursor-pointer">
-                    <TestTube className="mr-2 h-4 w-4" />
-                    MCP Testing
-                  </Link>
-                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -724,20 +712,6 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
                   >
                     <FileText className="h-5 w-5" />
                     PokéAPI Documentation
-                  </Link>
-                  <Link
-                    href="/test/mcp-rest-api"
-                    className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2"
-                  >
-                    <TestTube className="h-5 w-5" />
-                    API Playground
-                  </Link>
-                  <Link
-                    href="/test-mcp"
-                    className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2"
-                  >
-                    <TestTube className="h-5 w-5" />
-                    MCP Testing
                   </Link>
                 </div>
                 

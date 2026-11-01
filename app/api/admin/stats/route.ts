@@ -1,10 +1,17 @@
+import { leagueAdminDeniedResponse } from "@/lib/admin-api-auth"
 import { NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase/server"
 
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createServerClient()
-    
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+    const adminDenied = await leagueAdminDeniedResponse(user.id)
+    if (adminDenied) return adminDenied
+
     // Get query parameters
     const searchParams = request.nextUrl.searchParams
     const pokemonId = searchParams.get("pokemon_id")
@@ -124,6 +131,9 @@ export async function PUT(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
+    const adminDenied = await leagueAdminDeniedResponse(user.id)
+    if (adminDenied) return adminDenied
+
 
     const body = await request.json()
     const { id, kills } = body
@@ -167,6 +177,9 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
+    const adminDenied = await leagueAdminDeniedResponse(user.id)
+    if (adminDenied) return adminDenied
+
 
     const body = await request.json()
     const { match_id } = body

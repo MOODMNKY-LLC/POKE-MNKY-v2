@@ -1,25 +1,30 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { createServerClient } from "@/lib/supabase/server"
+import { requireLeagueAdmin } from "@/lib/admin-api-auth"
+import { supabaseManagementUrl } from "@/lib/proxy-allowlists"
+
+async function authorizedManagementUrl(request: NextRequest, pathArray: string[]) {
+  const admin = await requireLeagueAdmin()
+  if ("response" in admin) return { response: admin.response }
+
+  const path = pathArray.join("/")
+  const url = supabaseManagementUrl(path, request.nextUrl.searchParams.toString())
+  if (!url) {
+    return {
+      response: NextResponse.json(
+        { error: "Forbidden — that Management API path is not allowed" },
+        { status: 403 }
+      ),
+    }
+  }
+  return { url }
+}
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
-  const supabase = await createServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
-
-  // Await params (Next.js 16+ requirement)
   const { path: pathArray } = await params
+  const gate = await authorizedManagementUrl(request, pathArray)
+  if ("response" in gate) return gate.response
 
-  // Forward request to Supabase Management API
-  const path = pathArray.join("/")
-  const searchParams = request.nextUrl.searchParams.toString()
-  const url = `https://api.supabase.com/${path}${searchParams ? `?${searchParams}` : ""}`
-
-  const response = await fetch(url, {
+  const response = await fetch(gate.url, {
     method: "GET",
     headers: {
       Authorization: `Bearer ${process.env.SUPABASE_MANAGEMENT_API_TOKEN}`,
@@ -28,41 +33,36 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   })
 
   const data = await response.json()
+  if (!response.ok) {
+    return NextResponse.json(data, { status: response.status })
+  }
   return NextResponse.json(data)
 }
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
-  const supabase = await createServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
-
-  // Await params (Next.js 16+ requirement)
   const { path: pathArray } = await params
+  const gate = await authorizedManagementUrl(request, pathArray)
+  if ("response" in gate) return gate.response
 
+  const body = await request.json().catch(() => ({}))
   const path = pathArray.join("/")
-  const url = `https://api.supabase.com/${path}`
-  const body = await request.json()
+  const forwardedBody =
+    path.endsWith("/database/query") && body && typeof body === "object" && !Array.isArray(body)
+      ? { ...body, read_only: true }
+      : body
 
-  const response = await fetch(url, {
+  const response = await fetch(gate.url, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${process.env.SUPABASE_MANAGEMENT_API_TOKEN}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(body),
+    body: JSON.stringify(forwardedBody),
   })
 
   const data = await response.json()
-  
-  // Forward the response with the same status code
   if (!response.ok) {
     return NextResponse.json(data, { status: response.status })
   }
-  
   return NextResponse.json(data)
 }

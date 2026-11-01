@@ -1,3 +1,4 @@
+import { leagueAdminDeniedResponse } from "@/lib/admin-api-auth"
 import { NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase/server"
 import { getGoogleServiceAccountCredentials } from "@/lib/utils/google-sheets"
@@ -20,6 +21,9 @@ export async function POST(request: Request) {
     if (authError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
+    const adminDenied = await leagueAdminDeniedResponse(user.id)
+    if (adminDenied) return adminDenied
+
 
     const body = await request.json()
     const { spreadsheet_id } = body
