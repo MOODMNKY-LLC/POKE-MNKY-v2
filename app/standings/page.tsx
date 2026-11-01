@@ -192,6 +192,7 @@ export default async function StandingsPage({
                       {seasons.map((option) => (
                         <option key={option.id} value={option.id}>
                           {option.name}
+                          {option.is_live_competitive ? " (live)" : ""}
                           {option.is_current ? " (current)" : ""}
                         </option>
                       ))}

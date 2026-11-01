@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { listStandingsSeasons, pickStandingsSeason } from "@/lib/standings-season"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { BracketMatch } from "@/components/bracket-match"
@@ -70,11 +71,11 @@ function toPlayoffMatch(value: unknown): PlayoffMatch | null {
 export default async function PlayoffsPage() {
   const supabase = await createClient()
 
-  const { data: season } = await supabase
-    .from("seasons")
-    .select("id, name")
-    .eq("is_current", true)
-    .maybeSingle()
+  const seasons = await listStandingsSeasons(supabase).catch((error: unknown) => {
+    console.error("[playoffs] season list error:", error)
+    return []
+  })
+  const season = pickStandingsSeason(seasons, null)
 
   const { data: playoffMatches } = season
     ? await supabase

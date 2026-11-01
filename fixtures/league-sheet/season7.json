@@ -1,0 +1,756 @@
+{
+  "seasonKey": "AABPBL-Season-7-2027",
+  "seasonName": "Season 7",
+  "regularSeasonWeeks": 8,
+  "playoffWeeks": 4,
+  "teams": [
+    {
+      "name": "Alabama Donphans",
+      "coach": "Jordan",
+      "division": "Kanto",
+      "conference": "Lance",
+      "teamNumber": 1,
+      "isBye": false
+    },
+    {
+      "name": "Boise State Mudsdales",
+      "coach": "Fouster",
+      "division": "Johto",
+      "conference": "Lance",
+      "teamNumber": 2,
+      "isBye": false
+    },
+    {
+      "name": "Kalamazoo Kangaskhans",
+      "coach": "Andy W",
+      "division": "Hoenn",
+      "conference": "Leon",
+      "teamNumber": 3,
+      "isBye": false
+    },
+    {
+      "name": "Saint Charles Sliders",
+      "coach": "Matt",
+      "division": "Kanto",
+      "conference": "Lance",
+      "teamNumber": 4,
+      "isBye": false
+    },
+    {
+      "name": "Twin River Tyranitar",
+      "coach": "Holly",
+      "division": "Kanto",
+      "conference": "Lance",
+      "teamNumber": 5,
+      "isBye": false
+    },
+    {
+      "name": "Krazy Kecleons",
+      "coach": "BFarias",
+      "division": "Johto",
+      "conference": "Lance",
+      "teamNumber": 6,
+      "isBye": false
+    },
+    {
+      "name": "Manchester Milcerys",
+      "coach": "ShameWall",
+      "division": "Johto",
+      "conference": "Lance",
+      "teamNumber": 7,
+      "isBye": false
+    },
+    {
+      "name": "Daycare Dittos",
+      "coach": "PokeGoat",
+      "division": "Hoenn",
+      "conference": "Leon",
+      "teamNumber": 8,
+      "isBye": false
+    },
+    {
+      "name": "Leicester Lycanrocs",
+      "coach": "Bok Choy",
+      "division": "Sinnoh",
+      "conference": "Leon",
+      "teamNumber": 9,
+      "isBye": false
+    },
+    {
+      "name": "Michigan Meowscaradas",
+      "coach": "Jacki",
+      "division": "Sinnoh",
+      "conference": "Leon",
+      "teamNumber": 10,
+      "isBye": false
+    },
+    {
+      "name": "Bye 1",
+      "coach": "",
+      "division": "Hoenn",
+      "conference": "Leon",
+      "teamNumber": 11,
+      "isBye": true
+    },
+    {
+      "name": "Bye 2",
+      "coach": "",
+      "division": "Sinnoh",
+      "conference": "Leon",
+      "teamNumber": 12,
+      "isBye": true
+    }
+  ],
+  "matches": [
+    {
+      "week": 1,
+      "team1": "Kalamazoo Kangaskhans",
+      "team2": "Michigan Meowscaradas",
+      "team1Score": 15,
+      "team2Score": 0,
+      "winner": "Kalamazoo Kangaskhans",
+      "status": "completed",
+      "isPlayoff": false,
+      "playoffRound": null,
+      "outcomeType": "normal"
+    },
+    {
+      "week": 1,
+      "team1": "Leicester Lycanrocs",
+      "team2": "Twin River Tyranitar",
+      "team1Score": 10,
+      "team2Score": 0,
+      "winner": "Leicester Lycanrocs",
+      "status": "completed",
+      "isPlayoff": false,
+      "playoffRound": null,
+      "outcomeType": "normal"
+    },
+    {
+      "week": 1,
+      "team1": "Saint Charles Sliders",
+      "team2": "Manchester Milcerys",
+      "team1Score": 9,
+      "team2Score": 0,
+      "winner": "Saint Charles Sliders",
+      "status": "completed",
+      "isPlayoff": false,
+      "playoffRound": null,
+      "outcomeType": "normal"
+    },
+    {
+      "week": 1,
+      "team1": "Daycare Dittos",
+      "team2": "Krazy Kecleons",
+      "team1Score": 1,
+      "team2Score": 0,
+      "winner": "Daycare Dittos",
+      "status": "completed",
+      "isPlayoff": false,
+      "playoffRound": null,
+      "outcomeType": "normal"
+    },
+    {
+      "week": 1,
+      "team1": "Boise State Mudsdales",
+      "team2": "Alabama Donphans",
+      "team1Score": 1,
+      "team2Score": 0,
+      "winner": "Boise State Mudsdales",
+      "status": "completed",
+      "isPlayoff": false,
+      "playoffRound": null,
+      "outcomeType": "normal"
+    },
+    {
+      "week": 2,
+      "team1": "Kalamazoo Kangaskhans",
+      "team2": "Twin River Tyranitar",
+      "team1Score": 1,
+      "team2Score": 0,
+      "winner": "Kalamazoo Kangaskhans",
+      "status": "completed",
+      "isPlayoff": false,
+      "playoffRound": null,
+      "outcomeType": "normal"
+    },
+    {
+      "week": 2,
+      "team1": "Manchester Milcerys",
+      "team2": "Michigan Meowscaradas",
+      "team1Score": 0,
+      "team2Score": 5,
+      "winner": "Michigan Meowscaradas",
+      "status": "completed",
+      "isPlayoff": false,
+      "playoffRound": null,
+      "outcomeType": "normal"
+    },
+    {
+      "week": 2,
+      "team1": "Leicester Lycanrocs",
+      "team2": "Krazy Kecleons",
+      "team1Score": 1,
+      "team2Score": 0,
+      "winner": "Leicester Lycanrocs",
+      "status": "completed",
+      "isPlayoff": false,
+      "playoffRound": null,
+      "outcomeType": "normal"
+    },
+    {
+      "week": 2,
+      "team1": "Saint Charles Sliders",
+      "team2": "Alabama Donphans",
+      "team1Score": 1,
+      "team2Score": 0,
+      "winner": "Saint Charles Sliders",
+      "status": "completed",
+      "isPlayoff": false,
+      "playoffRound": null,
+      "outcomeType": "normal"
+    },
+    {
+      "week": 2,
+      "team1": "Daycare Dittos",
+      "team2": "Boise State Mudsdales",
+      "team1Score": 2,
+      "team2Score": 0,
+      "winner": "Daycare Dittos",
+      "status": "completed",
+      "isPlayoff": false,
+      "playoffRound": null,
+      "outcomeType": "normal"
+    },
+    {
+      "week": 3,
+      "team1": "Kalamazoo Kangaskhans",
+      "team2": "Manchester Milcerys",
+      "team1Score": 1,
+      "team2Score": 0,
+      "winner": "Kalamazoo Kangaskhans",
+      "status": "completed",
+      "isPlayoff": false,
+      "playoffRound": null,
+      "outcomeType": "normal"
+    },
+    {
+      "week": 3,
+      "team1": "Krazy Kecleons",
+      "team2": "Twin River Tyranitar",
+      "team1Score": 0,
+      "team2Score": 1,
+      "winner": "Twin River Tyranitar",
+      "status": "completed",
+      "isPlayoff": false,
+      "playoffRound": null,
+      "outcomeType": "normal"
+    },
+    {
+      "week": 3,
+      "team1": "Alabama Donphans",
+      "team2": "Michigan Meowscaradas",
+      "team1Score": 5,
+      "team2Score": 0,
+      "winner": "Alabama Donphans",
+      "status": "completed",
+      "isPlayoff": false,
+      "playoffRound": null,
+      "outcomeType": "normal"
+    },
+    {
+      "week": 3,
+      "team1": "Leicester Lycanrocs",
+      "team2": "Boise State Mudsdales",
+      "team1Score": 1,
+      "team2Score": 0,
+      "winner": "Leicester Lycanrocs",
+      "status": "completed",
+      "isPlayoff": false,
+      "playoffRound": null,
+      "outcomeType": "normal"
+    },
+    {
+      "week": 3,
+      "team1": "Saint Charles Sliders",
+      "team2": "Daycare Dittos",
+      "team1Score": 1,
+      "team2Score": 0,
+      "winner": "Saint Charles Sliders",
+      "status": "completed",
+      "isPlayoff": false,
+      "playoffRound": null,
+      "outcomeType": "normal"
+    },
+    {
+      "week": 4,
+      "team1": "Kalamazoo Kangaskhans",
+      "team2": "Krazy Kecleons",
+      "team1Score": 1,
+      "team2Score": 0,
+      "winner": "Kalamazoo Kangaskhans",
+      "status": "completed",
+      "isPlayoff": false,
+      "playoffRound": null,
+      "outcomeType": "normal"
+    },
+    {
+      "week": 4,
+      "team1": "Alabama Donphans",
+      "team2": "Manchester Milcerys",
+      "team1Score": 0,
+      "team2Score": 1,
+      "winner": "Manchester Milcerys",
+      "status": "completed",
+      "isPlayoff": false,
+      "playoffRound": null,
+      "outcomeType": "normal"
+    },
+    {
+      "week": 4,
+      "team1": "Boise State Mudsdales",
+      "team2": "Twin River Tyranitar",
+      "team1Score": 1,
+      "team2Score": 0,
+      "winner": "Boise State Mudsdales",
+      "status": "completed",
+      "isPlayoff": false,
+      "playoffRound": null,
+      "outcomeType": "normal"
+    },
+    {
+      "week": 4,
+      "team1": "Daycare Dittos",
+      "team2": "Michigan Meowscaradas",
+      "team1Score": 1,
+      "team2Score": 0,
+      "winner": "Daycare Dittos",
+      "status": "completed",
+      "isPlayoff": false,
+      "playoffRound": null,
+      "outcomeType": "normal"
+    },
+    {
+      "week": 4,
+      "team1": "Leicester Lycanrocs",
+      "team2": "Saint Charles Sliders",
+      "team1Score": 1,
+      "team2Score": 0,
+      "winner": "Leicester Lycanrocs",
+      "status": "completed",
+      "isPlayoff": false,
+      "playoffRound": null,
+      "outcomeType": "normal"
+    },
+    {
+      "week": 5,
+      "team1": "Kalamazoo Kangaskhans",
+      "team2": "Alabama Donphans",
+      "team1Score": 1,
+      "team2Score": 0,
+      "winner": "Kalamazoo Kangaskhans",
+      "status": "completed",
+      "isPlayoff": false,
+      "playoffRound": null,
+      "outcomeType": "normal"
+    },
+    {
+      "week": 5,
+      "team1": "Boise State Mudsdales",
+      "team2": "Krazy Kecleons",
+      "team1Score": 0,
+      "team2Score": 2,
+      "winner": "Krazy Kecleons",
+      "status": "completed",
+      "isPlayoff": false,
+      "playoffRound": null,
+      "outcomeType": "normal"
+    },
+    {
+      "week": 5,
+      "team1": "Daycare Dittos",
+      "team2": "Manchester Milcerys",
+      "team1Score": 1,
+      "team2Score": 0,
+      "winner": "Daycare Dittos",
+      "status": "completed",
+      "isPlayoff": false,
+      "playoffRound": null,
+      "outcomeType": "normal"
+    },
+    {
+      "week": 5,
+      "team1": "Saint Charles Sliders",
+      "team2": "Twin River Tyranitar",
+      "team1Score": 1,
+      "team2Score": 0,
+      "winner": "Saint Charles Sliders",
+      "status": "completed",
+      "isPlayoff": false,
+      "playoffRound": null,
+      "outcomeType": "normal"
+    },
+    {
+      "week": 5,
+      "team1": "Leicester Lycanrocs",
+      "team2": "Michigan Meowscaradas",
+      "team1Score": 1,
+      "team2Score": 0,
+      "winner": "Leicester Lycanrocs",
+      "status": "completed",
+      "isPlayoff": false,
+      "playoffRound": null,
+      "outcomeType": "normal"
+    },
+    {
+      "week": 6,
+      "team1": "Kalamazoo Kangaskhans",
+      "team2": "Boise State Mudsdales",
+      "team1Score": 0,
+      "team2Score": 1,
+      "winner": "Boise State Mudsdales",
+      "status": "completed",
+      "isPlayoff": false,
+      "playoffRound": null,
+      "outcomeType": "normal"
+    },
+    {
+      "week": 6,
+      "team1": "Daycare Dittos",
+      "team2": "Alabama Donphans",
+      "team1Score": 0,
+      "team2Score": 1,
+      "winner": "Alabama Donphans",
+      "status": "completed",
+      "isPlayoff": false,
+      "playoffRound": null,
+      "outcomeType": "normal"
+    },
+    {
+      "week": 6,
+      "team1": "Saint Charles Sliders",
+      "team2": "Krazy Kecleons",
+      "team1Score": 0,
+      "team2Score": 1,
+      "winner": "Krazy Kecleons",
+      "status": "completed",
+      "isPlayoff": false,
+      "playoffRound": null,
+      "outcomeType": "normal"
+    },
+    {
+      "week": 6,
+      "team1": "Leicester Lycanrocs",
+      "team2": "Manchester Milcerys",
+      "team1Score": 0,
+      "team2Score": 1,
+      "winner": "Manchester Milcerys",
+      "status": "completed",
+      "isPlayoff": false,
+      "playoffRound": null,
+      "outcomeType": "normal"
+    },
+    {
+      "week": 6,
+      "team1": "Twin River Tyranitar",
+      "team2": "Michigan Meowscaradas",
+      "team1Score": 1,
+      "team2Score": 0,
+      "winner": "Twin River Tyranitar",
+      "status": "completed",
+      "isPlayoff": false,
+      "playoffRound": null,
+      "outcomeType": "normal"
+    },
+    {
+      "week": 7,
+      "team1": "Kalamazoo Kangaskhans",
+      "team2": "Daycare Dittos",
+      "team1Score": 1,
+      "team2Score": 0,
+      "winner": "Kalamazoo Kangaskhans",
+      "status": "completed",
+      "isPlayoff": false,
+      "playoffRound": null,
+      "outcomeType": "normal"
+    },
+    {
+      "week": 7,
+      "team1": "Saint Charles Sliders",
+      "team2": "Boise State Mudsdales",
+      "team1Score": 0,
+      "team2Score": 1,
+      "winner": "Boise State Mudsdales",
+      "status": "completed",
+      "isPlayoff": false,
+      "playoffRound": null,
+      "outcomeType": "normal"
+    },
+    {
+      "week": 7,
+      "team1": "Leicester Lycanrocs",
+      "team2": "Alabama Donphans",
+      "team1Score": 0,
+      "team2Score": 1,
+      "winner": "Alabama Donphans",
+      "status": "completed",
+      "isPlayoff": false,
+      "playoffRound": null,
+      "outcomeType": "normal"
+    },
+    {
+      "week": 7,
+      "team1": "Krazy Kecleons",
+      "team2": "Michigan Meowscaradas",
+      "team1Score": 1,
+      "team2Score": 0,
+      "winner": "Krazy Kecleons",
+      "status": "completed",
+      "isPlayoff": false,
+      "playoffRound": null,
+      "outcomeType": "normal"
+    },
+    {
+      "week": 7,
+      "team1": "Manchester Milcerys",
+      "team2": "Twin River Tyranitar",
+      "team1Score": 1,
+      "team2Score": 0,
+      "winner": "Manchester Milcerys",
+      "status": "completed",
+      "isPlayoff": false,
+      "playoffRound": null,
+      "outcomeType": "normal"
+    },
+    {
+      "week": 8,
+      "team1": "Kalamazoo Kangaskhans",
+      "team2": "Saint Charles Sliders",
+      "team1Score": 0,
+      "team2Score": 1,
+      "winner": "Saint Charles Sliders",
+      "status": "completed",
+      "isPlayoff": false,
+      "playoffRound": null,
+      "outcomeType": "normal"
+    },
+    {
+      "week": 8,
+      "team1": "Leicester Lycanrocs",
+      "team2": "Daycare Dittos",
+      "team1Score": 0,
+      "team2Score": 1,
+      "winner": "Daycare Dittos",
+      "status": "completed",
+      "isPlayoff": false,
+      "playoffRound": null,
+      "outcomeType": "normal"
+    },
+    {
+      "week": 8,
+      "team1": "Boise State Mudsdales",
+      "team2": "Michigan Meowscaradas",
+      "team1Score": 1,
+      "team2Score": 0,
+      "winner": "Boise State Mudsdales",
+      "status": "completed",
+      "isPlayoff": false,
+      "playoffRound": null,
+      "outcomeType": "normal"
+    },
+    {
+      "week": 8,
+      "team1": "Alabama Donphans",
+      "team2": "Twin River Tyranitar",
+      "team1Score": 5,
+      "team2Score": 0,
+      "winner": "Alabama Donphans",
+      "status": "completed",
+      "isPlayoff": false,
+      "playoffRound": null,
+      "outcomeType": "normal"
+    },
+    {
+      "week": 8,
+      "team1": "Krazy Kecleons",
+      "team2": "Manchester Milcerys",
+      "team1Score": 3,
+      "team2Score": 0,
+      "winner": "Krazy Kecleons",
+      "status": "completed",
+      "isPlayoff": false,
+      "playoffRound": null,
+      "outcomeType": "normal"
+    },
+    {
+      "week": 9,
+      "team1": "Daycare Dittos",
+      "team2": "Bye 2",
+      "team1Score": 0,
+      "team2Score": 0,
+      "winner": "Daycare Dittos",
+      "status": "completed",
+      "isPlayoff": true,
+      "playoffRound": "round_1",
+      "outcomeType": "bye"
+    },
+    {
+      "week": 9,
+      "team1": "Alabama Donphans",
+      "team2": "Bye 1",
+      "team1Score": 0,
+      "team2Score": 0,
+      "winner": "Alabama Donphans",
+      "status": "completed",
+      "isPlayoff": true,
+      "playoffRound": "round_1",
+      "outcomeType": "bye"
+    },
+    {
+      "week": 9,
+      "team1": "Krazy Kecleons",
+      "team2": "Michigan Meowscaradas",
+      "team1Score": 4,
+      "team2Score": 2,
+      "winner": "Krazy Kecleons",
+      "status": "completed",
+      "isPlayoff": true,
+      "playoffRound": "round_1",
+      "outcomeType": "normal"
+    },
+    {
+      "week": 9,
+      "team1": "Manchester Milcerys",
+      "team2": "Twin River Tyranitar",
+      "team1Score": 3,
+      "team2Score": 1,
+      "winner": "Manchester Milcerys",
+      "status": "completed",
+      "isPlayoff": true,
+      "playoffRound": "round_1",
+      "outcomeType": "normal"
+    },
+    {
+      "week": 10,
+      "team1": "Kalamazoo Kangaskhans",
+      "team2": "Manchester Milcerys",
+      "team1Score": 5,
+      "team2Score": 3,
+      "winner": "Kalamazoo Kangaskhans",
+      "status": "completed",
+      "isPlayoff": true,
+      "playoffRound": "quarterfinals",
+      "outcomeType": "normal"
+    },
+    {
+      "week": 10,
+      "team1": "Leicester Lycanrocs",
+      "team2": "Krazy Kecleons",
+      "team1Score": null,
+      "team2Score": null,
+      "winner": null,
+      "status": "scheduled",
+      "isPlayoff": true,
+      "playoffRound": "quarterfinals",
+      "outcomeType": "normal"
+    },
+    {
+      "week": 10,
+      "team1": "Saint Charles Sliders",
+      "team2": "Daycare Dittos",
+      "team1Score": null,
+      "team2Score": null,
+      "winner": null,
+      "status": "scheduled",
+      "isPlayoff": true,
+      "playoffRound": "quarterfinals",
+      "outcomeType": "normal"
+    },
+    {
+      "week": 10,
+      "team1": "Boise State Mudsdales",
+      "team2": "Alabama Donphans",
+      "team1Score": null,
+      "team2Score": null,
+      "winner": null,
+      "status": "scheduled",
+      "isPlayoff": true,
+      "playoffRound": "quarterfinals",
+      "outcomeType": "normal"
+    }
+  ],
+  "seeds": [
+    {
+      "team": "Kalamazoo Kangaskhans",
+      "seed": 1,
+      "round1Bye": true,
+      "isDivisionWinner": true
+    },
+    {
+      "team": "Leicester Lycanrocs",
+      "seed": 2,
+      "round1Bye": true,
+      "isDivisionWinner": true
+    },
+    {
+      "team": "Saint Charles Sliders",
+      "seed": 3,
+      "round1Bye": true,
+      "isDivisionWinner": true
+    },
+    {
+      "team": "Boise State Mudsdales",
+      "seed": 4,
+      "round1Bye": true,
+      "isDivisionWinner": true
+    },
+    {
+      "team": "Daycare Dittos",
+      "seed": 5,
+      "round1Bye": false,
+      "isDivisionWinner": false
+    },
+    {
+      "team": "Alabama Donphans",
+      "seed": 6,
+      "round1Bye": false,
+      "isDivisionWinner": false
+    },
+    {
+      "team": "Krazy Kecleons",
+      "seed": 7,
+      "round1Bye": false,
+      "isDivisionWinner": false
+    },
+    {
+      "team": "Manchester Milcerys",
+      "seed": 8,
+      "round1Bye": false,
+      "isDivisionWinner": false
+    },
+    {
+      "team": "Twin River Tyranitar",
+      "seed": 9,
+      "round1Bye": false,
+      "isDivisionWinner": false
+    },
+    {
+      "team": "Michigan Meowscaradas",
+      "seed": 10,
+      "round1Bye": false,
+      "isDivisionWinner": false
+    },
+    {
+      "team": "Bye 1",
+      "seed": 11,
+      "round1Bye": false,
+      "isDivisionWinner": false
+    },
+    {
+      "team": "Bye 2",
+      "seed": 12,
+      "round1Bye": false,
+      "isDivisionWinner": false
+    }
+  ]
+}
