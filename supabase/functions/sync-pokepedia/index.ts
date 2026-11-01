@@ -2,13 +2,21 @@
  * Supabase Edge Function: Comprehensive Pokepedia Sync (Improved)
  * Uses PokeAPI pagination for efficient batch processing
  * Proper dependency ordering: master → reference → species → pokemon → relationships
- * 
+ *
  * Phases:
  * - master: Types, abilities, moves, stats, egg-groups, growth-rates
  * - reference: Generations, pokemon-colors, pokemon-habitats, pokemon-shapes
  * - species: Pokemon species (depends on reference data)
- * - pokemon: Pokemon data (depends on species)
+ * - pokemon: Pokemon data (depends on species), including forms (ids 10001+)
  * - relationships: Pokemon types, abilities, stats (depends on pokemon + master)
+ *
+ * Chunking: each invocation processes exactly one chunk, then returns
+ * `{ completed, continue, current_chunk, total_chunks, pokemon_synced }`.
+ * Call again with the same `{ action: "start", phase, priority }` while
+ * `continue` is true (cron already calls `processNextChunk` once per tick).
+ * `continueUntilComplete` is accepted and ignored. Looping inside this isolate
+ * keeps each chunk's PokeAPI JSON alive and hits WORKER_RESOURCE_LIMIT after
+ * 2–3 chunks. The caller must loop externally so each chunk gets a fresh isolate.
  */
 
 import {
@@ -89,6 +97,50 @@ const ENDPOINT_CONFIG: Record<string, { chunkSize: number; concurrency: number }
   'region': { chunkSize: 50, concurrency: 15 }, // Small dataset
 }
 
+interface ChunkResult {
+  completed?: boolean
+  synced?: number
+  errors?: number
+  chunk?: number
+  message?: string
+  error?: string
+}
+
+/**
+ * One chunk per invocation. `continue` tells the caller to POST the same phase again.
+ * `continueUntilComplete` used to loop here; that retained chunk payloads and OOM'd the worker.
+ */
+function syncChunkResponse(job: SyncJob, result: ChunkResult): Response {
+  const failed = typeof result.error === "string" && result.error.length > 0
+  const completed = result.completed === true && !failed
+  const currentChunk = typeof result.chunk === "number" ? result.chunk : job.current_chunk + (failed ? 0 : 1)
+  const pokemonSynced = (job.pokemon_synced || 0) + (result.synced || 0)
+  const pokemonFailed = (job.pokemon_failed || 0) + (result.errors || 0)
+  const message = failed
+    ? (result.error ?? "Sync chunk failed")
+    : completed
+      ? "Sync job completed. This invocation processed one chunk."
+      : "Processed one chunk. Call this function again with the same phase until completed is true. continueUntilComplete is ignored so the worker stays under WORKER_RESOURCE_LIMIT."
+
+  return new Response(
+    JSON.stringify({
+      success: !failed,
+      job_id: job.job_id,
+      completed,
+      continue: !completed && !failed,
+      current_chunk: currentChunk,
+      chunk: currentChunk,
+      total_chunks: job.total_chunks,
+      pokemon_synced: pokemonSynced,
+      pokemon_failed: pokemonFailed,
+      chunksProcessed: failed ? 0 : 1,
+      message,
+      result,
+    }),
+    { status: failed ? 500 : 200, headers: { "Content-Type": "application/json" } },
+  )
+}
+
 interface SyncJob {
   job_id: string
   sync_type: string
@@ -121,12 +173,13 @@ Deno.serve(async (req) => {
     const isManual = action === "start" || req.method === "POST"
     
     console.log("[Edge Function] Request body:", { action, phase, priority, isManual, continueUntilComplete })
+    if (continueUntilComplete === true) {
+      console.log("[Edge Function] continueUntilComplete is ignored; processing one chunk. Call again while continue is true.")
+    }
 
     if (isManual && phase) {
-      // Manual trigger: Create new sync job
-      // Default continueUntilComplete to true for local development (faster completion)
-      const shouldContinue = continueUntilComplete !== undefined ? continueUntilComplete === true : true
-      return await handleManualSync(supabase, phase, priority || "standard", shouldContinue)
+      // One chunk per invocation. Callers loop externally (see file header).
+      return await handleManualSync(supabase, phase, priority || "standard")
     }
 
     // Cron trigger: Process next chunk of active job
@@ -144,7 +197,6 @@ async function handleManualSync(
   supabase: any,
   phase: string,
   priority: string = "standard",
-  continueUntilComplete: boolean = true  // Default to true for faster local development
 ) {
   console.log(`[handleManualSync] Starting sync for phase: ${phase}, priority: ${priority}`)
   
@@ -287,79 +339,11 @@ async function handleManualSync(
         })
         
         if (!isStuck && hasSyncedItems && hasRecentHeartbeat) {
-          // If continueUntilComplete is true (or undefined/defaults to true), continue processing this job instead of returning
-          // Default to true for local development (faster completion)
-          const shouldContinue = continueUntilComplete !== undefined ? continueUntilComplete === true : true
-          if (shouldContinue) {
-            console.log(`[handleManualSync] continueUntilComplete=true, continuing to process existing job: ${activeJob.job_id}`)
-            // Continue processing chunks of this existing job
-            let result = await processChunk(supabase, activeJob)
-            let chunksProcessed = 1
-            
-            const MAX_EXECUTION_TIME_MS = 50 * 1000 // 50 seconds
-            const startTime = Date.now()
-            
-            while (!result.completed && (Date.now() - startTime) < MAX_EXECUTION_TIME_MS) {
-              // Refresh job data
-              const { data: updatedJob, error: refreshError } = await supabase
-                .from("sync_jobs")
-                .select("*")
-                .eq("job_id", activeJob.job_id)
-                .single()
-              
-              if (refreshError || !updatedJob) {
-                console.error(`[handleManualSync] Error refreshing job:`, refreshError)
-                break
-              }
-              
-              // Check if job is complete
-              if (updatedJob.status !== "running" || 
-                  (updatedJob.total_chunks > 0 && updatedJob.current_chunk >= updatedJob.total_chunks)) {
-                console.log(`[handleManualSync] Job completed or status changed`)
-                break
-              }
-              
-              // Process next chunk
-              result = await processChunk(supabase, updatedJob)
-              chunksProcessed++
-              
-              console.log(`[handleManualSync] Chunk ${chunksProcessed} processed:`, result)
-              
-              if (result.completed) {
-                console.log(`[handleManualSync] Job completed after ${chunksProcessed} chunks`)
-                break
-              }
-              
-              // Small delay between chunks
-              await new Promise((resolve) => setTimeout(resolve, 100))
-            }
-            
-            const elapsedTime = Date.now() - startTime
-            console.log(`[handleManualSync] Processed ${chunksProcessed} chunks in ${elapsedTime}ms`)
-            
-            return new Response(
-              JSON.stringify({
-                success: true,
-                job_id: activeJob.job_id,
-                message: result.completed 
-                  ? `Sync job completed (${chunksProcessed} chunks processed)`
-                  : `Sync job in progress (${chunksProcessed} chunks processed, will continue via cron)`,
-                chunksProcessed,
-                result,
-              }),
-              { status: 200, headers: { "Content-Type": "application/json" } }
-            )
-          }
-          
-          console.log(`[handleManualSync] Returning existing active job: ${activeJob.job_id}`)
-          return new Response(
-            JSON.stringify({
-              success: true,
-              job_id: activeJob.job_id,
-              message: "Sync job already running",
-            }),
-            { status: 200, headers: { "Content-Type": "application/json" } }
-          )
+          // One chunk, then return. The caller POSTs again while `continue` is true.
+          console.log(`[handleManualSync] Processing one chunk of existing job: ${activeJob.job_id}`)
+          const result = await processChunk(supabase, activeJob)
+          console.log(`[handleManualSync] Chunk processed:`, result)
+          return syncChunkResponse(activeJob, result)
         } else {
           const reason = !hasSyncedItems 
             ? `No items synced after ${minutesSinceHeartbeat.toFixed(1)} minutes (chunk ${activeJob.current_chunk}) - creating replacement`
@@ -436,98 +420,11 @@ async function handleManualSync(
     status: job.status,
   })
 
-  console.log(`[handleManualSync] Job created: ${job.job_id}, processing first chunk...`)
-  
-  // Process first chunk immediately
-  let result = await processChunk(supabase, job)
-  let chunksProcessed = 1
-  
-  console.log(`[handleManualSync] First chunk processed:`, result)
+  console.log(`[handleManualSync] Job created: ${job.job_id}, processing one chunk...`)
 
-  // If continueUntilComplete is true, continue processing chunks until complete
-  // But respect Edge Function timeout limits (max 50 seconds to leave buffer)
-  const MAX_EXECUTION_TIME_MS = 50 * 1000 // 50 seconds
-  const startTime = Date.now()
-  
-  if (continueUntilComplete && !result.completed) {
-    console.log(`[handleManualSync] Continuing to process remaining chunks...`)
-    
-      while (!result.completed && (Date.now() - startTime) < MAX_EXECUTION_TIME_MS) {
-        // Refresh job data to get updated current_chunk
-        const { data: updatedJob, error: refreshError } = await supabase
-          .from("sync_jobs")
-          .select("*")
-          .eq("job_id", job.job_id)
-          .single()
-        
-        if (refreshError || !updatedJob) {
-          console.error(`[handleManualSync] Error refreshing job:`, refreshError)
-          break
-        }
-        
-        // Check if job is complete
-        if (updatedJob.status !== "running" || 
-            (updatedJob.total_chunks > 0 && updatedJob.current_chunk >= updatedJob.total_chunks)) {
-          console.log(`[handleManualSync] Job completed or status changed`)
-          break
-        }
-        
-        // Update heartbeat periodically to prevent "stuck" detection during long runs
-        if (chunksProcessed % 10 === 0) {
-          await supabase
-            .from("sync_jobs")
-            .update({ last_heartbeat: new Date().toISOString() })
-            .eq("job_id", job.job_id)
-          console.log(`[handleManualSync] Updated heartbeat after ${chunksProcessed} chunks`)
-        }
-        
-        // Process next chunk
-        result = await processChunk(supabase, updatedJob)
-        chunksProcessed++
-        
-        console.log(`[handleManualSync] Chunk ${chunksProcessed} processed:`, result)
-        
-        // Memory cleanup after chunk processing
-        cleanupMemory(result, updatedJob)
-        
-        if (result.completed) {
-          console.log(`[handleManualSync] Job completed after ${chunksProcessed} chunks`)
-          break
-        }
-        
-        // Delay between chunks to avoid rate limiting and reduce memory pressure
-        await new Promise((resolve) => setTimeout(resolve, BATCH_DELAY_MS))
-        
-        // Force garbage collection hint every 20 chunks (Deno will handle if possible)
-        if (chunksProcessed % 20 === 0) {
-          console.log(`[handleManualSync] Processed ${chunksProcessed} chunks, memory cleanup hint`)
-          // Deno doesn't expose explicit GC, but we can help by clearing references
-          await new Promise((resolve) => setTimeout(resolve, 50))
-        }
-      }
-    
-    const elapsedTime = Date.now() - startTime
-    console.log(`[handleManualSync] Processed ${chunksProcessed} chunks in ${elapsedTime}ms`)
-    
-    if (!result.completed && (Date.now() - startTime) >= MAX_EXECUTION_TIME_MS) {
-      console.log(`[handleManualSync] Timeout reached, job will continue via cron`)
-    }
-  }
-
-  return new Response(
-    JSON.stringify({
-      success: true,
-      job_id: job.job_id,
-      message: continueUntilComplete && result.completed 
-        ? `Sync job completed (${chunksProcessed} chunks processed)`
-        : continueUntilComplete
-        ? `Sync job in progress (${chunksProcessed} chunks processed, will continue via cron)`
-        : "Sync job created and first chunk processed",
-      chunksProcessed,
-      result,
-    }),
-    { status: 200, headers: { "Content-Type": "application/json" } }
-  )
+  const result = await processChunk(supabase, job)
+  console.log(`[handleManualSync] Chunk processed:`, result)
+  return syncChunkResponse(job, result)
 }
 
 async function processNextChunk(supabase: any) {
@@ -564,18 +461,9 @@ async function processNextChunk(supabase: any) {
     )
   }
 
-  // Process chunk
+  // One chunk per cron tick. The next tick (or a manual caller) continues the job.
   const result = await processChunk(supabase, job)
-
-  return new Response(
-    JSON.stringify({
-      success: true,
-      job_id: job.job_id,
-      chunk: job.current_chunk + 1,
-      result,
-    }),
-    { status: 200, headers: { "Content-Type": "application/json" } }
-  )
+  return syncChunkResponse(job, result)
 }
 
 async function processChunk(supabase: any, job: SyncJob) {
@@ -1309,26 +1197,66 @@ async function syncSpeciesPhase(supabase: any, job: SyncJob) {
 // to eliminate triple-fetching. Pokemon endpoint already contains types,
 // abilities, and stats data, so we extract relationships in the same pass.
 
+/**
+ * Full Pokémon index, including national-dex entries past #1000 and forms (ids 10001+).
+ * A hardcoded `?limit=1000` drops those. Ask for 2000, then follow `next` until the
+ * API's `count` is covered.
+ */
+async function fetchFullPokemonList(): Promise<ResourceList | null> {
+  const results: Array<{ name: string; url: string }> = []
+  let count = 0
+  let nextUrl: string | null = `${POKEAPI_BASE_URL}/pokemon/?limit=2000`
+  const seen = new Set<string>()
+
+  for (let page = 0; page < 20 && nextUrl; page++) {
+    if (seen.has(nextUrl)) break
+    seen.add(nextUrl)
+
+    const listResponse = await fetch(nextUrl)
+    if (!listResponse.ok) {
+      console.error(`[Pokemon] List request failed (${listResponse.status}): ${nextUrl}`)
+      if (results.length === 0) return null
+      break
+    }
+
+    const pageData: ResourceList = await listResponse.json()
+    if (typeof pageData.count === "number" && pageData.count > 0) count = pageData.count
+    if (Array.isArray(pageData.results)) results.push(...pageData.results)
+    nextUrl = typeof pageData.next === "string" && pageData.next.length > 0 ? pageData.next : null
+    if (count > 0 && results.length >= count) break
+  }
+
+  if (results.length === 0) return null
+  if (count > results.length) {
+    console.warn(`[Pokemon] List shorter than API count (${results.length}/${count})`)
+  } else {
+    console.log(`[Pokemon] Fetched full resource list: ${results.length} (API count ${count || results.length})`)
+  }
+  return { count: results.length, next: null, previous: null, results }
+}
+
 async function syncPokemonPhase(supabase: any, job: SyncJob) {
   let totalSynced = 0
   let totalErrors = 0
   let relationshipsSynced = 0
 
-  // Fetch Pokemon list
-  const listResponse = await fetch(`${POKEAPI_BASE_URL}/pokemon/?limit=1000`)
-  if (!listResponse.ok) {
+  const listData = await fetchFullPokemonList()
+  if (!listData) {
     return { synced: 0, errors: 1 }
   }
 
-  const listData: ResourceList = await listResponse.json()
-
-  // Update total chunks if first run
+  // Page size must match the slice below. ENDPOINT_CONFIG.chunkSize (30) does not:
+  // critical jobs use 20 and would stop before the end of the list.
   if (job.current_chunk === 0 && job.total_chunks === 0) {
-    const config = ENDPOINT_CONFIG['pokemon'] || { chunkSize: 30, concurrency: CONCURRENT_REQUESTS }
-    const totalChunks = Math.ceil(listData.count / config.chunkSize)
+    const pageSize = job.chunk_size > 0
+      ? job.chunk_size
+      : (ENDPOINT_CONFIG["pokemon"]?.chunkSize ?? 30)
+    const totalChunks = Math.ceil(listData.results.length / pageSize)
+    job.total_chunks = totalChunks
+    job.end_id = listData.results.length
     await supabase
       .from("sync_jobs")
-      .update({ total_chunks: totalChunks, end_id: listData.count })
+      .update({ total_chunks: totalChunks, end_id: listData.results.length })
       .eq("job_id", job.job_id)
   }
 
@@ -1434,7 +1362,8 @@ async function syncPokemonPhase(supabase: any, job: SyncJob) {
           height: pokemon.height,
           weight: pokemon.weight,
           base_experience: pokemon.base_experience,
-          is_default: pokemon.is_default || true,
+          // `|| true` forced every form to default. Missing values stay default; explicit false does not.
+          is_default: pokemon.is_default ?? true,
           sprite_front_default_path: pokemon.sprites?.front_default || null,
           sprite_official_artwork_path: pokemon.sprites?.other?.["official-artwork"]?.front_default || null,
           types: types.length > 0 ? types : null,
