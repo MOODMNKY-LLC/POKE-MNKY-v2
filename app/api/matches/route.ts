@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { getMatchesQuerySchema } from "@/lib/validation/matches"
 import { validationError, internalError } from "@/lib/api-error"
-import { getMarkedCurrentSeason } from "@/lib/seasons"
+import { listStandingsSeasons, resolveMatchesSeasonId } from "@/lib/standings-season"
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -15,13 +15,20 @@ export async function GET(request: Request) {
     const parsed = getMatchesQuerySchema.safeParse({
       week: searchParams.get("week") ?? undefined,
       season_id: searchParams.get("season_id") ?? undefined,
+      season: searchParams.get("season") ?? undefined,
     })
     if (!parsed.success) {
       return validationError("Invalid query", parsed.error.issues)
     }
-    const { week, season_id: requestedSeasonId } = parsed.data
-    const seasonId =
-      requestedSeasonId ?? (await getMarkedCurrentSeason(supabase))?.id ?? null
+    const { week, season_id: requestedSeasonId, season: requestedSeason } = parsed.data
+    const seasons = await listStandingsSeasons(supabase).catch((error: unknown) => {
+      console.error("[matches] season list error:", error)
+      return []
+    })
+    const seasonId = resolveMatchesSeasonId(seasons, {
+      seasonId: requestedSeasonId,
+      season: requestedSeason,
+    })
 
     if (!seasonId) {
       return NextResponse.json({ matches: [] })

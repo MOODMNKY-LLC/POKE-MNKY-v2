@@ -1,5 +1,8 @@
 import { createClient } from "@/lib/supabase/server"
 import { getTeamRosterPicks } from "@/lib/team-roster-display"
+import { listPublicFreeAgency } from "@/lib/free-agency-history"
+import { listStandingsSeasons, pickStandingsSeason } from "@/lib/standings-season"
+import { SeasonSwitcher } from "@/components/league/season-switcher"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
@@ -9,7 +12,7 @@ import { NumberTicker } from "@/components/ui/number-ticker"
 import { StatMetricCard } from "@/components/league/stat-metric-card"
 import { PokeballIcon } from "@/components/ui/pokeball-icon"
 import Link from "next/link"
-import { notFound } from "next/navigation"
+import { notFound, redirect } from "next/navigation"
 import { CalendarDays, Shield, Swords, TrendingUp, Users } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { LeagueTeamRosterClient } from "@/components/dashboard/league-team-roster-client"
@@ -42,23 +45,20 @@ function TypeBadges({ type1, type2 }: { type1?: string | null; type2?: string | 
   )
 }
 
-export default async function TeamDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function TeamDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>
+  searchParams: Promise<{ season?: string }>
+}) {
   const { id } = await params
+  const { season: requestedSeason } = await searchParams
   const supabase = await createClient()
-
-  const { data: currentSeason, error: seasonError } = await supabase
-    .from("seasons")
-    .select("id, name")
-    .eq("is_current", true)
-    .maybeSingle()
-
-  if (seasonError) {
-    throw seasonError
-  }
-
-  if (!currentSeason?.id) {
-    notFound()
-  }
+  const seasons = await listStandingsSeasons(supabase).catch((error: unknown) => {
+    console.error("[team] season list error:", error)
+    return []
+  })
 
   const { data: team, error: teamError } = await supabase
     .from("teams")
@@ -70,20 +70,41 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ id:
     notFound()
   }
 
-  const teamSeasonMismatch =
-    team.season_id != null && team.season_id !== currentSeason.id
+  const requested = requestedSeason ? pickStandingsSeason(seasons, requestedSeason) : null
+  let seasonNote: string | null = null
+  if (requested && requested.id !== team.season_id) {
+    const { data: sibling } = await supabase
+      .from("teams")
+      .select("id")
+      .eq("season_id", requested.id)
+      .eq("name", team.name)
+      .maybeSingle()
+    if (sibling?.id && sibling.id !== team.id) {
+      redirect(`/teams/${sibling.id}?season=${encodeURIComponent(requested.id)}`)
+    }
+    seasonNote = `${team.name} is not in ${requested.name}.`
+  }
 
-  const roster = await getTeamRosterPicks(supabase, id, currentSeason.id)
+  const season = seasons.find((row) => row.id === team.season_id) ?? null
+  const seasonName = season?.name ?? "Season"
+  const rosterSeasonId = team.season_id as string | null
 
-  const { data: matchweeks } = await supabase
-    .from("matchweeks")
-    .select("week_number")
-    .eq("season_id", currentSeason.id)
-    .order("week_number", { ascending: true })
+  const roster = rosterSeasonId
+    ? await getTeamRosterPicks(supabase, team.id, rosterSeasonId)
+    : []
+  const moves = rosterSeasonId ? await listPublicFreeAgency(supabase, rosterSeasonId, team.id) : []
+
+  const { data: matchweeks } = rosterSeasonId
+    ? await supabase
+        .from("matchweeks")
+        .select("week_number")
+        .eq("season_id", rosterSeasonId)
+        .order("week_number", { ascending: true })
+    : { data: [] }
 
   const weeks = matchweeks?.map((w) => w.week_number) ?? [1]
 
-  const { data: matches } = await supabase
+  const matchesQuery = supabase
     .from("matches")
     .select(
       `
@@ -93,14 +114,18 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ id:
       winner:winner_id(name)
     `,
     )
-    .or(`team1_id.eq.${id},team2_id.eq.${id}`)
-    .eq("season_id", currentSeason.id)
+    .or(`team1_id.eq.${team.id},team2_id.eq.${team.id}`)
     .order("week", { ascending: false })
     .limit(5)
-
+  const { data: matches } = rosterSeasonId
+    ? await matchesQuery.eq("season_id", rosterSeasonId)
+    : await matchesQuery
   const rosterCount = roster.length
   const matchCount = matches?.length ?? 0
-  const recordWinPct = winPct(team.wins, team.losses)
+  const regularWins = team.regular_wins ?? team.wins
+  const regularLosses = team.regular_losses ?? team.losses
+  const regularDiff = team.regular_differential ?? team.differential
+  const recordWinPct = winPct(regularWins, regularLosses)
   const winsCount = matches?.filter((m) => m.winner_id === id).length ?? 0
 
   return (
@@ -114,9 +139,16 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ id:
                 <Badge variant="outline">{team.division} Division</Badge>
                 <Badge variant="secondary">{team.conference} Conference</Badge>
                 <Badge variant="outline" className="text-muted-foreground">
-                  {teamSeasonMismatch ? "Different season" : currentSeason.name}
+                  {seasonName}
                 </Badge>
+                <SeasonSwitcher
+                  seasons={seasons}
+                  selectedId={season?.id ?? null}
+                  action={`/teams/${team.id}`}
+                  inputId="team-season"
+                />
               </div>
+              {seasonNote ? <p className="mb-3 text-sm text-muted-foreground">{seasonNote}</p> : null}
               <div className="flex flex-wrap items-center gap-4">
                 {team.logo_url ? (
                   <img
@@ -137,6 +169,9 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ id:
                   <span className="tabular-nums text-foreground">{recordWinPct}%</span>
                 </div>
                 <Progress value={recordWinPct} className="mt-2 h-2" />
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Regular season {regularWins}-{regularLosses} ({formatDiff(regularDiff)}). Playoffs {team.playoff_wins ?? 0}-{team.playoff_losses ?? 0}.
+                </p>
               </div>
             </div>
 
@@ -145,9 +180,9 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ id:
                 <CardContent className="p-4 text-center">
                   <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Record</p>
                   <p className="mt-1 text-2xl font-bold tabular-nums">
-                    <NumberTicker value={team.wins} />
+                    <NumberTicker value={regularWins} />
                     <span className="text-muted-foreground">-</span>
-                    <NumberTicker value={team.losses} delay={0.05} />
+                    <NumberTicker value={regularLosses} delay={0.05} />
                   </p>
                 </CardContent>
               </Card>
@@ -161,8 +196,8 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ id:
                       team.differential < 0 && "text-destructive",
                     )}
                   >
-                    {team.differential > 0 ? "+" : ""}
-                    <NumberTicker value={team.differential} delay={0.1} />
+                    {regularDiff > 0 ? "+" : ""}
+                    <NumberTicker value={regularDiff} delay={0.1} />
                   </p>
                 </CardContent>
               </Card>
@@ -178,13 +213,13 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ id:
         >
           <StatMetricCard
             label="Record"
-            value={`${team.wins}-${team.losses}`}
+            value={`${regularWins}-${regularLosses}`}
             hint={`${recordWinPct}% win rate`}
             icon={TrendingUp}
           />
           <StatMetricCard
             label="Point differential"
-            value={formatDiff(team.differential)}
+            value={formatDiff(regularDiff)}
             hint="KOs scored minus allowed"
             icon={Swords}
             valueClassName={cn(
@@ -228,7 +263,7 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ id:
                     Team Roster
                   </CardTitle>
                   <CardDescription className="mt-1">
-                    Active draft picks for {currentSeason.name}
+                    Active draft picks for {seasonName}
                   </CardDescription>
                 </div>
                 <Badge variant="secondary" className="shrink-0 tabular-nums">
@@ -252,6 +287,7 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ id:
                           <div className="min-w-0">
                             <p className="truncate font-semibold capitalize">{pick.pokemon.name}</p>
                             <TypeBadges type1={pick.pokemon.type1} type2={pick.pokemon.type2} />
+                            {pick.is_tera_captain ? <Badge variant="outline">Tera</Badge> : null}
                           </div>
                         </div>
                         <div className="flex shrink-0 flex-col items-end gap-1 self-start sm:self-center">
@@ -330,15 +366,47 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ id:
           </Card>
         </div>
 
+        <Card className="overflow-hidden border-border/80 shadow-sm">
+          <CardHeader className="border-b border-border/60 bg-muted/20">
+            <CardTitle className="text-xl">Free agency</CardTitle>
+            <CardDescription>Moves recorded for {seasonName}</CardDescription>
+          </CardHeader>
+          <CardContent className="p-0">
+            {moves.length > 0 ? (
+              <ul className="divide-y divide-border">
+                {moves.map((move) => (
+                  <li key={move.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm">
+                    <span>
+                      {move.added_name ? <span>Add {move.added_name}</span> : null}
+                      {move.added_name && move.dropped_name ? <span className="text-muted-foreground"> · </span> : null}
+                      {move.dropped_name ? <span>Drop {move.dropped_name}</span> : null}
+                    </span>
+                    {move.effective_week ? (
+                      <span className="text-xs text-muted-foreground">Week {move.effective_week}</span>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                No free-agency moves recorded for this season.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
         <LeagueTeamRosterClient
-          teamId={id}
-          seasonId={currentSeason.id}
-          seasonName={currentSeason.name}
+          teamId={team.id}
+          seasonId={rosterSeasonId ?? ""}
+          seasonName={seasonName}
           weeks={weeks.length > 0 ? weeks : [1]}
         />
 
         <p className="text-center text-sm text-muted-foreground">
-          <Link href="/standings" className="font-medium hover:text-primary underline-offset-4 hover:underline">
+          <Link
+            href={season ? `/standings?season=${encodeURIComponent(season.season_id ?? season.id)}` : "/standings"}
+            className="font-medium hover:text-primary underline-offset-4 hover:underline"
+          >
             View full league standings
           </Link>
         </p>

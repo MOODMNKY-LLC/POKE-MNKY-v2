@@ -2,7 +2,8 @@ import { createClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { getMarkedCurrentSeason } from "@/lib/seasons"
+import { listStandingsSeasons, pickStandingsSeason } from "@/lib/standings-season"
+import { SeasonSwitcher } from "@/components/league/season-switcher"
 
 type ScheduleTeam = {
   name: string | null
@@ -10,9 +11,10 @@ type ScheduleTeam = {
   division: string | null
 }
 
-type ScheduleMatch = {
+  type ScheduleMatch = {
   id: string
   week: number
+  playoff_round?: string | null
   winner_id: string | null
   team1_id: string
   team2_id: string
@@ -23,9 +25,18 @@ type ScheduleMatch = {
   team2: ScheduleTeam | null
 }
 
-export default async function SchedulePage() {
+export default async function SchedulePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ season?: string }>
+}) {
+  const { season: requestedSeason } = await searchParams
   const supabase = await createClient()
-  const season = await getMarkedCurrentSeason(supabase)
+  const seasons = await listStandingsSeasons(supabase).catch((error: unknown) => {
+    console.error("[schedule] season list error:", error)
+    return []
+  })
+  const season = pickStandingsSeason(seasons, requestedSeason)
 
   const { data: matches } = season
     ? await supabase
@@ -38,7 +49,6 @@ export default async function SchedulePage() {
       winner:winner_id(name)
     `,
         )
-        .eq("is_playoff", false)
         .eq("season_id", season.id)
         .order("week")
         .order("created_at")
@@ -62,7 +72,21 @@ export default async function SchedulePage() {
   const weeks = Object.keys(matchesByWeek || {})
     .map(Number)
     .sort((a, b) => a - b)
-  const currentWeek = weeks.length > 0 ? weeks[Math.floor(weeks.length / 2)] : 1
+  const seasonStart = season?.start_date ? Date.parse(`${season.start_date}T00:00:00Z`) : NaN
+  const weekFromDate = Number.isFinite(seasonStart)
+    ? Math.floor((Date.now() - seasonStart) / (7 * 24 * 60 * 60 * 1000)) + 1
+    : null
+  const currentWeek = weeks.includes(weekFromDate ?? -1)
+    ? weekFromDate!
+    : weeks.at(-1) ?? 1
+
+  function weekLabel(week: number) {
+    const sample = matchesByWeek[week]?.[0]
+    if (sample && "playoff_round" in sample && sample.playoff_round) {
+      return String(sample.playoff_round).replaceAll("_", " ")
+    }
+    return `Week ${week}`
+  }
 
   function MatchCard({ match }: { match: ScheduleMatch }) {
     const hasResult = match.winner_id !== null
@@ -129,8 +153,16 @@ export default async function SchedulePage() {
             <p className="mt-2 text-muted-foreground">
               {season
                 ? `${season.name} regular-season matchups and results`
-                : "Regular-season matchups for the current season will appear here"}
+                : "Regular-season matchups for the live season will appear here"}
             </p>
+            <div className="mt-4">
+              <SeasonSwitcher
+                seasons={seasons}
+                selectedId={season?.id ?? null}
+                action="/schedule"
+                inputId="schedule-season"
+              />
+            </div>
           </div>
         </div>
 
@@ -140,7 +172,7 @@ export default async function SchedulePage() {
               <TabsList className="flex flex-wrap justify-start gap-2">
                 {weeks.map((week) => (
                   <TabsTrigger key={week} value={`week-${week}`}>
-                    Week {week}
+                    {weekLabel(week)}
                   </TabsTrigger>
                 ))}
               </TabsList>

@@ -27,6 +27,9 @@ const nextConfig = {
   // Next 16.4 dropped experimental.turbopackUseSystemTlsCerts (the config schema
   // rejects unknown keys). Corporate TLS inspection should use NODE_EXTRA_CA_CERTS.
   turbopack: {},
+  async redirects() {
+    return [{ source: "/bracket", destination: "/playoffs", permanent: false }]
+  },
 }
 
 export default nextConfig

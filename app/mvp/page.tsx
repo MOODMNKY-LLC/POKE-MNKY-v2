@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge"
 import { Trophy, Zap, Target } from "lucide-react"
 import { aggregateMvpStats, type MvpStatRow } from "@/lib/mvp-standings"
 import { listStandingsSeasons, pickStandingsSeason } from "@/lib/standings-season"
+import { SeasonSwitcher } from "@/components/league/season-switcher"
 
 type StatQueryRow = {
   pokemon_id: string
@@ -110,33 +111,12 @@ export default async function MVPPage({
               <Trophy className="h-8 w-8 text-accent" />
               <Badge className="bg-accent text-accent-foreground">MVP Race</Badge>
               <Badge variant="secondary">{seasonLabel}</Badge>
-              {seasons.length > 0 ? (
-                <form action="/mvp" className="flex items-center gap-2">
-                  <label htmlFor="mvp-season" className="sr-only">
-                    Season
-                  </label>
-                  <select
-                    id="mvp-season"
-                    name="season"
-                    defaultValue={season?.id ?? ""}
-                    className="h-8 rounded-md border border-border bg-background px-2 text-sm"
-                  >
-                    {seasons.map((option) => (
-                      <option key={option.id} value={option.id}>
-                        {option.name}
-                        {option.is_live_competitive ? " (live)" : ""}
-                        {option.is_current ? " (current)" : ""}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    type="submit"
-                    className="h-8 rounded-md border border-border bg-background px-3 text-sm font-medium hover:bg-muted"
-                  >
-                    Show
-                  </button>
-                </form>
-              ) : null}
+              <SeasonSwitcher
+                seasons={seasons}
+                selectedId={season?.id ?? null}
+                action="/mvp"
+                inputId="mvp-season"
+              />
             </div>
             <h1 className="text-5xl font-bold tracking-tight">Most Valuable Pokemon</h1>
             <p className="mt-2 text-lg text-muted-foreground">Top performers by knockout stats for {seasonLabel}</p>

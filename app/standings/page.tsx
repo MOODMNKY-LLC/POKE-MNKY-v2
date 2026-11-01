@@ -11,6 +11,7 @@ import { StatMetricCard } from "@/components/league/stat-metric-card"
 import type { Team } from "@/lib/types"
 import { compareDivision, type RankableTeam } from "@/lib/sheet-standings"
 import { listStandingsSeasons, pickStandingsSeason } from "@/lib/standings-season"
+import { SeasonSwitcher } from "@/components/league/season-switcher"
 import Link from "next/link"
 import type { ReactNode } from "react"
 import { BarChart3, Crown, Swords, Trophy, Users } from "lucide-react"
@@ -178,33 +179,12 @@ export default async function StandingsPage({
                   <Trophy className="h-3 w-3" aria-hidden />
                   {seasonLabel}
                 </Badge>
-                {seasons.length > 0 ? (
-                  <form action="/standings" className="flex items-center gap-2">
-                    <label htmlFor="standings-season" className="sr-only">
-                      Season
-                    </label>
-                    <select
-                      id="standings-season"
-                      name="season"
-                      defaultValue={season?.id ?? ""}
-                      className="h-8 rounded-md border border-border bg-background px-2 text-sm"
-                    >
-                      {seasons.map((option) => (
-                        <option key={option.id} value={option.id}>
-                          {option.name}
-                          {option.is_live_competitive ? " (live)" : ""}
-                          {option.is_current ? " (current)" : ""}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      type="submit"
-                      className="h-8 rounded-md border border-border bg-background px-3 text-sm font-medium hover:bg-muted"
-                    >
-                      Show
-                    </button>
-                  </form>
-                ) : null}
+                <SeasonSwitcher
+                  seasons={seasons}
+                  selectedId={season?.id ?? null}
+                  action="/standings"
+                  inputId="standings-season"
+                />
                 {summary.teamCount > 0 ? (
                   <Badge variant="outline">{summary.teamCount} teams</Badge>
                 ) : null}

@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { getCurrentSeasonIdWithFallback } from "@/lib/seasons"
+import { listStandingsSeasons, pickStandingsSeason, type StandingsSeasonRow } from "@/lib/standings-season"
 
 export type PublicTeamRow = {
   id: string
@@ -14,29 +15,47 @@ export type PublicTeamRow = {
   logo_url?: string | null
   avatar_url?: string | null
   season_id?: string | null
+  is_bye?: boolean
 }
 
 /**
  * Load teams for public pages (/teams, homepage).
- * Prefer current season; fall back to all teams if the season filter returns none.
+ * scope "current" keeps the draft season (homepage). scope "live" follows the
+ * shared standings resolver and does not fall back to every season's teams.
  */
 export async function getPublicLeagueTeams(
-  supabase: SupabaseClient
-): Promise<{ teams: PublicTeamRow[]; seasonId: string | null; seasonName: string | null }> {
-  const seasonId = await getCurrentSeasonIdWithFallback(supabase)
-
+  supabase: SupabaseClient,
+  options?: { requestedSeason?: string | null; scope?: "current" | "live" },
+): Promise<{
+  teams: PublicTeamRow[]
+  seasonId: string | null
+  seasonName: string | null
+  seasons: StandingsSeasonRow[]
+}> {
+  const scope = options?.scope ?? "current"
+  let seasonId: string | null = null
   let seasonName: string | null = null
-  if (seasonId) {
-    const { data: season } = await supabase
-      .from("seasons")
-      .select("name")
-      .eq("id", seasonId)
-      .maybeSingle()
+  let seasons: StandingsSeasonRow[] = []
+
+  if (scope === "live") {
+    seasons = await listStandingsSeasons(supabase)
+    const season = pickStandingsSeason(seasons, options?.requestedSeason)
+    seasonId = season?.id ?? null
     seasonName = season?.name ?? null
+  } else {
+    seasonId = await getCurrentSeasonIdWithFallback(supabase)
+    if (seasonId) {
+      const { data: season } = await supabase
+        .from("seasons")
+        .select("name")
+        .eq("id", seasonId)
+        .maybeSingle()
+      seasonName = season?.name ?? null
+    }
   }
 
   const select =
-    "id, name, coach_name, division, conference, wins, losses, differential, strength_of_schedule, logo_url, avatar_url, season_id"
+    "id, name, coach_name, division, conference, wins, losses, differential, strength_of_schedule, logo_url, avatar_url, season_id, is_bye"
 
   const load = async (filterSeason: boolean) => {
     let q = supabase.from("teams").select(select).order("wins", { ascending: false }).order("name")
@@ -53,7 +72,7 @@ export async function getPublicLeagueTeams(
     throw error
   }
 
-  if ((!teams || teams.length === 0) && seasonId) {
+  if (scope !== "live" && (!teams || teams.length === 0) && seasonId) {
     const fallback = await load(false)
     if (fallback.error) throw fallback.error
     teams = fallback.data
@@ -63,5 +82,6 @@ export async function getPublicLeagueTeams(
     teams: (teams ?? []) as PublicTeamRow[],
     seasonId: seasonId ?? null,
     seasonName,
+    seasons,
   }
 }

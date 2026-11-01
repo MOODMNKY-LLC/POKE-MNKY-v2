@@ -30,6 +30,15 @@ export const getMatchesQuerySchema = z.object({
     .refine((s) => s === undefined || z.string().uuid().safeParse(s).success, {
       message: "season_id must be a uuid",
     }),
+  /** Season uuid, season key, or name. Resolved by the shared live-season picker. */
+  season: z
+    .string()
+    .max(200)
+    .optional()
+    .transform((s) => {
+      if (s === undefined || s.trim() === "") return undefined
+      return s.trim()
+    }),
 })
 
 export type GetMatchesQuery = z.infer<typeof getMatchesQuerySchema>

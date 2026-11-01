@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { listStandingsSeasons, pickStandingsSeason } from "@/lib/standings-season"
+import { SeasonSwitcher } from "@/components/league/season-switcher"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { BracketMatch } from "@/components/bracket-match"
@@ -21,6 +22,7 @@ type PlayoffMatch = {
   team2_id: string
   team1_score: number
   team2_score: number
+  outcome_type: string | null
   team1?: NamedSide
   team2?: NamedSide
   winner: NamedSide | null
@@ -62,20 +64,26 @@ function toPlayoffMatch(value: unknown): PlayoffMatch | null {
     team2_id: readId(row.team2_id),
     team1_score: readScore(row.team1_score),
     team2_score: readScore(row.team2_score),
+    outcome_type: typeof row.outcome_type === "string" ? row.outcome_type : null,
     team1: readSide(row.team1) ?? undefined,
     team2: readSide(row.team2) ?? undefined,
     winner: readSide(row.winner),
   }
 }
 
-export default async function PlayoffsPage() {
+export default async function PlayoffsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ season?: string }>
+}) {
+  const { season: requestedSeason } = await searchParams
   const supabase = await createClient()
 
   const seasons = await listStandingsSeasons(supabase).catch((error: unknown) => {
     console.error("[playoffs] season list error:", error)
     return []
   })
-  const season = pickStandingsSeason(seasons, null)
+  const season = pickStandingsSeason(seasons, requestedSeason)
 
   const { data: playoffMatches } = season
     ? await supabase
@@ -132,6 +140,14 @@ export default async function PlayoffsPage() {
           <p className="mt-2 text-lg text-muted-foreground">
             {seasonLabel} — road to the championship
           </p>
+          <div className="mt-4 flex justify-center">
+            <SeasonSwitcher
+              seasons={seasons}
+              selectedId={season?.id ?? null}
+              action="/playoffs"
+              inputId="playoffs-season"
+            />
+          </div>
         </div>
       </div>
 
@@ -184,6 +200,7 @@ export default async function PlayoffsPage() {
                                 team1_id: match.team1_id,
                                 team2_id: match.team2_id,
                               }}
+                              bye={match.outcome_type === "bye"}
                             />
                           ))}
                           {roundMatches.length === 0
