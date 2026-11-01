@@ -9,6 +9,7 @@ import {
   internalError,
 } from "@/lib/api-error"
 import { enqueuePendingTransaction } from "@/lib/league-engine/enqueue-pending-transaction"
+import { teamWriteDeniedResponse } from "@/lib/team-write-auth"
 
 /**
  * CHATGPT-V3: Free agency moves are scheduled for 12:00 AM Monday EST.
@@ -39,6 +40,9 @@ export async function POST(request: NextRequest) {
       added_pokemon_id,
       dropped_pokemon_id,
     } = validationResult.data
+
+    const teamDenied = await teamWriteDeniedResponse(user.id, team_id)
+    if (teamDenied) return teamDenied
 
     const freeAgency = new FreeAgencySystem()
     const validation = await freeAgency.validateTransaction(
