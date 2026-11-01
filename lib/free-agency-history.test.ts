@@ -62,7 +62,7 @@ describe("sheet free-agency rows", () => {
 
 describe("public free-agency view", () => {
   it("does not project actor discord or user ids", () => {
-    const sql = readFileSync("supabase/migrations/20261101180000_public_free_agency_view.sql", "utf8")
+    const sql = readFileSync("supabase/migrations/20261102000000_public_free_agency_view.sql", "utf8")
     const select = sql.slice(sql.toLowerCase().indexOf("select"), sql.toLowerCase().indexOf("from"))
     expect(select).not.toMatch(/actor_/)
     expect(select).toMatch(/added_name/)
