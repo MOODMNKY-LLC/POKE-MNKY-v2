@@ -8,6 +8,7 @@ import type { TeamRankInput } from "@/lib/playoff-seeding"
 import {
   SHEET_REGULAR_SEASON_WEEKS,
   applyCompletedMatch,
+  applyMissingByeWeekLosses,
   type SideRecord,
   type StreakLetter,
 } from "@/lib/sheet-standings"
@@ -49,6 +50,40 @@ function inRegularSeason(match: RegularSeasonMatchRow, regularSeasonWeeks: numbe
   return match.week >= 1 && match.week <= regularSeasonWeeks
 }
 
+function recordWeek(
+  lettersByWeek: Map<string, Map<number, StreakLetter[]>>,
+  weeksPlayed: Map<string, Set<number>>,
+  teamId: string,
+  week: number,
+  letter: StreakLetter,
+): void {
+  const byWeek = lettersByWeek.get(teamId)
+  const played = weeksPlayed.get(teamId)
+  if (!byWeek || !played) return
+  const weekLetters = byWeek.get(week) ?? []
+  weekLetters.push(letter)
+  byWeek.set(week, weekLetters)
+  played.add(week)
+}
+
+function lettersForTeam(
+  byWeek: Map<number, StreakLetter[]> | undefined,
+  isBye: boolean,
+  regularSeasonWeeks: number,
+): StreakLetter[] {
+  if (!isBye) {
+    const weeks = [...(byWeek?.keys() ?? [])].sort((a, b) => a - b)
+    return weeks.flatMap((week) => byWeek?.get(week) ?? [])
+  }
+  const letters: StreakLetter[] = []
+  for (let week = 1; week <= regularSeasonWeeks; week += 1) {
+    const weekLetters = byWeek?.get(week)
+    if (weekLetters && weekLetters.length > 0) letters.push(...weekLetters)
+    else letters.push("L")
+  }
+  return letters
+}
+
 export function buildTeamRankInputsFromMatches(
   teams: TeamMeta[],
   matches: RegularSeasonMatchRow[],
@@ -64,10 +99,12 @@ export function buildTeamRankInputsFromMatches(
     record.set(team.id, { wins: 0, losses: 0, differential: 0 })
   }
 
-  const letters = new Map<string, StreakLetter[]>()
+  const lettersByWeek = new Map<string, Map<number, StreakLetter[]>>()
+  const weeksPlayed = new Map<string, Set<number>>()
   const opponents = new Map<string, string[]>()
   for (const team of teams) {
-    letters.set(team.id, [])
+    lettersByWeek.set(team.id, new Map())
+    weeksPlayed.set(team.id, new Set())
     opponents.set(team.id, [])
   }
 
@@ -85,11 +122,18 @@ export function buildTeamRankInputsFromMatches(
     const bothLose = match.outcome_type === "double_forfeit" || match.winner_id == null
     const team1Letter: StreakLetter = !bothLose && match.winner_id === match.team1_id ? "W" : "L"
     const team2Letter: StreakLetter = !bothLose && match.winner_id === match.team2_id ? "W" : "L"
-    letters.get(match.team1_id)?.push(team1Letter)
-    letters.get(match.team2_id)?.push(team2Letter)
+    recordWeek(lettersByWeek, weeksPlayed, match.team1_id, match.week, team1Letter)
+    recordWeek(lettersByWeek, weeksPlayed, match.team2_id, match.week, team2Letter)
     opponents.get(match.team1_id)?.push(match.team2_id)
     opponents.get(match.team2_id)?.push(match.team1_id)
   }
+
+  applyMissingByeWeekLosses(
+    record,
+    weeksPlayed,
+    teams.filter((team) => team.isBye).map((team) => team.id),
+    regularSeasonWeeks,
+  )
 
   const winPct = (teamId: string): number => {
     const row = record.get(teamId)
@@ -117,7 +161,11 @@ export function buildTeamRankInputsFromMatches(
 
   return teams.map((team) => {
     const row = record.get(team.id) ?? { wins: 0, losses: 0, differential: 0 }
-    const teamLetters = letters.get(team.id) ?? []
+    const teamLetters = lettersForTeam(
+      lettersByWeek.get(team.id),
+      team.isBye === true,
+      regularSeasonWeeks,
+    )
     const streakLetter: StreakLetter =
       teamLetters.length > 0 ? teamLetters[teamLetters.length - 1]! : "W"
     let streakLen = 0

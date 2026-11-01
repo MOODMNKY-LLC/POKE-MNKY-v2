@@ -126,6 +126,45 @@ describe("teamStatsFromSchedules", () => {
     },
   ]
 
+  it("counts each unplayed regular week as a loss for a bye team and leaves real teams alone", () => {
+    const stats = teamStatsFromSchedules([
+      {
+        name: "Alpha",
+        coach: "Ann",
+        teamNumber: 1,
+        division: "East",
+        schedule: [{ week: 1, opp: "Beta", result: "W", kills: 6 }],
+      },
+      {
+        name: "Beta",
+        coach: "Bob",
+        teamNumber: 2,
+        division: "East",
+        schedule: [{ week: 1, opp: "Alpha", result: "L", kills: 4 }],
+      },
+      {
+        name: "Bye 1",
+        coach: "",
+        teamNumber: 11,
+        division: "West",
+        isBye: true,
+        schedule: [],
+      },
+    ])
+    const alpha = stats.find((team) => team.team === "Alpha")!
+    const bye = stats.find((team) => team.team === "Bye 1")!
+    expect(alpha).toMatchObject({ wins: 1, losses: 0, differential: 2 })
+    expect(bye).toMatchObject({
+      wins: 0,
+      losses: 8,
+      differential: 0,
+      gp: 8,
+      streakLetter: "L",
+      streakLen: 8,
+      sos: 0,
+    })
+  })
+
   it("uses opponent kills, counts F and DF as losses, and averages distinct opponents once", () => {
     const stats = teamStatsFromSchedules(teams)
     const alpha = stats.find((team) => team.team === "Alpha")!
@@ -138,6 +177,14 @@ describe("teamStatsFromSchedules", () => {
     expect(alpha.streakLetter).toBe("L")
     expect(alpha.streakLen).toBe(1)
     expect(alpha.sos).toBeCloseTo((beta.wins / beta.gp + gamma.wins / gamma.gp + 0) / 3)
+    const delta = stats.find((team) => team.team === "Delta")!
+    expect(delta.wins).toBe(0)
+    expect(delta.losses).toBe(8)
+    expect(delta.differential).toBe(0)
+    expect(delta.streakLetter).toBe("L")
+    expect(delta.streakLen).toBe(8)
+    expect(alpha.wins).toBe(2)
+    expect(alpha.losses).toBe(2)
     expect(beta.wins).toBe(1)
     expect(beta.losses).toBe(2)
     expect(gamma.wins).toBe(1)
