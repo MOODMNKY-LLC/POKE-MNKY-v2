@@ -101,7 +101,12 @@ export async function POST(request: NextRequest) {
       if (!error && match) inserted.push(match.id)
     }
 
-    await recordSimulationRun(season.id, "playoffs", { playoff_format: `top${topN}` })
+    const playoffFormat = topN === 8 ? "top8" : topN === 4 ? "top4" : undefined
+    await recordSimulationRun(
+      season.id,
+      "playoffs",
+      playoffFormat ? { playoff_format: playoffFormat } : {}
+    )
 
     return NextResponse.json({
       success: true,

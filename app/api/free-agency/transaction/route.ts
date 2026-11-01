@@ -32,13 +32,13 @@ export async function POST(request: NextRequest) {
         {
           ok: false,
           error: "Validation failed",
-          details: validationResult.error.errors,
+          details: validationResult.error.issues,
         },
         { status: 400 }
       )
     }
 
-    const { season_id, team_id, drop_pokemon_id, add_pokemon_id, notes } =
+    const { season_id, team_id, dropped_pokemon_id, added_pokemon_id, notes } =
       validationResult.data
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -63,8 +63,8 @@ export async function POST(request: NextRequest) {
     const { data, error } = await supabase.rpc("rpc_free_agency_transaction", {
       p_season_id: season_id,
       p_team_id: team_id,
-      p_drop_pokemon_id: drop_pokemon_id,
-      p_add_pokemon_id: add_pokemon_id,
+      p_drop_pokemon_id: dropped_pokemon_id ?? null,
+      p_add_pokemon_id: added_pokemon_id ?? null,
       p_notes: notes || null,
     })
 

@@ -1,7 +1,6 @@
 // Free Agency Agent API Route - Updated for useChat compatibility
-import { streamText } from 'ai'
+import { streamText, convertToModelMessages, stepCountIs } from 'ai'
 import { openai } from '@ai-sdk/openai'
-import { convertToModelMessages } from 'ai'
 import { createServerClient } from '@/lib/supabase/server'
 import { AI_MODELS } from '@/lib/openai-client'
 import {
@@ -60,7 +59,7 @@ Help coaches with:
 Use MCP tools to access team rosters, available Pokémon, and draft pool data. Provide specific, actionable recommendations with clear reasoning.`
 
     // Convert messages to model format
-    const modelMessages = convertToModelMessages(messages || [])
+    const modelMessages = await convertToModelMessages(messages || [])
 
     // Use selected model or default
     const selectedModel = model || AI_MODELS.STRATEGY_COACH
@@ -87,11 +86,11 @@ Use MCP tools to access team rosters, available Pokémon, and draft pool data. P
       system: systemMessage,
       messages: modelMessages,
       tools,
-      maxSteps: mcpEnabled ? 5 : 1,
+      stopWhen: stepCountIs(mcpEnabled ? 5 : 1),
     })
 
     // Return streaming response compatible with useChat
-    return result.toDataStreamResponse()
+    return result.toUIMessageStreamResponse()
   } catch (error) {
     console.error('[Free Agency] Error:', error)
     return new Response(
