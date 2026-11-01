@@ -14,6 +14,13 @@ describe("playoff-rounds", () => {
     expect(normalizePlayoffRound("round_1")).toBe(PLAYOFF_ROUND_KEYS.ROUND_1)
   })
 
+  it("accepts sheet round labels", () => {
+    expect(normalizePlayoffRound("Round 1")).toBe(PLAYOFF_ROUND_KEYS.ROUND_1)
+    expect(normalizePlayoffRound("Quarterfinal")).toBe(PLAYOFF_ROUND_KEYS.QUARTERFINALS)
+    expect(normalizePlayoffRound("Semifinal")).toBe(PLAYOFF_ROUND_KEYS.SEMIFINALS)
+    expect(normalizePlayoffRound("Final")).toBe(PLAYOFF_ROUND_KEYS.FINALS)
+  })
+
   it("returns display labels", () => {
     expect(getPlayoffRoundLabel(PLAYOFF_ROUND_KEYS.ROUND_1)).toBe("Playoffs Round 1")
     expect(getPlayoffRoundLabel(PLAYOFF_ROUND_KEYS.FINALS)).toBe("Finals")

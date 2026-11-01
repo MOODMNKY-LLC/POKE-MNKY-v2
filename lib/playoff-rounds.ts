@@ -42,11 +42,28 @@ const LEGACY_NUMERIC_MAP: Record<string, PlayoffRoundKey> = {
   "4": PLAYOFF_ROUND_KEYS.FINALS,
 }
 
+/** Sheet labels the Season 7 importer may store in matches.playoff_round. */
+const SHEET_ROUND_LABELS: Record<string, PlayoffRoundKey> = {
+  "round 1": PLAYOFF_ROUND_KEYS.ROUND_1,
+  "playoffs round 1": PLAYOFF_ROUND_KEYS.ROUND_1,
+  quarterfinal: PLAYOFF_ROUND_KEYS.QUARTERFINALS,
+  "quarter final": PLAYOFF_ROUND_KEYS.QUARTERFINALS,
+  "quarter finals": PLAYOFF_ROUND_KEYS.QUARTERFINALS,
+  quarterfinals: PLAYOFF_ROUND_KEYS.QUARTERFINALS,
+  semifinal: PLAYOFF_ROUND_KEYS.SEMIFINALS,
+  "semi final": PLAYOFF_ROUND_KEYS.SEMIFINALS,
+  "semi finals": PLAYOFF_ROUND_KEYS.SEMIFINALS,
+  semifinals: PLAYOFF_ROUND_KEYS.SEMIFINALS,
+  final: PLAYOFF_ROUND_KEYS.FINALS,
+  finals: PLAYOFF_ROUND_KEYS.FINALS,
+}
+
 export function normalizePlayoffRound(value: string | number | null | undefined): PlayoffRoundKey | null {
   if (value == null || value === "") return null
   const raw = String(value).trim().toLowerCase()
   if (raw in PLAYOFF_ROUND_LABELS) return raw as PlayoffRoundKey
   if (raw in LEGACY_NUMERIC_MAP) return LEGACY_NUMERIC_MAP[raw]
+  if (raw in SHEET_ROUND_LABELS) return SHEET_ROUND_LABELS[raw]
   return null
 }
 

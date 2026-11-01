@@ -18,6 +18,7 @@ import {
   isBenignSheetSyncMessage,
   safeSheetHeaderValues,
 } from "@/lib/google-sheets-sheet-utils"
+import { signedMatchDifferential } from "@/lib/sheet-standings"
 
 export interface SyncResult {
   success: boolean
@@ -809,7 +810,7 @@ async function syncMatches(sheet: any, supabase: any, mapping: SheetMapping): Pr
       if (team1Score > team2Score) winnerId = team1.id
       else if (team2Score > team1Score) winnerId = team2.id
 
-      const differential = Math.abs(team1Score - team2Score)
+      const differential = signedMatchDifferential(team1Score, team2Score)
 
       // Upsert match
       const { error: matchError } = await supabase.from("matches").upsert(

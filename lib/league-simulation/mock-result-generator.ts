@@ -1,7 +1,10 @@
 /**
  * Mock Result Generator
- * Simulates match outcomes (random or configurable)
+ * Simulates match outcomes (random or configurable).
+ * differential is team1_score - team2_score.
  */
+
+import { signedMatchDifferential } from "@/lib/sheet-standings"
 
 export type ResultStrategy = "random" | "favor_higher_seed" | "favor_lower_seed"
 
@@ -39,7 +42,7 @@ export function generateMockResult(
     winner_id === team1_id
       ? [winnerScore, loserScore]
       : [loserScore, winnerScore]
-  const differential = Math.abs(team1_score - team2_score)
+  const differential = signedMatchDifferential(team1_score, team2_score)
 
   return {
     winner_id,

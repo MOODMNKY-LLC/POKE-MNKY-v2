@@ -9,10 +9,30 @@ import { NumberTicker } from "@/components/ui/number-ticker"
 import { StandingsTeamTable } from "@/components/league/standings-team-table"
 import { StatMetricCard } from "@/components/league/stat-metric-card"
 import type { Team } from "@/lib/types"
+import { compareDivision, type RankableTeam } from "@/lib/sheet-standings"
+import { listStandingsSeasons, pickStandingsSeason } from "@/lib/standings-season"
 import Link from "next/link"
 import type { ReactNode } from "react"
 import { BarChart3, Crown, Swords, Trophy, Users } from "lucide-react"
 import { cn } from "@/lib/utils"
+
+function toRankable(team: Team): RankableTeam {
+  return {
+    team: team.name,
+    coach: team.coach_name ?? "",
+    gp: team.wins + team.losses,
+    wins: team.wins,
+    losses: team.losses,
+    differential: team.differential,
+    sos: team.strength_of_schedule ?? 0,
+    streakLetter: team.streak_type === "L" ? "L" : "W",
+    streakLen: team.current_streak ?? 0,
+  }
+}
+
+function sortDivision(teams: Team[]): Team[] {
+  return [...teams].sort((a, b) => compareDivision(toRankable(a), toRankable(b)))
+}
 
 function computeStandingsSummary(teams: Team[]) {
   if (teams.length === 0) {
@@ -63,19 +83,24 @@ function StandingsCard({
   )
 }
 
-export default async function StandingsPage() {
+export default async function StandingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ season?: string }>
+}) {
+  const { season: requestedSeason } = await searchParams
   const supabase = await createClient()
-  const { data: season } = await supabase
-    .from("seasons")
-    .select("id, name")
-    .eq("is_current", true)
-    .single()
+  const seasons = await listStandingsSeasons(supabase).catch((error: unknown) => {
+    console.error("[standings] season list error:", error)
+    return []
+  })
+  const season = pickStandingsSeason(seasons, requestedSeason)
 
     const { data: standingsRows, error: standingsError } = season
     ? await supabase
         .from("v_regular_team_rankings")
         .select(
-          "team_id, team_name, conference, division, wins, losses, differential, sos, league_rank"
+          "team_id, team_name, conference, division, wins, losses, differential, sos, league_rank, streak_type, streak_len, coach_name"
         )
         .eq("season_id", season.id)
         .order("league_rank", { ascending: true })
@@ -91,7 +116,7 @@ export default async function StandingsPage() {
       ? await supabase
           .from("teams")
           .select(
-            "id, coach_name, regular_wins, regular_losses, playoff_wins, playoff_losses, wins, losses, differential"
+            "id, coach_name, regular_wins, regular_losses, playoff_wins, playoff_losses, wins, losses, differential, streak_type, current_streak"
           )
           .in("id", teamIds)
       : { data: [] }
@@ -100,10 +125,16 @@ export default async function StandingsPage() {
 
   const teams: Team[] = (standingsRows ?? []).map((row) => {
     const meta = metaById.get(row.team_id)
+    const streakLen = Number(row.streak_len ?? meta?.current_streak ?? 0)
+    const streakType = row.streak_type === "W" || row.streak_type === "L"
+      ? row.streak_type
+      : meta?.streak_type === "W" || meta?.streak_type === "L"
+        ? meta.streak_type
+        : null
     return {
       id: row.team_id,
       name: row.team_name,
-      coach_name: meta?.coach_name ?? "",
+      coach_name: row.coach_name ?? meta?.coach_name ?? "",
       division: row.division ?? "",
       conference: row.conference ?? "",
       wins: row.wins,
@@ -111,6 +142,8 @@ export default async function StandingsPage() {
       differential: row.differential,
       strength_of_schedule: row.sos ?? 0.5,
       league_rank: row.league_rank,
+      streak_type: streakLen > 0 ? streakType : null,
+      current_streak: streakLen,
       regular_wins: row.wins,
       regular_losses: row.losses,
       playoff_wins: meta?.playoff_wins ?? 0,
@@ -125,10 +158,10 @@ export default async function StandingsPage() {
   const leonTeams = teams.filter((t) => t.conference === "Leon")
 
   const divisions = {
-    Kanto: teams.filter((t) => t.division === "Kanto"),
-    Johto: teams.filter((t) => t.division === "Johto"),
-    Hoenn: teams.filter((t) => t.division === "Hoenn"),
-    Sinnoh: teams.filter((t) => t.division === "Sinnoh"),
+    Kanto: sortDivision(teams.filter((t) => t.division === "Kanto")),
+    Johto: sortDivision(teams.filter((t) => t.division === "Johto")),
+    Hoenn: sortDivision(teams.filter((t) => t.division === "Hoenn")),
+    Sinnoh: sortDivision(teams.filter((t) => t.division === "Sinnoh")),
   }
 
   const seasonLabel = season?.name ?? "Current Season"
@@ -145,6 +178,32 @@ export default async function StandingsPage() {
                   <Trophy className="h-3 w-3" aria-hidden />
                   {seasonLabel}
                 </Badge>
+                {seasons.length > 0 ? (
+                  <form action="/standings" className="flex items-center gap-2">
+                    <label htmlFor="standings-season" className="sr-only">
+                      Season
+                    </label>
+                    <select
+                      id="standings-season"
+                      name="season"
+                      defaultValue={season?.id ?? ""}
+                      className="h-8 rounded-md border border-border bg-background px-2 text-sm"
+                    >
+                      {seasons.map((option) => (
+                        <option key={option.id} value={option.id}>
+                          {option.name}
+                          {option.is_current ? " (current)" : ""}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="submit"
+                      className="h-8 rounded-md border border-border bg-background px-3 text-sm font-medium hover:bg-muted"
+                    >
+                      Show
+                    </button>
+                  </form>
+                ) : null}
                 {summary.teamCount > 0 ? (
                   <Badge variant="outline">{summary.teamCount} teams</Badge>
                 ) : null}
@@ -153,8 +212,8 @@ export default async function StandingsPage() {
                 League Standings
               </h1>
               <p className="mt-2 text-base text-muted-foreground sm:text-lg">
-                Regular-season rankings, records, and strength of schedule across conferences and
-                divisions.
+                Regular-season rankings follow the league sheet: games played, record, differential,
+                unweighted strength of schedule, and the last result.
               </p>
               {summary.leader ? (
                 <p className="mt-4 text-sm text-muted-foreground">
@@ -203,7 +262,7 @@ export default async function StandingsPage() {
                 <p className="mt-1 text-2xl font-bold tabular-nums tracking-tight">
                   <NumberTicker value={summary.teamCount} />
                 </p>
-                <p className="mt-1 text-xs text-muted-foreground">Active in current season</p>
+                <p className="mt-1 text-xs text-muted-foreground">In {seasonLabel}</p>
               </div>
             </CardContent>
           </Card>
@@ -302,7 +361,7 @@ export default async function StandingsPage() {
           <TabsContent value="all">
             <StandingsCard
               title="Overall Standings"
-              description="Regular season only — sorted by league rank (W/L, diff, H2H, streak, SOS)."
+              description="Regular season only — games played, wins, losses, differential, strength of schedule, last result, name, then coach. Bye teams are listed after the field."
               teams={teams}
             />
           </TabsContent>

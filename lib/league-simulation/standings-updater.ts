@@ -1,15 +1,14 @@
 /**
  * Standings Updater
  * Recalculates team regular, playoff, and season-total stats from completed matches.
+ * Differential is team1_score - team2_score. A completed match with no winner
+ * (including double forfeits) is a loss for both teams.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js"
+import { applyCompletedMatch, type SideRecord } from "@/lib/sheet-standings"
 
-type TeamStats = {
-  wins: number
-  losses: number
-  differential: number
-}
+type TeamStats = SideRecord
 
 function emptyStats(): TeamStats {
   return { wins: 0, losses: 0, differential: 0 }
@@ -24,36 +23,18 @@ function applyMatch(
     team1_score?: number | null
     team2_score?: number | null
     differential?: number | null
+    outcome_type?: string | null
   }
 ) {
-  const t1 = match.team1_id
-  const t2 = match.team2_id
-  const winner = match.winner_id
-  const diff =
-    match.differential ??
-    Math.abs((match.team1_score ?? 0) - (match.team2_score ?? 0))
-
-  if (!teamStatsHas(stats, t1)) stats.set(t1, emptyStats())
-  if (!teamStatsHas(stats, t2)) stats.set(t2, emptyStats())
-
-  const s1 = stats.get(t1)!
-  const s2 = stats.get(t2)!
-
-  if (winner === t1) {
-    s1.wins++
-    s2.losses++
-    s1.differential += diff
-    s2.differential -= diff
-  } else if (winner === t2) {
-    s2.wins++
-    s1.losses++
-    s2.differential += diff
-    s1.differential -= diff
-  }
-}
-
-function teamStatsHas(map: Map<string, TeamStats>, teamId: string): boolean {
-  return map.has(teamId)
+  applyCompletedMatch(stats, {
+    team1Id: match.team1_id,
+    team2Id: match.team2_id,
+    winnerId: match.winner_id,
+    team1Score: match.team1_score,
+    team2Score: match.team2_score,
+    differential: match.differential,
+    outcomeType: match.outcome_type,
+  })
 }
 
 export async function updateStandingsFromMatches(
@@ -63,7 +44,7 @@ export async function updateStandingsFromMatches(
   const { data: matches, error: matchError } = await supabase
     .from("matches")
     .select(
-      "team1_id, team2_id, winner_id, team1_score, team2_score, differential, is_playoff"
+      "team1_id, team2_id, winner_id, team1_score, team2_score, differential, is_playoff, outcome_type"
     )
     .eq("season_id", seasonId)
     .eq("status", "completed")

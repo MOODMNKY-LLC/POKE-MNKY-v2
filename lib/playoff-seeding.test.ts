@@ -7,6 +7,10 @@ import {
   rankTeams,
   type TeamRankInput,
 } from "@/lib/playoff-seeding"
+import {
+  SEASON_7_SEED_ORDER,
+  SEASON_7_STANDINGS,
+} from "@/lib/sheet-standings-season7"
 
 function team(
   id: string,
@@ -27,7 +31,7 @@ function team(
 }
 
 describe("compareTeamRank", () => {
-  it("orders by wins, losses, differential, streak, sos, then name", () => {
+  it("orders by games played, wins, losses, differential, sos, streak, then name", () => {
     expect(
       compareTeamRank(
         team("a", { teamName: "Alpha", wins: 8, losses: 2 }),
@@ -40,7 +44,7 @@ describe("compareTeamRank", () => {
         team("a", { teamName: "Alpha", wins: 8, losses: 2, differential: 10 }),
         team("b", { teamName: "Beta", wins: 8, losses: 3, differential: 20 })
       )
-    ).toBeLessThan(0)
+    ).toBeGreaterThan(0)
 
     expect(
       compareTeamRank(
@@ -52,6 +56,20 @@ describe("compareTeamRank", () => {
           differential: 10,
           activeWinStreak: 1,
           sos: 0.9,
+        })
+      )
+    ).toBeGreaterThan(0)
+
+    expect(
+      compareTeamRank(
+        team("a", { teamName: "Alpha", wins: 8, losses: 2, differential: 10, activeWinStreak: 3, sos: 0.4 }),
+        team("b", {
+          teamName: "Beta",
+          wins: 8,
+          losses: 2,
+          differential: 10,
+          activeWinStreak: 1,
+          sos: 0.4,
         })
       )
     ).toBeLessThan(0)
@@ -69,6 +87,15 @@ describe("compareTeamRank", () => {
         team("b", { teamName: "Beta", wins: 5, losses: 5 })
       )
     ).toBeLessThan(0)
+  })
+
+  it("ranks bye placeholders after teams with a record", () => {
+    expect(
+      compareTeamRank(
+        team("bye", { teamName: "Bye 1", isBye: true, wins: 8, losses: 0 }),
+        team("real", { teamName: "Alpha", wins: 1, losses: 7 })
+      )
+    ).toBeGreaterThan(0)
   })
 })
 
@@ -132,6 +159,45 @@ describe("buildPlayoffSeeding", () => {
     for (const bye of result.round1ByeTeams) {
       expect(bye.seed).toBeLessThanOrEqual(4)
     }
+  })
+
+  it("seeds Season 7 like the sheet, counting inactive bye teams", () => {
+    const teams = SEASON_7_STANDINGS.map((row) =>
+      team(row.team, {
+        teamName: row.team,
+        coachName: row.coach,
+        conference: row.conference,
+        division: row.division,
+        wins: row.wins,
+        losses: row.losses,
+        differential: row.differential,
+        sos: row.sos,
+        streakLetter: row.streakLetter,
+        streakLen: row.streakLen,
+        activeWinStreak: row.streakLetter === "L" ? -row.streakLen : row.streakLen,
+        isBye: row.isBye,
+        gamesPlayed: row.gp,
+      })
+    )
+
+    const result = buildPlayoffSeeding(teams)
+
+    expect(result.metadata.divisionWinnerByes).toBe(true)
+    expect(result.seeds.map((seed) => seed.teamName)).toEqual(SEASON_7_SEED_ORDER)
+    expect(result.round1ByeTeams.map((seed) => seed.teamName)).toEqual([
+      "Kalamazoo Kangaskhans",
+      "Leicester Lycanrocs",
+      "Saint Charles Sliders",
+      "Boise State Mudsdales",
+    ])
+    expect(result.round1Matches.map((match) => [match.seed1, match.seed2])).toEqual([
+      [5, 12],
+      [6, 11],
+      [7, 10],
+      [8, 9],
+    ])
+    expect(result.seeds.find((seed) => seed.teamName === "Bye 1")?.seed).toBe(11)
+    expect(result.seeds.find((seed) => seed.teamName === "Bye 2")?.round1Bye).toBe(false)
   })
 
   it("never exceeds 16 playoff teams", () => {

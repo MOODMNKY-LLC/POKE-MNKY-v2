@@ -86,7 +86,10 @@ export function AdminPlayoffsPanel() {
   const [advancing, setAdvancing] = useState(false)
   const [previewOpen, setPreviewOpen] = useState(false)
   const [advancePreview, setAdvancePreview] = useState<AdvancementPreview | null>(null)
-  const [generatePreview, setGeneratePreview] = useState<{ seeding: { seeds: unknown[]; eliminated: unknown[] } } | null>(null)
+  const [generatePreview, setGeneratePreview] = useState<{
+    existingSeedCount?: number
+    seeding: { seeds: unknown[]; eliminated: unknown[] }
+  } | null>(null)
   const [supabase, setSupabase] = useState<ReturnType<typeof createBrowserClient> | null>(null)
   const { toast } = useToast()
 
@@ -165,7 +168,10 @@ export function AdminPlayoffsPanel() {
       const res = await fetch(`/api/admin/seasons/${seasonId}/generate-playoffs`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ replace_existing: true }),
+        body: JSON.stringify({
+          replace_existing: true,
+          confirm_replace_seeds: (generatePreview?.existingSeedCount ?? 0) > 0,
+        }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Failed to generate playoffs")
@@ -434,7 +440,9 @@ export function AdminPlayoffsPanel() {
             <DialogTitle>Confirm playoff seeding</DialogTitle>
             <DialogDescription>
               Review seeds before creating {getPlayoffRoundLabel(PLAYOFF_ROUND_KEYS.ROUND_1)} matches.
-              This replaces existing playoff matches for this season.
+              {(generatePreview?.existingSeedCount ?? 0) > 0
+                ? ` This season already has ${generatePreview?.existingSeedCount} playoff seeds. Generating deletes and rewrites them, including seeds imported from the sheet.`
+                : " This replaces existing playoff matches for this season."}
             </DialogDescription>
           </DialogHeader>
           {generatePreview?.seeding ? (
@@ -457,7 +465,9 @@ export function AdminPlayoffsPanel() {
               Cancel
             </Button>
             <Button onClick={handleConfirmGenerate} disabled={generating}>
-              Generate matches
+              {(generatePreview?.existingSeedCount ?? 0) > 0
+                ? "Replace existing seeds"
+                : "Generate matches"}
             </Button>
           </DialogFooter>
         </DialogContent>

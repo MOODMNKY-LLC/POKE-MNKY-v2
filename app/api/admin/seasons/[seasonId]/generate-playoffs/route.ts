@@ -1,7 +1,9 @@
 /**
  * POST /api/admin/seasons/[seasonId]/generate-playoffs
  * Seed playoffs from regular-season results and create round-1 matches.
- * Body: { replace_existing?: boolean, dry_run?: boolean, require_regular_complete?: boolean }
+ * Body: { replace_existing?: boolean, dry_run?: boolean, require_regular_complete?: boolean, confirm_replace_seeds?: boolean }
+ * Refuses to delete or rewrite playoff_seeds that already exist unless confirm_replace_seeds is true.
+ * Inactive teams with is_bye are included in the field.
  */
 
 import { NextRequest, NextResponse } from "next/server"
@@ -105,25 +107,28 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     const { data: teamRows, error: teamsError } = await service
       .from("teams")
-      .select("id, name, conference, division, is_active")
+      .select("id, name, conference, division, is_active, is_bye, coach_name")
       .eq("season_id", seasonId)
-      .eq("is_active", true)
       .order("name")
 
     if (teamsError) {
       return NextResponse.json({ error: teamsError.message }, { status: 500 })
     }
 
-    const teams = (teamRows ?? []).map((t) => ({
-      id: t.id,
-      name: t.name,
-      conference: t.conference ?? "",
-      division: t.division ?? "",
-    }))
+    const teams = (teamRows ?? [])
+      .filter((t) => t.is_active !== false || t.is_bye === true)
+      .map((t) => ({
+        id: t.id,
+        name: t.name,
+        conference: t.conference ?? "",
+        division: t.division ?? "",
+        coachName: t.coach_name ?? "",
+        isBye: t.is_bye === true,
+      }))
 
     if (teams.length < 2) {
       return NextResponse.json(
-        { error: "At least 2 active teams are required for playoffs" },
+        { error: "At least 2 teams (active or bye placeholders) are required for playoffs" },
         { status: 400 }
       )
     }
@@ -131,7 +136,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const { data: matchRows, error: matchesError } = await service
       .from("matches")
       .select(
-        "team1_id, team2_id, winner_id, week, status, team1_score, team2_score, differential"
+        "team1_id, team2_id, winner_id, week, status, team1_score, team2_score, differential, outcome_type, is_playoff"
       )
       .eq("season_id", seasonId)
       .eq("is_playoff", false)
@@ -140,10 +145,23 @@ export async function POST(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: matchesError.message }, { status: 500 })
     }
 
-    const rankInputs = buildTeamRankInputsFromMatches(teams, matchRows ?? [])
+    const rankInputs = buildTeamRankInputsFromMatches(teams, matchRows ?? [], {
+      regularSeasonWeeks: season.regular_season_weeks ?? 8,
+    })
     const seeding = buildPlayoffSeeding(rankInputs)
 
     const seedingPayload = formatSeedingResponse(seeding)
+
+    const { count: existingSeedCount, error: seedCountError } = await service
+      .from("playoff_seeds")
+      .select("team_id", { count: "exact", head: true })
+      .eq("season_id", seasonId)
+
+    if (seedCountError) {
+      return NextResponse.json({ error: seedCountError.message }, { status: 500 })
+    }
+
+    const storedSeedCount = existingSeedCount ?? 0
 
     if (dryRun) {
       return NextResponse.json({
@@ -151,8 +169,21 @@ export async function POST(request: NextRequest, context: RouteContext) {
         dry_run: true,
         season: { id: season.id, name: season.name },
         readiness,
+        existingSeedCount: storedSeedCount,
         seeding: seedingPayload,
       })
+    }
+
+    if (storedSeedCount > 0 && body?.confirm_replace_seeds !== true) {
+      return NextResponse.json(
+        {
+          error:
+            "This season already has playoff seeds. Refusing to delete or rewrite them. Pass confirm_replace_seeds: true after confirming, or preview with dry_run.",
+          code: "playoff_seeds_exist",
+          existingSeedCount: storedSeedCount,
+        },
+        { status: 409 }
+      )
     }
 
     const { matchweekId, weekNumber } = await resolvePlayoffMatchweek(
@@ -161,7 +192,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       PLAYOFF_ROUND_KEYS.ROUND_1
     )
 
-    if (replaceExisting) {
+    if (replaceExisting || storedSeedCount > 0) {
       await service
         .from("matches")
         .delete()
