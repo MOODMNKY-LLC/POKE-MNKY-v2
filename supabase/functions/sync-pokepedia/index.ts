@@ -101,6 +101,8 @@ interface SyncJob {
   end_id: number
   pokemon_synced: number
   pokemon_failed: number
+  last_heartbeat?: string | null
+  started_at?: string | null
 }
 
 Deno.serve(async (req) => {
@@ -193,8 +195,8 @@ async function handleManualSync(
   
   console.log(`[handleManualSync] Found ${existingJobs?.length || 0} existing job(s) for phase: ${phase}`)
   if (existingJobs && existingJobs.length > 0) {
-    console.log(`[handleManualSync] Job IDs:`, existingJobs.map(j => j.job_id))
-    console.log(`[handleManualSync] Job details:`, existingJobs.map(j => ({
+    console.log(`[handleManualSync] Job IDs:`, existingJobs.map((j: any) => j.job_id))
+    console.log(`[handleManualSync] Job details:`, existingJobs.map((j: any) => ({
       job_id: j.job_id,
       status: j.status,
       current_chunk: j.current_chunk,
@@ -549,7 +551,7 @@ async function processNextChunk(supabase: any) {
   const job = jobs[0] as SyncJob
 
   // Check if job is stuck
-  const heartbeatAge = Date.now() - new Date(job.last_heartbeat || job.started_at).getTime()
+  const heartbeatAge = Date.now() - new Date(job.last_heartbeat || job.started_at || NaN).getTime()
   if (heartbeatAge > 10 * 60 * 1000) {
     await supabase
       .from("sync_jobs")
@@ -851,8 +853,8 @@ async function syncMasterDataPhase(supabase: any, job: SyncJob) {
       
       for (const batch of batches) {
         const results = await Promise.allSettled(
-          batch.map(async (resource) => {
-            return await fetchWithRetry(resource.url)
+          batch.map(async (resource: any) => {
+            return (await fetchWithRetry(resource.url)).data // fetchWithRetry returns { data, etag, cached }
           })
         )
 
@@ -863,7 +865,7 @@ async function syncMasterDataPhase(supabase: any, job: SyncJob) {
         // Batch insert to Supabase
         if (successful.length > 0) {
           const records = successful.map((data) => {
-            const baseRecord = {
+            const baseRecord: Record<string, any> = {
               [idField]: data.id || extractIdFromUrl(data.url),
               name: data.name,
               ...extractMasterDataFields(data, endpoint),
@@ -884,7 +886,7 @@ async function syncMasterDataPhase(supabase: any, job: SyncJob) {
             resource_type: endpoint,
             resource_key: (data.id || extractIdFromUrl(data.url))?.toString(),
             name: data.name,
-            url: data.url || resource.url || `${POKEAPI_BASE_URL}/${endpoint}/${data.id}/`,
+            url: data.url || `${POKEAPI_BASE_URL}/${endpoint}/${data.id ?? extractIdFromUrl(data.url)}/`,
             data: data, // Full JSONB payload
             etag: null, // Will be updated by fetchWithRetry if available
             fetched_at: new Date().toISOString(),
@@ -954,8 +956,8 @@ async function syncMasterDataPhase(supabase: any, job: SyncJob) {
       
       for (const batch of batches) {
         const results = await Promise.allSettled(
-          batch.map(async (resource) => {
-            return await fetchWithRetry(resource.url)
+          batch.map(async (resource: any) => {
+            return (await fetchWithRetry(resource.url)).data // fetchWithRetry returns { data, etag, cached }
           })
         )
 
@@ -966,7 +968,7 @@ async function syncMasterDataPhase(supabase: any, job: SyncJob) {
         // Batch insert to Supabase with FK validation
         if (successful.length > 0) {
           const records = successful.map((data) => {
-            const baseRecord = {
+            const baseRecord: Record<string, any> = {
               [idField]: data.id || extractIdFromUrl(data.url),
               name: data.name,
               ...extractMasterDataFields(data, endpoint),
@@ -996,7 +998,7 @@ async function syncMasterDataPhase(supabase: any, job: SyncJob) {
                 .in("type_id", typeIds)
               
               if (existingTypes) {
-                existingTypeIds = new Set(existingTypes.map(t => t.type_id))
+                existingTypeIds = new Set(existingTypes.map((t: any) => t.type_id))
               }
             }
             
@@ -1107,7 +1109,7 @@ async function syncReferenceDataPhase(supabase: any, job: SyncJob) {
 
       for (const batch of batches) {
         const results = await Promise.allSettled(
-          batch.map(async (resource) => {
+          batch.map(async (resource: any) => {
             const { data, etag, cached } = await fetchWithRetry(resource.url, supabase, endpoint)
             if (cached) {
               // Resource unchanged, return null to skip processing
@@ -1203,7 +1205,7 @@ async function syncSpeciesPhase(supabase: any, job: SyncJob) {
 
   for (const batch of batches) {
     const results = await Promise.allSettled(
-      batch.map(async (resource) => {
+      batch.map(async (resource: any) => {
         const { data: speciesData, cached } = await fetchWithRetry(resource.url, supabase, "pokemon-species")
         if (cached) {
           // Resource unchanged, skip processing
@@ -1289,7 +1291,7 @@ async function syncSpeciesPhase(supabase: any, job: SyncJob) {
     totalErrors += results.filter((r) => r.status === "rejected").length
     
     // Memory cleanup after batch processing
-    cleanupMemory(results, successful, records)
+    cleanupMemory(results, successful)
     
     await new Promise((resolve) => setTimeout(resolve, BATCH_DELAY_MS))
   }
@@ -1339,7 +1341,7 @@ async function syncPokemonPhase(supabase: any, job: SyncJob) {
 
   for (const batch of batches) {
     const results = await Promise.allSettled(
-      batch.map(async (resource) => {
+      batch.map(async (resource: any) => {
         const { data: pokemon, cached } = await fetchWithRetry(resource.url, supabase, "pokemon")
         if (cached) {
           // Resource unchanged, skip processing
@@ -1526,7 +1528,7 @@ async function syncPokemonPhase(supabase: any, job: SyncJob) {
     totalErrors += results.filter((r) => r.status === "rejected").length
     
     // Memory cleanup
-    cleanupMemory(results, successful, records)
+    cleanupMemory(results, successful)
     
     await new Promise((resolve) => setTimeout(resolve, BATCH_DELAY_MS))
   }
@@ -1570,7 +1572,7 @@ async function syncEvolutionChainsPhase(supabase: any, job: SyncJob) {
 
   for (const batch of batches) {
     const results = await Promise.allSettled(
-      batch.map(async (resource) => {
+      batch.map(async (resource: any) => {
         const { data: chainData, cached } = await fetchWithRetry(resource.url, supabase, "evolution-chain")
         if (cached) {
           // Resource unchanged, skip processing
@@ -1668,7 +1670,7 @@ async function syncPokemonFormPhase(supabase: any, job: SyncJob): Promise<{ sync
 
   for (const batch of batches) {
     const results = await Promise.allSettled(
-      batch.map(async (resource) => {
+      batch.map(async (resource: any) => {
         const { data, cached } = await fetchWithRetry(resource.url, supabase, 'pokemon-form')
         if (cached) {
           return null // Skip unchanged resources
@@ -1769,7 +1771,7 @@ async function syncSimpleEndpointPhase(
 
   for (const batch of batches) {
     const results = await Promise.allSettled(
-      batch.map(async (resource) => {
+      batch.map(async (resource: any) => {
         const { data, cached } = await fetchWithRetry(resource.url, supabase, endpoint)
         if (cached) {
           return null // Skip unchanged resources
@@ -1850,7 +1852,7 @@ async function syncRelationshipsPhase(supabase: any, job: SyncJob) {
 
   for (const batch of batches) {
     const results = await Promise.allSettled(
-      batch.map(async (resource) => {
+      batch.map(async (resource: any) => {
         const detailResponse = await fetch(resource.url)
         if (!detailResponse.ok) throw new Error(`Failed to fetch ${resource.url}`)
         return await detailResponse.json()
