@@ -2,7 +2,8 @@ import { createClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { getMarkedCurrentSeason } from "@/lib/seasons"
+import { listStandingsSeasons, pickStandingsSeason } from "@/lib/standings-season"
+import { SeasonSwitcher } from "@/components/league/season-switcher"
 
 type ScheduleTeam = {
   name: string | null
@@ -23,9 +24,18 @@ type ScheduleMatch = {
   team2: ScheduleTeam | null
 }
 
-export default async function SchedulePage() {
+export default async function SchedulePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ season?: string }>
+}) {
+  const { season: requestedSeason } = await searchParams
   const supabase = await createClient()
-  const season = await getMarkedCurrentSeason(supabase)
+  const seasons = await listStandingsSeasons(supabase).catch((error: unknown) => {
+    console.error("[schedule] season list error:", error)
+    return []
+  })
+  const season = pickStandingsSeason(seasons, requestedSeason)
 
   const { data: matches } = season
     ? await supabase
@@ -129,8 +139,16 @@ export default async function SchedulePage() {
             <p className="mt-2 text-muted-foreground">
               {season
                 ? `${season.name} regular-season matchups and results`
-                : "Regular-season matchups for the current season will appear here"}
+                : "Regular-season matchups for the live season will appear here"}
             </p>
+            <div className="mt-4">
+              <SeasonSwitcher
+                seasons={seasons}
+                selectedId={season?.id ?? null}
+                action="/schedule"
+                inputId="schedule-season"
+              />
+            </div>
           </div>
         </div>
 

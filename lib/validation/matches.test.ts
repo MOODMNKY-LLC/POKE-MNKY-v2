@@ -52,4 +52,13 @@ describe("getMatchesQuerySchema", () => {
     const result = getMatchesQuerySchema.safeParse({ season_id: "season-7" })
     expect(result.success).toBe(false)
   })
+
+  it("accepts a season key separately from season_id", () => {
+    const result = getMatchesQuerySchema.safeParse({ season: "AABPBL-Season-7-2027" })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.season).toBe("AABPBL-Season-7-2027")
+      expect(result.data.season_id).toBeUndefined()
+    }
+  })
 })

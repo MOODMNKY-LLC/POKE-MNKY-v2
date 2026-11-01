@@ -5,6 +5,11 @@
 
 import { createServiceRoleClient } from "./supabase/service"
 import { getSeasonRules } from "./season-rules"
+import {
+  isMissingRelation,
+  mapAuditRow,
+  SHEET_FREE_AGENCY_ACTIONS,
+} from "./free-agency-history"
 
 export type TransactionType = "replacement" | "addition" | "drop_only"
 
@@ -21,6 +26,10 @@ export interface FreeAgencyTransaction {
   processed_at: string | null
   created_at: string
   created_by: string | null
+  added_pokemon_name?: string | null
+  dropped_pokemon_name?: string | null
+  team_name?: string | null
+  effective_week?: number | null
 }
 
 export interface TransactionValidation {
@@ -473,6 +482,21 @@ export class FreeAgencySystem {
     status?: "pending" | "approved" | "rejected" | "processed"
     limit?: number
   }): Promise<FreeAgencyTransaction[]> {
+    const live = await this.loadTableTransactions(filters)
+    const sheet = await this.loadSheetTransactions(filters)
+    const seen = new Set(live.map((tx) => tx.id))
+    const merged = [...live, ...sheet.filter((tx) => !seen.has(tx.id))]
+    merged.sort((a, b) => (a.created_at < b.created_at ? 1 : a.created_at > b.created_at ? -1 : 0))
+    if (filters?.limit && filters.limit > 0) return merged.slice(0, filters.limit)
+    return merged
+  }
+
+  private async loadTableTransactions(filters?: {
+    teamId?: string
+    seasonId?: string
+    status?: "pending" | "approved" | "rejected" | "processed"
+    limit?: number
+  }): Promise<FreeAgencyTransaction[]> {
     let query = this.supabase
       .from("free_agency_transactions")
       .select("*")
@@ -494,11 +518,42 @@ export class FreeAgencySystem {
     const { data, error } = await query
 
     if (error) {
-      console.error("Error fetching transactions:", error)
+      if (isMissingRelation(error)) {
+        console.warn("free_agency_transactions is missing; using transaction_audit")
+      } else {
+        console.error("Error fetching transactions:", error)
+      }
       return []
     }
 
     return (data || []) as FreeAgencyTransaction[]
+  }
+
+  private async loadSheetTransactions(filters?: {
+    teamId?: string
+    seasonId?: string
+    status?: "pending" | "approved" | "rejected" | "processed"
+    limit?: number
+  }): Promise<FreeAgencyTransaction[]> {
+    if (filters?.status && filters.status !== "processed") return []
+
+    let query = this.supabase
+      .from("transaction_audit")
+      .select("id, season_id, team_id, action, payload, created_at, team:team_id(name)")
+      .in("action", [...SHEET_FREE_AGENCY_ACTIONS])
+      .order("created_at", { ascending: false })
+
+    if (filters?.teamId) query = query.eq("team_id", filters.teamId)
+    if (filters?.seasonId) query = query.eq("season_id", filters.seasonId)
+    if (filters?.limit) query = query.limit(filters.limit)
+
+    const { data, error } = await query
+    if (error) {
+      console.error("Error fetching sheet free agency:", error.message)
+      return []
+    }
+
+    return (data ?? []).map((row) => mapAuditRow(row))
   }
 
   /**

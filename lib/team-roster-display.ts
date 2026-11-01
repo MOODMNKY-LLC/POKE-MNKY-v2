@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
+import { embeddedString, firstEmbedded } from "@/lib/embedded-record"
 
 export type TeamRosterPick = {
   id: string
@@ -10,6 +11,44 @@ export type TeamRosterPick = {
     name: string
     type1: string | null
     type2: string | null
+  }
+}
+
+export function normalizeEmbeddedPokemon(value: unknown): {
+  name: string
+  type1: string | null
+  type2: string | null
+} | null {
+  const row = firstEmbedded(value)
+  const name = embeddedString(row, "name")
+  if (!name) return null
+  return {
+    name,
+    type1: embeddedString(row, "type1"),
+    type2: embeddedString(row, "type2"),
+  }
+}
+
+export function toTeamRosterPick(row: {
+  id: string
+  pokemon_id: string
+  draft_round: number | null
+  pick_number: number | null
+  points_snapshot: number
+  pokemon: unknown
+}): TeamRosterPick {
+  const poke = normalizeEmbeddedPokemon(row.pokemon)
+  return {
+    id: row.id,
+    pokemon_id: row.pokemon_id,
+    draft_round: row.draft_round,
+    pick_number: row.pick_number,
+    points_snapshot: row.points_snapshot,
+    pokemon: {
+      name: poke?.name ?? "Unknown",
+      type1: poke?.type1 ?? null,
+      type2: poke?.type2 ?? null,
+    },
   }
 }
 
@@ -44,21 +83,7 @@ export async function getTeamRosterPicks(
   }
 
   if (draftPicks && draftPicks.length > 0) {
-    return draftPicks.map((row) => {
-      const poke = Array.isArray(row.pokemon) ? row.pokemon[0] : null
-      return {
-        id: row.id,
-        pokemon_id: row.pokemon_id,
-        draft_round: row.draft_round,
-        pick_number: row.pick_number,
-        points_snapshot: row.points_snapshot,
-        pokemon: {
-          name: poke?.name ?? "Unknown",
-          type1: poke?.type1 ?? null,
-          type2: poke?.type2 ?? null,
-        },
-      }
-    })
+    return draftPicks.map((row) => toTeamRosterPick(row))
   }
 
   const { data: legacy, error: legacyError } = await supabase
@@ -81,19 +106,14 @@ export async function getTeamRosterPicks(
     throw legacyError
   }
 
-  return (legacy ?? []).map((row) => {
-    const poke = Array.isArray(row.pokemon) ? row.pokemon[0] : null
-    return {
+  return (legacy ?? []).map((row) =>
+    toTeamRosterPick({
       id: row.id,
       pokemon_id: row.pokemon_id,
       draft_round: row.draft_round,
       pick_number: row.draft_order,
       points_snapshot: row.draft_points ?? 0,
-      pokemon: {
-        name: poke?.name ?? "Unknown",
-        type1: poke?.type1 ?? null,
-        type2: poke?.type2 ?? null,
-      },
-    }
-  })
+      pokemon: row.pokemon,
+    }),
+  )
 }

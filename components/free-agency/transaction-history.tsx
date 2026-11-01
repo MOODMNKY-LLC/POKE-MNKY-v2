@@ -115,14 +115,17 @@ export function TransactionHistory({ teamId, seasonId }: TransactionHistoryProps
                     <div className="space-y-1">
                       {tx.dropped_pokemon_name && (
                         <div className="text-sm text-muted-foreground">
-                          Drop: <span className="font-medium">{tx.dropped_pokemon_name}</span>{" "}
-                          ({tx.dropped_points}pts)
+                          Drop: <span className="font-medium">{tx.dropped_pokemon_name}</span>
+                          {tx.dropped_points ? ` (${tx.dropped_points}pts)` : ""}
                         </div>
                       )}
                       {tx.added_pokemon_name && (
                         <div className="text-sm">
-                          Add: <span className="font-medium">{tx.added_pokemon_name}</span>{" "}
-                          ({tx.added_points}pts)
+                          Add: <span className="font-medium">{tx.added_pokemon_name}</span>
+                          {tx.added_points ? ` (${tx.added_points}pts)` : ""}
+                          {tx.effective_week ? (
+                            <span className="text-muted-foreground"> · week {tx.effective_week}</span>
+                          ) : null}
                         </div>
                       )}
                     </div>

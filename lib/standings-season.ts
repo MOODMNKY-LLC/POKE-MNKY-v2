@@ -58,3 +58,16 @@ export function pickStandingsSeason(
   if (live) return live
   return seasons.find((season) => season.is_current) ?? null
 }
+
+/**
+ * Explicit season_id (uuid) wins. Otherwise `season` is a uuid, season key, or
+ * name, and an omitted request resolves to the live competitive season.
+ */
+export function resolveMatchesSeasonId(
+  seasons: StandingsSeasonRow[],
+  input: { seasonId?: string | null; season?: string | null },
+): string | null {
+  const explicit = input.seasonId?.trim()
+  if (explicit) return explicit
+  return pickStandingsSeason(seasons, input.season)?.id ?? null
+}

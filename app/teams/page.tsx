@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { getPublicLeagueTeams, type PublicTeamRow } from "@/lib/teams-public"
+import { SeasonSwitcher } from "@/components/league/season-switcher"
+import type { StandingsSeasonRow } from "@/lib/standings-season"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { PokeballIcon } from "@/components/ui/pokeball-icon"
@@ -9,9 +11,10 @@ export const dynamic = 'force-dynamic'
 
 const divisions = ["Kanto", "Johto", "Hoenn", "Sinnoh"]
 
-function TeamCard({ team }: { team: PublicTeamRow }) {
+function TeamCard({ team, seasonId }: { team: PublicTeamRow; seasonId: string | null }) {
+  const href = seasonId ? `/teams/${team.id}?season=${encodeURIComponent(seasonId)}` : `/teams/${team.id}`
   return (
-    <Link href={`/teams/${team.id}`}>
+    <Link href={href}>
       <Card className="h-full transition-all hover:border-primary hover:shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-start justify-between gap-2">
@@ -56,20 +59,52 @@ function TeamCard({ team }: { team: PublicTeamRow }) {
   )
 }
 
-export default async function TeamsPage() {
+function TeamsHeader({
+  seasonName,
+  seasons,
+  seasonId,
+}: {
+  seasonName: string | null
+  seasons: StandingsSeasonRow[]
+  seasonId: string | null
+}) {
+  return (
+    <div className="border-b border-border bg-muted/30 py-8">
+      <div className="container mx-auto px-4 md:px-6">
+        <h1 className="text-4xl font-bold tracking-tight">All Teams</h1>
+        <p className="mt-2 text-muted-foreground">
+          {seasonName ? `${seasonName} teams competing in the league` : "Browse all teams competing in the league"}
+        </p>
+        <div className="mt-4">
+          <SeasonSwitcher
+            seasons={seasons}
+            selectedId={seasonId}
+            action="/teams"
+            inputId="teams-season"
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default async function TeamsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ season?: string }>
+}) {
   try {
+    const { season: requestedSeason } = await searchParams
     const supabase = await createClient()
-    const { teams, seasonName } = await getPublicLeagueTeams(supabase)
+    const { teams, seasonName, seasonId, seasons } = await getPublicLeagueTeams(supabase, {
+      requestedSeason,
+      scope: "live",
+    })
 
     if (!teams || teams.length === 0) {
       return (
         <>
-          <div className="border-b border-border bg-muted/30 py-8">
-            <div className="container mx-auto px-4 md:px-6">
-              <h1 className="text-4xl font-bold tracking-tight">All Teams</h1>
-              <p className="mt-2 text-muted-foreground">Browse all teams competing in the league</p>
-            </div>
-          </div>
+          <TeamsHeader seasonName={seasonName} seasons={seasons} seasonId={seasonId} />
           <div className="container mx-auto px-4 md:px-6 py-8">
             <Card>
               <CardContent className="py-12 text-center">
@@ -85,12 +120,7 @@ export default async function TeamsPage() {
 
   return (
     <>
-        <div className="border-b border-border bg-muted/30 py-8">
-          <div className="container mx-auto px-4 md:px-6">
-            <h1 className="text-4xl font-bold tracking-tight">All Teams</h1>
-            <p className="mt-2 text-muted-foreground">Browse all teams competing in the league</p>
-          </div>
-        </div>
+        <TeamsHeader seasonName={seasonName} seasons={seasons} seasonId={seasonId} />
 
         <div className="container mx-auto px-4 md:px-6 py-8 space-y-12">
           {seasonName ? (
@@ -121,7 +151,7 @@ export default async function TeamsPage() {
               return (
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {teams.map((team) => (
-                    <TeamCard key={team.id} team={team} />
+                    <TeamCard key={team.id} team={team} seasonId={seasonId} />
                   ))}
                 </div>
               )
@@ -137,7 +167,7 @@ export default async function TeamsPage() {
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {group.teams.map((team) => (
-                    <TeamCard key={team.id} team={team} />
+                    <TeamCard key={team.id} team={team} seasonId={seasonId} />
                   ))}
                 </div>
               </div>

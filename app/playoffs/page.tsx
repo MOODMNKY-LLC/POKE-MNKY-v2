@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { listStandingsSeasons, pickStandingsSeason } from "@/lib/standings-season"
+import { SeasonSwitcher } from "@/components/league/season-switcher"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { BracketMatch } from "@/components/bracket-match"
@@ -68,14 +69,19 @@ function toPlayoffMatch(value: unknown): PlayoffMatch | null {
   }
 }
 
-export default async function PlayoffsPage() {
+export default async function PlayoffsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ season?: string }>
+}) {
+  const { season: requestedSeason } = await searchParams
   const supabase = await createClient()
 
   const seasons = await listStandingsSeasons(supabase).catch((error: unknown) => {
     console.error("[playoffs] season list error:", error)
     return []
   })
-  const season = pickStandingsSeason(seasons, null)
+  const season = pickStandingsSeason(seasons, requestedSeason)
 
   const { data: playoffMatches } = season
     ? await supabase
@@ -132,6 +138,14 @@ export default async function PlayoffsPage() {
           <p className="mt-2 text-lg text-muted-foreground">
             {seasonLabel} — road to the championship
           </p>
+          <div className="mt-4 flex justify-center">
+            <SeasonSwitcher
+              seasons={seasons}
+              selectedId={season?.id ?? null}
+              action="/playoffs"
+              inputId="playoffs-season"
+            />
+          </div>
         </div>
       </div>
 
