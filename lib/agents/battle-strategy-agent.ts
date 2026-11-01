@@ -104,7 +104,7 @@ Be specific about type coverage, speed tiers, and tactical considerations.`
       team1: [],
       team2: [],
     },
-    finalOutput: result.finalOutput,
+    finalOutput: result.finalOutput ?? "",
   }
 }
 
@@ -136,7 +136,7 @@ Suggest optimal moves for ${activePokemon}. Consider:
 Use MCP tools to get detailed Pokémon data if needed. Research move sets and competitive strategies using web search tools.`
 
   const result = await run(battleStrategyAgent, prompt)
-  return result.finalOutput
+  return result.finalOutput ?? ""
 }
 
 // Recommend Tera types
@@ -159,5 +159,5 @@ Use MCP tools to:
 Provide 2-3 Tera type recommendations with clear reasoning.`
 
   const result = await run(battleStrategyAgent, prompt)
-  return result.finalOutput
+  return result.finalOutput ?? ""
 }

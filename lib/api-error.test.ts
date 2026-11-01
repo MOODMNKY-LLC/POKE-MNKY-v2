@@ -35,13 +35,14 @@ describe("api-error", () => {
   })
 
   it("internalError returns 500 and hides details in production", async () => {
-    const orig = process.env.NODE_ENV
-    process.env.NODE_ENV = "production"
+    const env = process.env as { NODE_ENV?: string }
+    const orig = env.NODE_ENV
+    env.NODE_ENV = "production"
     const res = internalError("Server error", { stack: "x" })
     const body = await res.json()
     expect(res.status).toBe(500)
     expect(body.error.details).toBeUndefined()
-    process.env.NODE_ENV = orig
+    env.NODE_ENV = orig
   })
 
   it("apiError with custom status overrides default", async () => {

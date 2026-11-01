@@ -411,7 +411,7 @@ export async function handleApplicationCommand(
       const body: Record<string, unknown> = {
         discord_user_id: userId,
         season_id: seasonId,
-        transaction_type,
+        transaction_type: transactionType,
         guild_id: guildId || undefined,
       }
       if (addName) body.add_pokemon_name = addName

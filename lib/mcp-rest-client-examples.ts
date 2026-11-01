@@ -84,8 +84,7 @@ export async function getPokemonCompetitiveInfo(pokemonName: string) {
         secondary: types.data.type_secondary,
       },
       meta: {
-        usage: meta.data.usage,
-        rank: meta.data.rank,
+        usage: meta.data.usage_rate,
         format: meta.data.format,
       },
     }

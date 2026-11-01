@@ -116,11 +116,51 @@ export async function getWeeklyStats(
     .order("pokemon_name", { ascending: true })
     .limit(10)
 
+  const resolvedWeek = weekNumber ?? 1
+
   return {
-    season,
-    week_number: weekNumber,
-    matches: (matches ?? []) as WeeklyStatsMatch[],
-    team_summary: (teamSummary ?? []) as WeeklyStatsTeamSummary[],
-    top_performers: (performers ?? []) as WeeklyStatsPerformer[],
+    season: { id: String(season.id), name: String(season.name ?? "") },
+    week_number: resolvedWeek,
+    matches: (matches ?? []).map((row) => {
+      const team1 = Array.isArray(row.team1) ? row.team1[0] : null
+      const team2 = Array.isArray(row.team2) ? row.team2[0] : null
+      const winner = Array.isArray(row.winner) ? row.winner[0] : null
+      return {
+        match_id: String(row.id),
+        week_number: typeof row.week === "number" ? row.week : resolvedWeek,
+        is_playoff: row.is_playoff === true,
+        team1: team1
+          ? { id: String(team1.id), name: String(team1.name), coach_name: String(team1.coach_name ?? "") }
+          : null,
+        team2: team2
+          ? { id: String(team2.id), name: String(team2.name), coach_name: String(team2.coach_name ?? "") }
+          : null,
+        winner: winner ? { id: String(winner.id), name: String(winner.name) } : null,
+        team1_score: typeof row.team1_score === "number" ? row.team1_score : null,
+        team2_score: typeof row.team2_score === "number" ? row.team2_score : null,
+        differential: typeof row.differential === "number" ? row.differential : null,
+      }
+    }),
+    team_summary: (teamSummary ?? []).map((row) => ({
+      team_id: String(row.team_id),
+      team_name: String(row.team_name),
+      coach_name: String(row.coach_name ?? ""),
+      conference: row.conference == null ? null : String(row.conference),
+      division: row.division == null ? null : String(row.division),
+      wins: typeof row.wins === "number" ? row.wins : 0,
+      losses: typeof row.losses === "number" ? row.losses : 0,
+      kills: typeof row.kills === "number" ? row.kills : 0,
+      deaths: typeof row.deaths === "number" ? row.deaths : 0,
+      differential: typeof row.differential === "number" ? row.differential : 0,
+    })),
+    top_performers: (performers ?? []).map((row) => ({
+      pokemon_id: String(row.pokemon_id),
+      pokemon_name: String(row.pokemon_name),
+      team_id: String(row.team_id),
+      team_name: String(row.team_name),
+      coach_name: String(row.coach_name ?? ""),
+      kills: typeof row.kills === "number" ? row.kills : 0,
+      matches: typeof row.matches === "number" ? row.matches : 0,
+    })),
   }
 }

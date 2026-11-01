@@ -70,10 +70,28 @@ export async function extractImagesFromSheet(
         includeGridData: true,
       })
 
-      const gridData = response.data.sheets?.[0]?.data?.[0]
-      if (!gridData) {
+      const rawGrid = response.data.sheets?.[0]?.data?.[0]
+      if (!rawGrid) {
         return { images, totalFound: 0, errors }
       }
+
+      // googleapis Schema$GridData does not declare floating images; some sheet payloads still include them.
+      type EmbeddedSheetImage = {
+        imageProperties?: {
+          contentUri?: string | null
+          sourceUri?: string | null
+          size?: {
+            width?: { magnitude?: number | null } | null
+            height?: { magnitude?: number | null } | null
+          } | null
+        } | null
+        position?: {
+          overlayPosition?: {
+            anchorCell?: { rowIndex?: number | null; columnIndex?: number | null } | null
+          } | null
+        } | null
+      }
+      const gridData = rawGrid as typeof rawGrid & { embeddedObjects?: EmbeddedSheetImage[] }
 
       // Extract images from embedded objects
       const embeddedObjects = gridData.embeddedObjects || []
@@ -125,8 +143,8 @@ export async function extractImagesFromSheet(
               columnLetter,
               imageUrl,
               contentType: imageProperties.contentUri ? "image/png" : undefined,
-              width: imageProperties.size?.width?.magnitude,
-              height: imageProperties.size?.height?.magnitude,
+              width: imageProperties.size?.width?.magnitude ?? undefined,
+              height: imageProperties.size?.height?.magnitude ?? undefined,
               teamName,
             })
           }

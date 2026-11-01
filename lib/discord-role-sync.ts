@@ -5,7 +5,7 @@
 
 import type { GuildMember } from "discord.js"
 import { createServiceRoleClient } from "@/lib/supabase/service"
-import type { UserRole } from "@/lib/rbac"
+import { UserRole } from "@/lib/rbac"
 import { APP_TO_DISCORD_ROLE_MAP, DISCORD_TO_APP_ROLE_MAP } from "@/lib/discord-role-mappings"
 import { loadDiscordRoleMaps } from "@/lib/discord-role-mapping-store"
 
@@ -235,8 +235,8 @@ export async function syncDiscordRoleToApp(
     const { appToDiscord } = await loadDiscordRoleMaps(supabase)
 
     // Determine app role from Discord roles (priority order)
-    let appRole: UserRole = "spectator"
-    const rolePriority: UserRole[] = ["admin", "commissioner", "coach", "spectator"]
+    let appRole: UserRole = UserRole.SPECTATOR
+    const rolePriority: UserRole[] = [UserRole.ADMIN, UserRole.COMMISSIONER, UserRole.COACH, UserRole.SPECTATOR]
 
     for (const role of rolePriority) {
       const mappedDiscordRoles = appToDiscord[role] || []

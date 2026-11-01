@@ -88,5 +88,6 @@ export function createParser(
   return ParserFactory.createParser(fullConfig, sheet, supabase)
 }
 
-export { BaseParser, ParserConfig, ParserResult }
+export { BaseParser }
+export type { ParserConfig, ParserResult }
 export { TeamsParser, DraftParser, DraftPoolParser, MatchesParser, MasterDataParser, TeamPageParser, RulesParser, GenericParser }

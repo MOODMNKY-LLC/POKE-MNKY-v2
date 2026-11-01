@@ -227,7 +227,7 @@ export async function syncShowdownAccount(userId: string): Promise<{
       cpassword: password, // Confirm password (must match password)
       captcha: 'pikachu', // Anti-spam captcha
       challstr: challstr, // Challenge string from Showdown server
-      email: user.email || profile.email || '',
+      email: user.email || '',
     }
 
     // Add timeout to request

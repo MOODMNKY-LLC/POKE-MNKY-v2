@@ -91,7 +91,7 @@ Provide specific, actionable recommendations.`
       budgetRemaining: 0,
     },
     warnings: [],
-    finalOutput: result.finalOutput,
+    finalOutput: result.finalOutput ?? "",
   }
 }
 
@@ -109,5 +109,5 @@ ${pointRange ? `Looking for Pokémon between ${pointRange[0]} and ${pointRange[1
 Suggest the best available pick. Use MCP tools to check availability and analyze value.`
 
   const result = await run(draftAssistantAgent, prompt)
-  return result.finalOutput
+  return result.finalOutput ?? ""
 }

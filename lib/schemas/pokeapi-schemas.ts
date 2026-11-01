@@ -62,7 +62,7 @@ const PokemonSpritesSchema = z.object({
       front_shiny: z.string().url().nullable(),
     }).optional(),
   }).optional(),
-  versions: z.record(z.any()).optional(),
+  versions: z.record(z.string(), z.any()).optional(),
 }).passthrough() // Allow additional sprite fields
 
 const PokemonMoveVersionSchema = z.object({

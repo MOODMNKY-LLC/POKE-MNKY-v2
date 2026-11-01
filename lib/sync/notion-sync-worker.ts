@@ -9,7 +9,7 @@
  * Supports incremental sync using notion_mappings and last_updated timestamps
  */
 
-import { createClient } from "@supabase/supabase-js"
+import { createClient, type SupabaseClient } from "@supabase/supabase-js"
 import {
   createNotionClient,
   queryAllPages,
@@ -31,7 +31,12 @@ interface SyncResult {
     roleTags: { created: number; updated: number; failed: number }
     moves: { created: number; updated: number; failed: number }
     relations: { updated: number; failed: number }
-    draft_board?: { synced: number; skipped: number; failed: number }
+    draft_board?: {
+      synced: number
+      skipped: number
+      failed: number
+      errors?: Array<{ entity: string; error: string }>
+    }
   }
   errors: Array<{ entity: string; error: string }>
   duration: number
@@ -76,7 +81,7 @@ function normalizeForm(notionValue: string | null): string {
  * Sync Moves from Notion to Supabase
  */
 async function syncMoves(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClient,
   notionDatabaseId: string,
   dataSourceId: string,
   options: SyncOptions
@@ -199,7 +204,7 @@ async function syncMoves(
  * Sync Role Tags from Notion to Supabase
  */
 async function syncRoleTags(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClient,
   notionDatabaseId: string,
   dataSourceId: string,
   options: SyncOptions
@@ -305,7 +310,7 @@ async function syncRoleTags(
  * Sync Pokemon from Notion to Supabase
  */
 async function syncPokemon(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClient,
   notionDatabaseId: string,
   dataSourceId: string,
   options: SyncOptions
@@ -516,7 +521,7 @@ function normalizeDraftBoardStatus(notionStatus: string | null): DraftPoolStatus
  * Supabase wins for status=drafted, drafted_by_team_id, drafted_at.
  */
 async function syncDraftBoard(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClient,
   notionDatabaseId: string,
   options: SyncOptions
 ): Promise<{ synced: number; skipped: number; failed: number; errors: any[] }> {
@@ -764,7 +769,7 @@ async function syncDraftBoard(
  * Rebuild join tables deterministically
  */
 async function rebuildJoinTables(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClient,
   options: SyncOptions
 ): Promise<{ updated: number; failed: number; errors: any[] }> {
   const stats = { updated: 0, failed: 0, errors: [] as any[] }
@@ -922,15 +927,13 @@ async function rebuildJoinTables(
       const roleTagEntity = pageToEntity.get(page.id)
       if (!roleTagEntity || roleTagEntity.type !== "role_tag") continue
 
-      const movePageIds = extractPropertyValue(
-        page.properties["Move"],
-        "relation"
-      ) as string[] | null
-
-      // Move relation is single, not array, so handle accordingly
-      const movePageId = Array.isArray(movePageIds) && movePageIds.length > 0
-        ? movePageIds[0]
-        : movePageIds
+      const rawMoveIds = extractPropertyValue(page.properties["Move"], "relation")
+      // Move relation may be a single page id or a one-element relation array.
+      const movePageId = Array.isArray(rawMoveIds)
+        ? rawMoveIds.find((id): id is string => typeof id === "string")
+        : typeof rawMoveIds === "string"
+          ? rawMoveIds
+          : undefined
 
       await supabase
         .from("role_tag_moves")
