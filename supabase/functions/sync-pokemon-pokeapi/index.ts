@@ -8,7 +8,12 @@
  * Returns: { jobId, synced, skipped, failed, nextStart, hasMore, totalSynced, totalSkipped, totalFailed }
  */
 
-import { createClient } from "npm:@supabase/supabase-js@2"
+import {
+  createAdminClient,
+  healthcheckResponse,
+  isAuthorizedRequest,
+  unauthorizedResponse,
+} from "../_shared/supabase-admin.ts"
 import { transformPokemonData } from "../_shared/pokemon-transform.ts"
 import type { PokeApiPokemon } from "../_shared/pokemon-transform.ts"
 
@@ -51,22 +56,24 @@ Deno.serve(async (req: Request) => {
     return new Response("ok", { headers: CORS_HEADERS })
   }
 
+  // verify_jwt is off (sb_secret_ keys are not JWTs); require a project secret key.
+  if (!isAuthorizedRequest(req)) return unauthorizedResponse(CORS_HEADERS)
+
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      throw new Error("Missing Supabase configuration")
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+    // Admin client authenticated with the project's secret key
+    const supabase = createAdminClient()
 
     const body = (await req.json().catch(() => ({}))) as {
+      healthcheck?: boolean
       jobId?: string
       start?: number
       end?: number
       batchSize?: number
       rateLimitMs?: number
+    }
+
+    if (body.healthcheck) {
+      return await healthcheckResponse("sync-pokemon-pokeapi", supabase, "pokemon_cache", CORS_HEADERS)
     }
 
     const start = Math.max(1, body.start ?? 1)
