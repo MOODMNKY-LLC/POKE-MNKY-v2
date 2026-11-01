@@ -51,7 +51,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ name
       base_stats: pokemon.base_stats,
       abilities: pokemon.abilities,
       moves: pokemon.moves,
-      sprite_url: pokemon.sprite_url,
+      sprite_url: pokemon.sprites.front_default ?? pokemon.sprites.official_artwork,
       draft_cost: pokemon.draft_cost,
       tier: pokemon.tier,
       sprites: pokemon.sprites,

@@ -9,9 +9,9 @@ import { getMarkedCurrentSeason } from "@/lib/seasons"
  * Homepage Live Data API — teams + seasonal / weekly top Pokémon (AAB performer strips).
  */
 
-function withTimeout<T>(promise: Promise<T>, timeoutMs: number, name: string): Promise<T> {
+function withTimeout<T>(promise: PromiseLike<T>, timeoutMs: number, name: string): Promise<T> {
   return Promise.race([
-    promise,
+    Promise.resolve(promise),
     new Promise<T>((_, reject) =>
       setTimeout(() => reject(new Error(`${name} timed out after ${timeoutMs}ms`)), timeoutMs)
     ),
@@ -82,7 +82,7 @@ async function aggregateTopPokemon(
     }))
   }
 
-  const pmap = new Map((pokeResult.data || []).map((p: { id: string; name: string; type1?: string; type2?: string }) => [p.id, p]))
+  const pmap = new Map((pokeResult.data ?? []).map((pokemon) => [pokemon.id, pokemon]))
 
   return sorted.map(([id, s]) => {
     const p = pmap.get(id)

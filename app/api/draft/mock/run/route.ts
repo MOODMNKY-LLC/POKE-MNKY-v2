@@ -9,10 +9,22 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase/server"
 import { createServiceRoleClient } from "@/lib/supabase/service"
-import { DraftSystem } from "@/lib/draft-system"
+import { DraftSystem, type DraftSession } from "@/lib/draft-system"
 import { scoreCandidatesForAutopick } from "@/lib/draft-autopick-heuristics"
 
 const MOCK_SEASON_NAME = "Mock Draft Demo"
+
+type DraftSessionStatus = DraftSession["status"]
+
+function isDraftSessionStatus(value: string | null | undefined): value is DraftSessionStatus {
+  return (
+    value === "pending" ||
+    value === "active" ||
+    value === "paused" ||
+    value === "completed" ||
+    value === "cancelled"
+  )
+}
 
 async function sendDiscordMessage(text: string) {
   const url = process.env.MOCK_DRAFT_DISCORD_WEBHOOK_URL
@@ -110,13 +122,18 @@ export async function POST(request: NextRequest) {
       await sendDiscordMessage(`Mock draft started (API). Session ${session.id}.`)
     }
 
-    const sessionId = session.id
+    if (!session) {
+      return NextResponse.json({ error: "Failed to create draft session" }, { status: 500 })
+    }
+
+    let draftSession: DraftSession = session
+    const sessionId = draftSession.id
     const maxPicks = maxPicksParam && maxPicksParam > 0 ? maxPicksParam : 0
     let pickCount = 0
     const picks: { pick_number: number; team_id: string; team_name: string; pokemon_name: string; point_value: number }[] = []
 
     while (true) {
-      if (session.status === "completed") break
+      if (draftSession.status === "completed") break
       if (maxPicks > 0 && pickCount >= maxPicks) break
 
       const turn = await draftSystem.getCurrentTurn(sessionId)
@@ -168,7 +185,7 @@ export async function POST(request: NextRequest) {
         team_id: turn.teamId,
         team_name: teamName,
         pokemon_name: available.pokemon_name,
-        point_value: available.point_value,
+        point_value: available.point_value ?? 0,
       })
       await sendDiscordMessage(
         `Mock draft: Pick #${result.pick?.pick_number ?? pickCount} – ${teamName} drafted **${available.pokemon_name}** (${available.point_value} pts).`
@@ -179,7 +196,11 @@ export async function POST(request: NextRequest) {
         .select("status")
         .eq("id", sessionId)
         .single()
-      session = { ...session, status: (updated?.status as string) ?? session.status }
+      const nextStatus = updated?.status
+      draftSession = {
+        ...draftSession,
+        status: isDraftSessionStatus(nextStatus) ? nextStatus : draftSession.status,
+      }
     }
 
     const { data: budgets } = await admin
@@ -193,7 +214,7 @@ export async function POST(request: NextRequest) {
       success: true,
       sessionId,
       picksMade: pickCount,
-      completed: session.status === "completed",
+      completed: draftSession.status === "completed",
       picks,
       finalBudgets: budgets ?? [],
     })

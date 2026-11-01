@@ -10,7 +10,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase/server"
 import { syncAppRoleToDiscord } from "@/lib/discord-role-sync"
-import type { UserRole } from "@/lib/rbac"
+import { UserRole } from "@/lib/rbac"
 
 // Use Node.js runtime for Discord.js (requires native modules)
 export const runtime = 'nodejs'
@@ -49,8 +49,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate appRole
-    const validRoles: UserRole[] = ["admin", "commissioner", "coach", "spectator"]
-    if (!validRoles.includes(appRole)) {
+    const isUserRole = (value: unknown): value is UserRole =>
+      value === UserRole.ADMIN ||
+      value === UserRole.COMMISSIONER ||
+      value === UserRole.COACH ||
+      value === UserRole.SPECTATOR
+    if (!isUserRole(appRole)) {
       return NextResponse.json({ error: "Invalid app role" }, { status: 400 })
     }
 
