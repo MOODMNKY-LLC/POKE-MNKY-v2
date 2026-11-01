@@ -258,7 +258,7 @@ export class TeamsParser extends BaseParser {
   /**
    * Get result object
    */
-  private getResult(): ParserResult {
+  protected getResult(): ParserResult {
     return {
       success: this.errors.length === 0,
       recordsProcessed: this.recordsProcessed,

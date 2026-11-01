@@ -46,7 +46,7 @@ export const ShowdownPokemonSchema = z.object({
   types: z.array(ShowdownTypeSchema).min(1).max(2),
   gender: z.enum(['M', 'F', 'N']).optional(),
   baseStats: ShowdownStatsSchema,
-  abilities: z.record(z.union([z.string(), ShowdownAbilitySchema])),
+  abilities: z.record(z.string(), z.union([z.string(), ShowdownAbilitySchema])),
   heightm: z.number().optional(),
   weightkg: z.number().optional(),
   color: z.string().optional(),
@@ -59,7 +59,7 @@ export const ShowdownPokemonSchema = z.object({
   eggGroups: z.array(z.string()).optional(),
   gen: z.number().int().min(1).max(9).optional(),
   tier: z.string().optional(),
-  learnset: z.record(z.array(ShowdownMoveSchema)).optional(),
+  learnset: z.record(z.string(), z.array(ShowdownMoveSchema)).optional(),
   otherFormes: z.array(z.string()).optional(),
   cosmeticFormes: z.array(z.string()).optional(),
   cannotDynamax: z.boolean().optional(),
@@ -70,10 +70,9 @@ export const ShowdownPokemonSchema = z.object({
   requiredItems: z.array(z.string()).optional(),
   battleOnly: z.boolean().optional(),
   changesFrom: z.string().optional(),
-  genderRatio: z.record(z.number()).optional(),
+  genderRatio: z.record(z.string(), z.number()).optional(),
   maxHP: z.number().optional(),
   unreleased: z.boolean().optional(),
-  baseSpecies: z.string().optional(),
 }).passthrough() // Allow additional fields
 
 // Full pokedex.json structure

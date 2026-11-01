@@ -234,28 +234,22 @@ export class PixabayClient {
       
       // Try multiple URL patterns
       // Pattern 1: /music/lofi-starting-steps-lofi-guitar-462746/
-      let urlMatch = pageURL.match(/\/music\/([^\/]+)\//)
-      
       // Pattern 2: /music/lofi-starting-steps-lofi-guitar-462746 (no trailing slash)
-      if (!urlMatch) {
-        urlMatch = pageURL.match(/\/music\/([^\/]+)$/)
-      }
-      
+      const urlMatch = pageURL.match(/\/music\/([^\/]+)\//) ?? pageURL.match(/\/music\/([^\/]+)$/)
+      let slug = urlMatch?.[1] ?? null
+
       // Pattern 3: Just the slug part after /music/
-      if (!urlMatch) {
+      if (!slug) {
         const parts = pageURL.split('/music/')
         if (parts.length > 1) {
-          const slugPart = parts[1].split('/')[0].split('?')[0]
-          urlMatch = [null, slugPart]
+          slug = parts[1].split('/')[0].split('?')[0] || null
         }
       }
-      
-      if (!urlMatch || !urlMatch[1]) {
+
+      if (!slug) {
         console.log('[extractTitleFromPageURL] No match found for URL:', pageURL)
         return null
       }
-
-      const slug = urlMatch[1]
       console.log('[extractTitleFromPageURL] Extracted slug:', slug)
       
       // Remove the ID at the end (e.g., "-462746")

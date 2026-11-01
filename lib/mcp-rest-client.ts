@@ -191,19 +191,6 @@ export function createMCPClient(config: MCPClientConfig = {}) {
         ;(response as any).__rateLimit = rateLimit
       }
     },
-    async onError({ error }) {
-      // Handle network errors, CORS errors, etc.
-      if (error instanceof TypeError) {
-        throw new MCPApiError(
-          0,
-          "Network Error",
-          "NETWORK_ERROR",
-          undefined,
-          `Network request failed: ${error.message}`
-        )
-      }
-      throw error
-    },
   }
 
   // Retry middleware
@@ -321,7 +308,7 @@ export function createMCPClient(config: MCPClientConfig = {}) {
     }): Promise<MCPResponse<paths["/api/get_draft_status"]["post"]["responses"]["200"]["content"]["application/json"]>> {
       return withRateLimit(
         client.POST("/api/get_draft_status", {
-          body: params || {},
+          body: params?.season_id != null ? { season_id: String(params.season_id) } : {},
         })
       )
     },
@@ -335,7 +322,10 @@ export function createMCPClient(config: MCPClientConfig = {}) {
     }): Promise<MCPResponse<paths["/api/get_team_budget"]["post"]["responses"]["200"]["content"]["application/json"]>> {
       return withRateLimit(
         client.POST("/api/get_team_budget", {
-          body: params,
+          body: {
+            team_id: String(params.team_id),
+            ...(params.season_id != null ? { season_id: String(params.season_id) } : {}),
+          },
         })
       )
     },
@@ -349,7 +339,10 @@ export function createMCPClient(config: MCPClientConfig = {}) {
     }): Promise<MCPResponse<paths["/api/get_team_picks"]["post"]["responses"]["200"]["content"]["application/json"]>> {
       return withRateLimit(
         client.POST("/api/get_team_picks", {
-          body: params,
+          body: {
+            team_id: String(params.team_id),
+            ...(params.season_id != null ? { season_id: String(params.season_id) } : {}),
+          },
         })
       )
     },
@@ -361,9 +354,18 @@ export function createMCPClient(config: MCPClientConfig = {}) {
       pokemon_name?: string
       pokemon_id?: number
     }): Promise<MCPResponse<paths["/api/get_pokemon_types"]["post"]["responses"]["200"]["content"]["application/json"]>> {
+      if (!params?.pokemon_name) {
+        throw new MCPApiError(
+          400,
+          "Bad Request",
+          "MISSING_POKEMON_NAME",
+          undefined,
+          "pokemon_name is required"
+        )
+      }
       return withRateLimit(
         client.POST("/api/get_pokemon_types", {
-          body: params || {},
+          body: { pokemon_name: params.pokemon_name },
         })
       )
     },
@@ -428,11 +430,14 @@ export function createMCPClient(config: MCPClientConfig = {}) {
      */
     async healthCheck(): Promise<paths["/health"]["get"]["responses"]["200"]["content"]["application/json"]> {
       const result = await client.GET("/health")
-      if (result.error) {
-        throw result.error
-      }
       if (!result.data) {
-        throw new MCPApiError(0, "No data", "NO_DATA", undefined, "Health check returned no data")
+        throw new MCPApiError(
+          result.response.status,
+          result.response.statusText || "Health check failed",
+          "NO_DATA",
+          undefined,
+          "Health check returned no data"
+        )
       }
       return result.data
     },

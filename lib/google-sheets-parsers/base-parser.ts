@@ -192,9 +192,13 @@ export abstract class BaseParser {
   /**
    * Log warning
    */
-  protected warn(message: string): void {
+  protected warn(message: string, err?: unknown): void {
     this.warnings.push(message)
-    console.warn(`[Parser:${this.config.parser_type}] ${message}`)
+    if (err !== undefined) {
+      console.warn(`[Parser:${this.config.parser_type}] ${message}`, err)
+    } else {
+      console.warn(`[Parser:${this.config.parser_type}] ${message}`)
+    }
   }
 
   /**

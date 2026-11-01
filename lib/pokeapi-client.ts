@@ -5,6 +5,7 @@
 
 import createClient from 'openapi-fetch'
 import type { paths } from './types/pokeapi-generated'
+import { RESOURCE_SCHEMAS, validatePokAPIResponse } from './schemas/pokeapi-schemas'
 
 const BASE_URL = 'https://pokeapi.co/api/v2'
 
@@ -106,9 +107,9 @@ export async function fetchResource<T extends keyof paths>(
             data: null,
             error: {
               type: 'validation',
-              message: `Response validation failed: ${validation.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
+              message: `Response validation failed: ${validation.error.issues.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
               url: result.response?.url,
-              details: validation.error.errors,
+              details: validation.error.issues,
             },
           }
         }

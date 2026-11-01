@@ -130,24 +130,9 @@ export class DraftParser extends BaseParser {
         
         // Store values for later use
         const values = response.data.values || []
-        // Store raw values array for helper methods
-        const sheetAny = this.sheet as any
+        // Store raw values array for helper methods (getCell reads loaded cells, not this cache)
+        const sheetAny = this.sheet as { _rawValues?: string[][] }
         sheetAny._rawValues = values
-        // Create a mock cell structure for grid detection
-        for (let rowIdx = 0; rowIdx < Math.min(values.length, maxRows); rowIdx++) {
-          const row = values[rowIdx] || []
-          for (let col = 0; col < Math.min(row.length, maxCols); col++) {
-            // Store in a way that getCell() can access
-            if (!this.sheet._cells) {
-              this.sheet._cells = {}
-            }
-            const cellKey = `${rowIdx}_${col}`
-            this.sheet._cells[cellKey] = {
-              value: row[col] || null,
-              formattedValue: String(row[col] || ""),
-            }
-          }
-        }
         loadedCells = true
       } catch (apiError: any) {
         this.error("Failed to load data using raw API", apiError)
@@ -543,12 +528,13 @@ export class DraftParser extends BaseParser {
    * Apply snake draft logic to calculate pick order
    */
   private applySnakeDraftLogic(
-    picks: Array<{ round: number; teamName: string; pokemonName: string; row: number; col: number }>,
+    picks: Array<{ round: number; teamName: string; pokemonName: string; pointValue: number; row: number; col: number }>,
     teamCount: number
   ): Array<{
     round: number
     teamName: string
     pokemonName: string
+    pointValue: number
     pickOrder: number
     overallPick: number
   }> {
@@ -565,6 +551,7 @@ export class DraftParser extends BaseParser {
       round: number
       teamName: string
       pokemonName: string
+      pointValue: number
       pickOrder: number
       overallPick: number
     }> = []
@@ -595,6 +582,7 @@ export class DraftParser extends BaseParser {
           round: pick.round,
           teamName: pick.teamName,
           pokemonName: pick.pokemonName,
+          pointValue: pick.pointValue,
           pickOrder,
           overallPick: overallPickCounter++,
         })

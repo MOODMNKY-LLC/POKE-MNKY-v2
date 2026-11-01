@@ -1,7 +1,7 @@
 // AI-powered Google Sheets parser using OpenAI GPT-5 models
 // Intelligently extracts and infers missing fields from unstructured sheet data
 
-import { z } from "zod"
+import { z } from "zod/v3"
 import { zodResponseFormat } from "openai/helpers/zod"
 import { openai, AI_MODELS } from "./openai-client"
 
@@ -161,7 +161,7 @@ IMPORTANT:
     } catch (parseError) {
       console.error("[AI Parser] Failed to parse/validate JSON response:", content)
       if (parseError instanceof z.ZodError) {
-        console.error("[AI Parser] Zod validation errors:", parseError.errors)
+        console.error("[AI Parser] Zod validation errors:", parseError.issues)
       }
       throw new Error(`Failed to parse AI response: ${parseError instanceof Error ? parseError.message : "Invalid JSON"}`)
     }
@@ -262,7 +262,7 @@ Return a JSON array of parsed match objects.`
     } catch (parseError) {
       console.error("[AI Parser] Failed to parse/validate JSON response:", content)
       if (parseError instanceof z.ZodError) {
-        console.error("[AI Parser] Zod validation errors:", parseError.errors)
+        console.error("[AI Parser] Zod validation errors:", parseError.issues)
       }
       throw new Error(`Failed to parse AI response: ${parseError instanceof Error ? parseError.message : "Invalid JSON"}`)
     }

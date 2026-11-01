@@ -45,7 +45,7 @@ export async function getTeamRosterPicks(
 
   if (draftPicks && draftPicks.length > 0) {
     return draftPicks.map((row) => {
-      const poke = row.pokemon as { name: string; type1: string | null; type2: string | null } | null
+      const poke = Array.isArray(row.pokemon) ? row.pokemon[0] : null
       return {
         id: row.id,
         pokemon_id: row.pokemon_id,
@@ -82,7 +82,7 @@ export async function getTeamRosterPicks(
   }
 
   return (legacy ?? []).map((row) => {
-    const poke = row.pokemon as { name: string; type1: string | null; type2: string | null } | null
+    const poke = Array.isArray(row.pokemon) ? row.pokemon[0] : null
     return {
       id: row.id,
       pokemon_id: row.pokemon_id,

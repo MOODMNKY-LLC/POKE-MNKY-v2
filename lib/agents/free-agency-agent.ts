@@ -82,7 +82,7 @@ Be specific about type coverage, roles, and team composition.`
       impact: [],
     },
     recommendation: 'consider',
-    finalOutput: result.finalOutput,
+    finalOutput: result.finalOutput ?? "",
   }
 }
 
@@ -109,7 +109,7 @@ Evaluate this trade proposal. Use MCP tools to:
 Be honest about whether this trade benefits the team.`
 
   const result = await run(freeAgencyAgent, prompt)
-  return result.finalOutput
+  return result.finalOutput ?? ""
 }
 
 // Suggest free agency targets
@@ -131,5 +131,5 @@ Use MCP tools to:
 Provide actionable recommendations.`
 
   const result = await run(freeAgencyAgent, prompt)
-  return result.finalOutput
+  return result.finalOutput ?? ""
 }

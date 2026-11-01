@@ -1,6 +1,12 @@
 // OpenAI client configuration for GPT-4/5 models
 
 import OpenAI from "openai"
+import type {
+  ResponseCreateParamsNonStreaming,
+  ResponseCreateParamsStreaming,
+  ResponseInput,
+  ResponseInputContent,
+} from "openai/resources/responses/responses"
 
 // Singleton instance - only created when first needed at runtime
 let _openaiClient: OpenAI | null = null
@@ -296,7 +302,7 @@ export interface ResponsesAPIConfig {
     server_description?: string
     require_approval?: "always" | "never" | object
     allowed_tools?: string[]
-    [key: string]: any
+    [key: string]: unknown
   }>
   stream?: boolean
   reasoning?: {
@@ -304,9 +310,50 @@ export interface ResponsesAPIConfig {
   }
 }
 
+function toResponseInput(input: ResponsesAPIConfig["input"]): ResponseInput {
+  return input.map((message) => {
+    const content: ResponseInputContent[] = []
+    for (const part of message.content) {
+      if (part.type === "input_text" && part.text) {
+        content.push({ type: "input_text", text: part.text })
+      } else if (part.type === "input_image" && part.image_url) {
+        content.push({ type: "input_image", image_url: part.image_url, detail: "auto" })
+      }
+    }
+    return { role: message.role, content }
+  })
+}
+
+function toReasoning(summary: string | undefined): { summary: "auto" | "concise" | "detailed" } | undefined {
+  if (summary === "auto" || summary === "concise" || summary === "detailed") {
+    return { summary }
+  }
+  return undefined
+}
+
 export async function createResponseWithMCP(config: ResponsesAPIConfig) {
   const openaiClient = getOpenAIClient()
-  return openaiClient.responses.create(config)
+  // Tool bags include chat-style function wrappers and an index signature, which are not the SDK Tool union.
+  const tools = config.tools as ResponseCreateParamsNonStreaming["tools"]
+  const reasoning = toReasoning(config.reasoning?.summary)
+  if (config.stream) {
+    const streaming: ResponseCreateParamsStreaming = {
+      model: config.model,
+      input: toResponseInput(config.input),
+      tools,
+      reasoning,
+      stream: true,
+    }
+    return openaiClient.responses.create(streaming)
+  }
+  const nonStreaming: ResponseCreateParamsNonStreaming = {
+    model: config.model,
+    input: toResponseInput(config.input),
+    tools,
+    reasoning,
+    stream: false,
+  }
+  return openaiClient.responses.create(nonStreaming)
 }
 
 /**
@@ -346,7 +393,7 @@ export async function uploadFileToVectorStore(
   console.log('[Vector Store] File uploaded:', file.id)
 
   // Step 2: Attach to vector store
-  const vectorStoreFile = await openaiClient.beta.vectorStores.files.create(
+  const vectorStoreFile = await openaiClient.vectorStores.files.create(
     vsId,
     {
       file_id: file.id,
@@ -379,14 +426,13 @@ export async function checkVectorStoreFileStatus(
     throw new Error('Vector store ID not configured')
   }
 
-  const status = await openaiClient.beta.vectorStores.files.retrieve(
-    vsId,
-    vectorStoreFileId
-  )
+  const status = await openaiClient.vectorStores.files.retrieve(vectorStoreFileId, {
+    vector_store_id: vsId,
+  })
 
   return {
     status: status.status,
-    fileId: status.file_id,
+    fileId: status.id,
   }
 }
 
@@ -408,11 +454,11 @@ export async function listVectorStoreFiles(
     throw new Error('Vector store ID not configured')
   }
 
-  const files = await openaiClient.beta.vectorStores.files.list(vsId)
+  const files = await openaiClient.vectorStores.files.list(vsId)
 
   return files.data.map(file => ({
     id: file.id,
-    fileId: file.file_id,
+    fileId: file.id,
     status: file.status,
     createdAt: file.created_at,
   }))

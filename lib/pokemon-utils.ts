@@ -3,7 +3,7 @@
 
 import { createBrowserClient } from "@/lib/supabase/client"
 import { getPokemonDataExtended, type CachedPokemonExtended } from "./pokemon-api-enhanced"
-import { adaptPokepediaToDisplayData, parseJsonbField } from "./pokepedia-adapter"
+import { adaptPokepediaToDisplayData, parseJsonbField, type PokepediaPokemonRow } from "./pokepedia-adapter"
 
 // Use shared browser client singleton to avoid multiple GoTrueClient instances
 function getSupabaseClient() {
@@ -346,7 +346,7 @@ export async function getAllPokemonFromCache(limit?: number): Promise<PokemonDis
     )
 
     if (pokepediaData && !pokepediaError) {
-      return pokepediaData.map(row => {
+      return pokepediaData.map((row: PokepediaPokemonRow) => {
         // Parse JSONB fields that might come as strings
         return adaptPokepediaToDisplayData({
           ...row,
@@ -434,7 +434,7 @@ export async function searchPokemon(
 
     if (pokepediaData && !pokepediaError) {
       // Parse and adapt pokepedia_pokemon data
-      results = pokepediaData.map(row => {
+      results = pokepediaData.map((row: PokepediaPokemonRow) => {
         return adaptPokepediaToDisplayData({
           ...row,
           types: parseJsonbField<string[]>(row.types) || row.types,

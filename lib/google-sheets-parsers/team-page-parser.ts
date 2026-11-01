@@ -5,7 +5,7 @@
  */
 
 import { BaseParser, ParserConfig, ParserResult } from "./base-parser"
-import { z } from "zod"
+import { z } from "zod/v3"
 import { zodResponseFormat } from "openai/helpers/zod"
 import { openai, AI_MODELS } from "../openai-client"
 import { extractImagesFromSheet } from "../google-sheets-image-extractor"
@@ -544,7 +544,7 @@ Return structured sections with extracted data.`
    * Process roster section
    */
   private async processRosterSection(teamId: string, section: z.infer<typeof TeamSectionSchema>): Promise<void> {
-    for (const row of section.data) {
+    for (const row of section.data ?? []) {
       const pokemonName = row["Pokemon"] || row["pokemon"] || row["Name"] || row["name"]
       if (!pokemonName) continue
 
@@ -574,7 +574,7 @@ Return structured sections with extracted data.`
    */
   private async processStatsSection(teamId: string, section: z.infer<typeof TeamSectionSchema>): Promise<void> {
     const stats: any = {}
-    for (const row of section.data) {
+    for (const row of section.data ?? []) {
       for (const [key, value] of Object.entries(row)) {
         const normalizedKey = key.toLowerCase()
         if (normalizedKey.includes("win")) stats.wins = parseInt(String(value), 10) || 0
@@ -594,7 +594,7 @@ Return structured sections with extracted data.`
    */
   private async processTradesSection(teamId: string, section: z.infer<typeof TeamSectionSchema>): Promise<void> {
     // TODO: Implement trade processing
-    this.log(`Would process ${section.data.length} trade entries`)
+    this.log(`Would process ${section.data?.length ?? 0} trade entries`)
   }
 
   /**
@@ -602,7 +602,7 @@ Return structured sections with extracted data.`
    */
   private async processScheduleSection(teamId: string, section: z.infer<typeof TeamSectionSchema>): Promise<void> {
     // TODO: Implement schedule processing
-    this.log(`Would process ${section.data.length} schedule entries`)
+    this.log(`Would process ${section.data?.length ?? 0} schedule entries`)
   }
 
   /**
@@ -610,7 +610,7 @@ Return structured sections with extracted data.`
    */
   private async processHeaderSection(teamId: string, section: z.infer<typeof TeamSectionSchema>): Promise<void> {
     // Extract coach name if present
-    for (const row of section.data) {
+    for (const row of section.data ?? []) {
       for (const [key, value] of Object.entries(row)) {
         if (key.toLowerCase().includes("coach")) {
           await this.supabase.from("teams").update({ coach_name: String(value) }).eq("id", teamId)

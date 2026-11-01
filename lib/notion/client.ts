@@ -125,11 +125,18 @@ export function createNotionClient(apiKey?: string): AxiosInstance {
 
       // Transform error to NotionAPIError
       if (error.response) {
+        const data = error.response.data
+        let apiMessage: string | undefined
+        let apiCode: string | undefined
+        if (typeof data === "object" && data !== null) {
+          if ("message" in data && typeof data.message === "string") apiMessage = data.message
+          if ("code" in data && typeof data.code === "string") apiCode = data.code
+        }
         const notionError = new NotionAPIError(
-          error.response.data?.message || error.message,
+          apiMessage || error.message,
           error.response.status,
-          error.response.data?.code,
-          error.response.data
+          apiCode,
+          data
         )
         throw notionError
       }
