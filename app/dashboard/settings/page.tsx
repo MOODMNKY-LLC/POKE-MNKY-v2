@@ -124,7 +124,7 @@ export default async function DashboardSettingsPage({
                   <p className="text-sm text-muted-foreground">
                     {profile.display_name || profile.discord_username || "Unnamed"} — {profile.role}
                   </p>
-                  <ProfileSheetTrigger variant="outline" size="sm">
+                  <ProfileSheetTrigger variant="outline">
                     Edit Profile
                   </ProfileSheetTrigger>
                 </div>

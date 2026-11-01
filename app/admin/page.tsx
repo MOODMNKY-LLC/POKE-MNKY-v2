@@ -8,6 +8,11 @@ import Link from "next/link"
 import { Database, Calendar, Trophy, Users, RefreshCw, MessageSquare, ClipboardList, FileText, Music, ArrowRightLeft, Play, BookOpen, Settings, UserCircle } from "lucide-react"
 import { useRouter } from "next/navigation"
 
+type AuthGetUserResult = {
+  data: { user: { id: string } | null }
+  error: { message: string } | null
+}
+
 export default function AdminPage() {
   const [user, setUser] = useState<unknown>(null)
   const [profile, setProfile] = useState<{ role?: string } | null>(null)
@@ -18,7 +23,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     const supabase = createBrowserClient()
-    supabase.auth.getUser().then(async ({ data, error }) => {
+    supabase.auth.getUser().then(async ({ data, error }: AuthGetUserResult) => {
       if (error || !data.user) {
         router.push("/auth/login")
       } else {
@@ -124,7 +129,7 @@ export default function AdminPage() {
               </div>
               <div>
                 <div className="text-sm font-semibold">
-                  {lastSync ? new Date(lastSync.synced_at).toLocaleDateString() : "Never"}
+                  {lastSync?.synced_at ? new Date(lastSync.synced_at).toLocaleDateString() : "Never"}
                 </div>
                 <div className="text-sm text-muted-foreground">Last Sync</div>
               </div>

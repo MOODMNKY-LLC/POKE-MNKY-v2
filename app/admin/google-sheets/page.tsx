@@ -721,7 +721,7 @@ export default function GoogleSheetsConfigPage() {
                     <div className="flex flex-wrap gap-2">
                       {Object.entries(analysisResult.summary.sheet_types).map(([type, count]) => (
                         <Badge key={type} variant="secondary">
-                          {type}: {count}
+                          {type}: {typeof count === "number" || typeof count === "string" ? count : String(count)}
                         </Badge>
                       ))}
                     </div>

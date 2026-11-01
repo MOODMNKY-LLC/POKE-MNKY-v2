@@ -10,6 +10,11 @@ import { PokemonSyncControl } from "@/components/admin/pokemon-sync-control"
 import { ShowdownPokedexSync } from "@/components/admin/showdown-pokedex-sync"
 import { useRouter } from "next/navigation"
 
+type AuthGetUserResult = {
+  data: { user: { id: string } | null }
+  error: { message: string } | null
+}
+
 interface SyncJob {
   job_id: string
   sync_type: string | null
@@ -29,7 +34,7 @@ export default function AdminSyncPage() {
 
   useEffect(() => {
     const supabase = createBrowserClient()
-    supabase.auth.getUser().then(({ data, error }) => {
+    supabase.auth.getUser().then(({ data, error }: AuthGetUserResult) => {
       if (error || !data.user) {
         router.push("/auth/login")
       } else {
@@ -46,7 +51,7 @@ export default function AdminSyncPage() {
       .select("job_id, sync_type, status, triggered_by, pokemon_synced, pokemon_failed, started_at, completed_at, progress_percent")
       .order("started_at", { ascending: false })
       .limit(20)
-      .then(({ data }) => setSyncJobs((data ?? []) as SyncJob[]))
+      .then(({ data }: { data: SyncJob[] | null }) => setSyncJobs(data ?? []))
   }, [user])
 
   if (!user) {

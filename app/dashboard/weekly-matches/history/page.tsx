@@ -15,6 +15,41 @@ import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 
+type HistoryMatch = {
+  id: string
+  week: number
+  status: string
+  team1_score: number | null
+  team2_score: number | null
+  replay_url: string | null
+  played_at: string | null
+  team1: { name: string } | null
+  team2: { name: string } | null
+  winner: { name: string } | null
+}
+
+function scoreOrNull(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : null
+  }
+  return null
+}
+
+function textOrNull(value: unknown): string | null {
+  if (value == null) return null
+  return typeof value === "string" ? value : String(value)
+}
+
+function sideName(value: unknown): { name: string } | null {
+  const row = Array.isArray(value) ? value[0] : value
+  if (!row || typeof row !== "object") return null
+  const name = (row as { name?: unknown }).name
+  if (typeof name !== "string" || name.length === 0) return null
+  return { name }
+}
+
 export default async function WeeklyMatchesHistoryPage() {
   const supabase = await createClient()
   const {
@@ -33,18 +68,7 @@ export default async function WeeklyMatchesHistoryPage() {
 
   const teamId = profile?.team_id
 
-  let matches: Array<{
-    id: string
-    week: number
-    status: string
-    team1_score: number | null
-    team2_score: number | null
-    replay_url: string | null
-    played_at: string | null
-    team1: { name: string } | null
-    team2: { name: string } | null
-    winner: { name: string } | null
-  }> = []
+  let matches: HistoryMatch[] = []
 
   if (teamId) {
     const { data } = await supabase
@@ -63,7 +87,18 @@ export default async function WeeklyMatchesHistoryPage() {
       .order("played_at", { ascending: false })
       .limit(50)
 
-    matches = (data ?? []) as typeof matches
+    matches = (data ?? []).map((row) => ({
+      id: String(row.id ?? ""),
+      week: typeof row.week === "number" ? row.week : Number(row.week ?? 0),
+      status: typeof row.status === "string" ? row.status : String(row.status ?? ""),
+      team1_score: scoreOrNull(row.team1_score),
+      team2_score: scoreOrNull(row.team2_score),
+      replay_url: textOrNull(row.replay_url),
+      played_at: textOrNull(row.played_at),
+      team1: sideName(row.team1),
+      team2: sideName(row.team2),
+      winner: sideName(row.winner),
+    }))
   }
 
   return (

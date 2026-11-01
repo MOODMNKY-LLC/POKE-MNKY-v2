@@ -620,9 +620,9 @@ export default function PokedexPage() {
                                   </Badge>
                                   <span className="font-semibold capitalize flex-1">{moveEntry.moveName.replace("-", " ")}</span>
                                   <div className="flex gap-4 text-xs text-muted-foreground">
-                                    {moveEntry.move?.power !== null && <span>Power: {moveEntry.move.power}</span>}
-                                    {moveEntry.move?.accuracy !== null && <span>Acc: {moveEntry.move.accuracy}%</span>}
-                                    {moveEntry.move?.pp !== null && <span>PP: {moveEntry.move.pp}</span>}
+                                    {moveEntry.move != null && moveEntry.move.power !== null && <span>Power: {moveEntry.move.power}</span>}
+                                    {moveEntry.move != null && moveEntry.move.accuracy !== null && <span>Acc: {moveEntry.move.accuracy}%</span>}
+                                    {moveEntry.move != null && moveEntry.move.pp !== null && <span>PP: {moveEntry.move.pp}</span>}
                                   </div>
                                 </div>
                               ))
@@ -652,9 +652,9 @@ export default function PokedexPage() {
                                   </Badge>
                                   <span className="font-semibold capitalize flex-1">{moveEntry.moveName.replace("-", " ")}</span>
                                   <div className="flex gap-4 text-xs text-muted-foreground">
-                                    {moveEntry.move?.power !== null && <span>Power: {moveEntry.move.power}</span>}
-                                    {moveEntry.move?.accuracy !== null && <span>Acc: {moveEntry.move.accuracy}%</span>}
-                                    {moveEntry.move?.pp !== null && <span>PP: {moveEntry.move.pp}</span>}
+                                    {moveEntry.move != null && moveEntry.move.power !== null && <span>Power: {moveEntry.move.power}</span>}
+                                    {moveEntry.move != null && moveEntry.move.accuracy !== null && <span>Acc: {moveEntry.move.accuracy}%</span>}
+                                    {moveEntry.move != null && moveEntry.move.pp !== null && <span>PP: {moveEntry.move.pp}</span>}
                                   </div>
                                 </div>
                               ))
@@ -684,9 +684,9 @@ export default function PokedexPage() {
                                   </Badge>
                                   <span className="font-semibold capitalize flex-1">{moveEntry.moveName.replace("-", " ")}</span>
                                   <div className="flex gap-4 text-xs text-muted-foreground">
-                                    {moveEntry.move?.power !== null && <span>Power: {moveEntry.move.power}</span>}
-                                    {moveEntry.move?.accuracy !== null && <span>Acc: {moveEntry.move.accuracy}%</span>}
-                                    {moveEntry.move?.pp !== null && <span>PP: {moveEntry.move.pp}</span>}
+                                    {moveEntry.move != null && moveEntry.move.power !== null && <span>Power: {moveEntry.move.power}</span>}
+                                    {moveEntry.move != null && moveEntry.move.accuracy !== null && <span>Acc: {moveEntry.move.accuracy}%</span>}
+                                    {moveEntry.move != null && moveEntry.move.pp !== null && <span>PP: {moveEntry.move.pp}</span>}
                                   </div>
                                 </div>
                               ))
@@ -716,9 +716,9 @@ export default function PokedexPage() {
                                   </Badge>
                                   <span className="font-semibold capitalize flex-1">{moveEntry.moveName.replace("-", " ")}</span>
                                   <div className="flex gap-4 text-xs text-muted-foreground">
-                                    {moveEntry.move?.power !== null && <span>Power: {moveEntry.move.power}</span>}
-                                    {moveEntry.move?.accuracy !== null && <span>Acc: {moveEntry.move.accuracy}%</span>}
-                                    {moveEntry.move?.pp !== null && <span>PP: {moveEntry.move.pp}</span>}
+                                    {moveEntry.move != null && moveEntry.move.power !== null && <span>Power: {moveEntry.move.power}</span>}
+                                    {moveEntry.move != null && moveEntry.move.accuracy !== null && <span>Acc: {moveEntry.move.accuracy}%</span>}
+                                    {moveEntry.move != null && moveEntry.move.pp !== null && <span>PP: {moveEntry.move.pp}</span>}
                                   </div>
                                 </div>
                               ))

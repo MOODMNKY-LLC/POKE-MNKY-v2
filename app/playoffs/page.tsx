@@ -10,6 +10,63 @@ import {
   type PlayoffRoundKey,
 } from "@/lib/playoff-rounds"
 
+type NamedSide = { name: string }
+
+type PlayoffMatch = {
+  id: string
+  playoff_round: string | number | null
+  winner_id: string | null
+  team1_id: string
+  team2_id: string
+  team1_score: number
+  team2_score: number
+  team1?: NamedSide
+  team2?: NamedSide
+  winner: NamedSide | null
+}
+
+function readScore(value: unknown): number {
+  if (typeof value === "number" && Number.isFinite(value)) return value
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number(value)
+    if (Number.isFinite(parsed)) return parsed
+  }
+  return 0
+}
+
+function readId(value: unknown): string {
+  return typeof value === "string" ? value : ""
+}
+
+function readSide(value: unknown): NamedSide | null {
+  const row = Array.isArray(value) ? value[0] : value
+  if (!row || typeof row !== "object") return null
+  const name = (row as { name?: unknown }).name
+  return typeof name === "string" ? { name } : null
+}
+
+function toPlayoffMatch(value: unknown): PlayoffMatch | null {
+  if (!value || typeof value !== "object") return null
+  const row = value as Record<string, unknown>
+  const id = readId(row.id)
+  if (!id) return null
+  const playoffRound = row.playoff_round
+  const winnerId = readId(row.winner_id)
+  return {
+    id,
+    playoff_round:
+      typeof playoffRound === "string" || typeof playoffRound === "number" ? playoffRound : null,
+    winner_id: winnerId || null,
+    team1_id: readId(row.team1_id),
+    team2_id: readId(row.team2_id),
+    team1_score: readScore(row.team1_score),
+    team2_score: readScore(row.team2_score),
+    team1: readSide(row.team1) ?? undefined,
+    team2: readSide(row.team2) ?? undefined,
+    winner: readSide(row.winner),
+  }
+}
+
 export default async function PlayoffsPage() {
   const supabase = await createClient()
 
@@ -45,14 +102,17 @@ export default async function PlayoffsPage() {
   const hasRound1Byes = (seedRows ?? []).some((s) => s.round1_bye)
   const activeRoundKeys = roundsUsedInBracket(hasRound1Byes)
 
-  const rounds: Record<PlayoffRoundKey, typeof playoffMatches> = {
+  const rounds: Record<PlayoffRoundKey, PlayoffMatch[]> = {
     [PLAYOFF_ROUND_KEYS.ROUND_1]: [],
     [PLAYOFF_ROUND_KEYS.QUARTERFINALS]: [],
     [PLAYOFF_ROUND_KEYS.SEMIFINALS]: [],
     [PLAYOFF_ROUND_KEYS.FINALS]: [],
   }
 
-  for (const match of playoffMatches ?? []) {
+  const playoffRows: unknown[] = Array.isArray(playoffMatches) ? playoffMatches : []
+  for (const row of playoffRows) {
+    const match = toPlayoffMatch(row)
+    if (!match) continue
     const key = normalizePlayoffRound(match.playoff_round)
     if (key) rounds[key].push(match)
   }
@@ -110,7 +170,20 @@ export default async function PlayoffsPage() {
                           style={{ paddingTop: `${columnIndex * 2}rem`, paddingBottom: `${columnIndex * 2}rem` }}
                         >
                           {roundMatches.map((match) => (
-                            <BracketMatch key={match.id} match={match} />
+                            <BracketMatch
+                              key={match.id}
+                              match={{
+                                id: match.id,
+                                team1: match.team1,
+                                team2: match.team2,
+                                team1_score: match.team1_score,
+                                team2_score: match.team2_score,
+                                // BracketMatch detects an unfinished match with winner_id !== null, but its prop type omits null.
+                                winner_id: (match.winner_id ?? null) as string | undefined,
+                                team1_id: match.team1_id,
+                                team2_id: match.team2_id,
+                              }}
+                            />
                           ))}
                           {roundMatches.length === 0
                             ? Array.from({ length: slotCount }).map((_, i) => (

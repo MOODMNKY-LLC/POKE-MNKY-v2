@@ -125,8 +125,8 @@ export default async function LeagueTeamPage({ searchParams }: PageProps) {
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              <Card asChild>
-                <Link href="/dashboard/draft/roster">
+              <Link href="/dashboard/draft/roster">
+                <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Roster</CardTitle>
                     <Users className="h-4 w-4 text-muted-foreground" />
@@ -135,10 +135,10 @@ export default async function LeagueTeamPage({ searchParams }: PageProps) {
                     <div className="text-2xl font-bold">{rosterCount}</div>
                     <p className="text-xs text-muted-foreground">Active picks · Manage roster</p>
                   </CardContent>
-                </Link>
-              </Card>
-              <Card asChild>
-                <Link href="/dashboard/free-agency">
+                </Card>
+              </Link>
+              <Link href="/dashboard/free-agency">
+                <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Free Agency</CardTitle>
                     <Coins className="h-4 w-4 text-muted-foreground" />
@@ -146,10 +146,10 @@ export default async function LeagueTeamPage({ searchParams }: PageProps) {
                   <CardContent>
                     <p className="text-sm text-muted-foreground">Add, drop, or replace Pokémon</p>
                   </CardContent>
-                </Link>
-              </Card>
-              <Card asChild>
-                <Link href="/dashboard/stats">
+                </Card>
+              </Link>
+              <Link href="/dashboard/stats">
+                <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Team Stats</CardTitle>
                     <BarChart3 className="h-4 w-4 text-muted-foreground" />
@@ -157,12 +157,12 @@ export default async function LeagueTeamPage({ searchParams }: PageProps) {
                   <CardContent>
                     <p className="text-sm text-muted-foreground">Record, budget, and stats</p>
                   </CardContent>
-                </Link>
-              </Card>
+                </Card>
+              </Link>
             </div>
 
-            <Card asChild>
-              <Link href="/dashboard/weekly-matches">
+            <Link href="/dashboard/weekly-matches">
+              <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Weekly Matches</CardTitle>
                   <Swords className="h-4 w-4 text-muted-foreground" />
@@ -172,8 +172,8 @@ export default async function LeagueTeamPage({ searchParams }: PageProps) {
                     View schedule, battle plans, and submit results
                   </p>
                 </CardContent>
-              </Link>
-            </Card>
+              </Card>
+            </Link>
           </>
         )}
       </div>

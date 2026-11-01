@@ -13,6 +13,15 @@ import { Settings, Database, Loader2, Archive, FolderOpen, Upload, Copy } from "
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { draftPoolCopyConfirmMessage, type DraftPoolCopySources } from "@/lib/draft-pool-copy-plan"
 
+type AuthGetUserResult = {
+  data: { user: { id: string } | null }
+  error: { message: string } | null
+}
+
+type ProfileRoleResult = {
+  data: { role: string | null } | null
+}
+
 interface Season {
   id: string
   name: string
@@ -66,12 +75,12 @@ export default function AdminDraftPoolRulesPage() {
 
   useEffect(() => {
     const supabase = createBrowserClient()
-    supabase.auth.getUser().then(({ data }) => {
+    supabase.auth.getUser().then(({ data }: AuthGetUserResult) => {
       if (!data.user) {
         router.push("/auth/login")
         return
       }
-      supabase.from("profiles").select("role").eq("id", data.user.id).single().then(({ data: profile }) => {
+      supabase.from("profiles").select("role").eq("id", data.user.id).single().then(({ data: profile }: ProfileRoleResult) => {
         if (profile?.role !== "admin" && profile?.role !== "commissioner") {
           router.push("/admin")
           return
