@@ -184,14 +184,15 @@ describe("league sheet sync acceptance", () => {
 
   it("9. standings and MVP default to the live season instead of is_current", () => {
     const seasons: StandingsSeasonRow[] = [
-      { id: "s8", name: "Season 8", season_id: "AABPBL-Season-8-2027", is_current: true, is_live_competitive: false },
-      { id: "s7", name: "Season 7", season_id: "AABPBL-Season-7-2027", is_current: false, is_live_competitive: true },
+      { id: "s8", name: "Season 8", season_id: "AABPBL-Season-8-2027", is_current: true, sheet_sync_enabled: false, start_date: "2027-03-29", end_date: "2027-06-20" },
+      { id: "s7", name: "Season 7", season_id: "AABPBL-Season-7-2027", is_current: false, sheet_sync_enabled: true, start_date: "2026-08-24", end_date: "2026-11-15" },
     ]
-    expect(pickStandingsSeason(seasons, null)?.season_id).toBe("AABPBL-Season-7-2027")
+    expect(pickStandingsSeason(seasons, null, "2026-11-01")?.season_id).toBe("AABPBL-Season-7-2027")
     expect(pickStandingsSeason(seasons, "AABPBL-Season-8-2027")?.id).toBe("s8")
     expect(pickStandingsSeason(
-      seasons.map((season) => ({ ...season, is_live_competitive: false })),
+      seasons.map((season) => ({ ...season, sheet_sync_enabled: false })),
       undefined,
+      "2020-01-01",
     )?.id).toBe("s8")
   })
 
