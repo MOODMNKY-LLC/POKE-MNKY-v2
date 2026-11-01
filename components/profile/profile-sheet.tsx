@@ -81,7 +81,17 @@ export function ProfileSheet({ open, onOpenChange }: ProfileSheetProps) {
       .select("id, name, avatar_url, logo_url, wins, losses, differential, division, conference")
       .eq("id", teamId)
       .single()
-      .then(({ data, error }) => {
+      .then(({ data, error }: { data: {
+        id: string
+        name: string
+        avatar_url: string | null
+        logo_url: string | null
+        wins: number | null
+        losses: number | null
+        differential: number | null
+        division: string | null
+        conference: string | null
+      } | null; error: { message: string } | null }) => {
         if (error) {
           console.error("Error loading team:", error)
         } else {

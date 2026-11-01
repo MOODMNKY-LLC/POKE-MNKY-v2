@@ -494,7 +494,7 @@ export function PixabayTrackBrowser() {
       <Alert>
         <AlertDescription className="flex items-center justify-between">
           <span>
-            Pixabay API doesn't support music search. Download tracks directly from the search page.
+            Pixabay API doesn&apos;t support music search. Download tracks directly from the search page.
           </span>
           <Button
             onClick={handleDownloadPage}

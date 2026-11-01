@@ -7,9 +7,7 @@ import { GoogleSpreadsheetWorksheet } from "google-spreadsheet"
 import { SupabaseClient } from "@supabase/supabase-js"
 import { SheetParsingConfig } from "./index"
 
-export interface ParserConfig extends SheetParsingConfig {
-  // Additional config can be added here
-}
+export type ParserConfig = SheetParsingConfig
 
 export interface ParserResult {
   success: boolean

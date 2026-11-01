@@ -100,7 +100,7 @@ export function DraftRosterSection() {
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            You don't have a team for this season. Please contact an admin to assign you to a team.
+            You don&apos;t have a team for this season. Please contact an admin to assign you to a team.
           </AlertDescription>
         </Alert>
       </div>

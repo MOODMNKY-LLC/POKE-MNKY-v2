@@ -37,7 +37,7 @@ export function QuickEditPanel() {
       .select("id")
       .eq("is_current", true)
       .single()
-      .then(({ data }) => {
+      .then(({ data }: { data: { id: string } | null }) => {
         if (data) setSeasonId(data.id)
       })
   }, [supabase])

@@ -253,7 +253,7 @@ export default function PokedexPage() {
         <h1 className="text-4xl font-bold mb-2">
           <span className="text-pokemon">Pokédex</span>
         </h1>
-        <p className="text-muted-foreground">Explore comprehensive Pokémon data modeled after Showdown's Pokédex</p>
+        <p className="text-muted-foreground">Explore comprehensive Pokémon data modeled after Showdown&apos;s Pokédex</p>
       </div>
 
       {/* Search and Filters */}

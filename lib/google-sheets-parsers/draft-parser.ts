@@ -739,7 +739,7 @@ export class DraftParser extends BaseParser {
         // Get team ID - try multiple matching strategies
         // Strategy 1: Exact match with actual team name (from mapping or point-based)
         let team = null
-        let { data: teamData } = await this.supabase
+        const { data: teamData } = await this.supabase
           .from("teams")
           .select("id, name")
           .eq("name", actualTeamName)

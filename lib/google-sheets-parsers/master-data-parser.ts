@@ -77,7 +77,7 @@ export class MasterDataParser extends BaseParser {
     const range = `A1:${this.getColumnLetter(maxCols)}${maxRows}`
     
     // Try to get data using raw Google Sheets API (doesn't require Drive scope)
-    let cellData: Array<Array<any>> = []
+    const cellData: Array<Array<any>> = []
     
     try {
       // Use raw API via google-spreadsheet's internal methods

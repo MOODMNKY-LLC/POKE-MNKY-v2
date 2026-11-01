@@ -273,7 +273,7 @@ export class TeamPageParser extends BaseParser {
     const maxCols = Math.min(this.sheet.columnCount, 30)
     const range = `A1:${this.getColumnLetter(maxCols)}${maxRows}`
     
-    let cellData: Array<Array<any>> = []
+    const cellData: Array<Array<any>> = []
     
     try {
       // Use raw Google Sheets API

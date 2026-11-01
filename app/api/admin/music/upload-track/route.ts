@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
     // Create audio element to get duration
     // Note: This is a simplified approach - in production you might want to use a library
     // that can read audio metadata from the buffer
-    let duration: number | null = null
+    const duration: number | null = null
     try {
       // We'll set duration to null for now and let it be updated later if needed
       // Or use a library like 'music-metadata' to extract duration from buffer

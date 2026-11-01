@@ -16,6 +16,16 @@ interface DraftPick {
   created_at: string
 }
 
+type RosterJoinRow = {
+  id: string
+  pokemon: { name?: string } | null
+  team: { name?: string } | null
+  draft_round: number | null
+  draft_order: number | null
+  draft_points: number | null
+  created_at: string
+}
+
 interface LiveDraftTickerProps {
   seasonId?: string
   limit?: number
@@ -88,7 +98,7 @@ export function LiveDraftTicker({ seasonId, limit = 20, demoMode = false }: Live
           return
         }
 
-        const teamIds = teams.map(t => t.id)
+        const teamIds = teams.map((t: { id: string }) => t.id)
         
         // Fetch recent draft picks
         const { data } = await supabase
@@ -110,11 +120,11 @@ export function LiveDraftTicker({ seasonId, limit = 20, demoMode = false }: Live
 
         if (data) {
           const formattedPicks: DraftPick[] = data
-            .filter(r => r.pokemon && r.team)
-            .map(r => ({
+            .filter((r: RosterJoinRow) => r.pokemon && r.team)
+            .map((r: RosterJoinRow) => ({
               id: r.id,
-              pokemon_name: (r.pokemon as any).name,
-              team_name: (r.team as any).name,
+              pokemon_name: r.pokemon?.name ?? "",
+              team_name: r.team?.name ?? "",
               round: r.draft_round || 0,
               pick_number: r.draft_order || 0,
               point_value: r.draft_points || 0,

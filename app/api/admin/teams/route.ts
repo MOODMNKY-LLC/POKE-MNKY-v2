@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
     const teamRows = teams
 
     const coachIds = [...new Set((teamRows ?? []).map((t) => t.coach_id).filter(Boolean))]
-    let coachProfiles: Record<string, { display_name: string | null; username: string | null }> =
+    const coachProfiles: Record<string, { display_name: string | null; username: string | null }> =
       {}
 
     if (coachIds.length > 0) {

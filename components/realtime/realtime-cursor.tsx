@@ -23,7 +23,7 @@ export function RealtimeCursor({ channel }: { channel: string }) {
     if (!supabase) return
     const cursorChannel = supabase
       .channel(channel)
-      .on("broadcast", { event: "cursor" }, ({ payload }) => {
+      .on("broadcast", { event: "cursor" }, ({ payload }: { payload: Cursor & { id: string } }) => {
         setCursors((prev) => ({
           ...prev,
           [payload.id]: payload,
@@ -36,7 +36,7 @@ export function RealtimeCursor({ channel }: { channel: string }) {
         type: "broadcast",
         event: "cursor",
         payload: {
-          id: supabase.auth.getUser().then(({ data }) => data.user?.id),
+          id: supabase.auth.getUser().then(({ data }: { data: { user?: { id?: string } | null } }) => data.user?.id),
           x: e.clientX,
           y: e.clientY,
           user: "User",

@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Loader2, Grid3x3 } from "lucide-react"
-import { calculate, Generations, Pokemon, Move } from "@smogon/calc"
+import { calculate, Generations, Pokemon, Move, type GenerationNum, type Result } from "@smogon/calc"
 
 interface PokemonData {
   name: string
@@ -14,6 +14,18 @@ interface PokemonData {
   evs?: Partial<Record<"hp" | "atk" | "def" | "spa" | "spd" | "spe", number>>
   item?: string
   ability?: string
+}
+
+const GENERATION_NUMS = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const
+
+function toGenerationNum(value: number): GenerationNum {
+  return GENERATION_NUMS.find((gen) => gen === value) ?? 9
+}
+
+function damagePercent(value: number | [number, number], hp: number, end: "min" | "max"): number {
+  if (hp <= 0) return 0
+  const damage = typeof value === "number" ? value : end === "min" ? value[0] : value[1]
+  return (damage / hp) * 100
 }
 
 interface DamageMatrixProps {
@@ -29,8 +41,7 @@ export function DamageMatrix({ yourTeam, opponentTeam, generation = 9 }: DamageM
   useEffect(() => {
     async function calculateMatrix() {
       setLoading(true)
-      const { calculate, Generations, Pokemon, Move } = await getCalcModule()
-      const gen = Generations.get(generation)
+      const gen = Generations.get(toGenerationNum(generation))
       const newMatrix: Record<string, Record<string, any>> = {}
 
       for (const attacker of yourTeam) {
@@ -58,11 +69,13 @@ export function DamageMatrix({ yourTeam, opponentTeam, generation = 9 }: DamageM
                 ability: defender.ability,
               })
 
-              const result = calculate(gen, attackerPokemon, defenderPokemon, moveObj)
+              const result: Result = calculate(gen, attackerPokemon, defenderPokemon, moveObj)
+              const rolled = result.range()
+              const hp = defenderPokemon.maxHP()
               newMatrix[attacker.name][defender.name] = {
-                min: result.percent[0],
-                max: result.percent[result.percent.length - 1],
-                desc: result.desc,
+                min: damagePercent(rolled[0], hp, "min"),
+                max: damagePercent(rolled[1], hp, "max"),
+                desc: result.desc(),
                 move: moveName,
               }
             } catch (err) {
@@ -217,7 +230,7 @@ export function DamageMatrix({ yourTeam, opponentTeam, generation = 9 }: DamageM
             </div>
           </div>
           <p className="text-xs text-muted-foreground mt-2">
-            Note: Calculations use each Pokémon's first move. For detailed calculations, use the full calculator.
+            Note: Calculations use each Pokémon&apos;s first move. For detailed calculations, use the full calculator.
           </p>
         </div>
       </CardContent>

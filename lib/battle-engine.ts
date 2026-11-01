@@ -3,7 +3,7 @@
 import { Dex } from "@pkmn/dex"
 
 /** Stand-in for a future @pkmn/engine Battle. That package is not installed. */
-interface ShowdownBattle {}
+type ShowdownBattle = object
 import { createClient } from "@supabase/supabase-js"
 
 export interface BattleRequest {

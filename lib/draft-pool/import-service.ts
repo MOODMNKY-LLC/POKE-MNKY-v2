@@ -35,7 +35,7 @@ export async function importDraftPoolToStaging(
   const errors: Array<{ pokemon: string; error: string }> = []
   const warnings: Array<{ pokemon: string; message: string }> = []
   let imported = 0
-  let updated = 0
+  const updated = 0
   let teraBannedCount = 0
 
   // Create a Set for fast Tera banned lookup

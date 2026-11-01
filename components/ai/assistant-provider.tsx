@@ -77,7 +77,7 @@ export function AssistantProvider() {
     }
 
     fetchContext()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [pathname, mounted])
 
   if (!mounted) return null

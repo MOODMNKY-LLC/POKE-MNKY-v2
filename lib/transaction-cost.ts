@@ -33,7 +33,7 @@ export function computeTransactionCost(input: TransactionCostInput): number {
   if (input.scenarioBStandaloneTeraSwap) return 4
   if (input.scenarioAReplaceTera) return 1
   if (input.isTradeSide) return input.pokemonAdded > 0 ? 1 : 0
-  let cost = input.pokemonAdded + Math.min(3, input.teraTypesAdded)
+  const cost = input.pokemonAdded + Math.min(3, input.teraTypesAdded)
   return Math.max(0, cost)
 }
 

@@ -43,7 +43,7 @@ export default function ReplayLibraryPage() {
             <p className="text-sm text-muted-foreground">
               The Replay Library contains all completed league battle replays from our Showdown 
               server. Browse matches by week, study team compositions and strategies, and learn 
-              from the community's best plays. Each replay includes full battle details, team 
+              from the community&apos;s best plays. Each replay includes full battle details, team 
               information, and direct links to watch the replay on Showdown. Use this resource 
               to improve your gameplay, scout opponents, and understand the evolving meta.
             </p>

@@ -17,7 +17,7 @@ export async function GET(request: Request) {
       season_id: searchParams.get("season_id") ?? undefined,
     })
     if (!parsed.success) {
-      return validationError("Invalid query", parsed.error.errors)
+      return validationError("Invalid query", parsed.error.issues)
     }
     const { week, season_id: requestedSeasonId } = parsed.data
     const seasonId =

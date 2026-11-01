@@ -262,7 +262,7 @@ export default function FreeAgencyPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Current Roster</CardTitle>
-                <CardDescription>Your team's current Pokemon</CardDescription>
+                <CardDescription>Your team&apos;s current Pokemon</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">

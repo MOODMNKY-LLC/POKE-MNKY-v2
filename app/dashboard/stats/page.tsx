@@ -38,7 +38,7 @@ export default async function DashboardStatsPage() {
     .single()
 
   let team = null
-  let stats: { team_record?: { wins: number; losses: number; differential: number }; draft_budget?: { total: number; spent: number; remaining: number }; roster_count?: number } = {}
+  const stats: { team_record?: { wins: number; losses: number; differential: number }; draft_budget?: { total: number; spent: number; remaining: number }; roster_count?: number } = {}
 
   if (canAccessCoachFeatures(profile)) {
     const { data: teamData } = await supabase

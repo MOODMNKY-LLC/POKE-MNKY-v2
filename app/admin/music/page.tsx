@@ -76,7 +76,7 @@ export default function AdminMusicPage() {
             <CardHeader>
               <CardTitle>In-App Playlist</CardTitle>
               <CardDescription>
-                View tracks enabled for the in-app music player. Toggle tracks on/off in the "Tracks" tab to manage the playlist.
+                View tracks enabled for the in-app music player. Toggle tracks on/off in the &quot;Tracks&quot; tab to manage the playlist.
               </CardDescription>
             </CardHeader>
             <CardContent>

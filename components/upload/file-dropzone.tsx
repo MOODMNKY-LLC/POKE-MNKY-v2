@@ -14,6 +14,7 @@ interface FileDropzoneProps {
   maxSize?: number
   accept?: string
   onUploadComplete?: (url: string) => void
+  children?: React.ReactNode
 }
 
 export function FileDropzone({

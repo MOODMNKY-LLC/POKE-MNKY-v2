@@ -98,7 +98,24 @@ export function TrackManager({ refreshKey }: TrackManagerProps) {
       console.log(`[TrackManager] Processing ${data.tracks.length} tracks`)
       
       // Normalize track data to match our interface
-      const normalizedTracks = (data.tracks || []).map((track: any) => {
+      const trackPayload: {
+        tracks?: Array<{
+          id: string
+          title: string
+          artist?: string | null
+          duration?: number | null
+          fileSize?: number | null
+          mood_tags?: string[]
+          storageUrl?: string
+          storage_url?: string
+          storagePath?: string
+          fileName?: string
+          createdAt?: string
+          created_at?: string
+          playlist_enabled?: boolean
+        }>
+      } = data
+      const normalizedTracks = (trackPayload.tracks || []).map((track) => {
         console.log('[TrackManager] Normalizing track:', track)
         return {
           id: track.id,
@@ -108,7 +125,7 @@ export function TrackManager({ refreshKey }: TrackManagerProps) {
           file_size: track.fileSize || null,
           mood_tags: track.mood_tags || [],
           is_active: true, // Storage tracks are always active
-          storage_url: track.storageUrl || track.storage_url,
+          storage_url: track.storageUrl || track.storage_url || "",
           storageUrl: track.storageUrl || track.storage_url,
           storagePath: track.storagePath || track.fileName,
           fileName: track.fileName,
@@ -502,7 +519,11 @@ export function TrackManager({ refreshKey }: TrackManagerProps) {
                       bars={30} 
                       className="w-full max-w-[200px]"
                       audioElement={playingTrack === track.id ? audioElementRef.current : null}
-                      isPlaying={playingTrack === track.id && audioElementRef.current && !audioElementRef.current.paused}
+                      isPlaying={
+                        playingTrack === track.id &&
+                        audioElementRef.current != null &&
+                        !audioElementRef.current.paused
+                      }
                     />
                   </TableCell>
                   <TableCell>

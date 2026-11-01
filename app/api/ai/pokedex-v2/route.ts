@@ -77,6 +77,9 @@ export async function POST(request: NextRequest) {
 
         // Extract answer from Responses API output
         // Responses API returns output_text or output array with content
+        if (!("output" in response)) {
+          throw new Error("Expected a completed Responses API result")
+        }
         const firstOutput = response.output?.[0]
         const messageText =
           firstOutput && firstOutput.type === "message"
