@@ -3,14 +3,14 @@ import { getBattleRequest, applyChoice } from "@/lib/battle-engine"
 import { selectBattleMove } from "@/lib/openai-client"
 import { createServerClient } from "@/lib/supabase/server"
 
-export async function POST(request: Request, { params }: { params: { id: string } }) {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const supabase = await createServerClient()
     const {
       data: { user },
     } = await supabase.auth.getUser()
 
-    const battleId = params.id
+    const { id: battleId } = await params
     const body = await request.json()
     const { choice: manualChoice, use_ai } = body
 
@@ -62,9 +62,9 @@ export async function POST(request: Request, { params }: { params: { id: string 
   }
 }
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const battleId = params.id
+    const { id: battleId } = await params
     const battleRequest = await getBattleRequest(battleId)
 
     return NextResponse.json(battleRequest)

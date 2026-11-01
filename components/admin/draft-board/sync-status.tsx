@@ -23,6 +23,11 @@ interface SyncJob {
   error_log: any | null
 }
 
+function formatSyncTimestamp(startedAt: string, createdAt?: string): string {
+  const value = startedAt || createdAt
+  return value ? new Date(value).toLocaleString() : "Unknown"
+}
+
 function isNoCurrentSeasonError(errorLog: SyncJob["error_log"]): boolean {
   if (!errorLog || typeof errorLog !== "object") return false
   const msg = (errorLog.error ?? "").toString().toLowerCase()
@@ -218,7 +223,7 @@ export function SyncStatus() {
                   </p>
                 )}
                 <div className="text-xs text-muted-foreground">
-                  {new Date(latestJob.started_at || latestJob.created_at).toLocaleString()}
+                  {formatSyncTimestamp(latestJob.started_at, latestJob.created_at)}
                   {latestJob.completed_at && (
                     <> • Completed: {new Date(latestJob.completed_at).toLocaleString()}</>
                   )}
@@ -331,7 +336,7 @@ export function SyncStatus() {
                       className="flex items-center justify-between text-xs"
                     >
                       <span className="text-muted-foreground">
-                        {new Date(job.started_at || job.created_at).toLocaleString()}
+                        {formatSyncTimestamp(job.started_at, job.created_at)}
                       </span>
                       <Badge variant={job.status === "completed" ? "outline" : "destructive"}>
                         {job.status}

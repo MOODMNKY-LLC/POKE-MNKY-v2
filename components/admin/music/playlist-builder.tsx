@@ -53,11 +53,23 @@ export function PlaylistBuilder() {
     try {
       // Fetch storage tracks and filter to only playlist-enabled ones
       const response = await fetch('/api/music/music-tracks')
-      const data = await response.json()
+      const data: {
+        tracks?: Array<{
+          id: string
+          title: string
+          artist?: string | null
+          duration?: number | null
+          fileSize?: number | null
+          storageUrl?: string
+          storage_url?: string
+          fileName?: string
+          playlist_enabled?: boolean
+        }>
+      } = await response.json()
       
       // Only show tracks that are enabled for the playlist
-      const enabledTracks = (data.tracks || []).filter((track: any) => track.playlist_enabled === true)
-      const mappedTracks = enabledTracks.map((track: any) => ({
+      const enabledTracks = (data.tracks ?? []).filter((track) => track.playlist_enabled === true)
+      const mappedTracks = enabledTracks.map((track) => ({
         id: track.id,
         title: track.title,
         artist: track.artist || null,

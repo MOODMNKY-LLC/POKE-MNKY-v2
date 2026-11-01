@@ -77,13 +77,19 @@ export async function POST(request: Request) {
         .eq("is_current", true)
         .single()
 
-      if (seasonError || !season) {
+      if (seasonError || !season?.id) {
         return NextResponse.json(
           { success: false, error: "No current season found. Please create a season first." },
           { status: 404 }
         )
       }
       seasonId = season.id
+    }
+    if (!seasonId) {
+      return NextResponse.json(
+        { success: false, error: "No current season found. Please create a season first." },
+        { status: 404 }
+      )
     }
 
     const existingSession = await draftSystem.getActiveSession(seasonId)

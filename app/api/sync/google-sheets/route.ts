@@ -275,7 +275,7 @@ export async function POST(request: Request) {
       const warningCount = allErrors.length - criticalErrors.length
 
       if (result.recordsProcessed > 0 && redisCache.isEnabled()) {
-        await redisCache.del(CacheKeys.homepageBundle).catch((e) =>
+        await redisCache.delete(CacheKeys.homepageBundle).catch((e: unknown) =>
           console.warn("[Sync] Homepage cache clear failed:", e)
         )
       }

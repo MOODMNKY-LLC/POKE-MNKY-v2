@@ -24,9 +24,12 @@ export function getPokeApiBaseUrl(): string {
 /**
  * Get PokeAPI base URL for Deno Edge Functions
  */
+type DenoRuntime = { env: { get(name: string): string | undefined } }
+
 export function getPokeApiBaseUrlDeno(): string {
-  if (typeof Deno !== "undefined") {
-    return Deno.env.get("POKEAPI_BASE_URL") ?? "https://pokeapi.co/api/v2"
+  const deno = (globalThis as { Deno?: DenoRuntime }).Deno
+  if (deno) {
+    return deno.env.get("POKEAPI_BASE_URL") ?? "https://pokeapi.co/api/v2"
   }
   return "https://pokeapi.co/api/v2"
 }

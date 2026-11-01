@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
 
     const validationResult = freeAgencyTransactionSchema.safeParse(body)
     if (!validationResult.success) {
-      return validationError("Validation failed", validationResult.error.errors)
+      return validationError("Validation failed", validationResult.error.issues)
     }
 
     const {

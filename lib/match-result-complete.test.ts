@@ -21,8 +21,8 @@ vi.mock("@/lib/rbac", async (importOriginal) => {
 
 describe("match-submit validation", () => {
   it("rejects tied teams and invalid winner", () => {
-    const team1 = "11111111-1111-1111-1111-111111111111"
-    const team2 = "22222222-2222-2222-2222-222222222222"
+    const team1 = "11111111-1111-4111-8111-111111111111"
+    const team2 = "22222222-2222-4222-8222-222222222222"
     const badWinner = matchSubmitBodySchema.safeParse({
       week: 1,
       team1_id: team1,
@@ -35,8 +35,8 @@ describe("match-submit validation", () => {
   })
 
   it("accepts valid completed match payload", () => {
-    const team1 = "11111111-1111-1111-1111-111111111111"
-    const team2 = "22222222-2222-2222-2222-222222222222"
+    const team1 = "11111111-1111-4111-8111-111111111111"
+    const team2 = "22222222-2222-4222-8222-222222222222"
     const ok = matchSubmitBodySchema.safeParse({
       week: 3,
       team1_id: team1,

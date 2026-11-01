@@ -126,8 +126,8 @@ export async function getPokemonEvolutionChain(pokemonId: number): Promise<Evolu
 
     // Create a map of species_id -> pokemon_id
     const speciesToPokemonMap = new Map<number, number>()
-    pokemonList?.forEach((p) => {
-      if (p.species_id && p.pokemon_id) {
+    pokemonList?.forEach((p: { species_id?: unknown; pokemon_id?: unknown }) => {
+      if (typeof p.species_id === "number" && typeof p.pokemon_id === "number") {
         speciesToPokemonMap.set(p.species_id, p.pokemon_id)
       }
     })

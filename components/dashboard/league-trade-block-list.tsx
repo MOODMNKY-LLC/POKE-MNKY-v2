@@ -125,6 +125,26 @@ export function LeagueTradeBlockList({
   )
 }
 
+type TradeRosterPick = {
+  pokemon_id?: string
+  id?: string
+  pokemon_name?: string
+  points_snapshot?: number
+  is_tera_captain?: boolean
+  pokemon?: { name?: string; draft_points?: number } | null
+}
+
+function isTradeRosterPick(value: unknown): value is TradeRosterPick {
+  return typeof value === "object" && value !== null
+}
+
+function rosterPicksFromPayload(value: unknown): TradeRosterPick[] {
+  if (typeof value !== "object" || value === null) return []
+  const payload = value as { roster?: unknown; picks?: unknown }
+  const picks = payload.roster ?? payload.picks
+  return Array.isArray(picks) ? picks.filter(isTradeRosterPick) : []
+}
+
 function TradeOfferModal({
   receivingTeamId,
   receivingTeamName,
@@ -158,18 +178,22 @@ function TradeOfferModal({
       fetch("/api/teams/" + myTeamId + "/roster?seasonId=" + seasonId).then((r) => r.json()),
       fetch("/api/teams/" + receivingTeamId + "/roster?seasonId=" + seasonId).then((r) => r.json()),
     ])
-      .then(([myData, theirData]) => {
-        const picks = myData?.roster ?? myData?.picks ?? []
+      .then(([myData, theirData]: [unknown, unknown]) => {
+        const picks = rosterPicksFromPayload(myData)
         setRoster(
-          picks.map((p: any) => ({
-            pokemon_id: p.pokemon_id ?? p.id,
+          picks.map((p) => ({
+            pokemon_id: p.pokemon_id ?? p.id ?? "",
             name: p.pokemon?.name ?? p.pokemon_name ?? "Unknown",
             points: p.points_snapshot ?? p.pokemon?.draft_points ?? 0,
             is_tera_captain: p.is_tera_captain ?? false,
           }))
         )
-        const theirRoster = theirData?.roster ?? theirData?.picks ?? []
-        const byId = new Map(theirRoster.map((p: any) => [p.pokemon_id ?? p.id, p]))
+        const theirRoster = rosterPicksFromPayload(theirData)
+        const byId = new Map<string, TradeRosterPick>()
+        for (const pick of theirRoster) {
+          const id = pick.pokemon_id ?? pick.id
+          if (id) byId.set(id, pick)
+        }
         setRequestedDetails(
           requestedPokemonIds.map((id) => {
             const p = byId.get(id)

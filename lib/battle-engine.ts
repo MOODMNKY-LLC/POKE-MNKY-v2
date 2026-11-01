@@ -1,7 +1,9 @@
 // Battle engine using @pkmn/engine for Showdown-accurate simulation
 
-import type { Battle } from "@pkmn/engine"
 import { Dex } from "@pkmn/dex"
+
+/** Stand-in for a future @pkmn/engine Battle. That package is not installed. */
+type ShowdownBattle = object
 import { createClient } from "@supabase/supabase-js"
 
 export interface BattleRequest {
@@ -20,7 +22,7 @@ export interface BattleResult {
 }
 
 export class BattleEngine {
-  private battle: Battle | null = null
+  private battle: ShowdownBattle | null = null
   private dex = Dex
   private battleId: string
 

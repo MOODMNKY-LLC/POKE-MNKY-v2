@@ -212,7 +212,7 @@ export async function getPokemonDataExtended(
     // Determine if we're client-side or server-side
     const isServerSide = typeof window === 'undefined'
     
-    let pokemonId: number = typeof nameOrId === "string" ? await getPokemonIdByName(nameOrId) : nameOrId
+    const pokemonId = typeof nameOrId === "string" ? await getPokemonIdByName(nameOrId) : nameOrId
     
     if (!pokemonId) return null
 
@@ -394,7 +394,9 @@ export async function getPokemonDataExtended(
     // Store in cache (non-blocking - cache failures shouldn't break the app)
     // Only cache if service role key is available (server-side) or if explicitly enabled
     const shouldCache = !!process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.ENABLE_POKEMON_CACHE === "true"
-    
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
     if (shouldCache && supabaseUrl && supabaseKey) {
       try {
         const supabase = createClient(supabaseUrl, supabaseKey)

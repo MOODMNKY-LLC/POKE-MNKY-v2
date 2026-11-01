@@ -17,6 +17,18 @@ interface TypeCoverage {
   count: number
 }
 
+type DraftPoolStatRow = {
+  point_value: number | null
+  status: string | null
+  pokemon_id: number | null
+  generation: number | null
+}
+
+type PokemonTypeRow = {
+  pokemon_id: number
+  types: unknown
+}
+
 interface AnalyticsData {
   totalAvailable: number
   totalBanned: number
@@ -64,13 +76,13 @@ export function AnalyticsDashboard() {
       if (error) throw error
 
       // Calculate statistics
-      const totalAvailable = draftPool?.filter((p) => p.status === "available").length || 0
-      const totalBanned = draftPool?.filter((p) => p.status === "banned").length || 0
-      const totalDrafted = draftPool?.filter((p) => p.status === "drafted").length || 0
+      const totalAvailable = draftPool?.filter((p: DraftPoolStatRow) => p.status === "available").length || 0
+      const totalBanned = draftPool?.filter((p: DraftPoolStatRow) => p.status === "banned").length || 0
+      const totalDrafted = draftPool?.filter((p: DraftPoolStatRow) => p.status === "drafted").length || 0
 
       // Point distribution
       const pointDistMap = new Map<number, number>()
-      draftPool?.forEach((p) => {
+      draftPool?.forEach((p: DraftPoolStatRow) => {
         if (p.status === "available" && p.point_value) {
           pointDistMap.set(
             p.point_value,
@@ -84,7 +96,7 @@ export function AnalyticsDashboard() {
 
       // Generation distribution
       const genDist: Record<number, number> = {}
-      draftPool?.forEach((p) => {
+      draftPool?.forEach((p: DraftPoolStatRow) => {
         if (p.status === "available" && p.generation) {
           genDist[p.generation] = (genDist[p.generation] || 0) + 1
         }
@@ -92,7 +104,7 @@ export function AnalyticsDashboard() {
 
       // Fetch type coverage (requires join with pokemon_cache)
       const pokemonIds = [
-        ...new Set(draftPool?.map((p) => p.pokemon_id).filter(Boolean) || []),
+        ...new Set(draftPool?.map((p: DraftPoolStatRow) => p.pokemon_id).filter(Boolean) || []),
       ]
       const { data: pokemonData } = await supabase
         .from("pokemon_cache")
@@ -100,7 +112,7 @@ export function AnalyticsDashboard() {
         .in("pokemon_id", pokemonIds)
 
       const typeMap = new Map<string, number>()
-      pokemonData?.forEach((p) => {
+      pokemonData?.forEach((p: PokemonTypeRow) => {
         if (p.types && Array.isArray(p.types)) {
           p.types.forEach((type: string) => {
             typeMap.set(type, (typeMap.get(type) || 0) + 1)

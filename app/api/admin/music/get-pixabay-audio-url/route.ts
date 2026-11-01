@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Method 2: Try getBestFormatUrl first (from formats object)
-    let audioUrl = pixabayClient.getBestFormatUrl(track)
+    const audioUrl = pixabayClient.getBestFormatUrl(track)
     
     if (audioUrl) {
       console.log('[Get Audio URL] Found URL from formats:', audioUrl)
@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
           }
           
           // Also try looking for data attributes or JSON-LD that might contain the URL
-          const jsonLdMatch = pageHtml.match(/<script[^>]*type=["']application\/ld\+json["'][^>]*>(.*?)<\/script>/is)
+          const jsonLdMatch = pageHtml.match(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/i)
           if (jsonLdMatch) {
             try {
               const jsonLd = JSON.parse(jsonLdMatch[1])

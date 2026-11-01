@@ -46,7 +46,8 @@ export async function getPublicLeagueTeams(
     return q
   }
 
-  let { data: teams, error } = await load(true)
+  const { data: initialTeams, error } = await load(true)
+  let teams = initialTeams
 
   if (error) {
     throw error

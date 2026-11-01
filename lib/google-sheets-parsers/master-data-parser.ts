@@ -5,7 +5,7 @@
  */
 
 import { BaseParser, ParserConfig, ParserResult } from "./base-parser"
-import { z } from "zod"
+import { z } from "zod/v3"
 import { zodResponseFormat } from "openai/helpers/zod"
 import { openai, AI_MODELS } from "../openai-client"
 
@@ -77,7 +77,7 @@ export class MasterDataParser extends BaseParser {
     const range = `A1:${this.getColumnLetter(maxCols)}${maxRows}`
     
     // Try to get data using raw Google Sheets API (doesn't require Drive scope)
-    let cellData: Array<Array<any>> = []
+    const cellData: Array<Array<any>> = []
     
     try {
       // Use raw API via google-spreadsheet's internal methods
@@ -89,7 +89,7 @@ export class MasterDataParser extends BaseParser {
         for (let rowIdx = 0; rowIdx < rows.length; rowIdx++) {
           const row = rows[rowIdx]
           const rowData: any[] = []
-          const rowValues = row._rawData || []
+          const rowValues = this.sheet.headerValues.map((header) => row.get(header))
           for (let col = 0; col < Math.min(rowValues.length, maxCols); col++) {
             const value = rowValues[col]
             rowData.push({

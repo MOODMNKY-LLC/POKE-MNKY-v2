@@ -6,6 +6,29 @@ import { GoogleSpreadsheet } from "google-spreadsheet"
 import { JWT } from "google-auth-library"
 import { google } from "googleapis"
 
+type SheetCommentAnchor = {
+  sheetId?: number
+  startRowIndex?: number
+  startColumnIndex?: number
+}
+
+function readSheetCommentAnchor(anchor: string | null | undefined): SheetCommentAnchor | null {
+  if (!anchor) return null
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(anchor)
+  } catch {
+    return null
+  }
+  if (typeof parsed !== "object" || parsed === null) return null
+  const record = parsed as Record<string, unknown>
+  return {
+    sheetId: typeof record.sheetId === "number" ? record.sheetId : undefined,
+    startRowIndex: typeof record.startRowIndex === "number" ? record.startRowIndex : undefined,
+    startColumnIndex: typeof record.startColumnIndex === "number" ? record.startColumnIndex : undefined,
+  }
+}
+
 /**
  * Auto-detect sheets and intelligently map them to database tables
  * POST /api/admin/google-sheets/detect
@@ -56,6 +79,7 @@ export async function POST(request: Request) {
 
     // Also use Google Sheets API v4 for images and comments
     const sheets = google.sheets({ version: "v4", auth: serviceAccountAuth })
+    const drive = google.drive({ version: "v3", auth: serviceAccountAuth })
     
     // Get spreadsheet metadata including images and comments
     const spreadsheetMetadata = await sheets.spreadsheets.get({
@@ -193,11 +217,7 @@ export async function POST(request: Request) {
               
               const sheetData = embeddedObjects.data.sheets?.[0]
               if (sheetData) {
-                // Count charts
                 imagesCount += sheetData.charts?.length || 0
-                
-                // Count embedded objects (images)
-                imagesCount += sheetData.embeddedObjects?.length || 0
               }
             } catch (imagesError) {
               // Images might not be accessible
@@ -206,17 +226,20 @@ export async function POST(request: Request) {
             
             // Get comments count
             try {
-              const commentsResponse = await sheets.spreadsheets.comments.list({
-                spreadsheetId: spreadsheet_id,
+              const commentsResponse = await drive.comments.list({
+                fileId: spreadsheet_id,
+                fields: "comments(anchor)",
+                pageSize: 100,
               })
-              
-              const sheetComments = commentsResponse.data.comments?.filter(
-                (comment) => {
-                  const anchor = comment.anchor
-                  return anchor?.sheetId === sheetId || 
-                         (anchor?.startRowIndex !== undefined && anchor?.startColumnIndex !== undefined)
-                }
-              ) || []
+
+              const sheetComments = commentsResponse.data.comments?.filter((comment) => {
+                const anchor = readSheetCommentAnchor(comment.anchor)
+                if (!anchor) return false
+                return (
+                  anchor.sheetId === sheetId ||
+                  (anchor.startRowIndex !== undefined && anchor.startColumnIndex !== undefined)
+                )
+              }) ?? []
               commentsCount = sheetComments.length
             } catch (commentsError) {
               // Comments API might not be available or accessible

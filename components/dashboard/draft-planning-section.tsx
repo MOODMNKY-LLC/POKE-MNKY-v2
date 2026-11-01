@@ -125,7 +125,7 @@ export function DraftPlanningSection() {
         .eq("season_id", seasonId)
         .limit(1000)
 
-      const available = data?.filter(p => p.status === "available").length || 0
+      const available = data?.filter((p: { status: string | null }) => p.status === "available").length || 0
       setDraftPoolCount({ total: count || 0, available })
     } catch (error) {
       console.error("Error loading draft pool count:", error)
@@ -158,7 +158,7 @@ export function DraftPlanningSection() {
         .eq("status", "drafted")
 
       if (data) {
-        setDraftedPokemon(data.map(p => p.pokemon_name.toLowerCase()))
+        setDraftedPokemon(data.map((p: { pokemon_name: string | null }) => (p.pokemon_name ?? "").toLowerCase()))
       }
     } catch (error) {
       console.error("Error fetching drafted Pokemon:", error)
@@ -308,7 +308,7 @@ export function DraftPlanningSection() {
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            You don't have a team for this season. Please contact an admin to assign you to a team.
+            You don&apos;t have a team for this season. Please contact an admin to assign you to a team.
           </AlertDescription>
         </Alert>
       )}

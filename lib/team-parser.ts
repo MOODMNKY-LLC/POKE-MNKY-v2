@@ -111,7 +111,7 @@ function extractTeamMetadata(teamText: string): TeamMetadata {
  * Parse a Showdown team export text into structured data
  * Handles the standard format: === [genX] Folder/Team Name ===
  */
-export async function parseShowdownTeam(teamText: string): Promise<ParsedTeam> {
+export function parseShowdownTeam(teamText: string): ParsedTeam {
   try {
     // Clean up the team text
     const cleaned = teamText.trim();

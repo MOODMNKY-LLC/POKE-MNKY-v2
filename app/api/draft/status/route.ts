@@ -17,11 +17,15 @@ export async function GET(request: Request) {
         .eq("is_current", true)
         .single()
 
-      if (!season) {
+      if (!season?.id) {
         return NextResponse.json({ success: false, error: "No active season found" }, { status: 404 })
       }
 
       resolvedSeasonId = season.id
+    }
+
+    if (!resolvedSeasonId) {
+      return NextResponse.json({ success: false, error: "No active season found" }, { status: 404 })
     }
 
     const draftSystem = new DraftSystem()

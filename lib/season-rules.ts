@@ -44,7 +44,7 @@ export async function getSeasonRules(seasonId?: string | null): Promise<SeasonRu
       .eq("is_current", true)
       .maybeSingle()
 
-    if (seasonError || !season) return null
+    if (seasonError || !season?.id || typeof season.id !== "string") return null
     resolvedSeasonId = season.id
   }
 

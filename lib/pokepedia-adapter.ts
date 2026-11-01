@@ -59,23 +59,23 @@ export function adaptPokepediaToDisplayData(
   row: PokepediaPokemonRow
 ): PokemonDisplayData {
   // Map base_stats format
-  // pokepedia_pokemon uses: special_attack, special_defense
-  // PokemonDisplayData expects: special-attack, special-defense
-  const baseStats = row.base_stats ? {
-    hp: row.base_stats.hp || 0,
-    attack: row.base_stats.attack || 0,
-    defense: row.base_stats.defense || 0,
-    "special-attack": row.base_stats.special_attack || 0,
-    "special-defense": row.base_stats.special_defense || 0,
-    speed: row.base_stats.speed || 0,
-  } : {
-    hp: 0,
-    attack: 0,
-    defense: 0,
-    "special-attack": 0,
-    "special-defense": 0,
-    speed: 0,
-  }
+  const baseStats = row.base_stats
+    ? {
+        hp: row.base_stats.hp || 0,
+        attack: row.base_stats.attack || 0,
+        defense: row.base_stats.defense || 0,
+        special_attack: row.base_stats.special_attack || 0,
+        special_defense: row.base_stats.special_defense || 0,
+        speed: row.base_stats.speed || 0,
+      }
+    : {
+        hp: 0,
+        attack: 0,
+        defense: 0,
+        special_attack: 0,
+        special_defense: 0,
+        speed: 0,
+      }
 
   // Map types array
   // pokepedia_pokemon: JSONB array or type_primary/type_secondary

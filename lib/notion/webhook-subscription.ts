@@ -6,6 +6,7 @@
  * uses the standard webhook pattern. Adjust based on actual Notion API documentation.
  */
 
+import { createHmac, timingSafeEqual } from "crypto"
 import { createNotionClient, NotionAPIError } from "./client"
 
 export interface NotionWebhookSubscription {
@@ -89,12 +90,11 @@ export function verifyNotionWebhookSignature(
   }
 
   try {
-    const crypto = require("crypto")
-    const hmac = crypto.createHmac("sha256", secret)
+    const hmac = createHmac("sha256", secret)
     hmac.update(body)
     const expectedSignature = hmac.digest("hex")
 
-    return crypto.timingSafeEqual(
+    return timingSafeEqual(
       Buffer.from(signature),
       Buffer.from(expectedSignature)
     )

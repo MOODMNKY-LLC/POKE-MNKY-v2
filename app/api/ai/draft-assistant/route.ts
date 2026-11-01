@@ -1,7 +1,6 @@
 // Draft Assistant API Route — OpenClaw gateway (primary) with OpenAI fallback
-import { streamText } from 'ai'
+import { streamText, convertToModelMessages, stepCountIs } from 'ai'
 import { openai } from '@ai-sdk/openai'
-import { convertToModelMessages } from 'ai'
 import { createServerClient } from '@/lib/supabase/server'
 import { AI_MODELS } from '@/lib/openai-client'
 import { resolveCoachTeamForSeason } from '@/lib/coach-team-context'
@@ -23,7 +22,8 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    let { messages, teamId, seasonId, mcpEnabled = true, model } = body
+    const { messages, mcpEnabled = true, model } = body
+    let { teamId, seasonId } = body
 
     if (!teamId && seasonId) {
       const { team } = await resolveCoachTeamForSeason(supabase, user.id, seasonId)
@@ -82,7 +82,7 @@ Help coaches make optimal draft picks by:
 Always use the available MCP tools to get real-time draft pool data, team budgets, and current picks. Be specific and actionable in your recommendations.`
 
     // Convert messages to model format
-    const modelMessages = convertToModelMessages(messages || [])
+    const modelMessages = await convertToModelMessages(messages || [])
 
     // Use selected model or default
     const selectedModel = model || AI_MODELS.STRATEGY_COACH
@@ -109,11 +109,11 @@ Always use the available MCP tools to get real-time draft pool data, team budget
       system: systemMessage,
       messages: modelMessages,
       tools,
-      maxSteps: mcpEnabled ? 5 : 1, // Allow multi-step tool calls only when MCP enabled
+      stopWhen: stepCountIs(mcpEnabled ? 5 : 1), // Allow multi-step tool calls only when MCP enabled
     })
 
     // Return streaming response compatible with useChat
-    return result.toDataStreamResponse()
+    return result.toUIMessageStreamResponse()
   } catch (error) {
     console.error('[Draft Assistant] Error:', error)
     return new Response(

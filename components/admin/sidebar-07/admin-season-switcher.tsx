@@ -38,6 +38,7 @@ export function AdminSeasonSwitcher({
   onOpenCreateSeason?: () => void
 }) {
   const { isMobile } = useSidebar()
+  const { toast } = useToast()
   const currentSeason = seasons.find((s) => s.is_current) ?? seasons[0]
   const [activeSeason, setActiveSeason] = React.useState(currentSeason)
   const [settingCurrent, setSettingCurrent] = React.useState(false)
@@ -112,7 +113,7 @@ export function AdminSeasonSwitcher({
                       })
                       const data = await res.json().catch(() => ({}))
                       if (res.ok) {
-                        onSetCurrent()
+                        onSetCurrent(season.id)
                         toast({
                           title: "Current season updated",
                           description: `"${data.current_season?.name ?? season.name}" is now the current season.`,

@@ -55,11 +55,18 @@ export async function POST(request: NextRequest) {
     // Calculate damage
     const result = calculate(generation, attacker, defender, move, fieldObj)
 
+    const [minDamage, maxDamage] = result.range()
+    const maxHp = result.defender.maxHP()
+    const percent =
+      maxHp > 0
+        ? [Math.round((minDamage * 1000) / maxHp) / 10, Math.round((maxDamage * 1000) / maxHp) / 10]
+        : [0, 0]
+
     return NextResponse.json({
       success: true,
       damage: result.damage,
-      percent: result.percent,
-      desc: result.desc,
+      percent,
+      desc: result.desc(),
       result,
     })
   } catch (error: any) {

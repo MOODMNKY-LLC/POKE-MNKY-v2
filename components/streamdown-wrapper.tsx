@@ -9,7 +9,7 @@
  * Uses React.lazy() with Suspense to completely isolate from Turbopack analysis.
  */
 
-import { lazy, Suspense, type ReactNode } from "react";
+import { lazy, Suspense, type ComponentType, type ReactNode } from "react";
 
 // Lazy load streamdown using React.lazy() - this prevents Turbopack from analyzing it
 // The import is wrapped in a function that's only called at runtime
@@ -48,11 +48,13 @@ export function StreamdownWrapper({
   children,
   ...props
 }: StreamdownWrapperProps) {
+  // Dynamic import erases streamdown's props, so the lazy component is typed explicitly.
+  const StreamdownView = StreamdownLazy as ComponentType<StreamdownWrapperProps>
   return (
     <Suspense fallback={<div className={className || ""}>{children}</div>}>
-      <StreamdownLazy className={className} {...props}>
+      <StreamdownView className={className} {...props}>
         {children}
-      </StreamdownLazy>
+      </StreamdownView>
     </Suspense>
   );
 }

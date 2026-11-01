@@ -4,7 +4,17 @@
  */
 
 import { SlashCommandBuilder, EmbedBuilder, ChatInputCommandInteraction } from "discord.js"
-import { appPost, getGuildDefaultSeasonId } from "@/lib/discord/api-client"
+import { appGet, appPost, getGuildDefaultSeasonId } from "@/lib/discord/api-client"
+
+function isSendableChannel(
+  channel: unknown
+): channel is { send: (content: string) => Promise<unknown>; toString: () => string } {
+  if (typeof channel !== "object" || channel === null) return false
+  if (!("isTextBased" in channel) || typeof channel.isTextBased !== "function") return false
+  const isTextBased = channel.isTextBased as (this: unknown) => boolean
+  if (!isTextBased.call(channel)) return false
+  return "send" in channel && typeof channel.send === "function"
+}
 
 type CoverageResponse = {
   ok: boolean
@@ -120,7 +130,7 @@ export const coverageCommand = {
 
       // Post message to channel
       const channel = targetChannel || interaction.channel
-      if (channel && channel.isTextBased()) {
+      if (isSendableChannel(channel)) {
         await channel.send(coverageResponse.message)
         return interaction.editReply({
           content: `✅ Coverage analysis posted to ${channel.toString()}`,

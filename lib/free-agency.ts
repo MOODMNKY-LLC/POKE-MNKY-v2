@@ -97,7 +97,7 @@ export class FreeAgencySystem {
       .map((p: any) => p.pokemon_id)
       .filter((id: any): id is number => id !== null && id !== undefined)
 
-    let generationMap = new Map<number, number | null>()
+    const generationMap = new Map<number, number | null>()
 
     if (pokemonIds.length > 0) {
       const { data: cacheData } = await this.supabase

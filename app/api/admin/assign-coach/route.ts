@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase/server"
 import { createServiceRoleClient } from "@/lib/supabase/service"
 import { assignCoachToTeam } from "@/lib/coach-assignment"
-import { getCurrentUserProfile } from "@/lib/rbac"
+import { getCurrentUserProfile, UserRole } from "@/lib/rbac"
 import { syncAppRoleToDiscord } from "@/lib/discord-role-sync"
 
 export const runtime = "nodejs"
@@ -213,7 +213,7 @@ export async function POST(request: NextRequest) {
     let discordSynced = false
     if (targetProfile?.discord_id && process.env.DISCORD_BOT_TOKEN && process.env.DISCORD_GUILD_ID) {
       try {
-        const syncResult = await syncAppRoleToDiscord(targetProfile.discord_id, "coach", userId)
+        const syncResult = await syncAppRoleToDiscord(targetProfile.discord_id, UserRole.COACH, userId)
         discordSynced = syncResult.success
         if (!syncResult.success) {
           console.warn("[Admin Assign Coach] Discord role sync failed:", syncResult.message)

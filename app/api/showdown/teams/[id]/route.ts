@@ -15,7 +15,7 @@ import {
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createServerClient();
@@ -77,7 +77,7 @@ export async function GET(
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createServerClient();
@@ -108,7 +108,8 @@ export async function PATCH(
       folder_path: body.folder_path
     };
 
-    const result = await updateShowdownTeam(params.id, input, coach.id);
+    const { id } = await params
+    const result = await updateShowdownTeam(id, input, coach.id);
 
     if (result.errors.length > 0) {
       return NextResponse.json({
@@ -133,7 +134,7 @@ export async function PATCH(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createServerClient();

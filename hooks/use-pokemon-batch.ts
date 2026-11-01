@@ -42,10 +42,12 @@ export function usePokemonBatch(pokemonIds: number[]) {
         const uncachedIds: number[] = []
         pokemonIds.forEach(id => {
           const cached = pokemonDataCache.get(id)
-          if (cached !== undefined) {
-            map.set(id, cached)
-          } else {
+          if (cached === undefined) {
             uncachedIds.push(id)
+            return
+          }
+          if (cached !== null) {
+            map.set(id, cached)
           }
         })
 

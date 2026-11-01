@@ -62,10 +62,7 @@ export async function generateDraftPoolFromMaster(
     }
     mastersTotal = backfill.after_count
     if (mastersTotal === 0) {
-      const genNum =
-        generation != null && generation !== ""
-          ? parseInt(String(generation), 10)
-          : 9
+      const genNum = generation != null ? generation : 9
       const gen = Number.isFinite(genNum) ? genNum : 9
       await hydrateCatalogForBootstrap({ generation: gen })
       const catalog = await seedPokemonMasterFromCatalog({ generation: gen })
@@ -94,8 +91,8 @@ export async function generateDraftPoolFromMaster(
   }
 
   let query = service.from("pokemon_master").select("id, default_draft_points, is_legendary, is_mythical, is_paradox, generation")
-  if (generation != null && generation !== "") {
-    query = query.eq("generation", parseInt(String(generation), 10))
+  if (generation != null) {
+    query = query.eq("generation", generation)
   }
 
   const { data: masters, error: masterErr } = await query
@@ -132,7 +129,7 @@ export async function generateDraftPoolFromMaster(
 
   let warning: string | undefined
   if (matched === 0) {
-    const genLabel = generation != null && generation !== "" ? `generation ${generation}` : "your filters"
+    const genLabel = generation != null ? `generation ${generation}` : "your filters"
     warning =
       game_code && pokemonIds.length === 0 && filtered.length > 0
         ? `No pokemon_master rows match game_code "${game_code}" (pokemon_games may be empty). Clear the game filter or populate pokemon_games.`

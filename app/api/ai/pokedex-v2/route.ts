@@ -2,6 +2,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireSignedInUser } from "@/lib/admin-api-auth"
 import { openai, AI_MODELS, createResponseWithMCP } from "@/lib/openai-client"
+import { getPokemonData } from "@/lib/pokemon-api"
+import type { ChatCompletionMessageParam } from "openai/resources/chat/completions"
 
 export async function POST(request: NextRequest) {
   try {
@@ -79,23 +81,27 @@ export async function POST(request: NextRequest) {
 
         // Extract answer from Responses API output
         // Responses API returns output_text or output array with content
-        const answer = response.output_text || 
-          response.output?.[0]?.content?.[0]?.text || 
-          "No response generated" || response.output?.[0]?.content?.[0]?.text || "No response generated"
+        if (!("output" in response)) {
+          throw new Error("Expected a completed Responses API result")
+        }
+        const firstOutput = response.output?.[0]
+        const messageText =
+          firstOutput && firstOutput.type === "message"
+            ? firstOutput.content.find((part) => part.type === "output_text")?.text
+            : undefined
+        const answer = response.output_text || messageText || "No response generated"
 
         // Extract referenced Pokémon from tool calls if available
         const pokemonReferenced: string[] = []
         if (response.output) {
           for (const outputItem of response.output) {
-            if (outputItem.type === "function_call" && outputItem.function?.name === "get_pokemon") {
+            if (outputItem.type === "function_call" && outputItem.name === "get_pokemon") {
               try {
-                const args = typeof outputItem.function.arguments === "string" 
-                  ? JSON.parse(outputItem.function.arguments)
-                  : outputItem.function.arguments
+                const args = JSON.parse(outputItem.arguments) as { pokemon_name_or_id?: string }
                 if (args.pokemon_name_or_id) {
                   pokemonReferenced.push(args.pokemon_name_or_id)
                 }
-              } catch (e) {
+              } catch {
                 // Ignore parse errors
               }
             }
@@ -135,14 +141,14 @@ export async function POST(request: NextRequest) {
       },
     ]
 
-    const messages = [
+    const messages: ChatCompletionMessageParam[] = [
       {
-        role: "system" as const,
+        role: "system",
         content:
           "You are a knowledgeable Pokédex assistant. You MUST use the get_pokemon tool to fetch accurate Pokémon data. Never guess or invent stats, types, or abilities. Always cite which Pokémon you looked up.",
       },
       {
-        role: "user" as const,
+        role: "user",
         content: query,
       },
     ]
@@ -159,10 +165,17 @@ export async function POST(request: NextRequest) {
     // Handle tool calls
     if (finalMessage.tool_calls && finalMessage.tool_calls.length > 0) {
       const toolCall = finalMessage.tool_calls[0]
-      const functionArgs = JSON.parse(toolCall.function.arguments)
-
-      // Import getPokemonData function
-      const { getPokemonData } = await import("@/lib/pokemon-api")
+      if (!toolCall || toolCall.type !== "function") {
+        return NextResponse.json({
+          answer: finalMessage.content,
+          pokemon_referenced: [],
+          source: "chat_completions",
+        })
+      }
+      const functionArgs = JSON.parse(toolCall.function.arguments) as { pokemon_name_or_id?: string }
+      if (!functionArgs.pokemon_name_or_id) {
+        return NextResponse.json({ error: "Pokémon name missing from tool call" }, { status: 400 })
+      }
 
       // Execute the tool
       const pokemonData = await getPokemonData(functionArgs.pokemon_name_or_id)
@@ -197,7 +210,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       answer: finalMessage.content,
       pokemon_referenced: finalMessage.tool_calls
-        ? finalMessage.tool_calls.map((tc) => JSON.parse(tc.function.arguments).pokemon_name_or_id)
+        ? finalMessage.tool_calls.flatMap((tc) => {
+            if (tc.type !== "function") return []
+            const args = JSON.parse(tc.function.arguments) as { pokemon_name_or_id?: string }
+            return args.pokemon_name_or_id ? [args.pokemon_name_or_id] : []
+          })
         : [],
       source: "chat_completions",
     })

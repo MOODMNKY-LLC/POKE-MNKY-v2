@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     const seasonId = searchParams.get("season_id")
 
     const weekNumber = weekParam ? Number.parseInt(weekParam, 10) : null
-    if (weekParam && (!Number.isFinite(weekNumber) || weekNumber < 1)) {
+    if (weekParam && (weekNumber === null || !Number.isFinite(weekNumber) || weekNumber < 1)) {
       return NextResponse.json({ error: "week_number must be a positive integer" }, { status: 400 })
     }
 

@@ -253,7 +253,7 @@ export default async function DraftLandingPage() {
                   <div className="flex-1 space-y-2">
                     <h3 className="font-semibold text-lg">45 Second Timer</h3>
                     <p className="text-sm text-muted-foreground">
-                      You have 45 seconds per pick. If you don't pick in time, you're skipped that round with 45 seconds added to your next pick. Stay focused and strategic.
+                      You have 45 seconds per pick. If you don&apos;t pick in time, you&apos;re skipped that round with 45 seconds added to your next pick. Stay focused and strategic.
                     </p>
                   </div>
                 </div>
@@ -327,7 +327,7 @@ export default async function DraftLandingPage() {
                   <span className="text-pokemon-bold">Draft Process</span>
                 </h2>
                 <p className="mx-auto max-w-[700px] text-muted-foreground text-lg md:text-xl text-balance">
-                  From preparation to final pick, here's how the draft unfolds
+                  From preparation to final pick, here&apos;s how the draft unfolds
                 </p>
               </div>
             </BlurFade>
@@ -396,7 +396,7 @@ export default async function DraftLandingPage() {
                 <div className="flex-1 space-y-2">
                   <h3 className="font-semibold text-lg">Rounds Complete</h3>
                   <p className="text-muted-foreground">
-                    After 11 rounds, each team has drafted their roster. Pokemon are removed from the draft pool as they're selected. Final rosters are locked and ready for the season.
+                    After 11 rounds, each team has drafted their roster. Pokemon are removed from the draft pool as they&apos;re selected. Final rosters are locked and ready for the season.
                   </p>
                 </div>
               </div>

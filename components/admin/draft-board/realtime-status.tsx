@@ -28,12 +28,12 @@ export function RealtimeStatus() {
       .on(
         "broadcast",
         { event: "draft_board_synced" },
-        (payload) => {
+        (_payload: unknown) => {
           setLastBroadcast(new Date().toISOString())
           setConnected(true)
         }
       )
-      .subscribe((status) => {
+      .subscribe((status: string) => {
         if (status === "SUBSCRIBED") {
           setConnected(true)
         } else if (status === "CHANNEL_ERROR") {

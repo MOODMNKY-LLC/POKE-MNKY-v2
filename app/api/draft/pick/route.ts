@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     // Validate request body
     const validationResult = draftPickSchema.safeParse(body)
     if (!validationResult.success) {
-      return validationError("Validation failed", validationResult.error.errors)
+      return validationError("Validation failed", validationResult.error.issues)
     }
 
     const {

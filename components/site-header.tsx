@@ -21,7 +21,7 @@ import { HeaderMusicPlayer } from "@/components/music/header-music-player"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
-import type { User as SupabaseUser } from "@supabase/supabase-js"
+import type { AuthChangeEvent, Session, User as SupabaseUser } from "@supabase/supabase-js"
 import { Badge } from "@/components/ui/badge"
 import { getCurrentUserProfile, type UserProfile } from "@/lib/rbac"
 import type { User } from "@supabase/supabase-js"
@@ -123,7 +123,7 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
     // This fires immediately with current session and on any auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event: AuthChangeEvent, session: Session | null) => {
       if (cancelled) return
       
       // Update user immediately when auth state changes
@@ -480,7 +480,7 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
             // Loading skeleton to prevent layout shift
             <div className="h-8 w-8 animate-pulse rounded-md bg-muted" />
           ) : user ? (
-            <DropdownMenu suppressHydrationWarning>
+            <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="p-1">
                     <UserAvatar

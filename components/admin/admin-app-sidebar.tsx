@@ -78,6 +78,26 @@ const adminNavItems = [
   },
 ]
 
+type SeasonRow = {
+  id: string
+  name: string
+  is_current: boolean | null
+}
+
+type AuthUserResult = {
+  data: {
+    user: {
+      email?: string | null
+      user_metadata?: Record<string, unknown>
+    } | null
+  }
+}
+
+type ActiveDraftSessionRow = {
+  id: string
+  session_name: string | null
+}
+
 function fetchSeasons(): Promise<AdminSeason[]> {
   const supabase = createBrowserClient()
   return supabase
@@ -85,12 +105,12 @@ function fetchSeasons(): Promise<AdminSeason[]> {
     .select("id, name, is_current")
     .order("start_date", { ascending: false })
     .limit(10)
-    .then(({ data }) =>
+    .then(({ data }: { data: SeasonRow[] | null }) =>
       (data || []).map((s) => ({
         id: s.id,
         name: s.name,
         plan: s.is_current ? "Current" : "",
-        is_current: s.is_current,
+        is_current: Boolean(s.is_current),
       }))
     )
 }
@@ -104,12 +124,15 @@ export function AdminAppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 
   React.useEffect(() => {
     const supabase = createBrowserClient()
-    supabase.auth.getUser().then(({ data }) => {
+    supabase.auth.getUser().then(({ data }: AuthUserResult) => {
       if (data.user) {
+        const metadata = data.user.user_metadata
+        const fullName = typeof metadata?.full_name === "string" ? metadata.full_name : undefined
+        const avatarUrl = typeof metadata?.avatar_url === "string" ? metadata.avatar_url : undefined
         setUser({
-          name: data.user.user_metadata?.full_name || data.user.email?.split("@")[0] || "Admin",
+          name: fullName || data.user.email?.split("@")[0] || "Admin",
           email: data.user.email || "",
-          avatar: data.user.user_metadata?.avatar_url,
+          avatar: avatarUrl,
         })
       }
     })
@@ -130,7 +153,7 @@ export function AdminAppSidebar(props: React.ComponentProps<typeof Sidebar>) {
       .select("id, session_name")
       .eq("status", "active")
       .limit(5)
-      .then(({ data }) => {
+      .then(({ data }: { data: ActiveDraftSessionRow[] | null }) => {
         if (data && data.length > 0) {
           setActiveSessions(
             data.map((s) => ({

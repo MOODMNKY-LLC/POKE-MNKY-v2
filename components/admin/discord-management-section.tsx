@@ -43,7 +43,7 @@ export function DiscordManagementSection() {
         .from("profiles")
         .select("id, discord_id, updated_at")
       
-      const discordLinked = users?.filter(u => u.discord_id).length || 0
+      const discordLinked = users?.filter((u: { discord_id: string | null }) => u.discord_id).length || 0
       const totalUsers = users?.length || 0
       
       // Get last sync from activity log
@@ -212,11 +212,11 @@ export function DiscordManagementSection() {
           <CardContent className="space-y-3 text-sm">
             <div className="space-y-2">
               <p>
-                <strong>App → Discord (Automatic):</strong> When you change a user's role in the Users table above, 
+                <strong>App → Discord (Automatic):</strong> When you change a user&apos;s role in the Users table above, 
                 their Discord roles are automatically updated to match.
               </p>
               <p>
-                <strong>Discord → App (Manual):</strong> Use the "Sync All Roles" button to sync roles from Discord 
+                <strong>Discord → App (Manual):</strong> Use the &quot;Sync All Roles&quot; button to sync roles from Discord 
                 server to the app. This updates app roles based on Discord server roles.
               </p>
               <p>

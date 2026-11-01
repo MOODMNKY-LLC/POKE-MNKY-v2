@@ -5,7 +5,7 @@
  */
 
 import { BaseParser, ParserConfig, ParserResult } from "./base-parser"
-import { z } from "zod"
+import { z } from "zod/v3"
 import { zodResponseFormat } from "openai/helpers/zod"
 import { openai, AI_MODELS } from "../openai-client"
 
@@ -79,7 +79,7 @@ export class RulesParser extends BaseParser {
       const rows = await this.sheet.getRows({ limit: maxRows })
       for (let rowIdx = 0; rowIdx < rows.length; rowIdx++) {
         const row = rows[rowIdx]
-        const rowData = row._rawData || []
+        const rowData = this.sheet.headerValues.map((header) => row.get(header))
         for (let col = 0; col < Math.min(rowData.length, maxCols); col++) {
           const value = rowData[col]
           const isEmpty = value === null || value === undefined || value === ""

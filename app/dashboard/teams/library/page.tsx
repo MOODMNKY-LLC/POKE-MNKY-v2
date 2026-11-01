@@ -11,6 +11,29 @@ import { Button } from "@/components/ui/button"
 import { Library, ArrowLeft } from "lucide-react"
 import Link from "next/link"
 
+type StockTeamCard = {
+  id: string
+  team_name: string
+  format: string | null
+  generation: number | null
+  pokemon_count: number
+  folder_path: string | null
+}
+
+function readStockTeam(value: unknown): StockTeamCard | null {
+  if (typeof value !== "object" || value === null) return null
+  const row = value as Record<string, unknown>
+  if (typeof row.id !== "string" || typeof row.team_name !== "string") return null
+  return {
+    id: row.id,
+    team_name: row.team_name,
+    format: typeof row.format === "string" ? row.format : null,
+    generation: typeof row.generation === "number" ? row.generation : null,
+    pokemon_count: typeof row.pokemon_count === "number" ? row.pokemon_count : 0,
+    folder_path: typeof row.folder_path === "string" ? row.folder_path : null,
+  }
+}
+
 export const dynamic = 'force-dynamic'
 
 export default async function TeamLibraryPage() {
@@ -53,14 +76,17 @@ export default async function TeamLibraryPage() {
   })
 
   // Group by format
-  const teamsByFormat = stockTeams?.reduce((acc, team) => {
-    const format = team.format || "other"
-    if (!acc[format]) {
-      acc[format] = []
+  const teamsByFormat: Record<string, StockTeamCard[]> = {}
+  if (Array.isArray(stockTeams)) {
+    for (const raw of stockTeams) {
+      const team = readStockTeam(raw)
+      if (!team) continue
+      const format = team.format || "other"
+      const bucket = teamsByFormat[format] ?? []
+      bucket.push(team)
+      teamsByFormat[format] = bucket
     }
-    acc[format].push(team)
-    return acc
-  }, {} as Record<string, typeof stockTeams>)
+  }
 
   return (
     <>

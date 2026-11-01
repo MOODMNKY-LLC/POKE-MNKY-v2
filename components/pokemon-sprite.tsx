@@ -10,7 +10,7 @@ interface PokemonSpriteProps {
   pokemonId?: number
   pokemon?: PokemonDisplayData
   sprite?: string
-  size?: "sm" | "md" | "lg" | "xl"
+  size?: "xs" | "sm" | "md" | "lg" | "xl"
   mode?: "front" | "back" | "shiny" | "artwork"
   className?: string
 }
@@ -53,6 +53,7 @@ export function PokemonSprite({
   const [fallbackUrl, setFallbackUrl] = useState<string | null>(null)
 
   const sizeMap = {
+    xs: 32,
     sm: 48,
     md: 96,
     lg: 128,

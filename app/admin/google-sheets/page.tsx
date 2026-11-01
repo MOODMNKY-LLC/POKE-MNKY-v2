@@ -412,7 +412,7 @@ export default function GoogleSheetsConfigPage() {
       }
 
       // Update progress as we sync each sheet
-      let currentSheetIndex = 0
+      const currentSheetIndex = 0
       const totalSheets = enabledMappings.length
 
       // Simulate progress updates (in real implementation, this would come from server-side events)
@@ -721,7 +721,7 @@ export default function GoogleSheetsConfigPage() {
                     <div className="flex flex-wrap gap-2">
                       {Object.entries(analysisResult.summary.sheet_types).map(([type, count]) => (
                         <Badge key={type} variant="secondary">
-                          {type}: {count}
+                          {type}: {typeof count === "number" || typeof count === "string" ? count : String(count)}
                         </Badge>
                       ))}
                     </div>
@@ -1033,7 +1033,7 @@ export default function GoogleSheetsConfigPage() {
                                     <div>
                                       <div className="font-semibold mb-1">No Headers Detected</div>
                                       <div className="text-xs">
-                                        This sheet doesn't have headers in the first row. You can still sync it by:
+                                        This sheet doesn&apos;t have headers in the first row. You can still sync it by:
                                         <ul className="list-disc list-inside mt-1 space-y-1">
                                           <li>Manually mapping columns by position (A, B, C, etc.)</li>
                                           <li>Adding headers to the first row in Google Sheets</li>
@@ -1121,7 +1121,7 @@ export default function GoogleSheetsConfigPage() {
                     <div>
                       <div className="font-semibold mb-1">Manual Sync Mode</div>
                       <div className="text-xs">
-                        Automatic sync is disabled. Use the "Sync Now" button to manually trigger synchronization.
+                        Automatic sync is disabled. Use the &quot;Sync Now&quot; button to manually trigger synchronization.
                       </div>
                     </div>
                   </div>
@@ -1198,10 +1198,10 @@ export default function GoogleSheetsConfigPage() {
                 <div className="flex-1 text-sm">
                   <div className="font-semibold mb-1 text-blue-900 dark:text-blue-100">How It Works</div>
                   <ol className="list-decimal list-inside space-y-1 text-blue-800 dark:text-blue-200 text-xs">
-                    <li><strong>Detect or Analyze:</strong> Use "Quick Detect" for simple sheets or "Comprehensive Analysis" for complex structures with multiple data types.</li>
+                    <li><strong>Detect or Analyze:</strong> Use &quot;Quick Detect&quot; for simple sheets or &quot;Comprehensive Analysis&quot; for complex structures with multiple data types.</li>
                     <li><strong>Configure Mappings:</strong> Enable sheets you want to sync and verify the suggested table mappings (teams, matches, rosters).</li>
                     <li><strong>Save Configuration:</strong> Save your settings to enable syncing.</li>
-                    <li><strong>Sync Data:</strong> Click "Sync Now" to extract team standings, match results, draft picks, and team images (logos, banners, avatars) into your league database.</li>
+                    <li><strong>Sync Data:</strong> Click &quot;Sync Now&quot; to extract team standings, match results, draft picks, and team images (logos, banners, avatars) into your league database.</li>
                   </ol>
                 </div>
               </div>

@@ -26,6 +26,7 @@ interface CoachCardProps {
   budgetUsed?: number
   budgetTotal?: number
   teamPokemon?: Array<{ name: string; pointValue: number }>
+  tagline?: string
 }
 
 // Mock coach data - in production, this would come from props or API
@@ -114,7 +115,7 @@ export function CoachCard({
           </div>
           {/* Tagline - Aligned with bottom of right content */}
           <p className="text-sm font-medium text-center text-foreground/80 italic max-w-[280px] px-2 leading-relaxed">
-            "{tagline}"
+            &quot;{tagline}&quot;
           </p>
         </div>
 

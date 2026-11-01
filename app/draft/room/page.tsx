@@ -9,6 +9,11 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Loader2, ArrowLeft } from "lucide-react"
 
+type AuthGetUserResult = {
+  data: { user: { id: string } | null }
+  error: { message: string } | null
+}
+
 export default function DraftRoomCoachPage() {
   const [seasonId, setSeasonId] = useState<string | null>(null)
   const [shortlistText, setShortlistText] = useState("[]")
@@ -18,7 +23,7 @@ export default function DraftRoomCoachPage() {
 
   useEffect(() => {
     const supabase = createBrowserClient()
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
+    supabase.auth.getUser().then(async ({ data: { user } }: AuthGetUserResult) => {
       if (!user) {
         setLoading(false)
         return

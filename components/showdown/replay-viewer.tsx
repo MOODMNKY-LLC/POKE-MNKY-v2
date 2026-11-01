@@ -84,7 +84,7 @@ export function ReplayViewer({
           iframe.frameBorder = '0';
           iframe.style.border = 'none';
           iframe.style.borderRadius = '0.5rem';
-          iframe.allowFullScreen = true;
+          iframe.allowFullscreen = true;
           iframe.onload = () => {
             if (mounted) {
               setLoading(false);

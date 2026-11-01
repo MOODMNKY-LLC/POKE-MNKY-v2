@@ -96,7 +96,7 @@ export function DraftBoardClient({
             .eq("season_id", seasonId)
             .eq("status", "drafted")
 
-          setDraftedPokemon(draftedData?.map(p => p.pokemon_name.toLowerCase()) || [])
+          setDraftedPokemon(draftedData?.map((p: { pokemon_name: string | null }) => (p.pokemon_name ?? "").toLowerCase()) || [])
         }
 
         // Fetch budget
@@ -140,11 +140,12 @@ export function DraftBoardClient({
           table: "draft_pool",
           filter: `season_id=eq.${seasonId}`,
         },
-        (payload) => {
-          const newRecord = payload.new as any
-          if (newRecord.status === "drafted") {
+        (payload: { new: { status?: string; pokemon_name?: string } }) => {
+          const newRecord = payload.new
+          const draftedName = newRecord.pokemon_name
+          if (newRecord.status === "drafted" && draftedName) {
             setDraftedPokemon((prev) => {
-              const pokemonName = newRecord.pokemon_name.toLowerCase()
+              const pokemonName = draftedName.toLowerCase()
               if (!prev.includes(pokemonName)) {
                 return [...prev, pokemonName]
               }
@@ -153,7 +154,7 @@ export function DraftBoardClient({
             // Update Pokemon status in local state
             setPokemon((prev) =>
               prev.map((p) =>
-                p.pokemon_name.toLowerCase() === newRecord.pokemon_name.toLowerCase()
+                p.pokemon_name.toLowerCase() === draftedName.toLowerCase()
                   ? { ...p, status: "drafted" as const }
                   : p
               )
@@ -182,8 +183,8 @@ export function DraftBoardClient({
           table: "draft_budgets",
           filter: `team_id=eq.${currentTeamId}`,
         },
-        (payload) => {
-          const newRecord = payload.new as any
+        (payload: { new: { season_id?: string; total_points: number; spent_points: number; remaining_points: number } }) => {
+          const newRecord = payload.new
           if (newRecord.season_id === seasonId) {
             setBudget({
               total: newRecord.total_points,
@@ -214,7 +215,7 @@ export function DraftBoardClient({
   const availableCount = pokemon.length - draftedCount
 
   // Group filtered Pokemon by point value for Kanban (1-20)
-  const pokemonByPoint: Record<number, { name: string; point_value: number; generation: number; pokemon_id: number | null; status: string; types?: string[] }[]> = {}
+  const pokemonByPoint: Record<number, { name: string; point_value: number; generation: number; pokemon_id: number | null; status?: "available" | "drafted" | "banned" | "unavailable"; types?: string[] }[]> = {}
   pointTiers.forEach(tier => {
     pokemonByPoint[tier] = []
   })
@@ -389,7 +390,7 @@ export function DraftBoardClient({
               </p>
               <div className="text-sm text-muted-foreground space-y-2">
                 <p>Season ID: {seasonId || "Not provided"}</p>
-                <p>Filters: Tier={selectedTier}, Gen={selectedGeneration}, Search="{searchQuery}"</p>
+                <p>Filters: Tier={selectedTier}, Gen={selectedGeneration}, Search=&quot;{searchQuery}&quot;</p>
                 <p className="text-xs">Check browser console for [DraftBoard] logs</p>
               </div>
             </div>
@@ -399,7 +400,7 @@ export function DraftBoardClient({
                 {pokemon.length} Pokemon loaded, but none match current filters.
               </p>
               <div className="text-sm text-muted-foreground space-y-2">
-                <p>Filters: Tier={selectedTier}, Gen={selectedGeneration}, Search="{searchQuery}"</p>
+                <p>Filters: Tier={selectedTier}, Gen={selectedGeneration}, Search=&quot;{searchQuery}&quot;</p>
                 <p>Try clearing filters to see all Pokemon.</p>
               </div>
             </div>

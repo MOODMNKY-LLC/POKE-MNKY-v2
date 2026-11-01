@@ -8,6 +8,14 @@
 
 import { invokeSupabaseEdgeFunction } from "@/lib/supabase/invoke-edge-function"
 
+type ShowdownIngestResult = {
+  summary?: {
+    processed?: number
+    errors?: number
+  }
+  errors?: unknown
+}
+
 export async function triggerShowdownPokedexIngestion() {
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -18,7 +26,7 @@ export async function triggerShowdownPokedexIngestion() {
     const functionUrl = `${supabaseUrl}/functions/v1/ingest-showdown-pokedex`
     console.log("Calling Edge Function:", functionUrl)
 
-    const invoked = await invokeSupabaseEdgeFunction<Record<string, unknown>>(
+    const invoked = await invokeSupabaseEdgeFunction<ShowdownIngestResult>(
       "ingest-showdown-pokedex",
       {},
       { timeoutMs: 120_000 }
@@ -37,12 +45,16 @@ export async function triggerShowdownPokedexIngestion() {
     }
 
     // Also check if result.summary shows all failures
-    if (result.summary && result.summary.processed === 0 && result.summary.errors > 0) {
+    const summary = result?.summary
+    if (summary && summary.processed === 0 && (summary.errors ?? 0) > 0) {
       console.error("Edge Function completed but all items failed:", result)
       return {
         success: false,
-        error: `All ${result.summary.errors} Pokémon entries failed to process`,
-        details: result.errors || "Check Edge Function logs for details",
+        error: `All ${summary.errors} Pokémon entries failed to process`,
+        details:
+          result?.errors == null || result.errors === ""
+            ? "Check Edge Function logs for details"
+            : result.errors,
         result,
       }
     }

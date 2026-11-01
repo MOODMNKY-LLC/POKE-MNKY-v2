@@ -29,7 +29,7 @@ export function RealtimeAvatarStack({ channel, maxAvatars = 5 }: RealtimeAvatarS
         const users = Object.values(state).flat() as User[]
         setActiveUsers(users.slice(0, maxAvatars))
       })
-      .subscribe(async (status) => {
+      .subscribe(async (status: string) => {
         if (status === "SUBSCRIBED") {
           const {
             data: { user },

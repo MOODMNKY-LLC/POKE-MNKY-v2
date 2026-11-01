@@ -15,6 +15,11 @@ import {
 } from '@/lib/pokepaste-colors';
 import { cn } from '@/lib/utils';
 
+interface PokemonTeamEntryProps {
+  pokemon: ParsedPokemon
+  pokemonData?: CachedPokemonExtended | null
+}
+
 export function PokemonTeamEntry({
   pokemon,
   pokemonData,

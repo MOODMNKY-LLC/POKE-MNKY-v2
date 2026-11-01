@@ -22,6 +22,21 @@ interface ShowdownTeamsSectionProps {
   userId: string
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null
+}
+
+function isShowdownTeam(value: unknown): value is ShowdownTeam {
+  if (!isRecord(value)) return false
+  return (
+    typeof value.id === "string" &&
+    typeof value.team_name === "string" &&
+    typeof value.team_text === "string" &&
+    Array.isArray(value.tags) &&
+    typeof value.created_at === "string"
+  )
+}
+
 export function ShowdownTeamsSection({ userId }: ShowdownTeamsSectionProps) {
   const [teams, setTeams] = useState<ShowdownTeam[]>([])
   const [loading, setLoading] = useState(true)
@@ -44,36 +59,35 @@ export function ShowdownTeamsSection({ userId }: ShowdownTeamsSectionProps) {
     function handleStorageEvent(e: StorageEvent) {
       if (e.key === 'showdown_team_created' && e.newValue) {
         try {
-          const payload = JSON.parse(e.newValue)
-          if (payload?.team) {
-            setTeams((prev) => [payload.team, ...prev])
+          const payload: unknown = JSON.parse(e.newValue)
+          if (isRecord(payload) && isShowdownTeam(payload.team)) {
+            const team = payload.team
+            setTeams((prev) => [team, ...prev])
           }
-        } catch (err) {
-          // ignore
+        } catch {
+          // ignore malformed storage payloads
         }
       }
     }
 
-    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
-      // @ts-ignore - BroadcastChannel global
-      bc = new window.BroadcastChannel('showdown-teams')
-      bc.onmessage = (msg: any) => {
-        if (msg?.data?.type === 'team-created' && msg.data.team) {
-          setTeams((prev) => [msg.data.team, ...prev])
+    if (typeof window === "undefined") return
+
+    window.addEventListener("storage", handleStorageEvent)
+
+    if (typeof window.BroadcastChannel === "function") {
+      bc = new window.BroadcastChannel("showdown-teams")
+      bc.onmessage = (msg: MessageEvent) => {
+        const data: unknown = msg.data
+        if (isRecord(data) && data.type === "team-created" && isShowdownTeam(data.team)) {
+          const team = data.team
+          setTeams((prev) => [team, ...prev])
         }
       }
-      window.addEventListener('storage', handleStorageEvent)
-    } else if (typeof window !== 'undefined') {
-      window.addEventListener('storage', handleStorageEvent)
     }
 
     return () => {
-      if (bc) {
-        bc.close()
-      }
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('storage', handleStorageEvent)
-      }
+      bc?.close()
+      window.removeEventListener("storage", handleStorageEvent)
     }
   }, [])
 

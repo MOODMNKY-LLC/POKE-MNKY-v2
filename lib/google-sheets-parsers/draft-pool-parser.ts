@@ -58,7 +58,7 @@ export class DraftPoolParser extends BaseParser {
         const pokemonColumnIndex = team.columnIndex
         const pointValue = team.pointValue
         
-        this.log(`Extracting Pokemon from column ${this.getColumnLetter(pokemonColumnIndex)} (${pointValue} points)`)
+        this.log(`Extracting Pokemon from column ${this.columnIndexToLetter(pokemonColumnIndex)} (${pointValue} points)`)
 
         // Read all rows starting from row 5 (where Pokemon start)
         // Use raw API for better reliability
@@ -82,14 +82,14 @@ export class DraftPoolParser extends BaseParser {
         const spreadsheetId = this.spreadsheetId || (this.sheet as any)._spreadsheet?.spreadsheetId
 
         if (!spreadsheetId) {
-          this.warn(`Could not get spreadsheet ID for column ${this.getColumnLetter(pokemonColumnIndex)}`)
+          this.warn(`Could not get spreadsheet ID for column ${this.columnIndexToLetter(pokemonColumnIndex)}`)
           continue
         }
 
         // Read rows 5-200 (where Pokemon are)
         const startRow = 5 // Row 5 (1-indexed)
         const endRow = Math.min(this.sheet.rowCount, 200)
-        const columnLetter = this.getColumnLetter(pokemonColumnIndex)
+        const columnLetter = this.columnIndexToLetter(pokemonColumnIndex)
         const range = `${this.sheet.title}!${columnLetter}${startRow}:${columnLetter}${endRow}`
 
         try {
@@ -236,10 +236,7 @@ export class DraftPoolParser extends BaseParser {
 
       const sheets = google.sheets({ version: "v4", auth: serviceAccountAuth })
       // Get spreadsheet ID from sheet's parent document
-      const spreadsheetId = (this.sheet as any).spreadsheet?.spreadsheetId || 
-                           (this.sheet as any)._spreadsheet?.id ||
-                           (this.sheet as any).sheetId ? 
-                             (await this.sheet.loadInfo()).spreadsheetId : null
+      const spreadsheetId = this.sheet._spreadsheet.spreadsheetId || null
 
       if (!spreadsheetId) {
         // Try to get from config if available
@@ -374,7 +371,7 @@ export class DraftPoolParser extends BaseParser {
               columnIndex: pokemonCol, // Pokemon column
               teamName: `Team ${pointValue} Points`,
             })
-            this.log(`  Mapped: ${this.getColumnLetter(col)}3 = ${pointValue}pts, Pokemon at ${this.getColumnLetter(pokemonCol)}`)
+            this.log(`  Mapped: ${this.columnIndexToLetter(col)}3 = ${pointValue}pts, Pokemon at ${this.columnIndexToLetter(pokemonCol)}`)
           }
         }
       }
@@ -505,7 +502,7 @@ export class DraftPoolParser extends BaseParser {
         pokemon_id: pokemon.pokemon_id || null,
         sheet_name: this.sheet.title,
         sheet_row: pokemon.row_index,
-        sheet_column: this.getColumnLetter(pokemon.column_index),
+        sheet_column: this.columnIndexToLetter(pokemon.column_index),
         extracted_at: new Date().toISOString(),
       }))
 
@@ -533,7 +530,7 @@ export class DraftPoolParser extends BaseParser {
   /**
    * Get column letter from index (0 = A, 1 = B, etc.)
    */
-  private getColumnLetter(index: number): string {
+  private columnIndexToLetter(index: number): string {
     let result = ""
     let num = index
     while (num >= 0) {

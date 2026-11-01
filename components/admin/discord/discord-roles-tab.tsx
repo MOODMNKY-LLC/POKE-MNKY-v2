@@ -71,7 +71,7 @@ export function DiscordRolesTab() {
 
       // Build roles map from database
       const rolesMap: Record<string, DiscordRole[]> = {}
-      usersData?.forEach((user) => {
+      usersData?.forEach((user: { id: string; discord_roles: unknown }) => {
         if (user.discord_roles && Array.isArray(user.discord_roles)) {
           rolesMap[user.id] = user.discord_roles as DiscordRole[]
         }
@@ -493,7 +493,7 @@ export function DiscordRolesTab() {
               <strong>Automatic Sync:</strong> Roles sync automatically when users log in with Discord OAuth
             </p>
             <p>
-              <strong>Manual Sync:</strong> Use the "Sync Now" button to manually sync all users' roles
+              <strong>Manual Sync:</strong> Use the &quot;Sync Now&quot; button to manually sync all users&apos; roles
             </p>
             <p>
               <strong>Mapping Rules:</strong>
@@ -501,7 +501,7 @@ export function DiscordRolesTab() {
             <ul className="list-disc list-inside space-y-1 ml-4">
               <li>Discord roles are matched by name (case-insensitive)</li>
               <li>If a user has multiple Discord roles, the highest app role is assigned</li>
-              <li>Users without Discord roles default to "spectator"</li>
+              <li>Users without Discord roles default to &quot;spectator&quot;</li>
               <li>Manual role assignments in the app override Discord sync</li>
             </ul>
           </div>

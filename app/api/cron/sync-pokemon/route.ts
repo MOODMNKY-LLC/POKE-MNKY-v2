@@ -20,10 +20,16 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 
+function createServiceClient(url: string, key: string) {
+  return createClient(url, key)
+}
+
+type UntypedServiceClient = ReturnType<typeof createServiceClient>
+
 export const revalidate = 0
 export const maxDuration = 60
 
-async function detectNewPokemon(supabase: ReturnType<typeof createClient>): Promise<number[]> {
+async function detectNewPokemon(supabase: UntypedServiceClient): Promise<number[]> {
   const { data: maxCached } = await supabase
     .from("pokemon_cache")
     .select("pokemon_id")
@@ -54,7 +60,7 @@ async function detectNewPokemon(supabase: ReturnType<typeof createClient>): Prom
   return newIds
 }
 
-async function getExpiredPokemon(supabase: ReturnType<typeof createClient>): Promise<number[]> {
+async function getExpiredPokemon(supabase: UntypedServiceClient): Promise<number[]> {
   const { data: expired } = await supabase
     .from("pokemon_cache")
     .select("pokemon_id")
@@ -78,7 +84,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Missing Supabase configuration" }, { status: 500 })
   }
 
-  const supabase = createClient(supabaseUrl, serviceRoleKey)
+  const supabase = createServiceClient(supabaseUrl, serviceRoleKey)
 
   try {
     const [newPokemon, expiredPokemon] = await Promise.all([

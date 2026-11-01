@@ -20,6 +20,15 @@ import { Suspense } from "react"
 import { toast } from "sonner"
 import { DiscordManagementSection } from "@/components/admin/discord-management-section"
 
+type AuthGetUserResult = {
+  data: { user: { id: string } | null }
+  error: { message: string } | null
+}
+
+type ProfileRoleResult = {
+  data: { role: string | null } | null
+}
+
 function UsersManagementContent() {
   const [users, setUsers] = useState<any[]>([])
   const [filteredUsers, setFilteredUsers] = useState<any[]>([])
@@ -40,7 +49,7 @@ function UsersManagementContent() {
   useEffect(() => {
     const supabase = createBrowserClient()
     // Check if user is admin
-    supabase.auth.getUser().then(({ data }) => {
+    supabase.auth.getUser().then(({ data }: AuthGetUserResult) => {
       if (!data.user) {
         router.push("/auth/login")
         return
@@ -51,7 +60,7 @@ function UsersManagementContent() {
         .select("role")
         .eq("id", data.user.id)
         .single()
-        .then(({ data: profile }) => {
+        .then(({ data: profile }: ProfileRoleResult) => {
           if (profile?.role !== "admin") {
             router.push("/admin")
             return

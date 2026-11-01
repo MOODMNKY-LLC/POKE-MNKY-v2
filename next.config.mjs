@@ -1,8 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  typescript: {
-    ignoreBuildErrors: true,
-  },
   images: {
     unoptimized: true,
   },
@@ -24,17 +21,12 @@ const nextConfig = {
   },
   // Transpile packages to prevent Turbopack HMR issues
   // This includes them more "natively" in the build, reducing module factory errors
+  // streamdown stays out of optimizePackageImports; StreamdownWrapper lazy-loads it.
   transpilePackages: ['streamdown', 'lucide-react'],
-  // Turbopack configuration
-  // Turbopack is the default bundler in Next.js 16
+  // Turbopack is the default bundler in Next.js 16.
+  // Next 16.4 dropped experimental.turbopackUseSystemTlsCerts (the config schema
+  // rejects unknown keys). Corporate TLS inspection should use NODE_EXTRA_CA_CERTS.
   turbopack: {},
-  // Experimental features to help with module resolution
-  experimental: {
-    // Removed streamdown from optimizePackageImports to prevent Turbopack HMR issues
-    // The StreamdownWrapper component handles lazy loading with React.lazy()
-    // Use OS trust store when corporate SSL inspection breaks Turbopack font fetches (Windows/Norton)
-    turbopackUseSystemTlsCerts: true,
-  },
 }
 
 export default nextConfig

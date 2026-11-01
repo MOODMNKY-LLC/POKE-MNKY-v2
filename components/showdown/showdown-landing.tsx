@@ -196,7 +196,7 @@ export function ShowdownLanding() {
         <CardHeader>
           <CardTitle>Quick Start Guide</CardTitle>
           <CardDescription>
-            New to Showdown or our integration? Here's how to get started:
+            New to Showdown or our integration? Here&apos;s how to get started:
           </CardDescription>
         </CardHeader>
         <CardContent>

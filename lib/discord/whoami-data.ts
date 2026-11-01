@@ -85,13 +85,14 @@ export async function getWhoamiData(
       .eq("season_teams.season_id", seasonId)
       .single()
 
-    if (seasonTeamData && seasonTeamData.seasons) {
-      const s = seasonTeamData.seasons as { id: string; name: string }
+    const seasonRows = seasonTeamData?.seasons
+    const seasonRow = Array.isArray(seasonRows) ? seasonRows[0] : undefined
+    if (seasonTeamData && seasonRow) {
       seasonTeam = {
         id: seasonTeamData.id,
         team_name: seasonTeamData.team_name,
         franchise_key: seasonTeamData.franchise_key ?? null,
-        season: { id: s.id, name: s.name },
+        season: { id: String(seasonRow.id), name: String(seasonRow.name) },
       }
     }
   }

@@ -238,7 +238,7 @@ export default function AdminPokemonPage() {
       }
 
       if (data.success && data.pokemon) {
-        const pokemonWithEdits = data.pokemon.map((p: PokemonRow) => ({
+        const pokemonWithEdits: PokemonData[] = data.pokemon.map((p: PokemonRow) => ({
           ...p,
           types: p.types || [],
           base_stats: p.base_stats || null,
