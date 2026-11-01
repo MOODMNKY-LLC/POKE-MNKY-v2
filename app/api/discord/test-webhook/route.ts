@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { leagueAdminDeniedResponse } from "@/lib/admin-api-auth"
 import { createServerClient } from "@/lib/supabase/server"
 
 export async function POST(request: Request) {
@@ -10,6 +11,9 @@ export async function POST(request: Request) {
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
+
+  const adminDenied = await leagueAdminDeniedResponse(user.id)
+  if (adminDenied) return adminDenied
 
   try {
     const { webhook_url } = await request.json()

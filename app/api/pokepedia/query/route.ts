@@ -13,6 +13,10 @@ import {
   getPokemonByIdGraphQLServer,
 } from "@/lib/supabase/graphql-server-client"
 
+/**
+ * Public on purpose. `query` is a fixed name (range, by id, or master data),
+ * not a caller-supplied GraphQL document, and the rows are the public Pokémon catalog.
+ */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()

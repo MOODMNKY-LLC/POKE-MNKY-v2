@@ -1,3 +1,4 @@
+import { leagueAdminDeniedResponse } from "@/lib/admin-api-auth"
 import { NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase/server"
 import { hasGoogleSheetsCredentials } from "@/lib/utils/google-sheets"
@@ -13,6 +14,9 @@ export async function GET() {
     if (authError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
+    const adminDenied = await leagueAdminDeniedResponse(user.id)
+    if (adminDenied) return adminDenied
+
 
     // Get latest config
     const { data: config, error } = await supabase
@@ -63,6 +67,9 @@ export async function POST(request: Request) {
     if (authError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
+    const adminDenied = await leagueAdminDeniedResponse(user.id)
+    if (adminDenied) return adminDenied
+
 
     const body = await request.json()
     const { config, mappings } = body

@@ -12,6 +12,7 @@
  */
 
 import { createServiceRoleClient } from "@/lib/supabase/service"
+import { getSupabaseEdgeFunctionKey } from "@/lib/supabase/invoke-edge-function"
 
 interface QueueCheck {
   queueName: string
@@ -59,17 +60,21 @@ async function checkQueues(supabase: any): Promise<QueueCheck[]> {
 /**
  * Test Edge Function accessibility
  */
-async function testEdgeFunction(url: string, serviceRoleKey: string): Promise<boolean> {
+async function testEdgeFunction(url: string, edgeFunctionKey: string): Promise<boolean> {
   try {
     const response = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${serviceRoleKey}`,
+        apikey: edgeFunctionKey,
       },
-      body: JSON.stringify({}),
+      // healthcheck mode: verifies auth + DB access without starting a sync/seed run
+      body: JSON.stringify({ healthcheck: true }),
     })
 
+    if (response.status === 401) {
+      console.log(`   ⚠️  ${url} rejected the key (401) — set SUPABASE_SECRET_KEY to a sb_secret_ key`)
+    }
     // Even if it returns an error, if we get a response, the function is deployed
     return response.status !== 404
   } catch (error) {
@@ -123,10 +128,10 @@ async function main() {
   // 2. Check Edge Functions
   console.log("📋 Step 2: Checking Edge Functions...")
   const functions = getEdgeFunctionUrls(supabaseUrl)
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+  const edgeFunctionKey = getSupabaseEdgeFunctionKey()
 
   for (const fn of functions) {
-    const deployed = await testEdgeFunction(fn.url, serviceRoleKey)
+    const deployed = await testEdgeFunction(fn.url, edgeFunctionKey)
     fn.deployed = deployed
     
     if (deployed) {

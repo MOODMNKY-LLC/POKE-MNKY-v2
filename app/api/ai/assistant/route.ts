@@ -46,9 +46,12 @@ export async function POST(request: Request) {
   try {
     const supabase = await createServerClient()
     const { data: { user } } = await supabase.auth.getUser()
-    
-    // Authentication is optional - unauthenticated users get basic assistant
-    const isAuthenticated = !!user
+
+    // OpenClaw and OpenAI both spend paid model credits.
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+    const isAuthenticated = true
 
     const body = await request.json()
 

@@ -18,15 +18,20 @@
 
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
-import { freeAgencyTransactionSchema } from "@/lib/validation/free-agency"
+import { requireSignedInUser } from "@/lib/admin-api-auth"
+import { teamWriteDeniedResponse } from "@/lib/team-write-auth"
+import { freeAgencyReplacementSchema } from "@/lib/validation/free-agency"
 import { mapRPCError } from "@/lib/supabase/rpc-error-map"
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireSignedInUser()
+    if ("response" in auth) return auth.response
+
     const body = await request.json()
 
     // Validate request body
-    const validationResult = freeAgencyTransactionSchema.safeParse(body)
+    const validationResult = freeAgencyReplacementSchema.safeParse(body)
     if (!validationResult.success) {
       return NextResponse.json(
         {
@@ -38,8 +43,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { season_id, team_id, dropped_pokemon_id, added_pokemon_id, notes } =
+    const { season_id, team_id, drop_pokemon_id, add_pokemon_id, notes } =
       validationResult.data
+
+    const teamDenied = await teamWriteDeniedResponse(auth.userId, team_id)
+    if (teamDenied) return teamDenied
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -63,8 +71,8 @@ export async function POST(request: NextRequest) {
     const { data, error } = await supabase.rpc("rpc_free_agency_transaction", {
       p_season_id: season_id,
       p_team_id: team_id,
-      p_drop_pokemon_id: dropped_pokemon_id ?? null,
-      p_add_pokemon_id: added_pokemon_id ?? null,
+      p_drop_pokemon_id: drop_pokemon_id,
+      p_add_pokemon_id: add_pokemon_id,
       p_notes: notes || null,
     })
 

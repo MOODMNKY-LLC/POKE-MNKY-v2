@@ -553,6 +553,17 @@ export function getSupabaseSpriteUrl(storagePath: string, supabaseUrl?: string):
 }
 
 /**
+ * sync-pokepedia stores either a path relative to the PokeAPI sprites repo
+ * (`sprites/pokemon/25.png`) or the full sprite URL. Absolute URLs must be
+ * returned unchanged; prefixing them produces a broken double URL.
+ */
+export function resolveStoredSpriteUrl(storagePath: string): string {
+  const normalized = storagePath.replace(/[\n\r]+/g, "").trim()
+  if (/^https?:\/\//i.test(normalized)) return normalized
+  return `https://raw.githubusercontent.com/PokeAPI/sprites/master/${normalized}`
+}
+
+/**
  * Get sprite URL from Pokemon data
  * Priority: GitHub Sprites Repo (primary) > External URL > MinIO (optional fallback)
  */
@@ -567,15 +578,11 @@ export function getSpriteUrl(
   // Check for database-stored sprite paths first (from pokepedia_pokemon table)
   // Primary: GitHub CDN (raw.githubusercontent.com/PokeAPI/sprites)
   if (mode === "front" && pokemonAny.sprite_front_default_path) {
-    const storagePath = pokemonAny.sprite_front_default_path
-    // Use GitHub CDN as primary source
-    return `https://raw.githubusercontent.com/PokeAPI/sprites/master/${storagePath}`
+    return resolveStoredSpriteUrl(pokemonAny.sprite_front_default_path)
   }
-  
+
   if (mode === "artwork" && pokemonAny.sprite_official_artwork_path) {
-    const storagePath = pokemonAny.sprite_official_artwork_path
-    // Use GitHub CDN as primary source
-    return `https://raw.githubusercontent.com/PokeAPI/sprites/master/${storagePath}`
+    return resolveStoredSpriteUrl(pokemonAny.sprite_official_artwork_path)
   }
 
   // Check if sprites object contains paths (from pokepedia_pokemon adaptation)

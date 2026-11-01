@@ -1,3 +1,4 @@
+import { leagueAdminDeniedResponse } from "@/lib/admin-api-auth"
 import { NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase/server"
 
@@ -25,6 +26,9 @@ export async function GET() {
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
+    const adminDenied = await leagueAdminDeniedResponse(user.id)
+    if (adminDenied) return adminDenied
+
 
     // Extract project ref from URL
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ""

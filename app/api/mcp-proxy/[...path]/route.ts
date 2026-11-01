@@ -9,7 +9,9 @@
  */
 
 import { NextRequest, NextResponse } from "next/server"
+import { requireLeagueAdmin } from "@/lib/admin-api-auth"
 import { mcpClient, MCPApiError } from "@/lib/mcp-rest-client"
+import { mcpProxyEndpoint } from "@/lib/proxy-allowlists"
 
 export async function POST(
   request: NextRequest,
@@ -17,11 +19,18 @@ export async function POST(
 ) {
   let endpoint = ""
   try {
+    const admin = await requireLeagueAdmin()
+    if ("response" in admin) return admin.response
+
     const { path } = await params
     const body = await request.json().catch(() => ({}))
-    
-    // Reconstruct the API endpoint path
-    endpoint = `/${path.join("/")}`
+
+    // Only typed MCP client methods. The upstream host comes from MCP client config, not the request.
+    const allowed = mcpProxyEndpoint(path)
+    if (!allowed) {
+      return NextResponse.json({ error: "Unknown endpoint" }, { status: 404 })
+    }
+    endpoint = allowed
     
     // Route to the appropriate MCP client method based on endpoint
     let result: any

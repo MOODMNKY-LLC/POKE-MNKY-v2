@@ -401,6 +401,17 @@ verify_jwt = false
 [functions.sync-pokemon-pokeapi]
 verify_jwt = false
 
+# Admin functions authorize in code against the project secret keys (sb_secret_*),
+# see supabase/functions/_shared/supabase-admin.ts.
+[functions.pokepedia-worker]
+verify_jwt = false
+
+[functions.pokepedia-seed]
+verify_jwt = false
+
+[functions.sync-pokepedia]
+verify_jwt = false
+
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.
