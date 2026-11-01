@@ -94,6 +94,11 @@ function parseWeek(input: unknown) {
   return Math.max(1, Math.min(TOTAL_WEEKS, n))
 }
 
+function embeddedRow<T>(value: T | T[] | null | undefined): T | null {
+  if (value == null) return null
+  return Array.isArray(value) ? (value[0] ?? null) : value
+}
+
 export default async function WeeklyMatchesPage({
   searchParams,
 }: {
@@ -166,14 +171,10 @@ export default async function WeeklyMatchesPage({
 
   const isTeam1 = selectedMatch && selectedMatch.team1_id === teamId
   const yourTeam = selectedMatch
-    ? isTeam1
-      ? selectedMatch.team1
-      : selectedMatch.team2
+    ? embeddedRow(isTeam1 ? selectedMatch.team1 : selectedMatch.team2)
     : null
   const opponentTeam = selectedMatch
-    ? isTeam1
-      ? selectedMatch.team2
-      : selectedMatch.team1
+    ? embeddedRow(isTeam1 ? selectedMatch.team2 : selectedMatch.team1)
     : null
 
   const seasonId = selectedMatch?.season_id ?? currentSeason?.id ?? null

@@ -644,7 +644,7 @@ function ConsentScreenContent() {
             )}
             <Button
               onClick={handleApprove}
-              disabled={processing || approved || !authorizationId || isAuthenticated === false || !authDetails?.client}
+              disabled={processing || approved || !authorizationId || !authDetails?.client}
               className="w-full"
               size="lg"
             >

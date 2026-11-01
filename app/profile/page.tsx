@@ -20,6 +20,23 @@ import { CoachCard } from "@/components/profile/coach-card"
 import { ShowdownTeamsSection } from "@/components/profile/showdown-teams-section"
 import Link from "next/link"
 
+type TeamRow = {
+  id: string
+  name: string
+  avatar_url: string | null
+  logo_url: string | null
+  wins: number | null
+  losses: number | null
+  differential: number | null
+  division: string | null
+  conference: string | null
+}
+
+type TeamQueryResult = {
+  data: TeamRow | null
+  error: { message: string } | null
+}
+
 export default function ProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
@@ -51,7 +68,7 @@ export default function ProfilePage() {
       .select("id, name, avatar_url, logo_url, wins, losses, differential, division, conference")
       .eq("id", teamId)
       .single()
-      .then(({ data, error }) => {
+      .then(({ data, error }: TeamQueryResult) => {
         if (error) {
           console.error("Error loading team:", error)
         } else {

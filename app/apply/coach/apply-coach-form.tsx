@@ -12,6 +12,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Loader2 } from "lucide-react"
 
+type AuthGetUserResult = {
+  data: { user: { id: string } | null }
+  error: { message: string } | null
+}
+
 export function ApplyCoachForm() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
@@ -26,7 +31,7 @@ export function ApplyCoachForm() {
 
   useEffect(() => {
     const supabase = createBrowserClient()
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
+    supabase.auth.getUser().then(async ({ data: { user } }: AuthGetUserResult) => {
       if (!user) {
         setLoading(false)
         return

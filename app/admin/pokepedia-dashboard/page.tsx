@@ -19,6 +19,11 @@ import { UsersTab } from "@/components/platform/users-tab"
 import { AdminLayout } from "@/components/admin/admin-layout"
 import { useRouter } from "next/navigation"
 
+type AuthGetUserResult = {
+  data: { user: { id: string } | null }
+  error: { message: string } | null
+}
+
 export default function PokepediaDashboardPage() {
   const [user, setUser] = useState<any>(null)
   const [stats, setStats] = useState({
@@ -33,7 +38,7 @@ export default function PokepediaDashboardPage() {
 
   useEffect(() => {
     const supabase = createBrowserClient()
-    supabase.auth.getUser().then(({ data, error }) => {
+    supabase.auth.getUser().then(({ data, error }: AuthGetUserResult) => {
       if (error || !data.user) {
         router.push("/auth/login")
       } else {
@@ -89,7 +94,7 @@ export default function PokepediaDashboardPage() {
           .limit(1000)
 
         const uniqueEndpoints = new Set(
-          resourceTypes?.map((r) => r.resource_type) || []
+          resourceTypes?.map((r: { resource_type: string | null }) => r.resource_type) || []
         ).size
 
         // Fetch sprite count

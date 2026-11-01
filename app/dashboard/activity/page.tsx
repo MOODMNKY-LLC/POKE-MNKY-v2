@@ -48,15 +48,18 @@ export default async function DashboardActivityPage() {
     .order("created_at", { ascending: false })
     .limit(20)
 
-  const activityItems = (activities ?? []).map((item) => ({
-    ...item,
-    label:
-      ACTION_LABELS[item.action] ??
-      item.action
-        .split("_")
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join(" "),
-  }))
+  const activityItems = (activities ?? []).map((item) => {
+    const action = typeof item.action === "string" ? item.action : String(item.action ?? "")
+    return {
+      ...item,
+      label:
+        ACTION_LABELS[action] ??
+        action
+          .split("_")
+          .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+          .join(" "),
+    }
+  })
 
   return (
     <>

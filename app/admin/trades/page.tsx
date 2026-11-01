@@ -9,6 +9,15 @@ import { ArrowRightLeft, Check, X, Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { createBrowserClient } from "@/lib/supabase/client"
 
+type AuthGetUserResult = {
+  data: { user: { id: string } | null }
+  error: { message: string } | null
+}
+
+type ProfileRoleResult = {
+  data: { role: string | null } | null
+}
+
 interface TradeOffer {
   id: string
   offering_team_id: string
@@ -32,12 +41,12 @@ export default function AdminTradesPage() {
 
   useEffect(() => {
     const supabase = createBrowserClient()
-    supabase.auth.getUser().then(({ data }) => {
+    supabase.auth.getUser().then(({ data }: AuthGetUserResult) => {
       if (!data.user) {
         router.push("/auth/login")
         return
       }
-      supabase.from("profiles").select("role").eq("id", data.user.id).single().then(({ data: profile }) => {
+      supabase.from("profiles").select("role").eq("id", data.user.id).single().then(({ data: profile }: ProfileRoleResult) => {
         if (profile?.role !== "admin" && profile?.role !== "commissioner") {
           router.push("/admin")
           return
