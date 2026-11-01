@@ -6,10 +6,22 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase/server"
 import { createServiceRoleClient } from "@/lib/supabase/service"
-import { DraftSystem } from "@/lib/draft-system"
+import { DraftSystem, type DraftSession } from "@/lib/draft-system"
 import { recordSimulationRun } from "@/lib/league-simulation/simulation-engine"
 
 const MOCK_SEASON_NAME = "Mock Draft Demo"
+
+type DraftSessionStatus = DraftSession["status"]
+
+function isDraftSessionStatus(value: string | null | undefined): value is DraftSessionStatus {
+  return (
+    value === "pending" ||
+    value === "active" ||
+    value === "paused" ||
+    value === "completed" ||
+    value === "cancelled"
+  )
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -71,12 +83,17 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    const sessionId = session.id
+    if (!session) {
+      return NextResponse.json({ error: "Failed to create draft session" }, { status: 500 })
+    }
+
+    let draftSession: DraftSession = session
+    const sessionId = draftSession.id
     let pickCount = 0
     const picks: Array<{ pick_number: number; team_name: string; pokemon_name: string; point_value: number }> = []
 
     while (true) {
-      if (session.status === "completed") break
+      if (draftSession.status === "completed") break
       if (maxPicks && maxPicks > 0 && pickCount >= maxPicks) break
 
       const turn = await draftSystem.getCurrentTurn(sessionId)
@@ -126,16 +143,20 @@ export async function POST(request: NextRequest) {
         .select("status")
         .eq("id", sessionId)
         .single()
-      session = { ...session, status: (updated?.status as string) ?? session.status }
+      const nextStatus = updated?.status
+      draftSession = {
+        ...draftSession,
+        status: isDraftSessionStatus(nextStatus) ? nextStatus : draftSession.status,
+      }
     }
 
-    await recordSimulationRun(seasonId, session.status === "completed" ? "regular_season" : "drafting", {})
+    await recordSimulationRun(seasonId, draftSession.status === "completed" ? "regular_season" : "drafting", {})
 
     return NextResponse.json({
       success: true,
       sessionId,
       picksMade: pickCount,
-      completed: session.status === "completed",
+      completed: draftSession.status === "completed",
       picks,
     })
   } catch (err) {

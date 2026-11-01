@@ -142,7 +142,8 @@ export async function GET(request: NextRequest) {
         const nextMatch = matches?.[0]
         if (nextMatch && !matchError) {
           const isTeam1 = nextMatch.team1_id === profile.team_id
-          const opponentTeam = isTeam1 ? nextMatch.team2 : nextMatch.team1
+          const rawOpponent = isTeam1 ? nextMatch.team2 : nextMatch.team1
+          const opponentTeam = Array.isArray(rawOpponent) ? rawOpponent[0] : rawOpponent
 
           response.stats.next_match = {
             match_id: nextMatch.id,

@@ -93,11 +93,10 @@ export async function GET(_request: NextRequest, context: RouteContext) {
       season,
       seeds,
       hasRound1Byes,
-      activeRounds: activeRounds.map((k) => ({
-        key: k,
-        label: getPlayoffRoundLabel(k),
-        ...rounds[k],
-      })),
+      activeRounds: activeRounds.flatMap((k) => {
+        const round = rounds[k]
+        return round ? [round] : []
+      }),
       rounds,
       readiness,
       eliminated: seeds.length === 0 ? [] : undefined,

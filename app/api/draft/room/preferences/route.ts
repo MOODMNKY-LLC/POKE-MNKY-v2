@@ -6,7 +6,7 @@ const patchSchema = z.object({
   season_id: z.string().uuid(),
   shortlist: z.array(z.string()).max(200).optional(),
   notes: z.string().max(8000).optional().nullable(),
-  mock_draft_config: z.record(z.unknown()).optional(),
+  mock_draft_config: z.record(z.string(), z.unknown()).optional(),
 })
 
 export async function GET(request: NextRequest) {

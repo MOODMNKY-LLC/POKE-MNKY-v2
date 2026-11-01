@@ -1,11 +1,12 @@
 // Pokédex AI Route - Updated for useChat compatibility
-import { streamText } from 'ai'
+import { streamText, stepCountIs } from 'ai'
 import { openai } from '@ai-sdk/openai'
 import { convertToModelMessages } from 'ai'
 import { createServerClient } from '@/lib/supabase/server'
-import { AI_MODELS, createResponseWithMCP } from '@/lib/openai-client'
+import { AI_MODELS, createResponseWithMCP, openai as openaiRest } from '@/lib/openai-client'
 import { getPokemonData } from '@/lib/pokemon-api'
 import { NextResponse } from 'next/server'
+import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions'
 import {
   handleOpenClawChatRequest,
   shouldRouteChatToOpenClaw,
@@ -59,7 +60,7 @@ You MUST use the get_pokemon tool to fetch accurate Pokémon data. Never guess o
 When asked about 'points', refer to draft point costs in the league draft pool. Use MCP tools to access draft pool data when relevant.`
 
       // Convert messages to model format
-      const modelMessages = convertToModelMessages(messages || [])
+      const modelMessages = await convertToModelMessages(messages || [])
 
       // Use selected model or default
       const selectedModel = model || AI_MODELS.POKEDEX_QA
@@ -128,11 +129,11 @@ When asked about 'points', refer to draft point costs in the league draft pool. 
         system: systemMessage,
         messages: modelMessages,
         tools,
-        maxSteps: mcpEnabled ? 5 : 1,
+        stopWhen: stepCountIs(mcpEnabled ? 5 : 1),
       })
 
       // Return streaming response compatible with useChat
-      return result.toDataStreamResponse()
+      return result.toUIMessageStreamResponse()
     }
 
     // Legacy format: use Responses API (backward compatibility)
@@ -202,13 +203,18 @@ When asked about 'points', refer to draft point costs in the league draft pool. 
           ],
         })
 
-        const answer = response.output_text || response.output?.[0]?.content?.[0]?.text || 'No response generated'
+        const firstOutput = response.output?.[0]
+        const messageText =
+          firstOutput && firstOutput.type === 'message'
+            ? firstOutput.content.find((part) => part.type === 'output_text')?.text
+            : undefined
+        const answer = response.output_text || messageText || 'No response generated'
 
         const pokemonReferenced: string[] = []
         if (response.output) {
           for (const outputItem of response.output) {
-            if (outputItem.type === 'tool_call' && outputItem.tool_call?.function?.name === 'get_pokemon') {
-              const args = JSON.parse(outputItem.tool_call.function.arguments || '{}')
+            if (outputItem.type === 'function_call' && outputItem.name === 'get_pokemon') {
+              const args = JSON.parse(outputItem.arguments || '{}') as { pokemon_name_or_id?: string }
               if (args.pokemon_name_or_id) {
                 pokemonReferenced.push(args.pokemon_name_or_id)
               }
@@ -228,8 +234,6 @@ When asked about 'points', refer to draft point costs in the league draft pool. 
     }
 
     // Fallback: Chat Completions API (legacy)
-    const openaiClient = await import('@/lib/openai-client').then((m) => m.openai)
-
     const tools = [
       {
         type: 'function' as const,
@@ -250,19 +254,19 @@ When asked about 'points', refer to draft point costs in the league draft pool. 
       },
     ]
 
-    const messages = [
+    const messages: ChatCompletionMessageParam[] = [
       {
-        role: 'system' as const,
+        role: 'system',
         content:
           'You are a knowledgeable Pokédex assistant. You MUST use the get_pokemon tool to fetch accurate Pokémon data. Never guess or invent stats, types, or abilities. Always cite which Pokémon you looked up.',
       },
       {
-        role: 'user' as const,
+        role: 'user',
         content: query,
       },
     ]
 
-    let response = await openaiClient.chat.completions.create({
+    let response = await openaiRest.chat.completions.create({
       model: AI_MODELS.POKEDEX_QA,
       messages,
       tools,
@@ -274,7 +278,17 @@ When asked about 'points', refer to draft point costs in the league draft pool. 
     // Handle tool calls
     if (finalMessage.tool_calls && finalMessage.tool_calls.length > 0) {
       const toolCall = finalMessage.tool_calls[0]
-      const functionArgs = JSON.parse(toolCall.function.arguments)
+      if (!toolCall || toolCall.type !== 'function') {
+        return NextResponse.json({
+          answer: finalMessage.content,
+          pokemon_referenced: [],
+          source: 'chat_completions',
+        })
+      }
+      const functionArgs = JSON.parse(toolCall.function.arguments) as { pokemon_name_or_id?: string }
+      if (!functionArgs.pokemon_name_or_id) {
+        return NextResponse.json({ error: 'Pokémon name missing from tool call' }, { status: 400 })
+      }
 
       const pokemonData = await getPokemonData(functionArgs.pokemon_name_or_id)
 
@@ -296,7 +310,7 @@ When asked about 'points', refer to draft point costs in the league draft pool. 
         }),
       })
 
-      response = await openaiClient.chat.completions.create({
+      response = await openaiRest.chat.completions.create({
         model: AI_MODELS.POKEDEX_QA,
         messages,
       })
@@ -307,7 +321,11 @@ When asked about 'points', refer to draft point costs in the league draft pool. 
     return NextResponse.json({
       answer: finalMessage.content,
       pokemon_referenced: finalMessage.tool_calls
-        ? finalMessage.tool_calls.map((tc) => JSON.parse(tc.function.arguments).pokemon_name_or_id)
+        ? finalMessage.tool_calls.flatMap((tc) => {
+            if (tc.type !== 'function') return []
+            const args = JSON.parse(tc.function.arguments) as { pokemon_name_or_id?: string }
+            return args.pokemon_name_or_id ? [args.pokemon_name_or_id] : []
+          })
         : [],
       source: 'chat_completions',
     })

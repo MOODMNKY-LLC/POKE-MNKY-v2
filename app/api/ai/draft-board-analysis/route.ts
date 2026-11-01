@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase/server"
 import { createServiceRoleClient } from "@/lib/supabase/service"
 import { getOpenAI, AI_MODELS } from "@/lib/openai-client"
+import type { ChatCompletionCreateParamsNonStreaming } from "openai/resources/chat/completions"
 
 const DRAFT_BOARD_ANALYSIS_SCHEMA = {
   type: "object" as const,
@@ -212,7 +213,8 @@ Provide: summary, balanceFindings (top 5–10 notable over/undervalued), tierSug
     const openai = getOpenAI()
 
     const model = AI_MODELS.DRAFT_BOARD_ANALYSIS
-    const createParams: Record<string, unknown> = {
+    const wantsReasoning = model.includes("gpt-5") || model.includes("o3") || model.includes("o4")
+    const createParams: ChatCompletionCreateParamsNonStreaming = {
       model,
       messages: [
         { role: "system", content: systemPrompt },
@@ -222,21 +224,16 @@ Provide: summary, balanceFindings (top 5–10 notable over/undervalued), tierSug
         type: "json_schema",
         json_schema: {
           name: "draft_board_analysis",
-          schema: DRAFT_BOARD_ANALYSIS_SCHEMA,
+          // OpenAI models JSON Schema as an open record, which rejects this structured object.
+          schema: DRAFT_BOARD_ANALYSIS_SCHEMA as { [key: string]: unknown },
           strict: true,
         },
       },
       max_tokens: 4096,
+      ...(wantsReasoning ? { reasoning_effort: "medium" } : {}),
     }
 
-    // Add reasoning for GPT-5.2 (supported in Chat Completions for reasoning models)
-    if (model.includes("gpt-5") || model.includes("o3") || model.includes("o4")) {
-      ;(createParams as Record<string, unknown>).reasoning = { effort: "medium" as const }
-    }
-
-    const response = await openai.chat.completions.create(
-      createParams as Parameters<typeof openai.chat.completions.create>[0]
-    )
+    const response = await openai.chat.completions.create(createParams)
 
     const content = response.choices?.[0]?.message?.content
     if (!content) {

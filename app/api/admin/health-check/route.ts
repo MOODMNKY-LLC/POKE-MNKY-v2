@@ -1,14 +1,19 @@
 import { NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase/server"
-import createClient from "openapi-fetch"
-import type { paths } from "@/lib/management-api-schema"
 
-const managementClient = createClient<paths>({
-  baseUrl: "https://api.supabase.com",
-  headers: {
-    Authorization: `Bearer ${process.env.SUPABASE_MANAGEMENT_API_TOKEN}`,
-  },
-})
+function discordOAuthFromAuthConfig(config: unknown): { enabled: true; clientId: string } | null {
+  if (typeof config !== "object" || config === null) return null
+  // Auth config is not in the local Management API schema, so read the JSON field by field.
+  const record = config as Record<string, unknown>
+  const rawEnabled = record.EXTERNAL_DISCORD_ENABLED
+  const enabled = rawEnabled === true || rawEnabled === "true"
+  if (!enabled) return null
+  const clientId = record.EXTERNAL_DISCORD_CLIENT_ID
+  return {
+    enabled: true,
+    clientId: typeof clientId === "string" && clientId.length > 0 ? clientId : "configured",
+  }
+}
 
 export async function GET() {
   try {
@@ -45,25 +50,23 @@ export async function GET() {
     try {
       if (projectRef && process.env.SUPABASE_MANAGEMENT_API_TOKEN) {
         try {
-          const { data: authConfig, error: authError } = await managementClient.GET(
-            "/v1/projects/{ref}/config/auth",
+          const token = process.env.SUPABASE_MANAGEMENT_API_TOKEN
+          const authResponse = await fetch(
+            `https://api.supabase.com/v1/projects/${projectRef}/config/auth`,
             {
-              params: { path: { ref: projectRef } },
+              headers: {
+                Authorization: `Bearer ${token}`,
+                Accept: "application/json",
+              },
             }
           )
-
-          if (!authError && authConfig) {
-            // Check if Discord is enabled in Supabase config
-            const discordEnabled = (authConfig as any)?.EXTERNAL_DISCORD_ENABLED === true ||
-                                   (authConfig as any)?.EXTERNAL_DISCORD_ENABLED === "true"
-            
-            if (discordEnabled) {
-              discordOAuthEnabled = true
-              discordOAuthDetails = {
-                enabled: true,
-                clientId: (authConfig as any)?.EXTERNAL_DISCORD_CLIENT_ID || "configured",
-              }
-            }
+          if (!authResponse.ok) {
+            throw new Error(`Management API status ${authResponse.status}`)
+          }
+          const discordAuth = discordOAuthFromAuthConfig(await authResponse.json())
+          if (discordAuth) {
+            discordOAuthEnabled = true
+            discordOAuthDetails = discordAuth
           }
         } catch (apiError: any) {
           console.warn("Management API check failed, using fallback:", apiError.message)

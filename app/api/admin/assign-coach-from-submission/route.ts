@@ -10,6 +10,7 @@ import { createServerClient } from "@/lib/supabase/server"
 import { createServiceRoleClient } from "@/lib/supabase/service"
 import { assignCoachToTeam } from "@/lib/coach-assignment"
 import { syncAppRoleToDiscord } from "@/lib/discord-role-sync"
+import { UserRole } from "@/lib/rbac"
 
 export async function POST(request: NextRequest) {
   try {
@@ -126,7 +127,7 @@ export async function POST(request: NextRequest) {
       try {
         const syncResult = await syncAppRoleToDiscord(
           targetProfile.discord_id,
-          "coach",
+          UserRole.COACH,
           userId
         )
         discordSynced = syncResult.success
