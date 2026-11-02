@@ -13,6 +13,7 @@ import {
   matchSubmitBodySchema,
   type MatchSubmitBody,
 } from "@/lib/validation/match-submit"
+import { assertLiveSeasonAllowsResultWrites } from "@/lib/sheet-sync-write-gate"
 
 export type CompleteMatchResult = {
   match_id: string
@@ -124,6 +125,9 @@ export async function completeMatchResult(
 ): Promise<CompleteMatchResult> {
   const parsed = matchSubmitBodySchema.parse(input)
   const supabase = createServiceRoleClient()
+
+  // Block while the live (sheet-synced) season owns results — covers submit + AI parse.
+  await assertLiveSeasonAllowsResultWrites(supabase)
 
   if (authSupabase && submittedBy) {
     await assertCanSubmitMatch(

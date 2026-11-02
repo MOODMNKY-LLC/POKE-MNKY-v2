@@ -47,6 +47,12 @@ describe("resolveMatchesSeasonId", () => {
     expect(resolveMatchesSeasonId([s7, s8], { season: "AABPBL-Season-8-2027" })).toBe("s8")
     expect(resolveMatchesSeasonId([s7, s8], {})).toBe("s7")
   })
+
+  it("keeps draft is_current out of the live default used by homepage strips", () => {
+    expect(resolveMatchesSeasonId([s8, s7], {})).toBe("s7")
+    expect(s8.is_current).toBe(true)
+    expect(s7.sheet_sync_enabled).toBe(true)
+  })
 })
 
 describe("listStandingsSeasons", () => {

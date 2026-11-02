@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Trophy, Zap, Target } from "lucide-react"
-import { aggregateMvpStats, type MvpStatRow } from "@/lib/mvp-standings"
+import { aggregateMvpStats, compareMvpLeaderboard, type MvpStatRow } from "@/lib/mvp-standings"
 import { listStandingsSeasons, pickStandingsSeason } from "@/lib/standings-season"
 import { SeasonSwitcher } from "@/components/league/season-switcher"
 
@@ -88,7 +88,6 @@ export default async function MVPPage({
   const teamById = new Map((teamData ?? []).map((team) => [team.id, team]))
 
   const topPokemon = aggregateMvpStats(statRows)
-    .slice(0, 50)
     .map((stat) => ({
       pokemon_id: stat.pokemonId,
       totalKills: stat.totalKills,
@@ -97,6 +96,8 @@ export default async function MVPPage({
       name: pokemonById.get(stat.pokemonId)?.name || "Unknown",
       avgKills: stat.matches > 0 ? (stat.totalKills / stat.matches).toFixed(1) : "0.0",
     }))
+    .sort(compareMvpLeaderboard)
+    .slice(0, 50)
 
   // Calculate league averages
   const totalKills = topPokemon.reduce((sum, p) => sum + p.totalKills, 0)

@@ -1,11 +1,15 @@
-"use client"
-
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { MatchSubmitForm } from "@/components/matches/match-submit-form"
+import { SheetSyncSubmitNotice } from "@/components/matches/sheet-sync-submit-notice"
+import { createClient } from "@/lib/supabase/server"
+import { getLiveSheetSyncWriteGate } from "@/lib/sheet-sync-write-gate"
 
-export default function SubmitResultPage() {
+export default async function SubmitResultPage() {
+  const supabase = await createClient()
+  const gate = await getLiveSheetSyncWriteGate(supabase)
+
   return (
     <div className="container mx-auto py-8 px-4">
       <Link href="/matches">
@@ -14,7 +18,11 @@ export default function SubmitResultPage() {
           Back to Matches
         </Button>
       </Link>
-      <MatchSubmitForm backHref="/matches" successRedirect="/matches" />
+      {gate.blocked ? (
+        <SheetSyncSubmitNotice seasonName={gate.seasonName} backHref="/matches" />
+      ) : (
+        <MatchSubmitForm backHref="/matches" successRedirect="/matches" />
+      )}
     </div>
   )
 }

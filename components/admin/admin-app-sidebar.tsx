@@ -39,6 +39,9 @@ const adminNavItems = [
       { title: "Teams", url: "/admin/league#teams" },
       { title: "Matches", url: "/admin/league#matches" },
       { title: "Homepage countdown", url: "/admin/league#countdown" },
+      { title: "Sheet Sync", url: "/admin/sheet-sync" },
+      { title: "Discord results", url: "/admin/discord/results" },
+      { title: "Coach applications", url: "/admin/coach-applications" },
       { title: "Trades", url: "/admin/trades" },
       { title: "Draft Pool & Rules", url: "/admin/draft-pool-rules" },
       { title: "Draft Sessions", url: "/admin/draft/sessions" },
@@ -71,7 +74,7 @@ const adminNavItems = [
     icon: MessageSquare,
     items: [
       { title: "Discord", url: "/admin/discord" },
-      { title: "Google Sheets", url: "/admin/google-sheets" },
+      { title: "Google Sheets (Legacy)", url: "/admin/google-sheets" },
       { title: "Simulation", url: "/admin/simulation" },
       { title: "Music", url: "/admin/music" },
     ],

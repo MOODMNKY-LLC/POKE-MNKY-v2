@@ -497,10 +497,23 @@ export default function GoogleSheetsConfigPage() {
 
   return (
     <AdminLayout 
-      title="Google Sheets Configuration"
-      description="Connect your Google Sheets to automatically sync league data"
+      title="Google Sheets Configuration (Legacy)"
+      description="Older Data-tab / multi-tab sync — not the daily Season 7 league sheet sync"
     >
       <div className="space-y-6">
+        <Card className="border-amber-500/50 bg-amber-500/5">
+          <CardContent className="pt-6 text-sm text-muted-foreground space-y-2">
+            <p className="font-medium text-foreground">Legacy integration</p>
+            <p>
+              This page is not the daily league sheet sync. Competitive Season 7 data
+              (matches, kills, standings, draft picks) is copied by{" "}
+              <a className="underline underline-offset-2" href="/admin/sheet-sync">
+                League → Sheet Sync
+              </a>{" "}
+              (cron 06:15 UTC). Use this screen only for older team-metadata / Data-tab tooling.
+            </p>
+          </CardContent>
+        </Card>
         {/* Status Cards */}
         {config.id && (
           <Card>
