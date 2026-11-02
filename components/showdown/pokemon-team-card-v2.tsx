@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Copy, Trash2, ChevronUp, ChevronDown, GripVertical } from 'lucide-react';
-import { getPokemonDataExtended, type CachedPokemonExtended } from '@/lib/pokemon-api-enhanced';
+import { getPokemon, type PokemonDisplayData } from '@/lib/pokemon-utils';
 import { calculatePokemonStats, getStatAbbreviation, type CalculatedStats } from '@/lib/pokemon-stats-calculator';
 import { type ParsedPokemon } from '@/lib/team-parser';
 import { cn } from '@/lib/utils';
@@ -18,7 +18,7 @@ import { toast } from 'sonner';
 interface PokemonTeamCardProps {
   pokemon: ParsedPokemon;
   index: number;
-  pokemonData?: CachedPokemonExtended | null;
+  pokemonData?: PokemonDisplayData | null;
   onUpdate?: (index: number, updates: Partial<ParsedPokemon>) => void;
   onDelete?: (index: number) => void;
   onMove?: (index: number, direction: 'up' | 'down') => void;
@@ -35,16 +35,16 @@ export function PokemonTeamCard({
   readOnly = false,
 }: PokemonTeamCardProps) {
   const [loading, setLoading] = useState(!pokemonData);
-  const [data, setData] = useState<CachedPokemonExtended | null>(pokemonData || null);
+  const [data, setData] = useState<PokemonDisplayData | null>(pokemonData || null);
   const [calculatedStats, setCalculatedStats] = useState<CalculatedStats | null>(null);
 
   const pokemonId = data?.pokemon_id || (data as any)?.id;
 
-  // Fetch Pokemon data if not provided
+  // Fetch via /api/pokemon (DB-first) — never pokeapi.co from the browser
   useEffect(() => {
     if (!pokemonData && pokemon.name) {
       setLoading(true);
-      getPokemonDataExtended(pokemon.name)
+      getPokemon(pokemon.name)
         .then((fetched) => {
           setData(fetched);
           setLoading(false);

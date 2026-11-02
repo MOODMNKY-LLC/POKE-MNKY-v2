@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { PokemonSprite } from '@/components/pokemon-sprite';
 import { PokemonTypeIcon } from '@/components/pokemon-type-icon';
 import { PokemonItemIcon } from '@/components/pokemon-item-icon';
-import { getPokemonDataExtended, type CachedPokemonExtended } from '@/lib/pokemon-api-enhanced';
+import { getPokemon, type PokemonDisplayData } from '@/lib/pokemon-utils';
 import { calculatePokemonStats, getStatAbbreviation, type CalculatedStats } from '@/lib/pokemon-stats-calculator';
 import { type ParsedPokemon } from '@/lib/team-parser';
 import { 
@@ -17,7 +17,7 @@ import { cn } from '@/lib/utils';
 
 interface PokemonTeamEntryProps {
   pokemon: ParsedPokemon
-  pokemonData?: CachedPokemonExtended | null
+  pokemonData?: PokemonDisplayData | null
 }
 
 export function PokemonTeamEntry({
@@ -25,16 +25,16 @@ export function PokemonTeamEntry({
   pokemonData,
 }: PokemonTeamEntryProps) {
   const [loading, setLoading] = useState(!pokemonData);
-  const [data, setData] = useState<CachedPokemonExtended | null>(pokemonData || null);
+  const [data, setData] = useState<PokemonDisplayData | null>(pokemonData || null);
   const [calculatedStats, setCalculatedStats] = useState<CalculatedStats | null>(null);
 
   const pokemonId = data?.pokemon_id || (data as any)?.id;
 
-  // Fetch Pokemon data if not provided
+  // Fetch via /api/pokemon (DB-first) — never pokeapi.co from the browser
   useEffect(() => {
     if (!pokemonData && pokemon.name) {
       setLoading(true);
-      getPokemonDataExtended(pokemon.name)
+      getPokemon(pokemon.name)
         .then((fetched) => {
           setData(fetched);
           setLoading(false);

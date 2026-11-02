@@ -12,7 +12,7 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { requireLeagueAdmin } from "@/lib/admin-api-auth"
-import { getPokemonDataExtended } from "@/lib/pokemon-api-enhanced"
+import { readPokemon } from "@/lib/pokemon-read"
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -88,12 +88,12 @@ async function populateCache(pokemonIds: number[]) {
 
   for (const id of pokemonIds) {
     try {
-      // This will fetch from PokeAPI and cache it (since we're using service role key)
-      const pokemon = await getPokemonDataExtended(id, true)
+      // Canonical read path: DB first, PokeAPI miss fills pokemon_cache
+      const result = await readPokemon(id)
       
-      if (pokemon) {
+      if (result) {
         results.cached++
-        console.log(`[Populate Starters] Cached Pokemon ${id}: ${pokemon.name}`)
+        console.log(`[Populate Starters] Cached Pokemon ${id}: ${result.data.name}`)
       } else {
         results.failed++
         results.errors.push({ pokemon_id: id, error: "Pokemon not found" })

@@ -10,29 +10,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PokemonSprite } from "@/components/pokemon-sprite"
 import { EmptyState } from "@/components/ui/empty-state"
 import { PokedexChat } from "@/components/ai/pokedex-chat"
-import { getAllPokemonFromCache, searchPokemon, type PokemonDisplayData } from "@/lib/pokemon-utils"
-import { PokemonClient } from "pokenode-ts"
-import {
-  getPokemonSpeciesData,
-  getPokemonEvolutionChain,
-  getGenderRatio,
-  getFlavorText,
-  organizePokemonMoves,
-  type OrganizedMoves,
-} from "@/lib/pokemon-details"
+import { getAllPokemonFromCache, getPokemon, searchPokemon, type PokemonDisplayData } from "@/lib/pokemon-utils"
 import {
   calculateAllStatRanges,
   getStatBarWidth,
   type PokemonStatRanges,
 } from "@/lib/pokemon-stats"
 
-const pokemonClient = new PokemonClient()
-
 interface ExtendedPokemonData extends PokemonDisplayData {
-  speciesData?: any
-  evolutionChain?: Array<{ id: number; name: string }>
   statRanges?: PokemonStatRanges
-  organizedMoves?: OrganizedMoves
   flavorText?: string
   height?: number // in decimeters
   weight?: number // in hectograms
@@ -99,47 +85,22 @@ export default function PokedexPage() {
     return () => clearTimeout(timeoutId)
   }, [searchQuery])
 
-  // Load comprehensive details when Pokemon is selected
+  // Enrich selection via the single server read path (/api/pokemon/[name]) — no client PokeAPI.
   useEffect(() => {
     async function loadComprehensiveDetails() {
       if (!selectedPokemon) return
 
       setLoadingDetails(true)
       try {
-        const pokemonId = selectedPokemon.pokemon_id
-
-        // Fetch full Pokemon data (includes moves)
-        const fullPokemon = await pokemonClient.getPokemonById(pokemonId)
-
-        // Fetch species data (egg groups, gender ratio, flavor text)
-        const speciesData = await getPokemonSpeciesData(pokemonId)
-
-        // Fetch evolution chain
-        const evolutionChain = await getPokemonEvolutionChain(pokemonId)
-
-        // Calculate stat ranges
-        const statRanges = selectedPokemon.base_stats
-          ? calculateAllStatRanges(selectedPokemon.base_stats)
-          : undefined
-
-        // Organize moves
-        const organizedMoves = fullPokemon.moves
-          ? await organizePokemonMoves(fullPokemon.moves)
-          : undefined
-
-        // Get flavor text
-        const flavorText = getFlavorText(speciesData)
-
-        // Update selected Pokemon with comprehensive data
+        const full = await getPokemon(selectedPokemon.pokemon_id)
+        const base = full ?? selectedPokemon
+        const statRanges = base.base_stats ? calculateAllStatRanges(base.base_stats) : undefined
         setSelectedPokemon({
           ...selectedPokemon,
-          speciesData,
-          evolutionChain,
+          ...base,
           statRanges,
-          organizedMoves,
-          flavorText,
-          height: fullPokemon.height,
-          weight: fullPokemon.weight,
+          height: base.height ?? selectedPokemon.height,
+          weight: base.weight ?? selectedPokemon.weight,
         })
       } catch (error) {
         console.error("Error loading comprehensive details:", error)
@@ -450,65 +411,6 @@ export default function PokedexPage() {
                       </div>
                     )}
 
-                    {/* Egg Groups & Gender */}
-                    {selectedPokemon.speciesData && (
-                      <div className="grid grid-cols-2 gap-4">
-                        {selectedPokemon.speciesData.egg_groups && selectedPokemon.speciesData.egg_groups.length > 0 && (
-                          <div>
-                            <h3 className="font-semibold mb-2">Egg Groups</h3>
-                            <div className="flex flex-wrap gap-2">
-                              {selectedPokemon.speciesData.egg_groups.map((group: any, idx: number) => (
-                                <Badge key={group.name} variant="secondary" className="capitalize">
-                                  {group.name}
-                                  {idx < selectedPokemon.speciesData.egg_groups.length - 1 && ","}
-                                </Badge>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        {selectedPokemon.speciesData.gender_rate !== undefined && (
-                          <div>
-                            <h3 className="font-semibold mb-2">Gender Ratio</h3>
-                            <p className="text-sm">{getGenderRatio(selectedPokemon.speciesData.gender_rate)}</p>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Evolution Chain */}
-                    {selectedPokemon.evolutionChain && selectedPokemon.evolutionChain.length > 1 && (
-                      <div>
-                        <h3 className="font-semibold mb-2">Evolution Chain</h3>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {selectedPokemon.evolutionChain.map((evo, idx) => (
-                            <div key={evo.id} className="flex items-center gap-2">
-                              <div
-                                className={`cursor-pointer transition-all ${
-                                  evo.id === selectedPokemon.pokemon_id
-                                    ? "ring-2 ring-primary rounded-lg p-1"
-                                    : "opacity-60 hover:opacity-100"
-                                }`}
-                                onClick={() => {
-                                  const pokemon = pokemonList.find((p) => p.pokemon_id === evo.id)
-                                  if (pokemon) setSelectedPokemon(pokemon as ExtendedPokemonData)
-                                }}
-                              >
-                                <PokemonSprite
-                                  name={evo.name}
-                                  pokemonId={evo.id}
-                                  size="sm"
-                                  mode="front"
-                                />
-                                <p className="text-xs text-center capitalize mt-1">{evo.name}</p>
-                              </div>
-                              {idx < selectedPokemon.evolutionChain!.length - 1 && (
-                                <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -592,144 +494,51 @@ export default function PokedexPage() {
                       <p className="text-muted-foreground">Loading moves...</p>
                     </CardContent>
                   </Card>
-                ) : selectedPokemon.organizedMoves ? (
-                  <Tabs defaultValue="level-up" className="w-full">
-                    <TabsList>
-                      <TabsTrigger value="level-up">Level-up</TabsTrigger>
-                      <TabsTrigger value="tm-hm">TM/HM</TabsTrigger>
-                      <TabsTrigger value="egg">Egg Moves</TabsTrigger>
-                      <TabsTrigger value="tutor">Tutor</TabsTrigger>
-                    </TabsList>
-
-                    <TabsContent value="level-up" className="mt-4">
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>Level-up Moves</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="space-y-2 max-h-[500px] overflow-y-auto scrollbar-hide hide-scrollbar">
-                            {selectedPokemon.organizedMoves.levelUp.length > 0 ? (
-                              selectedPokemon.organizedMoves.levelUp.map((moveEntry, idx) => (
-                                <div
-                                  key={`${moveEntry.moveName}-${idx}`}
-                                  className="flex items-center gap-4 p-2 rounded-lg hover:bg-muted/50"
-                                >
-                                  <span className="text-sm font-mono w-12">L{moveEntry.level}</span>
-                                  <Badge className={getTypeColor(moveEntry.move?.type?.name || "normal")}>
-                                    {moveEntry.move?.type?.name?.toUpperCase() || "NORMAL"}
-                                  </Badge>
-                                  <span className="font-semibold capitalize flex-1">{moveEntry.moveName.replace("-", " ")}</span>
-                                  <div className="flex gap-4 text-xs text-muted-foreground">
-                                    {moveEntry.move != null && moveEntry.move.power !== null && <span>Power: {moveEntry.move.power}</span>}
-                                    {moveEntry.move != null && moveEntry.move.accuracy !== null && <span>Acc: {moveEntry.move.accuracy}%</span>}
-                                    {moveEntry.move != null && moveEntry.move.pp !== null && <span>PP: {moveEntry.move.pp}</span>}
-                                  </div>
-                                </div>
-                              ))
-                            ) : (
-                              <p className="text-muted-foreground">No level-up moves</p>
-                            )}
+                ) : selectedPokemon.move_details && selectedPokemon.move_details.length > 0 ? (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Moves</CardTitle>
+                      <CardDescription>From the league catalog (DB-backed)</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                        {selectedPokemon.move_details.map((move, idx) => (
+                          <div
+                            key={`${move.name}-${idx}`}
+                            className="flex items-center gap-4 p-2 rounded-lg hover:bg-muted/50"
+                          >
+                            <Badge className={getTypeColor(move.type || "normal")}>
+                              {(move.type || "normal").toUpperCase()}
+                            </Badge>
+                            <span className="font-semibold capitalize flex-1">
+                              {move.name.replace(/-/g, " ")}
+                            </span>
+                            <div className="flex gap-4 text-xs text-muted-foreground">
+                              {move.power != null && <span>Power: {move.power}</span>}
+                              {move.accuracy != null && <span>Acc: {move.accuracy}%</span>}
+                              {move.pp != null && <span>PP: {move.pp}</span>}
+                            </div>
                           </div>
-                        </CardContent>
-                      </Card>
-                    </TabsContent>
-
-                    <TabsContent value="tm-hm" className="mt-4">
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>TM/HM Moves</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="space-y-2 max-h-[500px] overflow-y-auto scrollbar-hide hide-scrollbar">
-                            {selectedPokemon.organizedMoves.machine.length > 0 ? (
-                              selectedPokemon.organizedMoves.machine.map((moveEntry, idx) => (
-                                <div
-                                  key={`${moveEntry.moveName}-${idx}`}
-                                  className="flex items-center gap-4 p-2 rounded-lg hover:bg-muted/50"
-                                >
-                                  <Badge className={getTypeColor(moveEntry.move?.type?.name || "normal")}>
-                                    {moveEntry.move?.type?.name?.toUpperCase() || "NORMAL"}
-                                  </Badge>
-                                  <span className="font-semibold capitalize flex-1">{moveEntry.moveName.replace("-", " ")}</span>
-                                  <div className="flex gap-4 text-xs text-muted-foreground">
-                                    {moveEntry.move != null && moveEntry.move.power !== null && <span>Power: {moveEntry.move.power}</span>}
-                                    {moveEntry.move != null && moveEntry.move.accuracy !== null && <span>Acc: {moveEntry.move.accuracy}%</span>}
-                                    {moveEntry.move != null && moveEntry.move.pp !== null && <span>PP: {moveEntry.move.pp}</span>}
-                                  </div>
-                                </div>
-                              ))
-                            ) : (
-                              <p className="text-muted-foreground">No TM/HM moves</p>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </TabsContent>
-
-                    <TabsContent value="egg" className="mt-4">
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>Egg Moves</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="space-y-2 max-h-[500px] overflow-y-auto scrollbar-hide hide-scrollbar">
-                            {selectedPokemon.organizedMoves.egg.length > 0 ? (
-                              selectedPokemon.organizedMoves.egg.map((moveEntry, idx) => (
-                                <div
-                                  key={`${moveEntry.moveName}-${idx}`}
-                                  className="flex items-center gap-4 p-2 rounded-lg hover:bg-muted/50"
-                                >
-                                  <Badge className={getTypeColor(moveEntry.move?.type?.name || "normal")}>
-                                    {moveEntry.move?.type?.name?.toUpperCase() || "NORMAL"}
-                                  </Badge>
-                                  <span className="font-semibold capitalize flex-1">{moveEntry.moveName.replace("-", " ")}</span>
-                                  <div className="flex gap-4 text-xs text-muted-foreground">
-                                    {moveEntry.move != null && moveEntry.move.power !== null && <span>Power: {moveEntry.move.power}</span>}
-                                    {moveEntry.move != null && moveEntry.move.accuracy !== null && <span>Acc: {moveEntry.move.accuracy}%</span>}
-                                    {moveEntry.move != null && moveEntry.move.pp !== null && <span>PP: {moveEntry.move.pp}</span>}
-                                  </div>
-                                </div>
-                              ))
-                            ) : (
-                              <p className="text-muted-foreground">No egg moves</p>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </TabsContent>
-
-                    <TabsContent value="tutor" className="mt-4">
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>Tutor Moves</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="space-y-2 max-h-[500px] overflow-y-auto scrollbar-hide hide-scrollbar">
-                            {selectedPokemon.organizedMoves.tutor.length > 0 ? (
-                              selectedPokemon.organizedMoves.tutor.map((moveEntry, idx) => (
-                                <div
-                                  key={`${moveEntry.moveName}-${idx}`}
-                                  className="flex items-center gap-4 p-2 rounded-lg hover:bg-muted/50"
-                                >
-                                  <Badge className={getTypeColor(moveEntry.move?.type?.name || "normal")}>
-                                    {moveEntry.move?.type?.name?.toUpperCase() || "NORMAL"}
-                                  </Badge>
-                                  <span className="font-semibold capitalize flex-1">{moveEntry.moveName.replace("-", " ")}</span>
-                                  <div className="flex gap-4 text-xs text-muted-foreground">
-                                    {moveEntry.move != null && moveEntry.move.power !== null && <span>Power: {moveEntry.move.power}</span>}
-                                    {moveEntry.move != null && moveEntry.move.accuracy !== null && <span>Acc: {moveEntry.move.accuracy}%</span>}
-                                    {moveEntry.move != null && moveEntry.move.pp !== null && <span>PP: {moveEntry.move.pp}</span>}
-                                  </div>
-                                </div>
-                              ))
-                            ) : (
-                              <p className="text-muted-foreground">No tutor moves</p>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </TabsContent>
-                  </Tabs>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : selectedPokemon.moves?.length ? (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Moves</CardTitle>
+                      <CardDescription>Move names from catalog</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex flex-wrap gap-2 max-h-[500px] overflow-y-auto">
+                        {selectedPokemon.moves.slice(0, 80).map((move) => (
+                          <Badge key={move} variant="secondary" className="capitalize">
+                            {move.replace(/-/g, " ")}
+                          </Badge>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
                 ) : (
                   <Card>
                     <CardContent className="py-8 text-center">
