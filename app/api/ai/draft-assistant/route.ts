@@ -9,6 +9,7 @@ import {
   shouldRouteChatToOpenClaw,
   openClawModeSystemPrompt,
 } from '@/lib/openclaw/chat-route'
+import { resolveMcpToolsEnabled } from '@/lib/ai/mcp-tools-enabled'
 
 export async function POST(request: Request) {
   try {
@@ -22,7 +23,8 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { messages, mcpEnabled = true, model } = body
+    const { messages, mcpEnabled: mcpRequested = false, model } = body
+    const mcpEnabled = resolveMcpToolsEnabled(mcpRequested)
     let { teamId, seasonId } = body
 
     if (!teamId && seasonId) {

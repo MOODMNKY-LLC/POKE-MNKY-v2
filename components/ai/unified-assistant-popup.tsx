@@ -83,8 +83,8 @@ export function UnifiedAssistantPopup({
   const pathname = usePathname()
   const isMobile = useIsMobile()
   const [isMinimized, setIsMinimized] = useState(false)
-  // MCP tools only available for authenticated users
-  const [mcpEnabled, setMcpEnabled] = useState(isAuthenticated)
+  // MCP tools default OFF (AI_MCP_TOOLS_ENABLED + explicit toggle). Auth still required in UI.
+  const [mcpEnabled, setMcpEnabled] = useState(false)
   const [ttsEnabled, setTtsEnabled] = useState(false)
   const [selectedModel, setSelectedModel] = useState<string>("gpt-5.2")
   const [isRecording, setIsRecording] = useState(false)
