@@ -4,12 +4,10 @@ export type OpenClawAgentMode =
   | "battle-strategy"
   | "free-agency"
   | "pokedex"
-  | "coach"
   | "parse-result"
   | "weekly-recap"
   | "draft-board-analysis"
   | "sql"
-  | "pokedex-v2"
 
 export type GatewayFrame =
   | { type: "req"; id: string; method: string; params?: unknown }
