@@ -5,7 +5,9 @@ import { Analytics } from "@vercel/analytics/next"
 import { ThemeProvider } from "@/components/theme-provider"
 // PokepediaSyncProvider removed - sync system deleted
 import { ServiceWorkerRegistration } from "@/components/service-worker-registration"
-import { PWAInstallPrompt } from "@/components/pwa-install-prompt"
+import { InstallAppProvider } from "@/components/pwa/install-app-provider"
+import { ThemeColorSync } from "@/components/pwa/theme-color-sync"
+import { PWA_THEME_COLORS } from "@/lib/pwa/theme-colors"
 import { ConditionalHeader } from "@/components/conditional-header"
 import { AssistantWrapper } from "@/components/ai/assistant-wrapper"
 import { MobileMusicPlayer } from "@/components/music/mobile-music-player"
@@ -90,12 +92,11 @@ export const viewport: Viewport = {
   maximumScale: 5,
   userScalable: true,
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#CC0000" },
-    { media: "(prefers-color-scheme: dark)", color: "#1a1a1a" },
+    { media: "(prefers-color-scheme: light)", color: PWA_THEME_COLORS.light },
+    { media: "(prefers-color-scheme: dark)", color: PWA_THEME_COLORS.dark },
   ],
-  viewportFit: "cover", // Support for devices with notches
-  // PWA optimizations
-  interactiveWidget: "resizes-content", // Handle virtual keyboard properly
+  viewportFit: "cover",
+  interactiveWidget: "resizes-content",
 }
 
 export default function RootLayout({
@@ -119,14 +120,16 @@ export default function RootLayout({
         </div>
         
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <div className="flex min-h-screen flex-col relative">
-            <ConditionalHeader />
-            <main className="flex-1 w-full">{children}</main>
-          </div>
+          <InstallAppProvider>
+            <div className="flex min-h-screen flex-col relative">
+              <ConditionalHeader />
+              <main className="flex-1 w-full">{children}</main>
+            </div>
+          </InstallAppProvider>
+          <ThemeColorSync />
         </ThemeProvider>
         <Analytics />
         <ServiceWorkerRegistration />
-        <PWAInstallPrompt />
         <Toaster position="top-right" />
         <AssistantWrapper />
         <MobileMusicPlayer />

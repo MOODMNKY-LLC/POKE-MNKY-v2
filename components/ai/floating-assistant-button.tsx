@@ -63,7 +63,7 @@ export function FloatingAssistantButton({
             exit={{ scale: 0, opacity: 0 }}
             transition={{ type: "spring", stiffness: 260, damping: 20 }}
             className={cn(
-              "fixed bottom-6 right-6 z-50",
+              "fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] right-[calc(1.5rem+env(safe-area-inset-right))] z-50",
               className
             )}
           >
