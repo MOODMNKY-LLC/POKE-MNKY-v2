@@ -8,9 +8,15 @@ export type PublicTeamRow = {
   coach_name: string
   division: string
   conference: string
+  /** Prefer regular-season W-L for public cards; wins/losses remain overall fallbacks. */
   wins: number
   losses: number
+  regular_wins?: number | null
+  regular_losses?: number | null
+  playoff_wins?: number | null
+  playoff_losses?: number | null
   differential: number
+  regular_differential?: number | null
   strength_of_schedule?: number | null
   logo_url?: string | null
   avatar_url?: string | null
@@ -18,10 +24,19 @@ export type PublicTeamRow = {
   is_bye?: boolean
 }
 
+/** Regular-season record for public display (matches /standings). */
+export function publicRegularRecord(team: PublicTeamRow): { wins: number; losses: number; differential: number } {
+  return {
+    wins: team.regular_wins ?? team.wins,
+    losses: team.regular_losses ?? team.losses,
+    differential: team.regular_differential ?? team.differential,
+  }
+}
+
 /**
  * Load teams for public pages (/teams, homepage).
- * scope "current" keeps the draft season (homepage). scope "live" follows the
- * shared standings resolver and does not fall back to every season's teams.
+ * scope "current" keeps the draft season. scope "live" follows the shared
+ * standings resolver (sheet-synced season) and does not fall back broadly.
  */
 export async function getPublicLeagueTeams(
   supabase: SupabaseClient,
@@ -55,10 +70,15 @@ export async function getPublicLeagueTeams(
   }
 
   const select =
-    "id, name, coach_name, division, conference, wins, losses, differential, strength_of_schedule, logo_url, avatar_url, season_id, is_bye"
+    "id, name, coach_name, division, conference, wins, losses, regular_wins, regular_losses, playoff_wins, playoff_losses, differential, regular_differential, strength_of_schedule, logo_url, avatar_url, season_id, is_bye"
 
   const load = async (filterSeason: boolean) => {
-    let q = supabase.from("teams").select(select).order("wins", { ascending: false }).order("name")
+    let q = supabase
+      .from("teams")
+      .select(select)
+      .order("regular_wins", { ascending: false })
+      .order("wins", { ascending: false })
+      .order("name")
     if (filterSeason && seasonId) {
       q = q.eq("season_id", seasonId)
     }

@@ -2,6 +2,16 @@ import { NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase/server"
 import { completeMatchResult } from "@/lib/match-result-complete"
 import { matchSubmitBodySchema } from "@/lib/validation/match-submit"
+import {
+  getLiveSheetSyncWriteGate,
+  SheetSyncWriteBlockedError,
+} from "@/lib/sheet-sync-write-gate"
+
+export async function GET() {
+  const supabase = await createServerClient()
+  const gate = await getLiveSheetSyncWriteGate(supabase)
+  return NextResponse.json(gate)
+}
 
 export async function POST(request: Request) {
   try {
@@ -36,6 +46,9 @@ export async function POST(request: Request) {
     })
   } catch (error) {
     console.error("[matches/submit]", error)
+    if (error instanceof SheetSyncWriteBlockedError) {
+      return NextResponse.json({ error: error.message }, { status: error.status })
+    }
     const message =
       error instanceof Error ? error.message : "Failed to submit match"
     const status = message.includes("not authorized") ? 403 : 500

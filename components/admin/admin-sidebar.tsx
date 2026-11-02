@@ -67,7 +67,10 @@ const adminNavItems = [
     icon: MessageSquare,
     items: [
       { title: "Discord", url: "/admin/discord" },
-      { title: "Google Sheets", url: "/admin/google-sheets" },
+      { title: "Google Sheets (Legacy)", url: "/admin/google-sheets" },
+      { title: "Sheet Sync", url: "/admin/sheet-sync" },
+      { title: "Discord results", url: "/admin/discord/results" },
+      { title: "Coach applications", url: "/admin/coach-applications" },
       { title: "Simulation", url: "/admin/simulation" },
       { title: "Music", url: "/admin/music" },
     ],

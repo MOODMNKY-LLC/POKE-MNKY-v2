@@ -12,6 +12,8 @@ import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { MatchSubmitForm } from "@/components/matches/match-submit-form"
+import { SheetSyncSubmitNotice } from "@/components/matches/sheet-sync-submit-notice"
+import { getLiveSheetSyncWriteGate } from "@/lib/sheet-sync-write-gate"
 
 export default async function WeeklyMatchesSubmitPage() {
   const supabase = await createClient()
@@ -22,6 +24,8 @@ export default async function WeeklyMatchesSubmitPage() {
   if (!user) {
     redirect("/auth/login")
   }
+
+  const gate = await getLiveSheetSyncWriteGate(supabase)
 
   return (
     <>
@@ -55,10 +59,17 @@ export default async function WeeklyMatchesSubmitPage() {
       </header>
 
       <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-        <MatchSubmitForm
-          backHref="/dashboard/weekly-matches"
-          successRedirect="/dashboard/weekly-matches/history"
-        />
+        {gate.blocked ? (
+          <SheetSyncSubmitNotice
+            seasonName={gate.seasonName}
+            backHref="/dashboard/weekly-matches"
+          />
+        ) : (
+          <MatchSubmitForm
+            backHref="/dashboard/weekly-matches"
+            successRedirect="/dashboard/weekly-matches/history"
+          />
+        )}
       </div>
     </>
   )

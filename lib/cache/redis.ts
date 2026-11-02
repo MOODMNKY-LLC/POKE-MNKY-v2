@@ -131,8 +131,8 @@ export const CacheKeys = {
   homepageRecentMatches: 'homepage:recent_matches',
   homepageTopPokemon: 'homepage:top_pokemon',
   /** Teams + seasonal + weekly performers (AAB homepage bundle) */
-  /** v4: bundle matches and performers are scoped to is_current season. */
-  homepageBundle: 'homepage:bundle:v4',
+  /** v5: bundle uses live sheet-synced season (same as /standings), not is_current. */
+  homepageBundle: 'homepage:bundle:v5',
 } as const
 
 /**

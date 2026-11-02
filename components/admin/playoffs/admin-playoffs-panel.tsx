@@ -43,7 +43,12 @@ import {
 } from "lucide-react"
 import { getPlayoffRoundLabel, PLAYOFF_ROUND_KEYS } from "@/lib/playoff-rounds"
 
-type SeasonOption = { id: string; name: string; is_current: boolean }
+type SeasonOption = {
+  id: string
+  name: string
+  is_current: boolean
+  sheet_sync_enabled?: boolean | null
+}
 
 type PlayoffStatus = {
   season: { id: string; name: string }
@@ -100,14 +105,19 @@ export function AdminPlayoffsPanel() {
 
   const loadSeasons = useCallback(async () => {
     if (!supabase) return
-    const { data } = await supabase
+    const full = await supabase
       .from("seasons")
-      .select("id, name, is_current")
+      .select("id, name, is_current, sheet_sync_enabled")
       .order("start_date", { ascending: false })
-    const rows = (data as SeasonOption[]) ?? []
+    const query =
+      full.error?.code === "42703"
+        ? await supabase.from("seasons").select("id, name, is_current").order("start_date", { ascending: false })
+        : full
+    const rows = (query.data as SeasonOption[]) ?? []
     setSeasons(rows)
-    const current = rows.find((s) => s.is_current) ?? rows[0]
-    if (current && !seasonId) setSeasonId(current.id)
+    const preferred =
+      rows.find((s) => s.sheet_sync_enabled) ?? rows.find((s) => s.is_current) ?? rows[0]
+    if (preferred && !seasonId) setSeasonId(preferred.id)
   }, [supabase, seasonId])
 
   const loadStatus = useCallback(async () => {
@@ -250,6 +260,8 @@ export function AdminPlayoffsPanel() {
   const nextRoundReady = status?.activeRounds.some(
     (r) => r.complete && r.key !== PLAYOFF_ROUND_KEYS.FINALS
   )
+  const selectedSeason = seasons.find((s) => s.id === seasonId)
+  const sheetSyncBlocksWrites = selectedSeason?.sheet_sync_enabled === true
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-7xl space-y-8">
@@ -257,6 +269,15 @@ export function AdminPlayoffsPanel() {
         title="Playoff Management"
         description="Seed teams, manage bracket rounds, and advance winners"
       />
+
+      {sheetSyncBlocksWrites ? (
+        <Card className="border-amber-500/50 bg-amber-500/5">
+          <CardContent className="pt-4 text-sm text-muted-foreground">
+            {selectedSeason?.name ?? "This season"} has sheet sync enabled. Playoff seeds and
+            results come from the league sheet and Discord; generate and advance are disabled here.
+          </CardContent>
+        </Card>
+      ) : null}
 
       <div className="flex flex-wrap items-center gap-4">
         <Select value={seasonId} onValueChange={setSeasonId}>
@@ -267,7 +288,7 @@ export function AdminPlayoffsPanel() {
             {seasons.map((s) => (
               <SelectItem key={s.id} value={s.id}>
                 {s.name}
-                {s.is_current ? " (current)" : ""}
+                {s.sheet_sync_enabled ? " (sheet sync)" : s.is_current ? " (current)" : ""}
               </SelectItem>
             ))}
           </SelectContent>
@@ -275,7 +296,11 @@ export function AdminPlayoffsPanel() {
         <Button variant="outline" size="sm" onClick={loadStatus} disabled={loading}>
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
         </Button>
-        <Button size="sm" onClick={handlePreviewGenerate} disabled={generating || !seasonId}>
+        <Button
+          size="sm"
+          onClick={handlePreviewGenerate}
+          disabled={generating || !seasonId || sheetSyncBlocksWrites}
+        >
           {generating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
           Generate playoffs
         </Button>
@@ -283,7 +308,7 @@ export function AdminPlayoffsPanel() {
           variant="secondary"
           size="sm"
           onClick={handlePreviewAdvance}
-          disabled={advancing || !seasonId || !status?.seeds?.length}
+          disabled={advancing || !seasonId || !status?.seeds?.length || sheetSyncBlocksWrites}
         >
           {advancing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ArrowRight className="h-4 w-4 mr-2" />}
           Advance round

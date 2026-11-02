@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
-import { getPublicLeagueTeams, type PublicTeamRow } from "@/lib/teams-public"
+import { getPublicLeagueTeams, publicRegularRecord, type PublicTeamRow } from "@/lib/teams-public"
 import { SeasonSwitcher } from "@/components/league/season-switcher"
 import type { StandingsSeasonRow } from "@/lib/standings-season"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -13,14 +13,18 @@ const divisions = ["Kanto", "Johto", "Hoenn", "Sinnoh"]
 
 function TeamCard({ team, seasonId }: { team: PublicTeamRow; seasonId: string | null }) {
   const href = seasonId ? `/teams/${team.id}?season=${encodeURIComponent(seasonId)}` : `/teams/${team.id}`
+  const regular = publicRegularRecord(team)
+  const playoffWins = team.playoff_wins ?? 0
+  const playoffLosses = team.playoff_losses ?? 0
+  const hasPlayoffs = playoffWins > 0 || playoffLosses > 0
   return (
     <Link href={href}>
       <Card className="h-full transition-all hover:border-primary hover:shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-start justify-between gap-2">
             <span className="text-balance">{team.name}</span>
-            <Badge variant="secondary" className="shrink-0 tabular-nums">
-              {team.wins}-{team.losses}
+            <Badge variant="secondary" className="shrink-0 tabular-nums" title="Regular season">
+              {regular.wins}-{regular.losses}
             </Badge>
           </CardTitle>
         </CardHeader>
@@ -34,12 +38,26 @@ function TeamCard({ team, seasonId }: { team: PublicTeamRow; seasonId: string | 
               </div>
             </div>
             <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Regular season</span>
+              <span className="font-medium tabular-nums">
+                {regular.wins}-{regular.losses}
+              </span>
+            </div>
+            {hasPlayoffs ? (
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Playoffs</span>
+                <span className="font-medium tabular-nums">
+                  {playoffWins}-{playoffLosses}
+                </span>
+              </div>
+            ) : null}
+            <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Differential</span>
               <span
-                className={`font-medium ${team.differential > 0 ? "text-chart-2" : team.differential < 0 ? "text-destructive" : ""}`}
+                className={`font-medium ${regular.differential > 0 ? "text-chart-2" : regular.differential < 0 ? "text-destructive" : ""}`}
               >
-                {team.differential > 0 ? "+" : ""}
-                {team.differential}
+                {regular.differential > 0 ? "+" : ""}
+                {regular.differential}
               </span>
             </div>
             <div className="flex items-center justify-between">

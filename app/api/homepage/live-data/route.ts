@@ -2,8 +2,7 @@ import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { redisCache, CacheKeys, CacheTTL } from "@/lib/cache/redis"
 import type { HomepageTopPokemon } from "@/lib/homepage-types"
-import { getPublicLeagueTeams } from "@/lib/teams-public"
-import { getMarkedCurrentSeason } from "@/lib/seasons"
+import { getPublicLeagueTeams, publicRegularRecord } from "@/lib/teams-public"
 
 /**
  * Homepage Live Data API — teams + seasonal / weekly top Pokémon (AAB performer strips).
@@ -114,32 +113,32 @@ export async function GET() {
       })
     }
 
-    const [teamsResult, seasonResult] = await Promise.allSettled([
-      withTimeout(getPublicLeagueTeams(supabase), queryTimeout, "Teams query"),
-      withTimeout(getMarkedCurrentSeason(supabase), queryTimeout, "Current season query"),
-    ])
-
+    // Live competitive season (sheet-synced), same picker as /standings — not is_current draft.
     let teams: unknown[] = []
     let teamCount = 0
-    if (teamsResult.status === "fulfilled") {
-      const { teams: allTeams } = teamsResult.value
-      teamCount = allTeams.length
-      teams = [...allTeams]
-        .sort((a, b) => b.wins - a.wins || a.name.localeCompare(b.name))
+    let seasonId: string | null = null
+    try {
+      const loaded = await withTimeout(
+        getPublicLeagueTeams(supabase, { scope: "live" }),
+        queryTimeout,
+        "Teams query",
+      )
+      seasonId = loaded.seasonId
+      teamCount = loaded.teams.length
+      teams = [...loaded.teams]
+        .sort((a, b) => {
+          const ar = publicRegularRecord(a)
+          const br = publicRegularRecord(b)
+          return br.wins - ar.wins || br.differential - ar.differential || a.name.localeCompare(b.name)
+        })
         .slice(0, 5)
-    } else {
-      console.warn("[HomepageLiveData] Teams query failed:", teamsResult.reason)
+    } catch (reason) {
+      console.warn("[HomepageLiveData] Teams query failed:", reason)
     }
 
     let currentWeek: number | null = null
     let seasonMatchIds: string[] = []
     let weeklyMatchIds: string[] = []
-
-    const seasonId =
-      seasonResult.status === "fulfilled" ? seasonResult.value?.id ?? null : null
-    if (seasonResult.status === "rejected") {
-      console.warn("[HomepageLiveData] Current season query failed:", seasonResult.reason)
-    }
 
     if (seasonId) {
       const seasonMatches = await withTimeout(

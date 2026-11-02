@@ -25,6 +25,10 @@ import {
   type PlayoffRoundKey,
 } from "@/lib/playoff-rounds"
 import { logActivity } from "@/lib/rbac"
+import {
+  assertSeasonAllowsPlayoffWrites,
+  SheetSyncWriteBlockedError,
+} from "@/lib/sheet-sync-write-gate"
 
 type RouteContext = { params: Promise<{ seasonId: string }> }
 
@@ -89,6 +93,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const dryRun = body?.dry_run === true
 
     const service = createServiceRoleClient()
+    await assertSeasonAllowsPlayoffWrites(service, seasonId)
 
     const { data: season, error: seasonError } = await service
       .from("seasons")
@@ -233,6 +238,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
       announcement,
     })
   } catch (err) {
+    if (err instanceof SheetSyncWriteBlockedError) {
+      return NextResponse.json({ error: err.message }, { status: err.status })
+    }
     const message = err instanceof Error ? err.message : "Internal server error"
     return NextResponse.json({ error: message }, { status: 500 })
   }

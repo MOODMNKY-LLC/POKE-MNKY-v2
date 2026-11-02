@@ -3,6 +3,7 @@ import { parseMatchResult } from "@/lib/openai-client"
 import { createServerClient } from "@/lib/supabase/server"
 import { createServiceRoleClient } from "@/lib/supabase/service"
 import { completeMatchResult } from "@/lib/match-result-complete"
+import { SheetSyncWriteBlockedError } from "@/lib/sheet-sync-write-gate"
 
 function isBotRequest(request: Request): boolean {
   const secret = process.env.DISCORD_BOT_INTERNAL_SECRET
@@ -111,6 +112,9 @@ export async function POST(request: Request) {
     })
   } catch (error) {
     console.error("[parse-result]", error)
+    if (error instanceof SheetSyncWriteBlockedError) {
+      return NextResponse.json({ error: error.message }, { status: error.status })
+    }
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : "Parse failed",
