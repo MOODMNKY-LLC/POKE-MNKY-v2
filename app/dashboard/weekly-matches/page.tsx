@@ -501,12 +501,14 @@ export default async function WeeklyMatchesPage({
             </div>
 
             {/* Battle plan */}
-            <WeeklyBattlePlanEditor
-              matchId={selectedMatch?.id ?? null}
-              seasonId={(selectedMatch as any)?.season_id ?? null}
-              matchweekId={(selectedMatch as any)?.matchweek_id ?? null}
-              weekNumber={selectedWeek}
-            />
+            <div id="battle-plan" className="scroll-mt-20">
+              <WeeklyBattlePlanEditor
+                matchId={selectedMatch?.id ?? null}
+                seasonId={(selectedMatch as any)?.season_id ?? null}
+                matchweekId={(selectedMatch as any)?.matchweek_id ?? null}
+                weekNumber={selectedWeek}
+              />
+            </div>
 
             <div className="flex flex-wrap items-center gap-2">
               <Button asChild variant="outline" size="sm">
