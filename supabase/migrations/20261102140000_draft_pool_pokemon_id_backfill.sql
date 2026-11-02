@@ -1,8 +1,69 @@
 -- purpose: backfill draft_pool.pokemon_id from v_pokemon_catalog / pokepedia;
 --          stop get_available_pokemon* from dropping rows with null pokemon_id.
--- affected: draft_pool (UPDATE pokemon_id only), get_available_pokemon_for_free_agency
--- special: additive only — never DELETE/DROP. Unmatched names are reported via NOTICE
+-- affected: draft_pool (UPDATE pokemon_id only), get_available_pokemon_for_free_agency,
+--           draft_pool_pokemon_id_fkey + sheets_draft_pool_pokemon_id_fkey (repoint)
+-- special: additive only — never DELETE/DROP data. Unmatched names are reported via NOTICE
 --          (CAP / fakemon / unresolved forms stay null on purpose).
+--
+-- FK fix: draft_pool.pokemon_id previously REFERENCES pokemon_cache(pokemon_id) (≈122 rows).
+-- Catalog / v_pokemon_catalog ids come from pokepedia_pokemon (≈1351). Without repointing,
+-- backfill fails with 23503 (e.g. pokemon_id=460 Abomasnow). Prefer schema-only FK
+-- retarget to pokepedia_pokemon over upserting into deprecated pokemon_cache.
+-- team_rosters / draft_picks / draft_pool_pokemon already FK to public.pokemon (UUID);
+-- rpc_make_live_draft_pick creates those rows — no pokemon_cache FK on pick writes.
+
+-- Repoint integer pokemon_id FKs from deprecated pokemon_cache → canonical pokepedia_pokemon.
+do $$
+declare
+  v_refs regclass;
+begin
+  -- draft_pool
+  select confrelid::regclass into v_refs
+  from pg_constraint
+  where conname = 'draft_pool_pokemon_id_fkey';
+
+  if v_refs is distinct from 'public.pokepedia_pokemon'::regclass then
+    if v_refs is not null then
+      alter table public.draft_pool drop constraint draft_pool_pokemon_id_fkey;
+    end if;
+
+    update public.draft_pool dp
+    set pokemon_id = null
+    where dp.pokemon_id is not null
+      and not exists (select 1 from public.pokepedia_pokemon pp where pp.id = dp.pokemon_id);
+
+    alter table public.draft_pool
+      add constraint draft_pool_pokemon_id_fkey
+      foreign key (pokemon_id) references public.pokepedia_pokemon(id)
+      on delete set null;
+  end if;
+
+  -- sheets_draft_pool (same legacy FK; keep in sync for sheet sync paths)
+  if to_regclass('public.sheets_draft_pool') is not null then
+    select confrelid::regclass into v_refs
+    from pg_constraint
+    where conname = 'sheets_draft_pool_pokemon_id_fkey';
+
+    if v_refs is distinct from 'public.pokepedia_pokemon'::regclass then
+      if v_refs is not null then
+        alter table public.sheets_draft_pool drop constraint sheets_draft_pool_pokemon_id_fkey;
+      end if;
+
+      update public.sheets_draft_pool dp
+      set pokemon_id = null
+      where dp.pokemon_id is not null
+        and not exists (select 1 from public.pokepedia_pokemon pp where pp.id = dp.pokemon_id);
+
+      alter table public.sheets_draft_pool
+        add constraint sheets_draft_pool_pokemon_id_fkey
+        foreign key (pokemon_id) references public.pokepedia_pokemon(id)
+        on delete set null;
+    end if;
+  end if;
+end $$;
+
+comment on constraint draft_pool_pokemon_id_fkey on public.draft_pool is
+  'Canonical catalog FK (pokepedia_pokemon). Replaced pokemon_cache reference so pool ids from v_pokemon_catalog validate.';
 
 create or replace function public.normalize_pokemon_name_key(p_name text)
 returns text
