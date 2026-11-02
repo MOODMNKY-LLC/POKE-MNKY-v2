@@ -1,65 +1,39 @@
 import { NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
-import { getPokemonDataExtended } from "@/lib/pokemon-api-enhanced"
+import { readPokemon } from "@/lib/pokemon-read"
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-)
-
-export async function GET(request: Request, { params }: { params: Promise<{ name: string }> }) {
+/**
+ * GET /api/pokemon/[name]
+ * Single Pokémon via lib/pokemon-read (pokepedia → cache → PokeAPI write-back).
+ */
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ name: string }> },
+) {
   try {
     const { name } = await params
-    const pokemonName = decodeURIComponent(name).toLowerCase()
-
-    // Try to get from cache first
-    const { data: cached, error: cacheError } = await supabase
-      .from("pokemon_cache")
-      .select("*")
-      .ilike("name", pokemonName)
-      .gt("expires_at", new Date().toISOString())
-      .single()
-
-    if (cached && !cacheError) {
-      return NextResponse.json({
-        pokemon_id: cached.pokemon_id,
-        name: cached.name,
-        types: cached.types,
-        base_stats: cached.base_stats,
-        abilities: cached.abilities,
-        moves: cached.moves,
-        sprite_url: cached.sprite_url,
-        draft_cost: cached.draft_cost,
-        tier: cached.tier,
-        sprites: cached.sprites,
-        ability_details: cached.ability_details,
-        move_details: cached.move_details,
-      })
+    const raw = decodeURIComponent(name).trim()
+    if (!raw) {
+      return NextResponse.json({ error: "Name or id required" }, { status: 400 })
     }
 
-    // Cache miss - fetch from API and cache
-    const pokemon = await getPokemonDataExtended(pokemonName, false)
+    const asId = /^\d+$/.test(raw) ? Number(raw) : raw.toLowerCase()
+    const result = await readPokemon(asId)
 
-    if (!pokemon) {
+    if (!result) {
       return NextResponse.json({ error: "Pokemon not found" }, { status: 404 })
     }
 
     return NextResponse.json({
-      pokemon_id: pokemon.pokemon_id,
-      name: pokemon.name,
-      types: pokemon.types,
-      base_stats: pokemon.base_stats,
-      abilities: pokemon.abilities,
-      moves: pokemon.moves,
-      sprite_url: pokemon.sprites.front_default ?? pokemon.sprites.official_artwork,
-      draft_cost: pokemon.draft_cost,
-      tier: pokemon.tier,
-      sprites: pokemon.sprites,
-      ability_details: pokemon.ability_details,
-      move_details: pokemon.move_details,
+      ...result.data,
+      sprite_url:
+        result.data.sprites.front_default ?? result.data.sprites.official_artwork ?? null,
+      _meta: {
+        source: result.source,
+        externalApiCalls: result.externalApiCalls,
+      },
     })
   } catch (error) {
-    console.error("[v0] Pokemon fetch error:", error)
+    console.error("[api/pokemon/name]", error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to fetch Pokemon" },
       { status: 500 },

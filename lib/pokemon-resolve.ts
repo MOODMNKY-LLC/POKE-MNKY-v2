@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
-import { getPokemonDataExtended } from "@/lib/pokemon-api-enhanced"
+import { readPokemon } from "@/lib/pokemon-read"
 
 function slugifyPokemonName(name: string): string {
   return name
@@ -89,9 +89,9 @@ export async function resolveOrCreatePokemonId(
   if (cached) {
     ;[type1, type2] = parseTypes(cached.types)
   } else {
-    const extended = await getPokemonDataExtended(displayName, false)
-    if (extended?.types) {
-      ;[type1, type2] = parseTypes(extended.types)
+    const extended = await readPokemon(displayName)
+    if (extended?.data.types) {
+      ;[type1, type2] = parseTypes(extended.data.types)
     }
   }
 

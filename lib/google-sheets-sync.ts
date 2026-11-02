@@ -1,7 +1,7 @@
 import { GoogleSpreadsheet } from "google-spreadsheet"
 import { JWT } from "google-auth-library"
 import { createServiceRoleClient } from "./supabase/service"
-import { getPokemonDataExtended } from "./pokemon-api-enhanced"
+import { readPokemon } from "./pokemon-read"
 import { getGoogleServiceAccountCredentials } from "./utils/google-sheets"
 import { parseTeamDataWithAI, type SheetRow } from "./ai-sheet-parser"
 import { fetchDataTabValueRows } from "@/lib/google-sheets-data-tab-fetch"
@@ -667,13 +667,13 @@ async function syncDraftResults(sheet: any, supabase: any, mapping: SheetMapping
         .single()
 
       if (!cachedPokemon) {
-        // Try to fetch from API and cache it
-        const extendedData = await getPokemonDataExtended(pokemonName, false)
+        // Canonical read path: DB first, PokeAPI miss fills pokemon_cache
+        const extendedData = await readPokemon(pokemonName)
         if (!extendedData) {
           errors.push(`Pokemon not found in cache or API: ${pokemonName}. Please ensure Pokemon is cached first.`)
           continue
         }
-        cachedPokemonData = extendedData
+        cachedPokemonData = extendedData.data
       } else {
         cachedPokemonData = cachedPokemon
       }

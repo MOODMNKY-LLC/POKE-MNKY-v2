@@ -1,7 +1,13 @@
 /**
  * Redis Cache Utility
- * Uses Upstash Redis (Vercel KV) for caching homepage data
- * Falls back gracefully if Redis is not configured
+ * Uses Upstash Redis (Vercel KV) for caching homepage data and sheet-sync invalidation.
+ *
+ * Why Redis stays (Pokémon cleanup PR): it is NOT used for the Pokémon catalog.
+ * Catalog reads go through lib/pokemon-read → Supabase (pokepedia_pokemon / pokemon_cache).
+ * Redis remains for:
+ *   - app/api/homepage/live-data (homepage live season / standings TTL cache)
+ *   - app/api/sync/google-sheets (cache key invalidation after sync)
+ * Local dev skips internal-*.upstash.io hosts (Vercel-only DNS). See docs/ISR-AND-REDIS-EXPLAINED.md.
  */
 
 type CacheOptions = {

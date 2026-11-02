@@ -1,13 +1,26 @@
-// Unified Pokemon data utilities - Cache-first with pokenode-ts fallback
-// This provides a single source of truth for Pokemon data access
+// Unified Pokemon display helpers + thin client wrappers around /api/pokemon/*.
+// Server reads go through lib/pokemon-read (pokepedia → cache → PokeAPI).
+// Browser code must not call PokeAPI directly.
 
-import { createBrowserClient } from "@/lib/supabase/client"
-import { getPokemonDataExtended, type CachedPokemonExtended } from "./pokemon-api-enhanced"
-import { adaptPokepediaToDisplayData, parseJsonbField, type PokepediaPokemonRow } from "./pokepedia-adapter"
+async function fetchCatalogFromApi(params: {
+  limit?: number
+  q?: string
+}): Promise<PokemonDisplayData[]> {
+  const search = new URLSearchParams()
+  if (params.limit) search.set("limit", String(params.limit))
+  if (params.q) search.set("q", params.q)
+  const res = await fetch(`/api/pokemon/catalog?${search.toString()}`)
+  if (!res.ok) return []
+  const body = (await res.json()) as { pokemon?: PokemonDisplayData[] }
+  return body.pokemon ?? []
+}
 
-// Use shared browser client singleton to avoid multiple GoTrueClient instances
-function getSupabaseClient() {
-  return createBrowserClient() // Now uses singleton pattern internally
+async function fetchOneFromApi(nameOrId: string | number): Promise<PokemonDisplayData | null> {
+  const res = await fetch(`/api/pokemon/${encodeURIComponent(String(nameOrId))}`)
+  if (!res.ok) return null
+  const body = (await res.json()) as PokemonDisplayData & { _meta?: unknown }
+  const { _meta: _ignored, ...pokemon } = body as PokemonDisplayData & { _meta?: unknown }
+  return pokemon
 }
 
 export interface PokemonDisplayData {
@@ -146,106 +159,18 @@ export function parsePokemonFromCache(pokemon: any): PokemonDisplayData {
 }
 
 /**
- * Get Pokemon by ID or name
- * CLIENT-SIDE: Fetches directly from official PokeAPI (skips Supabase)
- * SERVER-SIDE: Checks Supabase cache first, then falls back to custom API → official API
+ * Get Pokemon by ID or name.
+ * Client: /api/pokemon/[name] (server read path).
+ * Server: lib/pokemon-read.
  */
 export async function getPokemon(nameOrId: string | number): Promise<PokemonDisplayData | null> {
   try {
-    const isClientSide = typeof window !== 'undefined'
-    
-    // CLIENT-SIDE: Skip Supabase entirely, go straight to official PokeAPI
-    if (isClientSide) {
-      console.log("[Pokemon Utils] Client-side: Fetching directly from official PokeAPI:", nameOrId)
-      try {
-        const extended = await getPokemonDataExtended(nameOrId, false)
-        if (extended) {
-          return parsePokemonFromCache(extended)
-        }
-      } catch (apiError) {
-        console.debug("[Pokemon Utils] PokeAPI fetch failed:", apiError, "for:", nameOrId)
-      }
-      return null
+    if (typeof window !== "undefined") {
+      return fetchOneFromApi(nameOrId)
     }
-    
-    // SERVER-SIDE: Check Supabase cache first, then fall back to API
-    const supabase = getSupabaseClient()
-    
-    // Try pokepedia_pokemon first (has data in production)
-    const query = typeof nameOrId === "number"
-      ? supabase.from("pokepedia_pokemon").select("*").eq("id", nameOrId).maybeSingle()
-      : supabase.from("pokepedia_pokemon").select("*").eq("name", nameOrId.toLowerCase()).maybeSingle()
-
-    const { data: pokepediaData, error: pokepediaError } = await query
-
-    // Check if error is due to table not existing (common in local dev)
-    const errorStr = pokepediaError ? JSON.stringify(pokepediaError) : ""
-    const errorMsg = pokepediaError?.message || ""
-    const errorCode = pokepediaError?.code || ""
-    
-    const isTableNotFound = pokepediaError && (
-      errorMsg.includes("relation") ||
-      errorMsg.includes("does not exist") ||
-      errorMsg.includes("not found") ||
-      errorStr.includes("relation") ||
-      errorStr.includes("does not exist") ||
-      errorCode === "42P01" ||
-      errorCode === "PGRST116" ||
-      errorCode === "PGRST301" ||
-      errorStr.includes("PGRST")
-    )
-
-    if (pokepediaError && !isTableNotFound) {
-      console.debug("[Pokemon Utils] pokepedia_pokemon query error:", errorMsg || errorStr, "for:", nameOrId)
-    }
-
-    if (pokepediaData && !pokepediaError) {
-      try {
-        const parsedTypes = pokepediaData.types 
-          ? (parseJsonbField<string[]>(pokepediaData.types) || (Array.isArray(pokepediaData.types) ? pokepediaData.types : null))
-          : null
-        const parsedBaseStats = pokepediaData.base_stats
-          ? (parseJsonbField<typeof pokepediaData.base_stats>(pokepediaData.base_stats) || (typeof pokepediaData.base_stats === 'object' ? pokepediaData.base_stats : null))
-          : null
-        const parsedAbilities = pokepediaData.abilities
-          ? (parseJsonbField<typeof pokepediaData.abilities>(pokepediaData.abilities) || (Array.isArray(pokepediaData.abilities) ? pokepediaData.abilities : null))
-          : null
-
-        const adapted = adaptPokepediaToDisplayData({
-          ...pokepediaData,
-          types: parsedTypes,
-          base_stats: parsedBaseStats,
-          abilities: parsedAbilities,
-        })
-        console.log("[Pokemon Utils] Successfully adapted pokepedia_pokemon data for:", nameOrId)
-        return adapted
-      } catch (adaptError) {
-        console.error("[Pokemon Utils] Error adapting pokepedia_pokemon data:", adaptError, "for:", nameOrId)
-      }
-    }
-
-    // Fallback: Try pokemon_cache (for backward compatibility during migration)
-    const cacheQuery = typeof nameOrId === "number"
-      ? supabase.from("pokemon_cache").select("*").eq("pokemon_id", nameOrId).maybeSingle()
-      : supabase.from("pokemon_cache").select("*").eq("name", nameOrId.toLowerCase()).maybeSingle()
-
-    const { data: cached, error: cacheError } = await cacheQuery
-
-    if (cached && !cacheError && cached.expires_at && new Date(cached.expires_at) > new Date()) {
-      return parsePokemonFromCache(cached)
-    }
-
-    // Final fallback: Fetch from PokeAPI (server-side uses custom API → official API)
-    try {
-      const extended = await getPokemonDataExtended(nameOrId, false)
-      if (extended) {
-        return parsePokemonFromCache(extended)
-      }
-    } catch (apiError) {
-      console.debug("[Pokemon Utils] PokeAPI fallback failed:", apiError, "for:", nameOrId)
-    }
-
-    return null
+    const { readPokemon } = await import("@/lib/pokemon-read")
+    const result = await readPokemon(nameOrId)
+    return result?.data ?? null
   } catch (error) {
     console.error("[Pokemon Utils] Error fetching Pokemon:", error)
     return null
@@ -253,147 +178,25 @@ export async function getPokemon(nameOrId: string | number): Promise<PokemonDisp
 }
 
 /**
- * Get all Pokemon from cache (for lists)
- * CLIENT-SIDE: Fetches from official PokeAPI list endpoint
- * SERVER-SIDE: Checks Supabase cache first, then falls back to API
+ * List Pokémon for Pokédex / builders.
+ * Client: one /api/pokemon/catalog call. Server: lib/pokemon-read.listPokemon.
  */
 export async function getAllPokemonFromCache(limit?: number): Promise<PokemonDisplayData[]> {
   try {
-    const isClientSide = typeof window !== 'undefined'
-    
-    // CLIENT-SIDE: Fetch from official PokeAPI list endpoint
-    if (isClientSide) {
-      console.log("[Pokemon Utils] Client-side: Fetching Pokemon list from official PokeAPI")
-      try {
-        // Use PokeAPI's /pokemon endpoint to get list of all Pokemon (names and IDs)
-        // We'll fetch basic list first, then fetch full details in batches
-        const fetchLimit = limit || 200 // Reasonable default for initial Pokédex load (can be increased)
-        
-        // Fetch Pokemon list (just names/IDs) - PokeAPI supports up to 10000
-        const response = await fetch(`https://pokeapi.co/api/v2/pokemon?limit=${fetchLimit}&offset=0`)
-        if (!response.ok) {
-          console.warn("[Pokemon Utils] Failed to fetch Pokemon list from PokeAPI")
-          return []
-        }
-        
-        const data = await response.json()
-        const pokemonResults = data.results || []
-        
-        console.log(`[Pokemon Utils] Fetched ${pokemonResults.length} Pokemon names from official PokeAPI, fetching details...`)
-        
-        // Fetch full details for each Pokemon in parallel (with reasonable concurrency)
-        // Process in smaller batches to avoid overwhelming the API
-        const batchSize = 20 // Fetch 20 at a time
-        const allPokemon: PokemonDisplayData[] = []
-        
-        for (let i = 0; i < pokemonResults.length; i += batchSize) {
-          const batch = pokemonResults.slice(i, i + batchSize)
-          const pokemonPromises = batch.map(async (result: any) => {
-            const pokemonId = parseInt(result.url.split('/').filter(Boolean).pop() || '0')
-            if (!pokemonId) return null
-            try {
-              return await getPokemon(pokemonId)
-            } catch (error) {
-              console.debug(`[Pokemon Utils] Failed to fetch Pokemon ${pokemonId}:`, error)
-              return null
-            }
-          })
-          
-          const batchResults = await Promise.allSettled(pokemonPromises)
-          const validPokemon = batchResults
-            .filter((result): result is PromiseFulfilledResult<PokemonDisplayData | null> => 
-              result.status === 'fulfilled' && result.value !== null
-            )
-            .map(result => result.value!)
-          
-          allPokemon.push(...validPokemon)
-          
-          // Log progress for large fetches
-          if (i % 100 === 0 && pokemonResults.length > 100) {
-            console.log(`[Pokemon Utils] Progress: ${allPokemon.length}/${pokemonResults.length} Pokemon fetched`)
-          }
-        }
-        
-        console.log(`[Pokemon Utils] Successfully fetched ${allPokemon.length} Pokemon from official PokeAPI`)
-        return allPokemon
-      } catch (error) {
-        console.error("[Pokemon Utils] Error fetching Pokemon list from PokeAPI:", error)
-        return []
-      }
+    if (typeof window !== "undefined") {
+      return fetchCatalogFromApi({ limit: limit ?? 200 })
     }
-    
-    // SERVER-SIDE: Check Supabase cache first, then fall back to API
-    const supabase = getSupabaseClient()
-    
-    // Try pokepedia_pokemon first (has data in production)
-    let query = supabase
-      .from("pokepedia_pokemon")
-      .select("*")
-      .order("id", { ascending: true })
-
-    if (limit) {
-      query = query.limit(limit)
-    }
-
-    const { data: pokepediaData, error: pokepediaError } = await query
-
-    // Check if error is due to table not existing (common in local dev)
-    const isTableNotFound = pokepediaError && (
-      pokepediaError.message?.includes("relation") ||
-      pokepediaError.message?.includes("does not exist") ||
-      pokepediaError.code === "42P01" ||
-      pokepediaError.code === "PGRST116"
-    )
-
-    if (pokepediaData && !pokepediaError) {
-      return pokepediaData.map((row: PokepediaPokemonRow) => {
-        // Parse JSONB fields that might come as strings
-        return adaptPokepediaToDisplayData({
-          ...row,
-          types: parseJsonbField<string[]>(row.types) || row.types,
-          base_stats: parseJsonbField<typeof row.base_stats>(row.base_stats) || row.base_stats,
-          abilities: parseJsonbField<typeof row.abilities>(row.abilities) || row.abilities,
-        })
-      })
-    }
-
-    // Fallback: Try pokemon_cache (for backward compatibility during migration)
-    let cacheQuery = supabase
-      .from("pokemon_cache")
-      .select("*")
-      .order("pokemon_id", { ascending: true })
-
-    if (limit) {
-      cacheQuery = cacheQuery.limit(limit)
-    }
-
-    const { data: cachedData, error: cacheError } = await cacheQuery
-
-    if (cachedData && !cacheError) {
-      return cachedData.map(parsePokemonFromCache)
-    }
-
-    // Handle errors gracefully - only log if not a table-not-found error
-    if ((pokepediaError || cacheError) && !isTableNotFound) {
-      const errorMessage = (pokepediaError || cacheError)?.message || JSON.stringify(pokepediaError || cacheError)
-      if (errorMessage.includes("406") || errorMessage.includes("Not Acceptable") || errorMessage.includes("schema cache")) {
-        console.debug("[Pokemon Utils] PostgREST schema cache issue, returning empty array")
-        return []
-      }
-      // Only log unexpected errors, not expected table-not-found errors
-      console.debug("[Pokemon Utils] Error loading Pokemon:", errorMessage)
-    }
-
-    return []
+    const { listPokemon } = await import("@/lib/pokemon-read")
+    const result = await listPokemon({ limit: limit ?? 200 })
+    return result.data
   } catch (error) {
-    console.error("[Pokemon Utils] Error:", error)
+    console.error("[Pokemon Utils] Error listing Pokemon:", error)
     return []
   }
 }
 
 /**
- * Search Pokemon by name or type
- * Now uses pokepedia_pokemon table which has data in production
+ * Search Pokémon by name (optional in-memory type/tier/cost filters).
  */
 export async function searchPokemon(
   query: string,
@@ -405,88 +208,29 @@ export async function searchPokemon(
   },
 ): Promise<PokemonDisplayData[]> {
   try {
-    const supabase = getSupabaseClient()
-    
-    // Try pokepedia_pokemon first (has data in production)
-    let supabaseQuery = supabase.from("pokepedia_pokemon").select("*")
-
-    // Name search
-    if (query) {
-      supabaseQuery = supabaseQuery.ilike("name", `%${query}%`)
-    }
-
-    // Type filter - use type_primary or type_secondary for fast filtering
-    // For multiple types, we'll filter in memory after fetching
-    if (filters?.types && filters.types.length > 0) {
-      // Use type_primary for single type filter (fast indexed query)
-      if (filters.types.length === 1) {
-        supabaseQuery = supabaseQuery.or(`type_primary.eq.${filters.types[0]},type_secondary.eq.${filters.types[0]}`)
-      }
-      // For multiple types, we'll filter in memory after fetching
-    }
-
-    // Note: tier and draft_cost are not in pokepedia_pokemon
-    // These filters will be ignored (or could filter in memory if we add those fields)
-
-    const { data: pokepediaData, error: pokepediaError } = await supabaseQuery.order("id", { ascending: true })
-
-    let results: PokemonDisplayData[] = []
-
-    if (pokepediaData && !pokepediaError) {
-      // Parse and adapt pokepedia_pokemon data
-      results = pokepediaData.map((row: PokepediaPokemonRow) => {
-        return adaptPokepediaToDisplayData({
-          ...row,
-          types: parseJsonbField<string[]>(row.types) || row.types,
-          base_stats: parseJsonbField<typeof row.base_stats>(row.base_stats) || row.base_stats,
-          abilities: parseJsonbField<typeof row.abilities>(row.abilities) || row.abilities,
-        })
-      })
+    let results: PokemonDisplayData[]
+    if (typeof window !== "undefined") {
+      results = await fetchCatalogFromApi({ q: query, limit: 100 })
     } else {
-      // Fallback: Try pokemon_cache (for backward compatibility during migration)
-      let cacheQuery = supabase.from("pokemon_cache").select("*")
-
-      if (query) {
-        cacheQuery = cacheQuery.ilike("name", `%${query}%`)
-      }
-
-      if (filters?.tier) {
-        cacheQuery = cacheQuery.eq("tier", filters.tier)
-      }
-
-      if (filters?.minCost !== undefined) {
-        cacheQuery = cacheQuery.gte("draft_cost", filters.minCost)
-      }
-      if (filters?.maxCost !== undefined) {
-        cacheQuery = cacheQuery.lte("draft_cost", filters.maxCost)
-      }
-
-      const { data: cachedData, error: cacheError } = await cacheQuery.order("pokemon_id", { ascending: true })
-
-      if (cachedData && !cacheError) {
-        results = cachedData.map(parsePokemonFromCache)
-      } else if (pokepediaError || cacheError) {
-        const errorMessage = (pokepediaError || cacheError)?.message || JSON.stringify(pokepediaError || cacheError)
-        if (errorMessage.includes("406") || errorMessage.includes("Not Acceptable") || errorMessage.includes("schema cache")) {
-          console.warn("[Pokemon Utils] PostgREST schema cache issue during search, returning empty array")
-          return []
-        }
-        console.error("[Pokemon Utils] Error searching Pokemon:", pokepediaError || cacheError)
-        return []
-      }
+      const { searchPokemonCatalog } = await import("@/lib/pokemon-read")
+      results = await searchPokemonCatalog(query, 100)
     }
 
-    // Apply type filter in memory if needed (for multiple types or when using pokemon_cache fallback)
-    if (filters?.types && filters.types.length > 0 && results.length > 0) {
+    if (filters?.types?.length) {
       results = results.filter((pokemon) => {
         const pokemonTypes = pokemon.types.map((t) => t.toLowerCase())
         return filters.types!.some((filterType) => pokemonTypes.includes(filterType.toLowerCase()))
       })
     }
-
-    // Note: tier and cost filters are not applied for pokepedia_pokemon (fields don't exist)
-    // These would need to be added to pokepedia_pokemon or filtered in memory after fetching from a separate table
-
+    if (filters?.tier) {
+      results = results.filter((pokemon) => pokemon.tier === filters.tier)
+    }
+    if (filters?.minCost !== undefined) {
+      results = results.filter((pokemon) => pokemon.draft_cost >= filters.minCost!)
+    }
+    if (filters?.maxCost !== undefined) {
+      results = results.filter((pokemon) => pokemon.draft_cost <= filters.maxCost!)
+    }
     return results
   } catch (error) {
     console.error("[Pokemon Utils] Error searching:", error)

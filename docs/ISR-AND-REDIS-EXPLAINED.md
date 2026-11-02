@@ -1,6 +1,18 @@
 # ISR and Redis Explained - Quick Reference
 
-> **Date**: 2026-01-17
+> **Date**: 2026-01-17  
+> **Updated**: 2026-11-02 — Redis is homepage / sheet-sync only; Pokémon catalog does not use Redis.
+
+---
+
+## Pokémon catalog vs Redis (2026-11-02)
+
+Redis is **kept on purpose**. It is used by:
+
+- `app/api/homepage/live-data` — short-TTL cache for homepage live data
+- `app/api/sync/google-sheets` — invalidates related cache keys after a sync
+
+Pokémon reads do **not** go through Redis. The single server path is `lib/pokemon-read.ts` → `pokepedia_pokemon` (canonical) → deprecated `pokemon_cache` → PokeAPI (pokenode-ts) with write-back. Clients use `/api/pokemon/catalog` and `/api/pokemon/[name]` only.
 
 ---
 

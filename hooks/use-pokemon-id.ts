@@ -1,6 +1,7 @@
 /**
  * Hook to fetch pokemon_id from Pokemon name
- * Used when pokemon_id is not available in draft_pool
+ * Used when pokemon_id is not available in draft_pool.
+ * Goes through /api/pokemon/[name] (DB-first server read) — never pokeapi.co from the browser.
  */
 
 import { useState, useEffect } from "react"
@@ -14,26 +15,29 @@ export function usePokemonId(name: string | null | undefined): number | null {
       return
     }
 
-    // Normalize name for PokeAPI (lowercase, hyphenated)
     const normalizedName = name.toLowerCase().replace(/\s+/g, "-")
+    let cancelled = false
 
-    // Fetch from PokeAPI
-    fetch(`https://pokeapi.co/api/v2/pokemon/${normalizedName}`)
+    fetch(`/api/pokemon/${encodeURIComponent(normalizedName)}`)
       .then((res) => {
         if (!res.ok) {
           throw new Error(`Pokemon not found: ${name}`)
         }
-        return res.json()
+        return res.json() as Promise<{ pokemon_id?: number }>
       })
       .then((data) => {
-        if (data.id) {
-          setPokemonId(data.id)
+        if (!cancelled && data.pokemon_id) {
+          setPokemonId(data.pokemon_id)
         }
       })
       .catch((error) => {
         console.debug(`[usePokemonId] Failed to fetch ID for ${name}:`, error)
-        setPokemonId(null)
+        if (!cancelled) setPokemonId(null)
       })
+
+    return () => {
+      cancelled = true
+    }
   }, [name])
 
   return pokemonId
