@@ -17,7 +17,7 @@ League values (point budget, roster size, timer length, etc.) stay configurable 
 
 3. **Opportunistic checks (primary on Hobby)** — `/api/draft/status` and `DraftSystem.makePick` call the enforce RPC on every request. While the draft board is open and polling status, timers advance without relying on frequent cron.
 
-4. **Cron backup** — `GET /api/cron/draft-timers` (Bearer `CRON_SECRET`, scheduled hourly in `vercel.json`) sweeps active sessions. On Vercel Hobby, cron frequency is limited; treat this as a safety net for idle boards, not the sole enforcer.
+4. **Cron backup** — `GET /api/cron/draft-timers` (Bearer `CRON_SECRET`, scheduled daily in `vercel.json` — Hobby allows at most one run per day) sweeps active sessions. Treat this as a safety net for idle boards; live drafts rely on status/pick polling for timely enforcement.
 
 ## Related RPCs
 
