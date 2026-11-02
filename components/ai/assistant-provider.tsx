@@ -84,7 +84,7 @@ export function AssistantProvider() {
 
   // The dashboard shows a bottom tab bar below the md breakpoint; keep the FAB clear of it.
   const clearOfTabBar = pathname.startsWith("/dashboard")
-    ? "bottom-[calc(4.5rem+env(safe-area-inset-bottom))] md:bottom-6"
+    ? "bottom-[calc(var(--mobile-tab-bar-height)+1rem)] md:bottom-[calc(1.5rem+env(safe-area-inset-bottom))]"
     : undefined
 
   return (

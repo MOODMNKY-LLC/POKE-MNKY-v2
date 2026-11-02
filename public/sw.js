@@ -1,15 +1,24 @@
-// Enhanced Service Worker for Average at Best Battle League PWA
-const CACHE_VERSION = 'aab-battle-league-v2'
+// Service Worker for Average at Best Battle League PWA
+//
+// Caching rules:
+//  - /offline (and the assets it needs to hydrate) is precached at install, and the
+//    install fails if it cannot be cached, so the first failed navigation always has a fallback.
+//  - Only same-origin GET requests are handled. API routes, auth routes, Next.js RSC/data
+//    requests and every cross-origin request (Supabase, Discord, CDNs) go straight to the network.
+//  - Pages that can contain signed-in content (/dashboard, /admin) are never stored.
+//  - Responses marked Cache-Control: no-store/private are never stored.
+const CACHE_VERSION = 'aab-battle-league-v3'
 const STATIC_CACHE = `${CACHE_VERSION}-static`
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`
-const API_CACHE = `${CACHE_VERSION}-api`
+const CACHE_PREFIX = 'aab-battle-league-'
+const OFFLINE_URL = '/offline'
 
 // In local development, caching HTML can cause hydration mismatches because
 // stale cached pages may be served while the client bundle is updated.
 // Disable SW caching behaviors on localhost/127.0.0.1.
 const IS_LOCAL_DEV = self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1'
 
-// Static assets to cache on install
+// Best-effort precache: a missing file here must not block installation.
 const STATIC_ASSETS = [
   '/',
   '/favicon.ico',
@@ -22,204 +31,153 @@ const STATIC_ASSETS = [
   '/league-logo.png',
 ]
 
-// API routes that can be cached
-const CACHEABLE_API_ROUTES = [
-  '/api/standings',
-  '/api/teams',
-  '/api/schedule',
-]
+// Same-origin paths that are never handled by the service worker.
+const NETWORK_ONLY_PREFIXES = ['/api/', '/auth/', '/_next/data/']
 
-// Install event - cache static resources
-self.addEventListener('install', (event) => {
-  console.log('[SW] Installing service worker...')
-  if (IS_LOCAL_DEV) {
-    // Don’t pre-cache in local dev
-    self.skipWaiting()
-    return
+// Same-origin HTML that may contain signed-in content: network only, never stored.
+const PRIVATE_PAGE_PREFIXES = ['/dashboard', '/admin']
+
+function matchesPrefix(pathname, prefixes) {
+  return prefixes.some((prefix) => pathname === prefix.replace(/\/$/, '') || pathname.startsWith(prefix))
+}
+
+function isStorable(response) {
+  if (!response || !response.ok || response.type !== 'basic' || response.redirected) return false
+  const cacheControl = response.headers.get('Cache-Control') || ''
+  return !/\b(no-store|private)\b/i.test(cacheControl)
+}
+
+async function precacheOfflinePage(cache) {
+  const response = await fetch(new Request(OFFLINE_URL, { cache: 'reload' }))
+  if (!response.ok || response.redirected) {
+    throw new Error(`[SW] ${OFFLINE_URL} could not be precached (status ${response.status})`)
   }
-  event.waitUntil(
-    caches.open(STATIC_CACHE).then((cache) => {
-      console.log('[SW] Caching static assets')
-      return cache.addAll(STATIC_ASSETS.map(url => new Request(url, { cache: 'reload' })))
-    })
-  )
-  self.skipWaiting()
-})
+  const html = await response.clone().text()
+  await cache.put(OFFLINE_URL, response)
 
-// Activate event - clean up old caches
-self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating service worker...')
-  event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames
-          .filter((cacheName) => {
-            // Delete old caches
-            return cacheName.startsWith('aab-battle-league-') && 
-                   cacheName !== STATIC_CACHE && 
-                   cacheName !== DYNAMIC_CACHE &&
-                   cacheName !== API_CACHE
-          })
-          .map((cacheName) => {
-            console.log('[SW] Deleting old cache:', cacheName)
-            return caches.delete(cacheName)
-          })
-      )
+  // The offline page is a client component; precache its scripts and styles so that
+  // "Try Again" works even when the very first visit to /offline happens without a network.
+  const assetUrls = new Set()
+  const assetPattern = /\/_next\/static\/[^"'\\\s)<>]+/g
+  let match
+  while ((match = assetPattern.exec(html)) !== null) {
+    assetUrls.add(match[0])
+  }
+  await Promise.all(
+    Array.from(assetUrls).map(async (assetUrl) => {
+      try {
+        const assetResponse = await fetch(assetUrl)
+        if (assetResponse.ok) await cache.put(assetUrl, assetResponse)
+      } catch (error) {
+        console.log('[SW] Skipping offline asset:', assetUrl)
+      }
     })
   )
-  if (IS_LOCAL_DEV) {
-    // Aggressively clear caches in local dev to prevent serving stale HTML.
-    event.waitUntil(
-      caches.keys().then((cacheNames) =>
-        Promise.all(
-          cacheNames
-            .filter((cacheName) => cacheName.startsWith('aab-battle-league-'))
-            .map((cacheName) => caches.delete(cacheName))
+}
+
+self.addEventListener('install', (event) => {
+  self.skipWaiting()
+  if (IS_LOCAL_DEV) return
+
+  event.waitUntil(
+    caches.open(STATIC_CACHE).then(async (cache) => {
+      await precacheOfflinePage(cache)
+      await Promise.all(
+        STATIC_ASSETS.map((url) =>
+          cache.add(new Request(url, { cache: 'reload' })).catch(() => {
+            console.log('[SW] Skipping precache for', url)
+          })
         )
       )
-    )
-  }
-  return self.clients.claim()
+    })
+  )
 })
 
-// Fetch event - implement caching strategies
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches
+      .keys()
+      .then((cacheNames) =>
+        Promise.all(
+          cacheNames
+            .filter((name) => {
+              if (IS_LOCAL_DEV) return name.startsWith(CACHE_PREFIX)
+              return name.startsWith(CACHE_PREFIX) && name !== STATIC_CACHE && name !== DYNAMIC_CACHE
+            })
+            .map((name) => caches.delete(name))
+        )
+      )
+      .then(() => self.clients.claim())
+  )
+})
+
 self.addEventListener('fetch', (event) => {
-  if (IS_LOCAL_DEV) {
-    // Bypass SW caching in local dev.
-    return
-  }
+  if (IS_LOCAL_DEV) return
+
   const { request } = event
+  if (request.method !== 'GET') return
+
   const url = new URL(request.url)
+  if (!url.protocol.startsWith('http')) return
+  if (url.origin !== self.location.origin) return
+  if (matchesPrefix(url.pathname, NETWORK_ONLY_PREFIXES)) return
+  if (url.searchParams.has('_rsc') || request.headers.has('RSC')) return
 
-  // Skip non-GET requests
-  if (request.method !== 'GET') {
+  if (request.mode === 'navigate') {
+    event.respondWith(handleNavigation(request, url))
     return
   }
 
-  // Skip chrome-extension and other non-http(s) requests
-  if (!url.protocol.startsWith('http')) {
+  if (url.pathname.startsWith('/_next/static/') || STATIC_ASSETS.includes(url.pathname)) {
+    event.respondWith(cacheFirst(request, STATIC_CACHE))
     return
   }
 
-  // API routes - Network first, fallback to cache
-  if (url.pathname.startsWith('/api/')) {
-    event.respondWith(networkFirstStrategy(request, API_CACHE))
-    return
+  if (['image', 'font', 'style', 'script'].includes(request.destination)) {
+    event.respondWith(cacheFirst(request, DYNAMIC_CACHE))
   }
-
-  // Static assets - Cache first, fallback to network
-  if (STATIC_ASSETS.some(asset => url.pathname === asset)) {
-    event.respondWith(cacheFirstStrategy(request, STATIC_CACHE))
-    return
-  }
-
-  // HTML pages - Network first with cache fallback
-  if (request.headers.get('accept')?.includes('text/html')) {
-    event.respondWith(networkFirstStrategy(request, DYNAMIC_CACHE))
-    return
-  }
-
-  // Images, fonts, CSS, JS - Cache first
-  if (
-    request.destination === 'image' ||
-    request.destination === 'font' ||
-    request.destination === 'style' ||
-    request.destination === 'script'
-  ) {
-    event.respondWith(cacheFirstStrategy(request, DYNAMIC_CACHE))
-    return
-  }
-
-  // Default: Network first
-  event.respondWith(networkFirstStrategy(request, DYNAMIC_CACHE))
 })
 
-// Network First Strategy - Try network, fallback to cache
-async function networkFirstStrategy(request, cacheName) {
+async function handleNavigation(request, url) {
+  const isPrivate = matchesPrefix(url.pathname, PRIVATE_PAGE_PREFIXES)
   try {
-    const networkResponse = await fetch(request)
-    
-    // Clone the response because it can only be consumed once
-    const responseClone = networkResponse.clone()
-    
-    // Cache successful responses
-    if (networkResponse.ok) {
-      const cache = await caches.open(cacheName)
-      cache.put(request, responseClone)
+    const response = await fetch(request)
+    if (!isPrivate && isStorable(response)) {
+      const cache = await caches.open(DYNAMIC_CACHE)
+      cache.put(request, response.clone())
     }
-    
-    return networkResponse
+    return response
   } catch (error) {
-    console.log('[SW] Network failed, trying cache:', request.url)
-    
-    // Try cache
-    const cachedResponse = await caches.match(request)
-    if (cachedResponse) {
-      return cachedResponse
+    if (!isPrivate) {
+      const cached = await caches.match(request)
+      if (cached) return cached
     }
-    
-    // If it's a navigation request and we have no cache, return offline page
-    if (request.mode === 'navigate') {
-      const offlinePage = await caches.match('/offline')
-      if (offlinePage) {
-        return offlinePage
-      }
-    }
-    
-    // Return error response
-    return new Response('Offline - Content not available', {
+    const offline = await caches.match(OFFLINE_URL)
+    if (offline) return offline
+    return new Response('You are offline.', {
       status: 503,
       statusText: 'Service Unavailable',
-      headers: new Headers({
-        'Content-Type': 'text/plain',
-      }),
+      headers: { 'Content-Type': 'text/plain' },
     })
   }
 }
 
-// Cache First Strategy - Try cache, fallback to network
-async function cacheFirstStrategy(request, cacheName) {
-  const cachedResponse = await caches.match(request)
-  
-  if (cachedResponse) {
-    return cachedResponse
-  }
-  
+async function cacheFirst(request, cacheName) {
+  const cached = await caches.match(request)
+  if (cached) return cached
+
   try {
-    const networkResponse = await fetch(request)
-    
-    // Clone the response
-    const responseClone = networkResponse.clone()
-    
-    // Cache successful responses
-    if (networkResponse.ok) {
+    const response = await fetch(request)
+    if (isStorable(response)) {
       const cache = await caches.open(cacheName)
-      cache.put(request, responseClone)
+      cache.put(request, response.clone())
     }
-    
-    return networkResponse
+    return response
   } catch (error) {
-    console.log('[SW] Cache and network failed:', request.url)
-    
-    // Return error response
     return new Response('Offline - Content not available', {
       status: 503,
       statusText: 'Service Unavailable',
-      headers: new Headers({
-        'Content-Type': 'text/plain',
-      }),
+      headers: { 'Content-Type': 'text/plain' },
     })
   }
 }
-
-// Background sync for offline actions (future enhancement)
-self.addEventListener('sync', (event) => {
-  console.log('[SW] Background sync:', event.tag)
-  // Future: Queue offline actions for sync when online
-})
-
-// Push notifications (future enhancement)
-self.addEventListener('push', (event) => {
-  console.log('[SW] Push notification received')
-  // Future: Handle push notifications
-})

@@ -217,7 +217,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <footer className="w-full border-t border-border/40 bg-muted/20 py-8 md:py-12">
+      <footer className="w-full border-t border-border/40 bg-muted/20 pt-8 pr-[env(safe-area-inset-right)] pb-[calc(2rem+env(safe-area-inset-bottom))] pl-[env(safe-area-inset-left)] md:pt-12 md:pb-[calc(3rem+env(safe-area-inset-bottom))]">
         <div className="container mx-auto max-w-7xl px-4 md:px-6">
           <div className="grid gap-8 sm:grid-cols-2 md:grid-cols-4 justify-items-start md:justify-items-center">
             <div className="w-full space-y-3 sm:w-auto">

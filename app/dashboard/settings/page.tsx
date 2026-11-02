@@ -17,6 +17,7 @@ import { User, Bell, Sliders, BookOpen, UserCircle } from "lucide-react"
 import { ProfileSheetTrigger } from "@/components/profile/profile-sheet-trigger"
 import { RestartOnboardingButton } from "@/components/dashboard/restart-onboarding-button"
 import { ThemeSwitcher } from "@/components/theme-switcher"
+import { InstallAppCard } from "@/components/pwa/install-app-card"
 
 export const dynamic = "force-dynamic"
 
@@ -101,6 +102,7 @@ export default async function DashboardSettingsPage({
                 </ProfileSheetTrigger>
               </CardContent>
             </Card>
+            <InstallAppCard />
             {profile.onboarding_completed && (
               <Card>
                 <CardHeader>
