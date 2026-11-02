@@ -82,5 +82,16 @@ export function AssistantProvider() {
 
   if (!mounted) return null
 
-  return <FloatingAssistantButton context={context} isAuthenticated={isAuthenticated} />
+  // The dashboard shows a bottom tab bar below the md breakpoint; keep the FAB clear of it.
+  const clearOfTabBar = pathname.startsWith("/dashboard")
+    ? "bottom-[calc(4.5rem+env(safe-area-inset-bottom))] md:bottom-6"
+    : undefined
+
+  return (
+    <FloatingAssistantButton
+      context={context}
+      isAuthenticated={isAuthenticated}
+      className={clearOfTabBar}
+    />
+  )
 }

@@ -1,289 +1,77 @@
 "use client"
 
 import * as React from "react"
-import { useRouter } from "next/navigation"
-import {
-  Home,
-  Users,
-  Trophy,
-  Settings,
-  Sword,
-  Sparkles,
-  ClipboardList,
-  type LucideIcon,
-} from "lucide-react"
-import { createClient } from "@/lib/supabase/client"
-import { getCurrentUserProfile, canAccessCoachFeatures, type UserProfile } from "@/lib/rbac"
-import { NavMain } from "@/components/nav-main"
-import { NavUser } from "@/components/nav-user"
-import { TeamSwitcher } from "@/components/team-switcher"
+import Link from "next/link"
+import { Sparkles } from "lucide-react"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { CoachNavGroups } from "@/components/dashboard/coach-nav-groups"
+import { CoachNavUser } from "@/components/dashboard/coach-nav-user"
 import { ProfileSheet } from "@/components/profile/profile-sheet"
+import { OPEN_PROFILE_SHEET_EVENT } from "@/components/profile/profile-sheet-trigger"
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar"
+import type { CoachNavContext } from "@/lib/nav/coach-nav"
+import type { CoachNavShellData } from "@/lib/nav/coach-nav-context"
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const router = useRouter()
-  const [userProfile, setUserProfile] = React.useState<UserProfile | null>(null)
-  const [coachTeam, setCoachTeam] = React.useState<{ name: string; avatar_url?: string | null; logo_url?: string | null } | null>(null)
-  const [loading, setLoading] = React.useState(true)
+interface AppSidebarProps extends Omit<React.ComponentProps<typeof Sidebar>, "children"> {
+  nav: CoachNavContext
+  user: CoachNavShellData["user"]
+  team: CoachNavShellData["team"]
+}
+
+export function AppSidebar({ nav, user, team, ...props }: AppSidebarProps) {
   const [profileSheetOpen, setProfileSheetOpen] = React.useState(false)
 
   React.useEffect(() => {
-    async function loadUser() {
-      const supabase = createClient()
-      const profile = await getCurrentUserProfile(supabase)
-      setUserProfile(profile)
-      setLoading(false)
-    }
-    loadUser()
-  }, [])
-
-  React.useEffect(() => {
-    if (!userProfile?.team_id) {
-      setCoachTeam(null)
-      return
-    }
-    const supabase = createClient()
-    supabase
-      .from("teams")
-      .select("name, avatar_url, logo_url")
-      .eq("id", userProfile.team_id)
-      .single()
-      .then(({ data }: { data: { name: string; avatar_url?: string | null; logo_url?: string | null } | null }) => setCoachTeam(data))
-  }, [userProfile?.team_id])
-
-  // Listen for open-profile-sheet event (from Settings, command palette, etc.)
-  React.useEffect(() => {
     const handler = () => setProfileSheetOpen(true)
-    window.addEventListener("open-profile-sheet", handler)
-    return () => window.removeEventListener("open-profile-sheet", handler)
+    window.addEventListener(OPEN_PROFILE_SHEET_EVENT, handler)
+    return () => window.removeEventListener(OPEN_PROFILE_SHEET_EVENT, handler)
   }, [])
 
-  // Dashboard-only navigation items (all routes must be within /dashboard/*)
-  const navItems: Array<{
-    title: string
-    url: string
-    icon: LucideIcon
-    isActive?: boolean
-    items?: { title: string; url: string }[]
-  }> = [
-    {
-      title: "Dashboard",
-      url: "/dashboard",
-      icon: Home,
-      isActive: true,
-      items: [
-        {
-          title: "Overview",
-          url: "/dashboard",
-        },
-        {
-          title: "Onboarding",
-          url: "/dashboard/onboarding",
-        },
-        {
-          title: "My Stats",
-          url: "/dashboard/stats",
-        },
-        {
-          title: "Activity",
-          url: "/dashboard/activity",
-        },
-      ],
-    },
-  ]
-
-  // Add Teams section (all users - general/showdown teams)
-  navItems.push({
-    title: "Teams",
-    url: "/dashboard/teams",
-    icon: Users,
-    items: [
-      {
-        title: "My Teams",
-        url: "/dashboard/teams",
-      },
-      {
-        title: "Team Library",
-        url: "/dashboard/teams/library",
-      },
-      {
-        title: "Create Team",
-        url: "/dashboard/teams/create",
-      },
-      {
-        title: "Upload Team",
-        url: "/dashboard/teams/upload",
-      },
-      {
-        title: "Team Builder",
-        url: "/dashboard/teams/builder",
-      },
-    ],
-  })
-
-  // Add League Team section (coach-specific - drafted/league teams)
-  // League teams are bound by rules, draft picks, and official competition
-  if (canAccessCoachFeatures(userProfile)) {
-    navItems.push({
-      title: "My League Team",
-      url: "/dashboard/league-team",
-      icon: Trophy,
-      items: [
-        {
-          title: "View Team",
-          url: "/dashboard/league-team",
-        },
-        {
-          title: "Roster",
-          url: "/dashboard/league-team/roster",
-        },
-        {
-          title: "Free Agency",
-          url: "/dashboard/free-agency",
-        },
-        {
-          title: "Trade Block",
-          url: "/dashboard/trade-block",
-        },
-        {
-          title: "Team Stats",
-          url: "/dashboard/league-team/stats",
-        },
-      ],
-    })
-  }
-
-  // Add Draft section (available to all users)
-  navItems.push({
-    title: "Draft",
-    url: "/dashboard/draft",
-    icon: ClipboardList,
-    items: [
-      {
-        title: "Draft Planning",
-        url: "/dashboard/draft",
-      },
-      {
-        title: "Draft Board",
-        url: "/dashboard/draft/board",
-      },
-      {
-        title: "My Roster",
-        url: "/dashboard/draft/roster",
-      },
-    ],
-  })
-
-  // Add calculator link (available to all users; Guides moved to Settings)
-  navItems.push({
-    title: "Damage Calculator",
-    url: "/calc",
-    icon: Sparkles,
-  })
-
-  // Add dashboard-specific items
-  navItems.push(
-    {
-      title: "Weekly Matches",
-      url: "/dashboard/weekly-matches",
-      icon: Sword,
-      items: [
-        {
-          title: "All Matches",
-          url: "/dashboard/weekly-matches",
-        },
-        {
-          title: "Submit Result",
-          url: "/dashboard/weekly-matches/submit",
-        },
-        {
-          title: "Match History",
-          url: "/dashboard/weekly-matches/history",
-        },
-      ],
-    },
-    {
-      title: "Settings",
-      url: "/dashboard/settings",
-      icon: Settings,
-      items: [
-        {
-          title: "Account",
-          url: "/dashboard/settings",
-        },
-        {
-          title: "Profile",
-          url: "/dashboard/profile",
-        },
-        {
-          title: "Notifications",
-          url: "/dashboard/settings#notifications",
-        },
-        {
-          title: "Preferences",
-          url: "/dashboard/settings#preferences",
-        },
-        {
-          title: "Guides",
-          url: "/dashboard/settings?tab=guides",
-        },
-      ],
-    }
-  )
-
-  // Prepare user data for NavUser
-  const userData = userProfile
-    ? {
-        name: userProfile.display_name || userProfile.discord_username || "Member",
-        email: userProfile.discord_username || "",
-        avatar: userProfile.avatar_url || userProfile.discord_avatar || "",
-      }
-    : {
-        name: "Loading...",
-        email: "",
-        avatar: "",
-      }
-
-  // Prepare team data for TeamSwitcher (if coach)
-  const teamData =
-    userProfile && canAccessCoachFeatures(userProfile)
-      ? [
-          {
-            name: coachTeam?.name ?? userProfile.display_name ?? "My Team",
-            logoUrl: coachTeam?.avatar_url || coachTeam?.logo_url || undefined,
-            plan: "Coach",
-          },
-        ]
-      : []
+  const brandName = team?.name ?? "POKE MNKY"
 
   return (
-    <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader>
-        {teamData.length > 0 ? (
-          <TeamSwitcher teams={teamData} />
-        ) : (
-          <div className="px-4 py-2">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5" />
-              <span className="font-semibold">POKE MNKY</span>
-            </div>
-          </div>
-        )}
-      </SidebarHeader>
-      <SidebarContent>
-        <NavMain items={navItems} onProfileClick={() => setProfileSheetOpen(true)} />
-      </SidebarContent>
-      <SidebarFooter>
-        {!loading && <NavUser user={userData} onProfileClick={() => setProfileSheetOpen(true)} />}
-      </SidebarFooter>
-      <SidebarRail />
+    <>
+      <Sidebar collapsible="icon" {...props}>
+        <SidebarHeader>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton size="lg" asChild tooltip={brandName} className="max-md:h-14">
+                <Link href="/dashboard">
+                  <Avatar className="size-8 rounded-lg">
+                    <AvatarImage src={team?.logoUrl ?? undefined} alt="" />
+                    <AvatarFallback className="rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+                      <Sparkles className="size-4" aria-hidden="true" />
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="grid flex-1 text-left text-sm leading-tight">
+                    <span className="truncate font-semibold">{brandName}</span>
+                    <span className="truncate text-xs text-muted-foreground">
+                      {nav.isCoach ? "Coach dashboard" : "Dashboard"}
+                    </span>
+                  </div>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarHeader>
+        <SidebarContent>
+          <CoachNavGroups ctx={nav} />
+        </SidebarContent>
+        <SidebarFooter>
+          <CoachNavUser user={user} />
+        </SidebarFooter>
+        <SidebarRail />
+      </Sidebar>
       <ProfileSheet open={profileSheetOpen} onOpenChange={setProfileSheetOpen} />
-    </Sidebar>
+    </>
   )
 }
