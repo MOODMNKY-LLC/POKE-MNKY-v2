@@ -20,6 +20,7 @@ import {
   openClawModeSystemPrompt,
   shouldRouteChatToOpenClaw,
 } from '@/lib/openclaw/chat-route'
+import { resolveMcpToolsEnabled } from '@/lib/ai/mcp-tools-enabled'
 
 function toResponseInput(
   messages: ReturnType<typeof convertUIMessagesToResponsesAPIFormat>,
@@ -65,13 +66,14 @@ export async function POST(request: Request) {
     const { 
       messages: rawMessages, 
       model = 'gpt-4o', 
-      mcpEnabled = true, 
+      mcpEnabled: mcpRequested = false, 
       files,
       useResponsesAPI = false, // New: Enable Responses API (default: false for backward compatibility)
     } = body
     
-    // Disable MCP tools for unauthenticated users
-    const effectiveMcpEnabled = isAuthenticated && mcpEnabled
+    // MCP tools default OFF (AI_MCP_TOOLS_ENABLED); still require auth
+    const effectiveMcpEnabled =
+      isAuthenticated && resolveMcpToolsEnabled(mcpRequested)
     
     // Check if Responses API should be used
     // Enable Responses API if:
@@ -380,7 +382,7 @@ Be friendly, helpful, and knowledgeable. Always use available tools (file_search
     // Log MCP configuration for debugging
     logger.debug('[General Assistant] Request details:', {
       isAuthenticated,
-      mcpEnabled,
+      mcpRequested,
       effectiveMcpEnabled,
       serverUrl: mcpServerUrl,
       hasApiKey: !!mcpApiKey,
@@ -446,7 +448,8 @@ Be friendly, helpful, and knowledgeable. Always use available tools (file_search
 
     // Log tool configuration
     logger.debug('[General Assistant] Tool configuration:', {
-      mcpEnabled,
+      mcpRequested,
+      effectiveMcpEnabled,
       hasTools: !!tools,
       toolCount: tools ? Object.keys(tools).length : 0,
       mcpServerUrl,

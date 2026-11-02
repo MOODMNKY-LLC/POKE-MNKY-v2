@@ -12,6 +12,7 @@ import {
   shouldRouteChatToOpenClaw,
   openClawModeSystemPrompt,
 } from '@/lib/openclaw/chat-route'
+import { resolveMcpToolsEnabled } from '@/lib/ai/mcp-tools-enabled'
 
 export async function POST(request: Request) {
   try {
@@ -22,7 +23,8 @@ export async function POST(request: Request) {
     
     // For useChat requests, use streamText
     if (isUseChatRequest) {
-      const { messages, selectedPokemon, mcpEnabled = true, model } = body
+      const { messages, selectedPokemon, mcpEnabled: mcpRequested = false, model } = body
+      const mcpEnabled = resolveMcpToolsEnabled(mcpRequested)
 
       if (shouldRouteChatToOpenClaw()) {
         const supabase = await createServerClient()
@@ -143,8 +145,9 @@ When asked about 'points', refer to draft point costs in the league draft pool. 
       return NextResponse.json({ error: 'Query is required' }, { status: 400 })
     }
 
-    // Try Responses API with MCP if enabled
-    if (useResponsesAPI || process.env.ENABLE_RESPONSES_API === 'true') {
+    // Try Responses API with MCP only when AI_MCP_TOOLS_ENABLED is on
+    const legacyMcp = resolveMcpToolsEnabled(body.useMCP === true || body.mcpEnabled === true)
+    if ((useResponsesAPI || process.env.ENABLE_RESPONSES_API === 'true') && legacyMcp) {
       const mcpServerUrl = process.env.MCP_DRAFT_POOL_SERVER_URL || 'https://mcp-draft-pool.moodmnky.com/mcp'
       const mcpApiKey = process.env.MCP_API_KEY
 
