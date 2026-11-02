@@ -35,8 +35,19 @@ function chainable(result: QueryResult) {
   return api
 }
 
+type PokemonCacheUpsert = {
+  pokemon_id: number
+  name: string
+  [key: string]: unknown
+}
+
 function mockSupabase(handlers: Record<string, () => QueryResult>) {
-  const upsert = vi.fn(async () => ({ data: null, error: null }))
+  const upsert = vi.fn(
+    async (_row: PokemonCacheUpsert, _opts?: { onConflict?: string }) => ({
+      data: null,
+      error: null,
+    }),
+  )
   const client = {
     from: vi.fn((table: string) => {
       const handler = handlers[table]
@@ -163,7 +174,9 @@ describe("readPokemon", () => {
     expect(result?.data.pokemon_id).toBe(25)
     expect(getPokemonByName).toHaveBeenCalledWith("pikachu")
     expect(supabase._upsert).toHaveBeenCalled()
-    const upsertArg = supabase._upsert.mock.calls[0][0] as { pokemon_id: number; name: string }
+    const upsertCall = supabase._upsert.mock.calls[0]
+    expect(upsertCall).toBeDefined()
+    const upsertArg = upsertCall![0]
     expect(upsertArg.pokemon_id).toBe(25)
     expect(upsertArg.name).toBe("pikachu")
   })
