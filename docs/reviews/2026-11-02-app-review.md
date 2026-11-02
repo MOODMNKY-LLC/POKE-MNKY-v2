@@ -177,12 +177,13 @@ Status key: **Live** = works on production with Season 7 data · **Partial** = l
 | Playoffs | ![playoffs](./img/playoffs.png) |
 | MVP | ![mvp](./img/mvp.png) |
 | Draft / board | ![draft](./img/draft.png) ![draft-board](./img/draft-board.png) |
+| Home (mobile ~390px) | ![mobile-homepage](./img/mobile-homepage.png) |
 
 ### Public IA and consistency
 
 - **Works well:** `/standings`, `/mvp`, `/schedule` clearly Season 7 and sheet-aligned; season switcher on standings.
 - **Confusing:** Homepage strip shows Season 8 “Unassigned” coaches while standings are Season 7; Match Center vs Schedule overlap; Insights vs MVP unclear; playoffs TBD slots without seed numbers.
-- **Polish:** Standings hero repeats the leader many times; public header + dashboard dock + FAB compete for attention; mobile needs a single primary nav story.
+- **Polish:** Standings hero repeats the leader many times; public header + dashboard dock + FAB compete for attention; mobile homepage stacks hero/countdown well but still inherits the S8-vs-S7 content mismatch.
 - **A11y basics:** Prefer real tables with captions; ensure season controls are labeled; don’t rely on color alone for W/L streaks.
 
 ### Coach / player dashboard — current
