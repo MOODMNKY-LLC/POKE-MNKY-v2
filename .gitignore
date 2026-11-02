@@ -59,3 +59,4 @@ temp/pokepaste-repo/
 .vercel
 .cursor/mcp.json
 .env*.local
+.pg.url.local
