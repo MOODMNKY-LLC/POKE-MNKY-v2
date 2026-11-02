@@ -6,6 +6,7 @@
 import { createServiceRoleClient } from "./supabase/service"
 import { getSeasonRules } from "./season-rules"
 import { pushDraftStateToNotion } from "./sync/push-draft-state-to-notion"
+import { teamIdForPick, type DraftType } from "./draft-pick-logic"
 
 export interface DraftPick {
   pokemon_name: string
@@ -117,18 +118,27 @@ export class DraftSystem {
     const initialStatus = config?.initialSessionStatus ?? (gov === "approved" ? "active" : "pending")
     const isLive = initialStatus === "active" && gov === "approved"
 
+    // Default rounds to season roster max (Matt's configurable rules); fall back to 10, never hardcode 11.
+    const seasonRules = await getSeasonRules(seasonId)
+    const totalRounds = seasonRules?.rosterSizeMax ?? 10
+    const pickTimeLimit = config?.pickTimeLimit || 45
+    const pickDeadlineAt = isLive
+      ? new Date(Date.now() + Math.max(pickTimeLimit, 1) * 1000).toISOString()
+      : null
+
     const insertPayload: Record<string, unknown> = {
       season_id: seasonId,
       status: initialStatus,
       draft_type: config?.draftType || "snake",
       total_teams: teamIds.length,
-      total_rounds: 11, // Default 11 rounds
+      total_rounds: totalRounds,
       current_pick_number: 1,
       current_round: 1,
       current_team_id: turnOrder[0] || null,
       turn_order: turnOrder,
-      pick_time_limit_seconds: config?.pickTimeLimit || 45,
+      pick_time_limit_seconds: pickTimeLimit,
       auto_draft_enabled: config?.autoDraftEnabled || false,
+      current_pick_deadline_at: pickDeadlineAt,
       started_at: isLive ? new Date().toISOString() : null,
       governance_approval_status: gov,
       created_by: config?.createdBy ?? null,
@@ -149,8 +159,17 @@ export class DraftSystem {
       .select()
       .single()
 
-    if (error?.message?.includes("governance_approval_status") || error?.code === "42703") {
-      const { governance_approval_status: _g, created_by: _c, ...legacyPayload } = insertPayload
+    if (
+      error?.code === "42703" ||
+      error?.message?.includes("governance_approval_status") ||
+      error?.message?.includes("current_pick_deadline_at")
+    ) {
+      const {
+        governance_approval_status: _g,
+        created_by: _c,
+        current_pick_deadline_at: _d,
+        ...legacyPayload
+      } = insertPayload
       const retry = await this.supabase.from("draft_sessions").insert(legacyPayload).select().single()
       data = retry.data
       error = retry.error
@@ -180,209 +199,140 @@ export class DraftSystem {
 
     if (!session) return null
 
-    const isSnakeRound = session.draft_type === "snake" && session.current_round % 2 === 0
-    const turnOrder = session.turn_order || []
-    
-    // For snake draft, reverse order on even rounds
-    const effectiveOrder = isSnakeRound ? [...turnOrder].reverse() : turnOrder
-    
-    // Calculate which team's turn it is
-    const picksInRound = (session.current_pick_number - 1) % turnOrder.length
-    const teamIndex = picksInRound
-    const teamId = effectiveOrder[teamIndex]
+    const turnOrder = (session.turn_order || []) as string[]
+    const draftType = (session.draft_type || "snake") as DraftType
+    const resolved = teamIdForPick({
+      turnOrder,
+      pickNumber: session.current_pick_number,
+      draftType,
+    })
+    if (!resolved) return null
 
     return {
-      teamId,
+      teamId: resolved.teamId,
       pickNumber: session.current_pick_number,
-      round: session.current_round,
-      isSnakeRound,
+      round: resolved.round,
+      isSnakeRound: resolved.isSnakeRound,
+    }
+  }
+
+  private mapPickRpcError(message: string | undefined): string {
+    const code = (message || "").replace(/^.*:\s*/, "").trim()
+    switch (code) {
+      case "SESSION_NOT_FOUND":
+        return "Draft session not found"
+      case "SESSION_NOT_ACTIVE":
+        return "Draft session is not active"
+      case "SESSION_PENDING_APPROVAL":
+        return "Draft session is pending admin approval"
+      case "NOT_YOUR_TURN":
+        return "It's not your turn to pick"
+      case "POKEMON_NOT_AVAILABLE":
+        return "Pokemon not available in draft pool"
+      case "BUDGET_NOT_FOUND":
+        return "Team budget not found"
+      case "INSUFFICIENT_POINTS":
+        return "Insufficient points for this pick"
+      case "DUPLICATE_PICK":
+        return "Pokemon already on this team's roster"
+      case "POKEMON_REQUIRED":
+        return "Pokemon name is required"
+      case "TURN_ORDER_EMPTY":
+        return "Draft turn order is empty"
+      case "INVALID_ARGS":
+        return "Invalid pick arguments"
+      default:
+        return message || "Failed to make pick"
     }
   }
 
   /**
-   * Make a draft pick
+   * Enforce pick timer for a session (auto-pick or skip when deadline passed).
+   * Safe to call on status/pick paths and from /api/cron/draft-timers.
+   */
+  async enforcePickTimer(sessionId: string): Promise<{
+    success: boolean
+    action?: string
+    error?: string
+    result?: Record<string, unknown>
+  }> {
+    const { data, error } = await this.supabase.rpc("rpc_enforce_draft_pick_timer", {
+      p_session_id: sessionId,
+    })
+
+    if (error) {
+      console.error("[DraftSystem] enforcePickTimer:", error)
+      return { success: false, error: error.message }
+    }
+
+    const payload = (data || {}) as Record<string, unknown>
+    return {
+      success: payload.success !== false,
+      action: typeof payload.action === "string" ? payload.action : undefined,
+      error: typeof payload.error === "string" ? payload.error : undefined,
+      result: payload,
+    }
+  }
+
+  /**
+   * Make a draft pick via atomic Postgres RPC (turn, budget, availability, writes).
+   * Resolves Pokémon from draft_pool / catalog inside the RPC — not pokemon_cache.
    */
   async makePick(
     sessionId: string,
     teamId: string,
     pokemonName: string
   ): Promise<{ success: boolean; error?: string; pick?: DraftPick }> {
-    // Get session
-    const { data: session } = await this.supabase
-      .from("draft_sessions")
-      .select("*")
-      .eq("id", sessionId)
-      .single()
+    // Opportunistic timer enforce before the pick (Hobby-friendly; cron is backup).
+    await this.enforcePickTimer(sessionId)
 
-    if (!session) {
-      return { success: false, error: "Draft session not found" }
+    const { data, error } = await this.supabase.rpc("rpc_make_live_draft_pick", {
+      p_session_id: sessionId,
+      p_team_id: teamId,
+      p_pokemon_name: pokemonName,
+      p_force_skip: false,
+    })
+
+    if (error) {
+      return { success: false, error: this.mapPickRpcError(error.message) }
     }
 
-    if (session.status !== "active") {
-      return { success: false, error: `Draft session is ${session.status}` }
-    }
-
-    const gov = (session as { governance_approval_status?: string }).governance_approval_status
-    if (gov && gov !== "approved") {
-      return { success: false, error: "Draft session is pending admin approval" }
-    }
-
-    // Verify it's this team's turn
-    const currentTurn = await this.getCurrentTurn(sessionId)
-    if (!currentTurn || currentTurn.teamId !== teamId) {
-      return { success: false, error: "It's not your turn to pick" }
-    }
-
-    // Get Pokemon from draft pool (use session.season_id)
-    // Note: generation was removed from draft_pool, we'll get it from pokemon_cache if needed
-    const { data: pokemon } = await this.supabase
-      .from("draft_pool")
-      .select("pokemon_name, point_value, status, pokemon_id")
-      .eq("pokemon_name", pokemonName)
-      .eq("status", "available")
-      .eq("season_id", session.season_id)
-      .single()
-
-    if (!pokemon) {
-      return { success: false, error: `Pokemon "${pokemonName}" not available in draft pool` }
-    }
-
-    // Check team budget
-    const { data: budget } = await this.supabase
-      .from("draft_budgets")
-      .select("*")
-      .eq("team_id", teamId)
-      .eq("season_id", session.season_id)
-      .single()
-
-    if (!budget) {
-      return { success: false, error: "Team budget not found" }
-    }
-
-    if (budget.remaining_points < pokemon.point_value) {
+    const payload = (data || {}) as Record<string, unknown>
+    if (payload.success !== true) {
       return {
         success: false,
-        error: `Insufficient points. Need ${pokemon.point_value}, have ${budget.remaining_points}`,
+        error: this.mapPickRpcError(
+          typeof payload.error === "string" ? payload.error : undefined,
+        ),
       }
     }
 
-    // Get Pokemon from cache to extract types
-    const { data: pokemonCache } = await this.supabase
-      .from("pokemon_cache")
-      .select("pokemon_id, name, types")
-      .ilike("name", pokemon.pokemon_name)
-      .limit(1)
-      .single()
-
-    if (!pokemonCache) {
-      return { success: false, error: `Pokemon "${pokemonName}" not found in cache` }
+    if (payload.skipped === true) {
+      return { success: false, error: "Pick was skipped by timer" }
     }
 
-    // Get or create Pokemon entry in pokemon table (for roster reference)
-    // pokemon table has: id (UUID), name, type1, type2
-    const types = pokemonCache.types || []
-    const { data: pokemonEntry, error: pokemonError } = await this.supabase
-      .from("pokemon")
-      .upsert(
-        {
-          name: pokemon.pokemon_name.toLowerCase(),
-          type1: types[0] || null,
-          type2: types[1] || null,
-        },
-        { onConflict: "name" },
-      )
-      .select()
-      .single()
-
-    if (pokemonError || !pokemonEntry) {
-      return { success: false, error: `Failed to create Pokemon entry: ${pokemonError?.message}` }
-    }
-
-    // Create draft pick
     const pick: DraftPick = {
-      pokemon_name: pokemon.pokemon_name,
-      point_value: pokemon.point_value,
+      pokemon_name: String(payload.pokemon_name || pokemonName),
+      point_value: Number(payload.point_value || 0),
       team_id: teamId,
-      pick_number: session.current_pick_number,
-      round: session.current_round,
+      pick_number: Number(payload.pick_number || 0),
+      round: Number(payload.round || 0),
     }
-
-    // Store pick in team_rosters (using UUID from pokemon table)
-    const { error: pickError } = await this.supabase.from("team_rosters").insert({
-      team_id: teamId,
-      pokemon_id: pokemonEntry.id, // UUID from pokemon table
-      draft_round: session.current_round,
-      draft_order: session.current_pick_number,
-      draft_points: pokemon.point_value,
-    })
-
-    if (pickError) {
-      return { success: false, error: `Failed to record pick: ${pickError.message}` }
-    }
-
-    // Update budget
-    const { error: budgetError } = await this.supabase
-      .from("draft_budgets")
-      .update({
-        spent_points: budget.spent_points + pokemon.point_value,
-      })
-      .eq("id", budget.id)
-
-    if (budgetError) {
-      console.error("Failed to update budget:", budgetError)
-      // Don't fail the pick, just log
-    }
-
-    // Mark Pokemon as drafted in draft pool (update status and denormalized fields)
-    await this.supabase
-      .from("draft_pool")
-      .update({
-        status: "drafted",
-        drafted_by_team_id: teamId,
-        drafted_at: new Date().toISOString(),
-        draft_round: session.current_round,
-        draft_pick_number: session.current_pick_number,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("pokemon_name", pokemon.pokemon_name)
-      .eq("season_id", session.season_id)
-      .eq("status", "available")
 
     // Legacy Notion sync (off by default; set DRAFT_PUSH_TO_NOTION=true to enable)
-    if (process.env.DRAFT_PUSH_TO_NOTION === "true") {
+    const { data: session } = await this.supabase
+      .from("draft_sessions")
+      .select("season_id")
+      .eq("id", sessionId)
+      .maybeSingle()
+
+    if (session?.season_id && process.env.DRAFT_PUSH_TO_NOTION === "true") {
       pushDraftStateToNotion(this.supabase, {
         season_id: session.season_id,
-        pokemon_name: pokemon.pokemon_name,
-        point_value: pokemon.point_value,
+        pokemon_name: pick.pokemon_name,
+        point_value: pick.point_value,
       }).catch((err) => console.warn("[DraftSystem] Push to Notion failed:", err))
     }
-
-    // Advance to next pick
-    const nextPickNumber = session.current_pick_number + 1
-    const picksPerRound = session.total_teams
-    const nextRound = Math.floor((nextPickNumber - 1) / picksPerRound) + 1
-    const isNextSnakeRound = session.draft_type === "snake" && nextRound % 2 === 0
-    const turnOrder = session.turn_order || []
-    const effectiveOrder = isNextSnakeRound ? [...turnOrder].reverse() : turnOrder
-    const nextPickIndex = (nextPickNumber - 1) % turnOrder.length
-    const nextTeamId = effectiveOrder[nextPickIndex] || null
-
-    // Check if draft is complete
-    const totalPicks = session.total_teams * session.total_rounds
-    const isComplete = nextPickNumber > totalPicks
-
-    // Update session
-    await this.supabase
-      .from("draft_sessions")
-      .update({
-        current_pick_number: nextPickNumber,
-        current_round: nextRound,
-        current_team_id: nextTeamId,
-        status: isComplete ? "completed" : "active",
-        completed_at: isComplete ? new Date().toISOString() : null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", sessionId)
 
     return { success: true, pick }
   }
@@ -557,102 +507,52 @@ export class DraftSystem {
 
     console.log(`[DraftSystem] Found ${data.length} Pokemon from draft_pool for season ${seasonId}`)
 
-    // Fetch generation from pokemon_cache for Pokemon that have pokemon_id
+    // Enrich via pokepedia (canonical read path); include rows with null pokemon_id.
     const pokemonIds = data
-      .map((p: any) => p.pokemon_id)
-      .filter((id: any): id is number => id !== null && id !== undefined)
+      .map((p: { pokemon_id?: number | null }) => p.pokemon_id)
+      .filter((id: number | null | undefined): id is number => id !== null && id !== undefined)
 
     const generationMap = new Map<number, number | null>()
-
-    if (pokemonIds.length > 0) {
-      const { data: cacheData } = await this.supabase
-        .from("pokemon_cache")
-        .select("pokemon_id, generation")
-        .in("pokemon_id", pokemonIds)
-
-      if (cacheData) {
-        cacheData.forEach((p: any) => {
-          generationMap.set(p.pokemon_id, p.generation || null)
-        })
-      }
-    }
-
-    // Also fetch by name for Pokemon without pokemon_id (fallback)
-    const pokemonWithoutId = data.filter((p: any) => !p.pokemon_id)
-    if (pokemonWithoutId.length > 0) {
-      const names = pokemonWithoutId.map((p: any) => 
-        p.pokemon_name.toLowerCase().replace(/\s+/g, "-")
-      )
-      
-      const { data: cacheByName } = await this.supabase
-        .from("pokemon_cache")
-        .select("pokemon_id, name, generation")
-        .in("name", names)
-
-      if (cacheByName) {
-        // Create a name -> generation map
-        const nameToGen = new Map<string, number | null>()
-        cacheByName.forEach((p: any) => {
-          nameToGen.set(p.name.toLowerCase(), p.generation || null)
-        })
-
-        // Match by normalized name
-        pokemonWithoutId.forEach((p: any) => {
-          const normalizedName = p.pokemon_name.toLowerCase().replace(/\s+/g, "-")
-          const gen = nameToGen.get(normalizedName)
-          if (gen !== undefined) {
-            // Store generation, but we'll use pokemon_id for the map if available
-            // For now, we'll handle this in the mapping step
-          }
-        })
-      }
-    }
-
-    // Fetch types for Pokémon that have pokemon_id
     const typesMap = new Map<number, string[]>()
+
     if (pokemonIds.length > 0) {
-      // Try pokemon_cache first
-      const { data: cacheTypesData } = await this.supabase
-        .from("pokemon_cache")
-        .select("pokemon_id, types")
-        .in("pokemon_id", pokemonIds)
-
-      cacheTypesData?.forEach((entry: any) => {
-        if (entry.types && Array.isArray(entry.types)) {
-          typesMap.set(entry.pokemon_id, entry.types)
-        }
-      })
-
-      // Also try pokepedia_pokemon as fallback
-      const { data: pokepediaTypesData } = await this.supabase
+      const { data: pokepediaRows } = await this.supabase
         .from("pokepedia_pokemon")
-        .select("id, types")
+        .select("id, generation, types, type_primary, type_secondary")
         .in("id", pokemonIds)
 
-      pokepediaTypesData?.forEach((entry: any) => {
-        if (entry.types && Array.isArray(entry.types) && !typesMap.has(entry.id)) {
-          typesMap.set(entry.id, entry.types)
+      pokepediaRows?.forEach((entry: {
+        id: number
+        generation?: number | null
+        types?: unknown
+        type_primary?: string | null
+        type_secondary?: string | null
+      }) => {
+        generationMap.set(entry.id, entry.generation ?? null)
+        if (Array.isArray(entry.types) && entry.types.length > 0) {
+          typesMap.set(entry.id, entry.types as string[])
+        } else {
+          const types = [entry.type_primary, entry.type_secondary].filter(
+            (t): t is string => typeof t === "string" && t.length > 0,
+          )
+          if (types.length > 0) typesMap.set(entry.id, types)
         }
       })
     }
 
-    // Map results to include generation and types from pokemon_cache
-    const mapped = data.map((item: any) => {
-      let generation: number | null = null
-      let types: string[] = []
-
-      // Try to get generation from pokemon_id first
-      if (item.pokemon_id) {
-        generation = generationMap.get(item.pokemon_id) ?? null
-        types = typesMap.get(item.pokemon_id) || []
-      }
-
-      // If still no generation, try to fetch by name (fallback)
-      if (generation === null && item.pokemon_name) {
-        // This is a fallback - we'll do a quick lookup
-        // For now, return null and let frontend handle it
-        // Or we could do another query, but that's inefficient
-      }
+    const mapped = data.map((item: {
+      pokemon_name: string
+      point_value: number
+      pokemon_id: number | null
+      status: string
+      generation?: number | null
+    }) => {
+      const generation =
+        (item.pokemon_id != null ? generationMap.get(item.pokemon_id) : null) ??
+        item.generation ??
+        null
+      const types =
+        item.pokemon_id != null ? typesMap.get(item.pokemon_id) || [] : []
 
       return {
         pokemon_name: item.pokemon_name,
@@ -660,11 +560,10 @@ export class DraftSystem {
         pokemon_id: item.pokemon_id,
         status: item.status,
         generation,
-        types: types.length > 0 ? types : undefined, // Only include if we have types
+        types: types.length > 0 ? types : undefined,
       }
     })
 
-    // Filter by generation if specified
     if (filters?.generation) {
       return mapped.filter((p) => p.generation === filters.generation)
     }

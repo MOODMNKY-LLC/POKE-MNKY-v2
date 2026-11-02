@@ -62,5 +62,6 @@ curl -H "Authorization: Bearer YOUR_SECRET" "http://localhost:3000/api/cron/exec
 | `/api/cron/execute-transactions` | `0 5 * * 1` (Mon 05:00 UTC ≈ 00:00 EST) | Run pending trades/FA |
 | `/api/cron/sync-pokemon` | `0 3 * * *` (daily 03:00 UTC) | Sync Pokémon cache |
 | `/api/cron/sync-league-sheet` | `15 6 * * *` (daily 06:15 UTC) | Sync the live league sheet. `?dry_run=1` plans only. |
+| `/api/cron/draft-timers` | `0 * * * *` (hourly) | Enforce expired live-draft pick timers (auto-pick/skip). Primary enforcement is on `/api/draft/status` and pick paths; cron is a backup for idle boards. |
 
 All of these routes use the same `CRON_SECRET`; one value in Vercel protects every cron endpoint.

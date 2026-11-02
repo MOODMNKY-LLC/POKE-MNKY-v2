@@ -29,13 +29,19 @@ export async function GET(request: Request) {
     }
 
     const draftSystem = new DraftSystem()
-    const session = await draftSystem.getActiveSession(resolvedSeasonId)
+    let session = await draftSystem.getActiveSession(resolvedSeasonId)
 
     if (!session) {
       return NextResponse.json({ 
         success: false, 
         error: "No active draft session found. Use POST /api/draft/create-session to create one." 
       }, { status: 404 })
+    }
+
+    // Enforce pick timer on status polls (Hobby-friendly primary path).
+    const timer = await draftSystem.enforcePickTimer(session.id)
+    if (timer.action === "auto_pick" || timer.action === "skip" || timer.action === "deadline_set") {
+      session = (await draftSystem.getActiveSession(resolvedSeasonId)) ?? session
     }
 
     // Get current turn info
@@ -59,12 +65,24 @@ export async function GET(request: Request) {
       ? await supabase.from("teams").select("name").eq("id", nextTeamId).single()
       : { data: null }
 
+    const sessionWithDeadline = session as typeof session & {
+      current_pick_deadline_at?: string | null
+      pick_time_limit_seconds?: number | null
+      auto_draft_enabled?: boolean | null
+    }
+
     return NextResponse.json({
       success: true,
-      session,
+      session: sessionWithDeadline,
       currentTeam,
       nextTeam,
       currentTurn,
+      timer: {
+        action: timer.action ?? "none",
+        deadline_at: sessionWithDeadline.current_pick_deadline_at ?? null,
+        pick_time_limit_seconds: sessionWithDeadline.pick_time_limit_seconds ?? null,
+        auto_draft_enabled: sessionWithDeadline.auto_draft_enabled ?? false,
+      },
     })
   } catch (error: any) {
     console.error("Draft status error:", error)
