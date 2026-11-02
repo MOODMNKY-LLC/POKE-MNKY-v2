@@ -29,7 +29,7 @@ export async function POST(_req: Request, context: Ctx) {
     const admin = createServiceRoleClient()
     const { data: session, error: loadErr } = await admin
       .from("draft_sessions")
-      .select("id, governance_approval_status, status")
+      .select("id, governance_approval_status, status, pick_time_limit_seconds")
       .eq("id", id)
       .single()
 
@@ -37,12 +37,19 @@ export async function POST(_req: Request, context: Ctx) {
       return NextResponse.json({ error: "Session not found" }, { status: 404 })
     }
 
+    const limitSeconds = Math.max(
+      Number(session.pick_time_limit_seconds) || 45,
+      1,
+    )
+    const deadlineAt = new Date(Date.now() + limitSeconds * 1000).toISOString()
+
     const { data: updated, error: updErr } = await admin
       .from("draft_sessions")
       .update({
         governance_approval_status: "approved",
         status: "active",
         started_at: new Date().toISOString(),
+        current_pick_deadline_at: deadlineAt,
         updated_at: new Date().toISOString(),
       })
       .eq("id", id)
