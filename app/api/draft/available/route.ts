@@ -1,18 +1,38 @@
-import { resolveDraftBoardDisplay } from "@/lib/draft-board-display-resolver"
+/**
+ * GET /api/draft/available
+ * Lists available draft_pool Pokémon for a season with batched pokepedia enrichment.
+ * Query: season_id?, min_points?, max_points?, generation?, search?, limit? (default 100, max 500), offset?
+ *
+ * Performance: RPC returns the full filtered set quickly; we paginate first, then
+ * batch-enrich only the page from pokepedia_pokemon (no PokeAPI / pokemon_cache N+1).
+ */
+
+import {
+  applyDraftAvailableFilters,
+  clampDraftAvailableLimit,
+  clampDraftAvailableOffset,
+  enrichDraftAvailablePage,
+  paginateDraftAvailableRows,
+  type DraftAvailableEnrichInput,
+} from "@/lib/draft-available-enrich"
 import { createServiceRoleClient } from "@/lib/supabase/service"
 import { NextResponse } from "next/server"
 
-const DRAFT_AVAILABLE_CACHE_TTL_MS = 90_000 // 90s in-memory cache for instant repeat loads
+const DRAFT_AVAILABLE_CACHE_TTL_MS = 90_000
 const DRAFT_AVAILABLE_CACHE_MAX_ENTRIES = 80
-const draftAvailableCache = new Map<
-  string,
-  { data: { success: boolean; pokemon: any[]; total: number }; expires: number }
->()
 
-function setDraftAvailableCache(
-  key: string,
-  data: { success: boolean; pokemon: any[]; total: number }
-): void {
+type AvailablePayload = {
+  success: boolean
+  pokemon: Awaited<ReturnType<typeof enrichDraftAvailablePage>>
+  total: number
+  limit: number
+  offset: number
+  timing_ms?: number
+}
+
+const draftAvailableCache = new Map<string, { data: AvailablePayload; expires: number }>()
+
+function setDraftAvailableCache(key: string, data: AvailablePayload): void {
   const now = Date.now()
   for (const [k, v] of draftAvailableCache.entries()) {
     if (v.expires <= now) draftAvailableCache.delete(k)
@@ -30,375 +50,201 @@ function getDraftAvailableCacheKey(
   maxPoints: number | undefined,
   generation: number | undefined,
   search: string | undefined,
-  limit: number
+  limit: number,
+  offset: number,
 ): string {
-  return `${seasonId}:${minPoints ?? "n"}:${maxPoints ?? "n"}:${generation ?? "n"}:${search ?? ""}:${limit}`
+  return `${seasonId}:${minPoints ?? "n"}:${maxPoints ?? "n"}:${generation ?? "n"}:${search ?? ""}:${limit}:${offset}`
+}
+
+async function attachPageMeta(
+  supabase: ReturnType<typeof createServiceRoleClient>,
+  seasonId: string,
+  page: DraftAvailableEnrichInput[],
+): Promise<DraftAvailableEnrichInput[]> {
+  if (page.length === 0) return page
+  const names = page.map((p) => p.pokemon_name)
+  const metaByName = new Map<
+    string,
+    { status: string | null; tera_captain_eligible?: boolean | null }
+  >()
+  const { data: metaRows } = await supabase
+    .from("draft_pool")
+    .select("pokemon_name, status, tera_captain_eligible")
+    .eq("season_id", seasonId)
+    .in("pokemon_name", names)
+  for (const row of metaRows ?? []) {
+    metaByName.set(String(row.pokemon_name).toLowerCase(), {
+      status: row.status ?? null,
+      tera_captain_eligible: row.tera_captain_eligible,
+    })
+  }
+  return page.map((p) => {
+    const meta = metaByName.get(p.pokemon_name.toLowerCase())
+    return {
+      ...p,
+      status: meta?.status || p.status || "available",
+      tera_captain_eligible:
+        meta?.tera_captain_eligible !== undefined
+          ? meta.tera_captain_eligible
+          : p.tera_captain_eligible,
+    }
+  })
+}
+
+async function loadAvailableRows(
+  supabase: ReturnType<typeof createServiceRoleClient>,
+  seasonId: string,
+  filters: {
+    minPoints?: number
+    maxPoints?: number
+    generation?: number
+    search?: string
+  },
+): Promise<DraftAvailableEnrichInput[]> {
+  const { data: rpcData, error: rpcError } = await supabase.rpc(
+    "get_available_pokemon_for_free_agency",
+    {
+      p_season_id: seasonId,
+      p_min_points: filters.minPoints ?? null,
+      p_max_points: filters.maxPoints ?? null,
+      p_generation: filters.generation ?? null,
+      p_search: filters.search ?? null,
+    },
+  )
+
+  if (!rpcError && rpcData?.length) {
+    return rpcData.map(
+      (p: {
+        pokemon_name: string
+        point_value: number
+        pokemon_id: number | null
+        generation: number | null
+      }) => ({
+        pokemon_name: p.pokemon_name,
+        point_value: p.point_value,
+        pokemon_id: p.pokemon_id ?? null,
+        generation: p.generation ?? null,
+        status: "available",
+      }),
+    )
+  }
+
+  if (rpcError) {
+    console.warn(`[API /draft/available] RPC error, falling back to draft_pool:`, rpcError.message)
+  }
+
+  const { data, error } = await supabase
+    .from("draft_pool")
+    .select("pokemon_name, point_value, pokemon_id, status, tera_captain_eligible, generation")
+    .eq("season_id", seasonId)
+    .or("status.eq.available,status.is.null")
+    .order("point_value", { ascending: false })
+    .order("pokemon_name", { ascending: true })
+    .limit(2000)
+
+  if (error) {
+    throw new Error(`Failed to fetch Pokemon: ${error.message}`)
+  }
+
+  const mapped: DraftAvailableEnrichInput[] = (data ?? []).map((p) => ({
+    pokemon_name: p.pokemon_name,
+    point_value: p.point_value,
+    pokemon_id: p.pokemon_id ?? null,
+    generation: p.generation ?? null,
+    status: p.status || "available",
+    tera_captain_eligible: p.tera_captain_eligible,
+  }))
+
+  return applyDraftAvailableFilters(mapped, filters)
 }
 
 export async function GET(request: Request) {
+  const started = Date.now()
   try {
     const { searchParams } = new URL(request.url)
-    const minPoints = searchParams.get("min_points") ? parseInt(searchParams.get("min_points")!) : undefined
-    const maxPoints = searchParams.get("max_points") ? parseInt(searchParams.get("max_points")!) : undefined
-    const generation = searchParams.get("generation") ? parseInt(searchParams.get("generation")!) : undefined
+    const minPoints = searchParams.get("min_points")
+      ? parseInt(searchParams.get("min_points")!, 10)
+      : undefined
+    const maxPoints = searchParams.get("max_points")
+      ? parseInt(searchParams.get("max_points")!, 10)
+      : undefined
+    const generation = searchParams.get("generation")
+      ? parseInt(searchParams.get("generation")!, 10)
+      : undefined
     const search = searchParams.get("search") || undefined
-    const limit = searchParams.get("limit") ? parseInt(searchParams.get("limit")!) : 100
+    const limit = clampDraftAvailableLimit(
+      searchParams.get("limit") ? parseInt(searchParams.get("limit")!, 10) : undefined,
+    )
+    const offset = clampDraftAvailableOffset(
+      searchParams.get("offset") ? parseInt(searchParams.get("offset")!, 10) : undefined,
+    )
     const seasonIdParam = searchParams.get("season_id")
 
-    // Get season_id (from param or current season)
-    let seasonId = seasonIdParam
+    const supabase = createServiceRoleClient()
+
+    let seasonId = seasonIdParam?.trim() ?? ""
     if (!seasonId) {
-      const supabase = createServiceRoleClient()
       const { data: season } = await supabase
         .from("seasons")
         .select("id")
         .eq("is_current", true)
         .single()
 
-      if (!season?.id) {
+      if (!season?.id || typeof season.id !== "string") {
         return NextResponse.json({ success: false, error: "No current season found" }, { status: 404 })
       }
       seasonId = season.id
     }
 
-    if (!seasonId) {
-      return NextResponse.json({ success: false, error: "No current season found" }, { status: 404 })
-    }
-
-    const cacheKey = getDraftAvailableCacheKey(seasonId, minPoints, maxPoints, generation, search, limit)
+    const cacheKey = getDraftAvailableCacheKey(
+      seasonId,
+      minPoints,
+      maxPoints,
+      generation,
+      search,
+      limit,
+      offset,
+    )
     const cached = draftAvailableCache.get(cacheKey)
     if (cached && cached.expires > Date.now()) {
-      return NextResponse.json(cached.data)
-    }
-
-    // Use RPC function - schema confirmed: season_id and status columns exist
-    const supabase = createServiceRoleClient()
-    
-    console.log(`[API /draft/available] Calling RPC function with seasonId: ${seasonId}`)
-    
-    // Call RPC function directly (use canonical free agency RPC)
-    const { data: rpcData, error: rpcError } = await supabase.rpc('get_available_pokemon_for_free_agency', {
-      p_season_id: seasonId,
-      p_min_points: minPoints ?? null,
-      p_max_points: maxPoints ?? null,
-      p_generation: generation ?? null,
-      p_search: search ?? null
-    })
-
-    // Fall back to direct query when RPC errors OR when RPC returns 0 (e.g. RPC requires pokemon_id IS NOT NULL; local seed may have null pokemon_id)
-    const useDirectFallback = rpcError || !rpcData?.length
-    if (useDirectFallback) {
-      if (rpcError) {
-        console.error(`[API /draft/available] RPC error:`, rpcError)
-      } else {
-        console.log(`[API /draft/available] RPC returned 0 results; falling back to direct query (e.g. draft_pool has null pokemon_id).`)
-      }
-      console.log(`[API /draft/available] Direct query - seasonId: ${seasonId}`)
-
-      // Direct query: filter by season_id and (status = 'available' OR status IS NULL).
-      // Notion/n8n seed may leave status null when "Status" is not set in Notion.
-      console.log(`[API /draft/available] Fetching draft_pool for season_id=${seasonId} (status=available or null)...`)
-
-      let allAvailableData: any[] | null = null
-      let allAvailableError: any = null
-
-      // Prefer draft_pool_enriched (single query with types/generation); fall back to draft_pool if view missing
-      const baseQuery = () =>
-        supabase
-          .from("draft_pool_enriched")
-          .select("pokemon_name, point_value, pokemon_id, status, season_id, tera_captain_eligible, generation, types")
-          .eq("season_id", seasonId)
-          .or("status.eq.available,status.is.null")
-          .order("point_value", { ascending: false })
-          .order("pokemon_name", { ascending: true })
-          .limit(1000)
-
-      let { data: dataWithTera, error: errorWithTera } = await baseQuery()
-
-      if (errorWithTera && (errorWithTera.code === "42P01" || errorWithTera.message?.includes("draft_pool_enriched"))) {
-        console.log(`[API /draft/available] draft_pool_enriched view not found, using draft_pool...`)
-        const fallback = await supabase
-          .from("draft_pool")
-          .select("pokemon_name, point_value, pokemon_id, status, season_id, tera_captain_eligible")
-          .eq("season_id", seasonId)
-          .or("status.eq.available,status.is.null")
-          .order("point_value", { ascending: false })
-          .order("pokemon_name", { ascending: true })
-          .limit(1000)
-        dataWithTera =
-          fallback.data?.map((row) => ({
-            ...row,
-            generation: null,
-            types: null,
-          })) ?? null
-        errorWithTera = fallback.error
-      }
-
-      if (errorWithTera && errorWithTera.code === "42703" && errorWithTera.message?.includes("tera_captain_eligible")) {
-        console.log(`[API /draft/available] tera_captain_eligible column not found, retrying without it...`)
-        const { data: dataWithoutTera, error: errorWithoutTera } = await supabase
-          .from("draft_pool")
-          .select("pokemon_name, point_value, pokemon_id, status, season_id")
-          .eq("season_id", seasonId)
-          .or("status.eq.available,status.is.null")
-          .order("point_value", { ascending: false })
-          .order("pokemon_name", { ascending: true })
-          .limit(1000)
-        allAvailableData = dataWithoutTera
-        allAvailableError = errorWithoutTera
-      } else {
-        allAvailableData = dataWithTera
-        allAvailableError = errorWithTera
-      }
-      
-      if (allAvailableError) {
-        console.error(`[API /draft/available] Error fetching all available:`, allAvailableError)
-        // Don't return 500 if it's just that the table is empty - return empty array instead
-        if (allAvailableError.code === 'PGRST116' || allAvailableError.message?.includes('No rows')) {
-          console.log(`[API /draft/available] Draft pool is empty - returning empty array`)
-          return NextResponse.json({
-            success: true,
-            pokemon: [],
-            total: 0,
-          })
-        }
-        return NextResponse.json({ 
-          success: false, 
-          error: `Failed to fetch Pokemon: ${allAvailableError.message}` 
-        }, { status: 500 })
-      }
-      
-      // Query already filtered by season_id; use results directly
-      const directData = allAvailableData || []
-      console.log(`[API /draft/available] Direct query returned ${directData.length} rows for season_id=${seasonId}`)
-      
-      // Keep generation and types when present (from draft_pool_enriched view)
-      const directDataClean = directData.map((p: any) => ({
-        pokemon_name: p.pokemon_name,
-        point_value: p.point_value,
-        pokemon_id: p.pokemon_id,
-        status: p.status,
-        generation: p.generation,
-        types: p.types,
-        ...(p.tera_captain_eligible !== undefined && {
-          tera_captain_eligible: p.tera_captain_eligible,
-        }),
-      }))
-      
-      if (directDataClean?.length) {
-        console.log(`[API /draft/available] Resolving display data (cache + PokeAPI) for ${directDataClean.length} rows`)
-      }
-
-      // Resolve display data from cache, then PokeAPI; cache misses are fetched and written to pokemon_cache
-      const displayMap = await resolveDraftBoardDisplay(
-        supabase,
-        directDataClean.map((p: any) => ({ pokemon_name: p.pokemon_name, pokemon_id: p.pokemon_id }))
-      )
-
-      const pokemonWithGen = directDataClean?.map((p: any) => {
-        const nameKey = p.pokemon_name?.toLowerCase()
-        const display = nameKey ? displayMap.get(nameKey) : null
-        return {
-          pokemon_name: p.pokemon_name,
-          point_value: p.point_value,
-          pokemon_id: display?.pokemon_id ?? p.pokemon_id ?? null,
-          status: p.status || 'available',
-          generation: display?.generation ?? p.generation ?? null,
-          types: (display?.types?.length ? display.types : (Array.isArray(p.types) && p.types.length ? p.types : undefined)) ?? undefined,
-          ...(p.tera_captain_eligible !== undefined && {
-            tera_captain_eligible: p.tera_captain_eligible,
-          }),
-        }
-      }) || []
-      
-      // Apply filters
-      let filteredPokemon = pokemonWithGen
-      if (minPoints !== undefined) {
-        filteredPokemon = filteredPokemon.filter(p => p.point_value >= minPoints)
-      }
-      if (maxPoints !== undefined) {
-        filteredPokemon = filteredPokemon.filter(p => p.point_value <= maxPoints)
-      }
-      if (generation !== undefined) {
-        filteredPokemon = filteredPokemon.filter(p => p.generation === generation)
-      }
-      if (search) {
-        const searchLower = search.toLowerCase()
-        filteredPokemon = filteredPokemon.filter(p => 
-          p.pokemon_name.toLowerCase().includes(searchLower)
-        )
-      }
-
-      console.log(`[API /draft/available] Direct query returned ${filteredPokemon.length} Pokemon`)
-
-      const payload = {
-        success: true as const,
-        pokemon: filteredPokemon.slice(0, limit),
-        total: filteredPokemon.length,
-      }
-      draftAvailableCache.set(cacheKey, { data: payload, expires: Date.now() + DRAFT_AVAILABLE_CACHE_TTL_MS })
-      return NextResponse.json(payload)
-    }
-
-    if (!rpcData || rpcData.length === 0) {
-      console.warn(`[API /draft/available] RPC function returned 0 results for season ${seasonId}`)
-    } else {
-      console.log(`[API /draft/available] RPC function returned ${rpcData.length} Pokemon`)
-    }
-
-    // RPC returns pokemon_id, pokemon_name, point_value, generation (from draft_pool; may be null).
-    // Attach types and generation from pokemon_cache so table view shows Types and correct Gen (same as direct path).
-    const rpcList = (rpcData || []).map((p: any) => ({
-      pokemon_name: p.pokemon_name,
-      point_value: p.point_value,
-      pokemon_id: p.pokemon_id || null,
-      generation: p.generation ?? null,
-      status: 'available' as const,
-    }))
-
-    const rpcNames = rpcList.map((p: any) => p.pokemon_name)
-
-    // Resolve display data (cache + PokeAPI) so we always have pokemon_id, types, generation
-    const displayMap = await resolveDraftBoardDisplay(
-      supabase,
-      rpcList.map((p: any) => ({ pokemon_name: p.pokemon_name, pokemon_id: p.pokemon_id }))
-    )
-
-    const statusByName = new Map<string, string>()
-    const teraByName = new Map<string, boolean>()
-    const { data: draftPoolRows } = await supabase
-      .from("draft_pool")
-      .select("pokemon_name, status, tera_captain_eligible")
-      .eq("season_id", seasonId)
-      .in("pokemon_name", rpcNames)
-    draftPoolRows?.forEach((row: any) => {
-      const key = row.pokemon_name?.toLowerCase()
-      if (key) {
-        if (row.status != null) statusByName.set(key, row.status)
-        if (row.tera_captain_eligible !== undefined) teraByName.set(key, row.tera_captain_eligible)
-      }
-    })
-
-    const pokemonWithGen: Array<{
-      pokemon_name: string
-      point_value: number
-      pokemon_id: number | null
-      generation: number | null
-      status: string
-      tera_captain_eligible?: boolean | null
-      types?: string[]
-    }> = rpcList.map((p: {
-      pokemon_name?: string | null
-      point_value?: number | null
-      pokemon_id?: number | null
-      generation?: number | null
-      status?: string | null
-    }) => {
-      const nameKey = p.pokemon_name?.toLowerCase()
-      const display = nameKey ? displayMap.get(nameKey) : null
-      return {
-        pokemon_name: p.pokemon_name ?? "",
-        point_value: p.point_value ?? 0,
-        pokemon_id: display?.pokemon_id ?? p.pokemon_id ?? null,
-        generation: display?.generation ?? p.generation ?? null,
-        status: statusByName.get(nameKey ?? "") ?? p.status ?? "available",
-        tera_captain_eligible: nameKey ? teraByName.get(nameKey) : undefined,
-        types: display?.types?.length ? display.types : undefined,
-      }
-    })
-
-    // Apply filters
-    let filteredPokemon = pokemonWithGen
-    if (minPoints !== undefined) {
-      filteredPokemon = filteredPokemon.filter(p => p.point_value >= minPoints)
-    }
-    if (maxPoints !== undefined) {
-      filteredPokemon = filteredPokemon.filter(p => p.point_value <= maxPoints)
-    }
-    if (generation !== undefined) {
-      filteredPokemon = filteredPokemon.filter(p => p.generation === generation)
-    }
-    if (search) {
-      const searchLower = search.toLowerCase()
-      filteredPokemon = filteredPokemon.filter(p => 
-        p.pokemon_name.toLowerCase().includes(searchLower)
-      )
-    }
-
-    console.log(`[API /draft/available] Found ${filteredPokemon.length} Pokemon for season ${seasonId} (RPC: ${rpcData?.length || 0})`)
-    
-    if (filteredPokemon.length === 0) {
-      console.warn(`[API /draft/available] No Pokemon found for season ${seasonId}. Checking database...`)
-      // Debug query - test multiple approaches
-      const supabase = createServiceRoleClient()
-      
-      // Get current season first (needed for comparison)
-      const { data: seasonData, error: seasonError } = await supabase
-        .from("seasons")
-        .select("id")
-        .eq("is_current", true)
-        .single()
-      
-      // Test 1: Direct query with season_id (as string)
-      const { data: debugData1, error: debugError1 } = await supabase
-        .from("draft_pool")
-        .select("pokemon_name, point_value, status, season_id")
-        .eq("season_id", seasonId)
-        .eq("status", "available")
-        .limit(5)
-      
-      // Test 2: Query without status filter
-      const { data: debugData2, error: debugError2 } = await supabase
-        .from("draft_pool")
-        .select("pokemon_name, point_value, status, season_id")
-        .eq("season_id", seasonId)
-        .limit(5)
-      
-      // Test 3: Get a sample row to see what season_id looks like
-      const { data: sampleData, error: sampleError } = await supabase
-        .from("draft_pool")
-        .select("pokemon_name, season_id")
-        .limit(1)
-      
-      // Test 4: Try using the current season's ID directly
-      const { data: debugData4, error: debugError4 } = await supabase
-        .from("draft_pool")
-        .select("pokemon_name, point_value, status, season_id")
-        .eq("season_id", seasonData?.id || seasonId)
-        .eq("status", "available")
-        .limit(5)
-      
-      // Test 5: Count all rows
-      const { count: totalCount, error: countError } = await supabase
-        .from("draft_pool")
-        .select("*", { count: "exact", head: true })
-      
-      console.log(`[API /draft/available] Debug results:`, {
-        seasonId_param: seasonId,
-        seasonId_type: typeof seasonId,
-        current_season_id: seasonData?.id,
-        current_season_type: typeof seasonData?.id,
-        match: seasonId === seasonData?.id,
-        sample_row: sampleData?.[0],
-        sample_season_id: sampleData?.[0]?.season_id,
-        sample_season_id_type: typeof sampleData?.[0]?.season_id,
-        test1_with_status: { count: debugData1?.length || 0, error: debugError1?.message, sample: debugData1 },
-        test2_without_status: { count: debugData2?.length || 0, error: debugError2?.message, sample: debugData2 },
-        test4_with_season_data_id: { count: debugData4?.length || 0, error: debugError4?.message, sample: debugData4 },
-        total_draft_pool_count: totalCount,
-        count_error: countError?.message
+      return NextResponse.json({
+        ...cached.data,
+        timing_ms: Date.now() - started,
+        cached: true,
       })
     }
 
-    const payload = {
-      success: true as const,
-      pokemon: filteredPokemon.slice(0, limit),
-      total: filteredPokemon.length,
+    const filters = { minPoints, maxPoints, generation, search }
+    const allRows = await loadAvailableRows(supabase, seasonId, filters)
+    const { page, total } = paginateDraftAvailableRows(allRows, offset, limit)
+    const pageWithMeta = await attachPageMeta(supabase, seasonId, page)
+    const pokemon = await enrichDraftAvailablePage(supabase, pageWithMeta)
+
+    const timing_ms = Date.now() - started
+    const payload: AvailablePayload = {
+      success: true,
+      pokemon,
+      total,
+      limit,
+      offset,
+      timing_ms,
     }
     setDraftAvailableCache(cacheKey, payload)
+
+    console.log(
+      `[API /draft/available] season=${seasonId} total=${total} page=${pokemon.length} limit=${limit} offset=${offset} timing_ms=${timing_ms}`,
+    )
+
     return NextResponse.json(payload)
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Draft available error:", error)
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 })
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Internal server error",
+        timing_ms: Date.now() - started,
+      },
+      { status: 500 },
+    )
   }
 }
