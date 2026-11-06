@@ -98,19 +98,25 @@ def main() -> None:
     hair = Image.new("L", (1600, 1600), 0)
     hd2 = ImageDraw.Draw(hair)
     hd2.ellipse((640, 240, 960, 380), fill=255)
+    hd2.ellipse((560, 180, 1040, 340), fill=255)  # upper hair mass
     hair_m = np.array(hair) > 0
 
-    exclude = face_m | ears_m | eyes_m | ball_m | hands_m | hair_m
+    # Neck / chest fur between open jacket panels (common bleed site)
+    neck = Image.new("L", (1600, 1600), 0)
+    ImageDraw.Draw(neck).ellipse((700, 620, 920, 860), fill=255)
+    neck_m = np.array(neck) > 0
+
+    exclude = face_m | ears_m | eyes_m | ball_m | hands_m | hair_m | neck_m
 
     primary = primary_seed & ~exclude & ~secondary_seed
     secondary = secondary_seed & ~exclude & ~primary
 
-    # Light open/close to fill pinholes inside clothing panels (still conservative)
+    # Close pinholes then net-erode 1px so MaxFilter does not bleed into fur/skin edges.
     def morph(mask: np.ndarray) -> np.ndarray:
         img = Image.fromarray((mask.astype(np.uint8) * 255), mode="L")
         img = img.filter(ImageFilter.MaxFilter(3))
         img = img.filter(ImageFilter.MinFilter(3))
-        # Stay inside opaque character
+        img = img.filter(ImageFilter.MinFilter(3))  # extra erode — pull off identity edges
         out = np.array(img) > 127
         return out & opaque & ~exclude
 
@@ -129,6 +135,24 @@ def main() -> None:
     )
     primary &= ~skinish
     secondary &= ~skinish
+
+    # Drop near-black low-chroma pixels (fur / line cores / ambient dark).
+    # Keep dark clothing only when still clearly red- or blue-chromatic.
+    chroma = np.maximum(np.maximum(r, g), b) - np.minimum(np.minimum(r, g), b)
+    fur_or_line = opaque & (y < 55) & (chroma < 32)
+    strong_cloth_dark = opaque & (y < 55) & (
+        ((r > g + 25) & (r > b + 25) & (chroma >= 32))
+        | ((b > r + 20) & (b > g) & (chroma >= 32))
+    )
+    drop_dark = fur_or_line & ~strong_cloth_dark
+    primary &= ~drop_dark
+    secondary &= ~drop_dark
+
+    # Final peel where mask touches excluded identity (face/ears/ball/hands/hair/neck)
+    excl_img = Image.fromarray((exclude.astype(np.uint8) * 255), mode="L")
+    excl_dilated = np.array(excl_img.filter(ImageFilter.MaxFilter(5))) > 127
+    primary &= ~excl_dilated
+    secondary &= ~excl_dilated
 
     def save_mask(mask: np.ndarray, name: str) -> None:
         Image.fromarray((mask.astype(np.uint8) * 255), mode="L").save(OUT / name)

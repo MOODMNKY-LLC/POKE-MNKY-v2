@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-11-06T10:51:15.860Z",
+  "generatedAt": "2026-11-06T10:55:02.333Z",
   "base": "public/poke-mnky/avatars/red-blue.png",
   "jevExercised": false,
   "note": "EXAMPLE logos/palettes only. Offline POC — not the full product feature. Jev was not called.",
-  "maskUnionPixels": 119145,
+  "maskUnionPixels": 81177,
   "fixtures": [
     {
       "id": "contrast-green-purple",
@@ -53,10 +53,10 @@
         "source": "deterministic_suggestion"
       },
       "invariant": {
-        "outsidePixelsChecked": 2440855,
+        "outsidePixelsChecked": 2478823,
         "outsidePixelsChanged": 0,
         "alphaChangedAnywhere": 0,
-        "maskUnionPixels": 119145
+        "maskUnionPixels": 81177
       },
       "outputs": {
         "full": "out/contrast-green-purple.png",
@@ -112,10 +112,10 @@
         "source": "deterministic_suggestion"
       },
       "invariant": {
-        "outsidePixelsChecked": 2440855,
+        "outsidePixelsChecked": 2478823,
         "outsidePixelsChanged": 0,
         "alphaChangedAnywhere": 0,
-        "maskUnionPixels": 119145
+        "maskUnionPixels": 81177
       },
       "outputs": {
         "full": "out/mono-grayscale.png",
@@ -171,10 +171,10 @@
         "source": "explicit_override"
       },
       "invariant": {
-        "outsidePixelsChecked": 2440855,
+        "outsidePixelsChecked": 2478823,
         "outsidePixelsChanged": 0,
         "alphaChangedAnywhere": 0,
-        "maskUnionPixels": 119145
+        "maskUnionPixels": 81177
       },
       "outputs": {
         "full": "out/bw-gold-override.png",

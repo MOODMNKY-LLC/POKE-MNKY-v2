@@ -33,6 +33,8 @@
 7. **Mask edges** — seed+morphology, not hand-painted bezier silhouettes; expect 1–2px fringing on some panel borders under inspection.
 8. **Pokéball vs wrist-cuff tradeoff** — ball holdout circle `(388,898) r=150` prioritizes keeping the prop classic. A thin band of **wrist-cuff red** near the ball may be under-included (~partial). Do not expand the mask into the ball to “fix” the cuff without artist paint.
 9. **Cap brim near ears** — red brim fills near ear silhouettes are intentionally in primary; peach inner-ear skin is excluded. Residual 1px edge uncertainty at fur/brim junctions.
+10. **Fur/clothing boundary peel** — masks are eroded and near-black low-chroma pixels dropped so jacket/hat edges do not tint fur highlights. Cost: slightly more incomplete panel edges and deeper cloth shadows may stay original red/blue.
+11. **Coarse L_ear/R_ear/face boxes** — those rectangles overlap legitimate cap/collar clothing; use annotated region-audit crops (not box totals alone) to judge leaks.
 
 ## What would make this production-ready
 
