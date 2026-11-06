@@ -1,9 +1,10 @@
-# Disposable CI/local test credentials only — never real production secrets.
-# Season-sim / sheet-sync Postgres service URLs and unit-test worker keys live in tests.
+# Security policy for GitGuardian (local/CI). Prefer fewer ignores, not more.
+# Disposable CI Postgres service credentials in workflows remain reviewable findings;
+# do NOT ignore the workflow file — human disposition required when GG flags them.
+#
+# Intentionally empty ignored_paths after PR33 security review (t41u): previous
+# broad ignores of **/*.test.ts, **/*.spec.ts, fixtures/**, and
+# .github/workflows/test.yml unjustifiably reduced coverage.
 version: 2
 secret:
-  ignored_paths:
-    - '**/*.test.ts'
-    - '**/*.spec.ts'
-    - 'fixtures/**'
-    - '.github/workflows/test.yml'
+  ignored_paths: []

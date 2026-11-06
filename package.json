@@ -53,7 +53,8 @@
     "sim:worker:tick": "tsx scripts/sim-worker/tick.ts",
     "sim:worker:typecheck": "tsc -p scripts/sim-worker/tsconfig.json",
     "test:season-sim-pg": "vitest run --config vitest.integration.config.ts lib/season-sim/foundation.pg.test.ts",
-    "test:season-sim-http": "vitest run --config vitest.integration.config.ts lib/season-sim/routes.http.integration.test.ts"
+    "test:season-sim-http": "vitest run --config vitest.integration.config.ts lib/season-sim/routes.http.integration.test.ts",
+    "test:season-sim-real-server": "tsx scripts/season-sim/real-server-auth-e2e.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.12",

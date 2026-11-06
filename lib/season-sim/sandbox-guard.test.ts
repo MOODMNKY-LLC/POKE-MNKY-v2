@@ -1,7 +1,9 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import {
+  assertSeasonIsNotSandbox,
   filterOutSandboxSeasons,
   isSandboxSeasonRow,
+  SandboxIsolationError,
 } from "@/lib/season-sim/sandbox-guard"
 import { pickStandingsSeason, type StandingsSeasonRow } from "@/lib/standings-season"
 
@@ -64,5 +66,51 @@ describe("sandbox isolation pickers", () => {
     expect(pickStandingsSeason([windowSandbox, draft], null, "2026-11-06")?.id).toBe(
       "draft",
     )
+  })
+})
+
+describe("assertSeasonIsNotSandbox fail-closed", () => {
+  it("refuses unknown seasons instead of allowing live mutations", async () => {
+    const supabase = {
+      from: vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            maybeSingle: vi.fn(async () => ({ data: null, error: null })),
+          })),
+        })),
+      })),
+    }
+    await expect(
+      assertSeasonIsNotSandbox(supabase as never, "00000000-0000-4000-8000-000000000099"),
+    ).rejects.toBeInstanceOf(SandboxIsolationError)
+    await expect(
+      assertSeasonIsNotSandbox(supabase as never, "00000000-0000-4000-8000-000000000099"),
+    ).rejects.toMatchObject({ code: "SEASON_NOT_FOUND", status: 404 })
+  })
+
+  it("refuses sandbox seasons", async () => {
+    const supabase = {
+      from: vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            maybeSingle: vi.fn(async () => ({
+              data: {
+                id: "sbx",
+                name: "Sandbox",
+                is_sandbox: true,
+                is_current: false,
+                is_live_competitive: false,
+                sheet_sync_enabled: false,
+              },
+              error: null,
+            })),
+          })),
+        })),
+      })),
+    }
+    await expect(assertSeasonIsNotSandbox(supabase as never, "sbx")).rejects.toMatchObject({
+      code: "SANDBOX_FORBIDDEN",
+      status: 422,
+    })
   })
 })

@@ -13,6 +13,10 @@
 #      and search_path=storage,public (roles already exist on the image)
 #   3) Apply ALL repo supabase/migrations/*.sql in lexical order into an EMPTY
 #      supabase_migrations.schema_migrations table
+#   4) For Auth/signup tests: start GoTrue against this DB so it applies its own
+#      auth schema migrations (email_confirmed_at). Bare postgres image auth.users
+#      is stale until GoTrue migrates — that is a platform prerequisite, not an
+#      app handle_new_user bug. Do NOT disable triggers to create fixture users.
 #
 # Honesty rules:
 #   - Counts only freshly executed OK applications (no skip of recorded versions)

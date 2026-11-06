@@ -95,7 +95,11 @@ export async function assertSeasonIsNotSandbox(
   seasonId: string,
 ): Promise<void> {
   const season = await fetchSeasonSandboxFlags(supabase, seasonId)
-  if (season?.is_sandbox === true) {
+  // Fail closed: unknown / unreadable seasons must not proceed on live mutation paths.
+  if (!season) {
+    throw new SandboxIsolationError("SEASON_NOT_FOUND", "Season not found", 404)
+  }
+  if (season.is_sandbox === true) {
     throw new SandboxIsolationError(
       "SANDBOX_FORBIDDEN",
       "Sandbox seasons cannot be used on live league paths",
