@@ -12,6 +12,7 @@ import { generatePlayoffRound1Only } from "@/lib/league-simulation/playoff-brack
 import { generateMockResult, type ResultStrategy } from "@/lib/league-simulation/mock-result-generator"
 import { updateStandingsFromMatches } from "@/lib/league-simulation/standings-updater"
 import { recordSimulationRun, updateSimulationRun } from "@/lib/league-simulation/simulation-engine"
+import { legacySimulationWriteDeniedResponse } from "@/lib/season-sim/legacy-gate"
 
 const MOCK_SEASON_NAME = "Mock Draft Demo"
 
@@ -37,6 +38,9 @@ function isSimulationApiKeyValid(request: NextRequest): boolean {
 
 export async function POST(request: NextRequest) {
   try {
+    const legacyDenied = legacySimulationWriteDeniedResponse()
+    if (legacyDenied) return legacyDenied
+
     const apiKeyValid = isSimulationApiKeyValid(request)
     if (!apiKeyValid) {
       const supabase = await createServerClient()

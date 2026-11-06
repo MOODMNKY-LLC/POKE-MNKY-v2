@@ -49,7 +49,9 @@
     "discord:register-commands": "tsx scripts/register-discord-commands.ts",
     "discord:post-guide-embed": "tsx scripts/post-slash-commands-guide-embed.ts",
     "discord:post-guide-webhook": "tsx scripts/post-slash-commands-guide-webhook.ts",
-    "jev:pilot": "tsx scripts/jev-pilot/run.ts"
+    "jev:pilot": "tsx scripts/jev-pilot/run.ts",
+    "sim:worker:tick": "tsx scripts/sim-worker/tick.ts",
+    "sim:worker:typecheck": "tsc -p scripts/sim-worker/tsconfig.json"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.12",

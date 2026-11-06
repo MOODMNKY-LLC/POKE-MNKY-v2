@@ -30,40 +30,57 @@ export async function getCurrentSeasonWithFallback(
   supabase: SupabaseClient
 ): Promise<Season | null> {
   try {
-    // Try to get current season first
+    // Try to get current season first (never a sandbox — DB CHECK + filter).
     const { data: currentSeason, error: currentError } = await supabase
       .from("seasons")
-      .select("id, name, season_id, is_current, start_date, end_date")
+      .select("id, name, season_id, is_current, start_date, end_date, is_sandbox")
       .eq("is_current", true)
       .maybeSingle()
 
-    if (!currentError && currentSeason) {
+    if (!currentError && currentSeason && (currentSeason as { is_sandbox?: boolean }).is_sandbox !== true) {
       return currentSeason as Season
+    }
+    // Older DBs without is_sandbox column
+    if (currentError?.code === "42703") {
+      const legacy = await supabase
+        .from("seasons")
+        .select("id, name, season_id, is_current, start_date, end_date")
+        .eq("is_current", true)
+        .maybeSingle()
+      if (!legacy.error && legacy.data) return legacy.data as Season
     }
 
     // Fallback 1: Try to get Season 7 by name or season_id
     const { data: season7, error: season7Error } = await supabase
       .from("seasons")
-      .select("id, name, season_id, is_current, start_date, end_date")
+      .select("id, name, season_id, is_current, start_date, end_date, is_sandbox")
       .or("name.eq.Season 7,season_id.eq.AABPBL-Season-7-2027")
       .maybeSingle()
 
-    if (!season7Error && season7) {
+    if (
+      !season7Error &&
+      season7 &&
+      (season7 as { is_sandbox?: boolean }).is_sandbox !== true
+    ) {
       console.log("[getCurrentSeasonWithFallback] Using Season 7 as fallback:", season7.id)
       return season7 as Season
     }
 
-    // Fallback 2: Get most recent season
-    const { data: recentSeason, error: recentError } = await supabase
+    // Fallback 2: Get most recent non-sandbox season
+    const { data: recentRows, error: recentError } = await supabase
       .from("seasons")
-      .select("id, name, season_id, is_current, start_date, end_date")
+      .select("id, name, season_id, is_current, start_date, end_date, is_sandbox")
       .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle()
+      .limit(10)
 
-    if (!recentError && recentSeason) {
-      console.log("[getCurrentSeasonWithFallback] Using most recent season as fallback:", recentSeason.id)
-      return recentSeason as Season
+    if (!recentError && recentRows?.length) {
+      const recentSeason = recentRows.find(
+        (row) => (row as { is_sandbox?: boolean }).is_sandbox !== true,
+      )
+      if (recentSeason) {
+        console.log("[getCurrentSeasonWithFallback] Using most recent season as fallback:", recentSeason.id)
+        return recentSeason as Season
+      }
     }
 
     // No seasons in DB is valid (e.g. fresh install); callers should handle null
@@ -87,19 +104,36 @@ export async function getCurrentSeasonIdWithFallback(
 
 /**
  * Season row with `is_current = true`.
- * Does not fall back to archived seasons.
+ * Does not fall back to archived seasons. Never returns a sandbox season.
  */
 export async function getMarkedCurrentSeason(
   supabase: SupabaseClient
 ): Promise<Pick<Season, "id" | "name"> | null> {
-  const { data, error } = await supabase
+  const withSandbox = await supabase
     .from("seasons")
-    .select("id, name")
+    .select("id, name, is_sandbox")
     .eq("is_current", true)
     .maybeSingle()
 
-  if (error || !data?.id) return null
-  return { id: data.id, name: data.name }
+  if (!withSandbox.error && withSandbox.data?.id) {
+    if ((withSandbox.data as { is_sandbox?: boolean }).is_sandbox === true) {
+      return null
+    }
+    return { id: withSandbox.data.id, name: withSandbox.data.name }
+  }
+
+  // Older DBs without is_sandbox
+  if (withSandbox.error?.code === "42703") {
+    const { data, error } = await supabase
+      .from("seasons")
+      .select("id, name")
+      .eq("is_current", true)
+      .maybeSingle()
+    if (error || !data?.id) return null
+    return { id: data.id, name: data.name }
+  }
+
+  return null
 }
 
 /**

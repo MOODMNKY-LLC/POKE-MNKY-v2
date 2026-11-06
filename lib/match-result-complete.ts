@@ -91,13 +91,23 @@ export async function finalizeMatchAfterInsert(
   let discord_notified = false
   let discord_error: string | undefined
 
-  try {
-    await notifyMatchResult(matchId)
-    discord_notified = true
-  } catch (err) {
-    discord_error =
-      err instanceof Error ? err.message : "Discord notification failed"
-    console.error("[match-result-complete] Discord notify failed:", err)
+  // Sandbox seasons must never emit live Discord side effects.
+  const { data: seasonFlags } = await supabase
+    .from("seasons")
+    .select("is_sandbox")
+    .eq("id", seasonId)
+    .maybeSingle()
+  const isSandbox = seasonFlags?.is_sandbox === true
+
+  if (!isSandbox) {
+    try {
+      await notifyMatchResult(matchId)
+      discord_notified = true
+    } catch (err) {
+      discord_error =
+        err instanceof Error ? err.message : "Discord notification failed"
+      console.error("[match-result-complete] Discord notify failed:", err)
+    }
   }
 
   if (submittedBy) {
