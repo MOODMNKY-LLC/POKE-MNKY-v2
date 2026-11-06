@@ -92,6 +92,31 @@ jobs:
           export SEASON_SIM_PG_URL="postgresql://postgres:${POSTGRES_PASSWORD}@localhost:5432/season_sim_foundation_test"
           pnpm test:season-sim-pg
 
+  season-sim-real-server-auth:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - name: Pull pinned disposable stack images
+        run: |
+          docker pull public.ecr.aws/supabase/postgres:17.11.0.006
+          docker pull public.ecr.aws/supabase/storage-api:v1.88.0
+          docker pull public.ecr.aws/supabase/gotrue:v2.197.0
+          docker pull public.ecr.aws/supabase/postgrest:v16.5
+      - name: Real Next+GoTrue session suite (disposable stack)
+        run: pnpm test:season-sim-real-server-stack
+        env:
+          CI: true
+          # Runtime passwords are generated inside the script; never committed.
+
   e2e:
     runs-on: ubuntu-latest
     needs: unit
