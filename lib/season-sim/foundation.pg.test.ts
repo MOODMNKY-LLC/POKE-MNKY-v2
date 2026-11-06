@@ -11,10 +11,9 @@ import { join } from "node:path"
 import { Client } from "pg"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 
-const pgUrl =
-  process.env.SEASON_SIM_PG_URL ??
-  process.env.POSTGRES_URL ??
-  "postgresql://season_sim:season_sim_test@127.0.0.1:5432/season_sim_foundation_test"
+// Credentials must come from the environment (CI service or local disposable DB).
+// Do not embed passwords in source — GitGuardian / secret scanners flag them.
+const pgUrl = process.env.SEASON_SIM_PG_URL ?? process.env.POSTGRES_URL ?? ""
 
 const root = process.cwd()
 const bootstrapSql = readFileSync(
@@ -42,6 +41,16 @@ describe("season-sim foundation postgres", () => {
   let liveSeasonId = ""
 
   beforeAll(async () => {
+    if (!pgUrl) {
+      if (process.env.CI && process.env.SEASON_SIM_PG_URL) {
+        throw new Error("SEASON_SIM_PG_URL empty in CI")
+      }
+      available = false
+      console.warn(
+        "skipping season-sim postgres tests: set SEASON_SIM_PG_URL (or POSTGRES_URL)",
+      )
+      return
+    }
     const probe = new Client({ connectionString: pgUrl })
     try {
       await probe.connect()

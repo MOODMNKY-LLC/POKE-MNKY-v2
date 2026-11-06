@@ -1,0 +1,9 @@
+# Disposable CI/local test credentials only — never real production secrets.
+# Season-sim / sheet-sync Postgres service URLs and unit-test worker keys live in tests.
+version: 2
+secret:
+  ignored_paths:
+    - '**/*.test.ts'
+    - '**/*.spec.ts'
+    - 'fixtures/**'
+    - '.github/workflows/test.yml'

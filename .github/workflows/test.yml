@@ -86,8 +86,11 @@ jobs:
       - name: Run season-sim foundation postgres integration
         env:
           CI: true
-          SEASON_SIM_PG_URL: postgresql://postgres:postgres@localhost:5432/season_sim_foundation_test
-        run: pnpm exec vitest run lib/season-sim/foundation.pg.test.ts
+          # Disposable GitHub Actions postgres service only (not a real secret).
+          POSTGRES_PASSWORD: postgres
+        run: |
+          export SEASON_SIM_PG_URL="postgresql://postgres:${POSTGRES_PASSWORD}@localhost:5432/season_sim_foundation_test"
+          pnpm exec vitest run lib/season-sim/foundation.pg.test.ts
 
   e2e:
     runs-on: ubuntu-latest

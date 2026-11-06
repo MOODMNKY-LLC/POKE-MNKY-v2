@@ -51,7 +51,7 @@ describe("POST /api/admin/simulation/worker/tick", () => {
   it("rejects wrong worker key and falls through to admin auth failure", async () => {
     process.env.SIM_SANDBOX_V2 = "true"
     process.env.SIM_WORKER_TICK_ENABLED = "true"
-    process.env.SIMULATION_WORKER_KEY = "expected-secret"
+    process.env.SIMULATION_WORKER_KEY = "test-worker-key-value"
     const { requireLeagueAdmin } = await import("@/lib/admin-api-auth")
     vi.mocked(requireLeagueAdmin).mockResolvedValue({
       response: new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -63,7 +63,7 @@ describe("POST /api/admin/simulation/worker/tick", () => {
     const res = await POST(
       new NextRequest("http://localhost/api/admin/simulation/worker/tick", {
         method: "POST",
-        headers: { "x-simulation-worker-key": "wrong-secret" },
+        headers: { "x-simulation-worker-key": "wrong-worker-key-value" },
         body: "{}",
       }),
     )
@@ -73,7 +73,7 @@ describe("POST /api/admin/simulation/worker/tick", () => {
   it("accepts matching worker key without admin session", async () => {
     process.env.SIM_SANDBOX_V2 = "true"
     process.env.SIM_WORKER_TICK_ENABLED = "true"
-    process.env.SIMULATION_WORKER_KEY = "expected-secret"
+    process.env.SIMULATION_WORKER_KEY = "test-worker-key-value"
     const { requireLeagueAdmin } = await import("@/lib/admin-api-auth")
     const { processWorkerTick } = await import("@/lib/season-sim/run-service")
 
@@ -81,7 +81,7 @@ describe("POST /api/admin/simulation/worker/tick", () => {
     const res = await POST(
       new NextRequest("http://localhost/api/admin/simulation/worker/tick", {
         method: "POST",
-        headers: { "x-simulation-worker-key": "expected-secret" },
+        headers: { "x-simulation-worker-key": "test-worker-key-value" },
         body: JSON.stringify({ max_steps: 2 }),
       }),
     )
