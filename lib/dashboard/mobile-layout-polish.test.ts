@@ -23,11 +23,8 @@ describe("mobile layout polish (post-login dashboard)", () => {
     expect(labels).not.toContain("draft")
   })
 
-  it("documents phone widths used for responsive acceptance", () => {
-    const phoneWidths = [320, 360, 390, 412]
-    const tabletWidth = 768
-    const desktopWidth = 1280
-    expect(phoneWidths.every((w) => w < tabletWidth)).toBe(true)
-    expect(desktopWidth).toBeGreaterThan(tabletWidth)
+  it("keeps More outside the scrollable tab set (pinned fifth slot)", () => {
+    // getMobileTabs returns only group tabs; More is rendered by MobileTabBar separately.
+    expect(getMobileTabs(coach).every((t) => t.label !== "More")).toBe(true)
   })
 })

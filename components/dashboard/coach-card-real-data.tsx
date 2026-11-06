@@ -41,7 +41,6 @@ export function CoachCardRealData({
   }))
   const avatarUrl = team.avatar_url || team.logo_url
   const coachName = team.coach_name || "Coach"
-  const isDark = false
 
   return (
     <MagicCard
@@ -54,8 +53,8 @@ export function CoachCardRealData({
         "shadow-2xl shadow-primary/20",
         "before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/10 before:to-transparent before:pointer-events-none"
       )}
-      gradientFrom={isDark ? "#B3A125" : "#CC0000"}
-      gradientTo={isDark ? "#FFDE00" : "#3B4CCA"}
+      gradientFrom="#CC0000"
+      gradientTo="#3B4CCA"
       gradientSize={300}
     >
       <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-black/5 pointer-events-none" />
@@ -114,7 +113,7 @@ export function CoachCardRealData({
                 Active Team
               </span>
             </div>
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-6 sm:gap-2">
+            <div className="grid grid-cols-3 gap-2 min-[400px]:grid-cols-6 sm:grid-cols-6 sm:gap-2">
               {(teamPokemon.length > 0
                 ? teamPokemon
                 : Array.from({ length: 6 }, () => ({ name: "—", pointValue: 0 }))
@@ -168,7 +167,7 @@ export function CoachCardRealData({
                 <div className="p-1 rounded-md bg-primary/10 flex-shrink-0">
                   <Target className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
                 </div>
-                <span className="text-xs font-medium truncate">Picks</span>
+                <span className="text-xs font-medium">Picks</span>
               </div>
               <Badge variant="secondary" className="font-bold text-xs ml-2 flex-shrink-0">
                 {totalPicks}
@@ -179,7 +178,7 @@ export function CoachCardRealData({
                 <div className="p-1 rounded-md bg-primary/10 flex-shrink-0">
                   <Zap className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
                 </div>
-                <span className="text-xs font-medium truncate">Budget</span>
+                <span className="text-xs font-medium">Budget</span>
               </div>
               <span className="text-xs font-bold text-primary ml-2 flex-shrink-0">
                 {budgetUsed}/{budgetTotal}

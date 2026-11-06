@@ -61,7 +61,7 @@ export function MobileTabBar({ ctx }: { ctx: CoachNavContext }) {
                 aria-current={isActive ? "page" : undefined}
                 className={cn(
                   TAB_CLASS,
-                  "flex-1",
+                  "grow",
                   isActive ? "text-primary" : "text-muted-foreground hover:text-foreground",
                 )}
               >

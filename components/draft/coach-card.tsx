@@ -195,7 +195,7 @@ export function CoachCard({
                 <div className="p-1 rounded-md bg-primary/10 flex-shrink-0">
                   <Target className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
                 </div>
-                <span className="text-xs font-medium truncate">Picks</span>
+                <span className="text-xs font-medium">Picks</span>
               </div>
               <Badge variant="secondary" className="font-bold text-xs ml-2 flex-shrink-0">
                 {totalPicks}
@@ -207,7 +207,7 @@ export function CoachCard({
                 <div className="p-1 rounded-md bg-primary/10 flex-shrink-0">
                   <Zap className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
                 </div>
-                <span className="text-xs font-medium truncate">Budget</span>
+                <span className="text-xs font-medium">Budget</span>
               </div>
               <span className="text-xs font-bold text-primary ml-2 flex-shrink-0">
                 {budgetUsed}/{budgetTotal}
