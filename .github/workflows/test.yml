@@ -90,7 +90,7 @@ jobs:
           POSTGRES_PASSWORD: postgres
         run: |
           export SEASON_SIM_PG_URL="postgresql://postgres:${POSTGRES_PASSWORD}@localhost:5432/season_sim_foundation_test"
-          pnpm exec vitest run lib/season-sim/foundation.pg.test.ts
+          pnpm test:season-sim-pg
 
   e2e:
     runs-on: ubuntu-latest

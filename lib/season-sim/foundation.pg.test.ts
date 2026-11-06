@@ -1,8 +1,14 @@
 /**
  * Isolated PostgreSQL integration for season-sim P0–P1.
- * Applies authored migrations against a minimal bootstrap (NOT full historical chain).
+ *
+ * Default path (CI job season-sim-foundation-pg): fixtures/season-sim/bootstrap-minimal.sql
+ * + three authored migrations. That is NOT the full historical Supabase chain.
+ *
+ * Full-chain validation is performed separately against a disposable Supabase-compatible
+ * stack (see artifacts under /opt/cursor/artifacts/season-simulator/).
  *
  * Env: SEASON_SIM_PG_URL (preferred) or POSTGRES_URL.
+ * When the URL is unset, the suite is honestly skipped (describe.skipIf) — not counted pass.
  * In CI with SEASON_SIM_PG_URL set, connection/setup failures fail the job.
  */
 
@@ -14,6 +20,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest"
 // Credentials must come from the environment (CI service or local disposable DB).
 // Do not embed passwords in source — GitGuardian / secret scanners flag them.
 const pgUrl = process.env.SEASON_SIM_PG_URL ?? process.env.POSTGRES_URL ?? ""
+const hasPgUrl = Boolean(pgUrl.trim())
 
 const root = process.cwd()
 const bootstrapSql = readFileSync(
@@ -33,24 +40,13 @@ const migrationHardening = readFileSync(
   "utf8",
 )
 
-describe("season-sim foundation postgres", () => {
+describe.skipIf(!hasPgUrl)("season-sim foundation postgres", () => {
   let client: Client | null = null
-  let available = false
   let seasonId = ""
   let runId = ""
   let liveSeasonId = ""
 
   beforeAll(async () => {
-    if (!pgUrl) {
-      if (process.env.CI && process.env.SEASON_SIM_PG_URL) {
-        throw new Error("SEASON_SIM_PG_URL empty in CI")
-      }
-      available = false
-      console.warn(
-        "skipping season-sim postgres tests: set SEASON_SIM_PG_URL (or POSTGRES_URL)",
-      )
-      return
-    }
     const probe = new Client({ connectionString: pgUrl })
     try {
       await probe.connect()
@@ -84,16 +80,10 @@ describe("season-sim foundation postgres", () => {
       runId = run.rows[0]!.id
 
       client = probe
-      available = true
     } catch (error) {
       await probe.end().catch(() => undefined)
-      if (process.env.CI && process.env.SEASON_SIM_PG_URL) {
-        throw error
-      }
-      available = false
-      console.warn(
-        `skipping season-sim postgres tests: ${(error as Error).message}`,
-      )
+      // Honest failure when a DB URL was provided (CI dedicated job or local intentional run).
+      throw error
     }
   }, 60_000)
 
@@ -102,14 +92,13 @@ describe("season-sim foundation postgres", () => {
   })
 
   function requireClient(): Client {
-    if (!available || !client) {
-      throw new Error("postgres unavailable")
+    if (!client) {
+      throw new Error("postgres client missing after beforeAll")
     }
     return client
   }
 
   it("applies both P0–P1 migrations and hardening on a minimal baseline", async () => {
-    if (!available) return
     const c = requireClient()
     const col = await c.query(
       `select 1 from information_schema.columns
@@ -123,7 +112,6 @@ describe("season-sim foundation postgres", () => {
   })
 
   it("rejects sandbox live flags and promoting sandbox seasons", async () => {
-    if (!available) return
     const c = requireClient()
     await expect(
       c.query(
@@ -138,7 +126,6 @@ describe("season-sim foundation postgres", () => {
   })
 
   it("rejects simulation_runs attached to non-sandbox seasons", async () => {
-    if (!available) return
     const c = requireClient()
     await expect(
       c.query(
@@ -150,7 +137,6 @@ describe("season-sim foundation postgres", () => {
   })
 
   it("rejects cross-run season mismatch via composite FK", async () => {
-    if (!available) return
     const c = requireClient()
     await expect(
       c.query(
@@ -164,7 +150,6 @@ describe("season-sim foundation postgres", () => {
   })
 
   it("enforces unique command_id replay semantics and immutable payload fields", async () => {
-    if (!available) return
     const c = requireClient()
     const commandId = "11111111-1111-4111-8111-111111111111"
     await c.query(
@@ -192,7 +177,6 @@ describe("season-sim foundation postgres", () => {
   })
 
   it("freezes config/rules/seed after config_frozen_at", async () => {
-    if (!available) return
     const c = requireClient()
     await expect(
       c.query(
@@ -203,7 +187,6 @@ describe("season-sim foundation postgres", () => {
   })
 
   it("claims with fencing and rejects stale lease apply", async () => {
-    if (!available) return
     const c = requireClient()
     const claim = await c.query<{
       claimed: boolean
@@ -232,7 +215,6 @@ describe("season-sim foundation postgres", () => {
     expect(ok.rows[0]?.applied).toBe(true)
     expect(Number(ok.rows[0]?.step_seq)).toBe(1)
 
-    // Append-only: cannot update steps
     await expect(
       c.query(`update public.simulation_steps set kind = 'x' where run_id = $1`, [
         runId,
@@ -241,9 +223,7 @@ describe("season-sim foundation postgres", () => {
   })
 
   it("blocks unsupported domain steps without fabricating completion", async () => {
-    if (!available) return
     const c = requireClient()
-    // Re-queue for claim
     await c.query(
       `update public.simulation_runs
        set status = 'queued', lease_token = null, lease_expires_at = null, lease_owner = null,
@@ -251,7 +231,6 @@ describe("season-sim foundation postgres", () => {
        where id = $1`,
       [runId],
     )
-    // Unfreeze temporarily not allowed — config_frozen stays; status patch ok
     const claim = await c.query<{ lease_token: string; claimed: boolean }>(
       `select * from public.sim_claim_run_lease($1, 'worker-b', 30000)`,
       [runId],
@@ -279,7 +258,6 @@ describe("season-sim foundation postgres", () => {
   })
 
   it("reclaims expired leases and serializes concurrent claims", async () => {
-    if (!available) return
     const c = requireClient()
     await c.query(
       `update public.simulation_runs
@@ -314,7 +292,6 @@ describe("season-sim foundation postgres", () => {
   })
 
   it("revokes execute on public wrappers from anon/authenticated", async () => {
-    if (!available) return
     const c = requireClient()
     const grants = await c.query<{ grantee: string; privilege_type: string }>(
       `select grantee, privilege_type
@@ -327,7 +304,6 @@ describe("season-sim foundation postgres", () => {
   })
 
   it("pause/cancel status transitions leave foundation incomplete (no champion)", async () => {
-    if (!available) return
     const c = requireClient()
     await c.query(
       `update public.simulation_runs
