@@ -1,9 +1,15 @@
 {
-  "generatedAt": "2026-11-06T10:55:02.333Z",
+  "generatedAt": "2026-11-06T11:15:13.754Z",
   "base": "public/poke-mnky/avatars/red-blue.png",
   "jevExercised": false,
-  "note": "EXAMPLE logos/palettes only. Offline POC — not the full product feature. Jev was not called.",
-  "maskUnionPixels": 81177,
+  "policy": {
+    "ball_chromatic_panels": "may_recolor_with_primary",
+    "ball_white_black_seam_highlights": "protected_via_monochrome_gates",
+    "neutrals_identity_emblems": "unchanged",
+    "method": "source-color chroma fabric selection + luminance-preserving paletteSwapToward"
+  },
+  "note": "EXAMPLE logos/palettes only. Offline POC (t24u+t25u fabric palette-swap). Ball chroma MAY remappart of primary intentionally. Jev was not called. Partial artwork.",
+  "maskUnionPixels": 78281,
   "fixtures": [
     {
       "id": "contrast-green-purple",
@@ -53,10 +59,10 @@
         "source": "deterministic_suggestion"
       },
       "invariant": {
-        "outsidePixelsChecked": 2478823,
+        "outsidePixelsChecked": 2481719,
         "outsidePixelsChanged": 0,
         "alphaChangedAnywhere": 0,
-        "maskUnionPixels": 81177
+        "maskUnionPixels": 78281
       },
       "outputs": {
         "full": "out/contrast-green-purple.png",
@@ -112,10 +118,10 @@
         "source": "deterministic_suggestion"
       },
       "invariant": {
-        "outsidePixelsChecked": 2478823,
+        "outsidePixelsChecked": 2481719,
         "outsidePixelsChanged": 0,
         "alphaChangedAnywhere": 0,
-        "maskUnionPixels": 81177
+        "maskUnionPixels": 78281
       },
       "outputs": {
         "full": "out/mono-grayscale.png",
@@ -171,10 +177,10 @@
         "source": "explicit_override"
       },
       "invariant": {
-        "outsidePixelsChecked": 2478823,
+        "outsidePixelsChecked": 2481719,
         "outsidePixelsChanged": 0,
         "alphaChangedAnywhere": 0,
-        "maskUnionPixels": 81177
+        "maskUnionPixels": 78281
       },
       "outputs": {
         "full": "out/bw-gold-override.png",

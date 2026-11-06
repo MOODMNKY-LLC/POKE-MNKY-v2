@@ -1,0 +1,50 @@
+{
+  "_comment": "Semantic geometry for red-blue.png (1600x1600). t25u: ball chromatic top MAY remappart of the fabric palette swap (system stock gold-black also recolors the ball). Protect ball white/black/seam via monochrome gates, not a full-ball freeze. Stale ROI (388,898,r=150) missed the ball — do not reuse.",
+  "base": "public/poke-mnky/avatars/red-blue.png",
+  "policy": {
+    "ball_chromatic_panels": "may_recolor_with_primary",
+    "ball_white_black_seam_highlights": "protected_via_monochrome_gates",
+    "identity_face_eyes_hands_fur": "unchanged",
+    "emblems_logos": "unchanged",
+    "note": "Stock gold-black.png is a separate redraw (~97% pixels differ) — visual reference that ball may change, NOT an isomorphic swap target."
+  },
+  "ball": {
+    "cx": 394,
+    "cy": 756,
+    "rad": 148,
+    "dilate_px": 3,
+    "rationale": "Handheld pokéball silhouette for ROI tests (white/black protect + optional chroma swap). Not a full freeze gate."
+  },
+  "hand_near_ball": {
+    "cx": 430,
+    "cy": 900,
+    "rad": 95,
+    "rationale": "Fingers cupping underside/right of ball — peach skin must stay out of clothing masks."
+  },
+  "face": {
+    "cx": 800,
+    "cy": 515,
+    "rad": 160,
+    "rationale": "Muzzle/face core — skin/fur/eyes identity must remain unchanged."
+  },
+  "bag_emblem_samples": [
+    { "x": 980, "y": 708, "label": "bag_logo_white_pixel" },
+    { "x": 803, "y": 560, "label": "chest_logo_white_pixel" }
+  ],
+  "emblem_discs": [
+    {
+      "cx": 803,
+      "cy": 560,
+      "rad": 42,
+      "dilate_px": 3,
+      "label": "chest_circular_logo"
+    },
+    {
+      "cx": 980,
+      "cy": 708,
+      "rad": 38,
+      "dilate_px": 3,
+      "label": "bag_circular_logo"
+    }
+  ]
+}

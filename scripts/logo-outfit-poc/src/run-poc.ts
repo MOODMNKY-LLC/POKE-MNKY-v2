@@ -197,7 +197,15 @@ function main(): void {
     generatedAt: new Date().toISOString(),
     base: paletteFile.baseAvatar,
     jevExercised: false,
-    note: "EXAMPLE logos/palettes only. Offline POC — not the full product feature. Jev was not called.",
+    policy: {
+      ball_chromatic_panels: "may_recolor_with_primary",
+      ball_white_black_seam_highlights: "protected_via_monochrome_gates",
+      neutrals_identity_emblems: "unchanged",
+      method: "source-color chroma fabric selection + luminance-preserving paletteSwapToward",
+    },
+    note:
+      "EXAMPLE logos/palettes only. Offline POC (t24u+t25u fabric palette-swap). " +
+      "Ball chroma MAY remappart of primary intentionally. Jev was not called. Partial artwork.",
     maskUnionPixels: (report[0] as { invariant: { maskUnionPixels: number } })?.invariant
       ?.maskUnionPixels,
     fixtures: report,

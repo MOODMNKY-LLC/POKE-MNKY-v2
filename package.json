@@ -53,7 +53,8 @@
     "logo-outfit:poc": "tsx scripts/logo-outfit-poc/src/run-poc.ts",
     "logo-outfit:test": "vitest run scripts/logo-outfit-poc/test/outfit-poc.test.ts",
     "logo-outfit:validate": "tsx scripts/logo-outfit-poc/src/validate-fixtures.ts",
-    "logo-outfit:all": "python3 scripts/logo-outfit-poc/author_masks.py && python3 scripts/logo-outfit-poc/make_fixture_logos.py && pnpm logo-outfit:poc && pnpm logo-outfit:validate && pnpm logo-outfit:test"
+    "logo-outfit:export": "python3 scripts/logo-outfit-poc/export_artifacts.py",
+    "logo-outfit:all": "python3 scripts/logo-outfit-poc/author_masks.py && python3 scripts/logo-outfit-poc/make_fixture_logos.py && pnpm logo-outfit:poc && pnpm logo-outfit:validate && pnpm logo-outfit:test && pnpm logo-outfit:export"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.12",

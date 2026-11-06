@@ -7,12 +7,20 @@ import { join, resolve, dirname } from "node:path"
 import { fileURLToPath } from "node:url"
 import {
   assertOutsideMaskUnchanged,
+  assertProtectedNeutralsUnchanged,
   compositeOutfit,
   countChangedPixels,
   maskStrength,
   type ResolvedPalette,
 } from "./composite"
 import { parseHex, suggestPaletteFromLogo } from "./extract"
+import {
+  assertBagEmblemSamplesUnchanged,
+  assertBallPalettePolicy,
+  assertHoldoutUnchanged,
+  circleMask,
+  loadHoldouts,
+} from "./holdouts"
 import { readPng } from "./png"
 
 const POC = resolve(dirname(fileURLToPath(import.meta.url)), "..")
@@ -61,7 +69,7 @@ function main(): void {
   if (base.width !== 1600 || base.height !== 1600) throw new Error("base dims")
   if (primary.width !== 1600 || secondary.width !== 1600) throw new Error("mask dims")
 
-  // Mask honesty: count mask pixels that look like skin / near-white ball band
+  // Mask honesty: count mask pixels that look like skin
   let skinInMask = 0
   let union = 0
   const n = 1600 * 1600
@@ -76,7 +84,6 @@ function main(): void {
     const b = base.data[idx + 2]!
     const a = base.data[idx + 3]!
     if (a < 200) continue
-    // peach-ish skin (broad) — masks must not include face/ear flesh
     if (r > 170 && g > 120 && b > 90 && b < 210 && r - b < 100) {
       skinInMask++
     }
@@ -85,10 +92,22 @@ function main(): void {
   console.log(`mask_union_pixels=${union} skinish_in_mask=${skinInMask}`)
   if (union < 20_000) throw new Error("mask union vacuous")
   if (union > 400_000) throw new Error("mask union over-broad")
-  // Honest ceiling: residual highlight/edge ambiguity OK in low hundreds; thousands = leak
   if (skinInMask > 800) {
     throw new Error(`Too much skin-like content in masks: ${skinInMask}`)
   }
+
+  const holdouts = loadHoldouts()
+  const ballRoi = circleMask(base.width, base.height, {
+    ...holdouts.ball,
+    rad: holdouts.ball.rad + (holdouts.ball.dilate_px ?? 0),
+    dilate_px: 0,
+  })
+  const handRoi = circleMask(base.width, base.height, holdouts.hand_near_ball)
+  const faceRoi = circleMask(
+    base.width,
+    base.height,
+    holdouts.face ?? { cx: 800, cy: 515, rad: 160 },
+  )
 
   for (const fixture of manifest.fixtures) {
     const palette = resolvePalette(fixture)
@@ -106,24 +125,54 @@ function main(): void {
       throw new Error(`${fixture.id}: alpha changed`)
     }
 
+    const neutrals = assertProtectedNeutralsUnchanged(base, once, primary, secondary)
+    if (neutrals.protectedChanged !== 0 || neutrals.maskIntersection !== 0) {
+      throw new Error(`${fixture.id}: neutral protect failed ${JSON.stringify(neutrals)}`)
+    }
+
     const changed = countChangedPixels(base, once)
     if (changed < 5_000) {
       throw new Error(`${fixture.id}: too few clothing pixels changed (${changed})`)
     }
 
-    // Alpha identical byte-for-byte
     for (let i = 3; i < base.data.length; i += 4) {
       if (base.data[i] !== once.data[i]) {
         throw new Error(`${fixture.id}: alpha mismatch at ${i}`)
       }
     }
 
+    // t25u: ball neutrals protected; chromatic top may remappart of primary
+    const ball = assertBallPalettePolicy(base, once, ballRoi, primary, secondary)
+    if (ball.neutralChanged !== 0 || ball.neutralInMask !== 0) {
+      throw new Error(`${fixture.id}: ball neutral protect failed ${JSON.stringify(ball)}`)
+    }
+    if (ball.chromaticInMask < 500 || ball.chromaticChanged < 500) {
+      throw new Error(
+        `${fixture.id}: expected ball chroma to remappart of palette (t25u) ${JSON.stringify(ball)}`,
+      )
+    }
+
+    const hand = assertHoldoutUnchanged(base, once, handRoi, primary, secondary)
+    if (hand.changedPixels !== 0) {
+      throw new Error(`${fixture.id}: hand holdout failed ${JSON.stringify(hand)}`)
+    }
+    const face = assertHoldoutUnchanged(base, once, faceRoi, primary, secondary)
+    if (face.changedPixels > 200) {
+      throw new Error(`${fixture.id}: face holdout leaked ${JSON.stringify(face)}`)
+    }
+    assertBagEmblemSamplesUnchanged(base, once, holdouts.bag_emblem_samples)
+
     console.log(
-      `PASS ${fixture.id} changed=${changed} outsideOk=${inv.outsidePixelsChecked} union=${inv.maskUnionPixels}`,
+      `PASS ${fixture.id} changed=${changed} union=${inv.maskUnionPixels} ` +
+        `neutralsOk=${neutrals.protectedChecked} ballChromaChanged=${ball.chromaticChanged} ` +
+        `ballNeutralOk=${ball.neutralProtected} handOk faceChanged=${face.changedPixels}`,
     )
   }
 
   console.log("ALL_THREE_FIXTURES_VALIDATED")
+  console.log(
+    "POLICY ball_chromatic_panels=may_recolor_with_primary (t25u intentional)",
+  )
 }
 
 main()
