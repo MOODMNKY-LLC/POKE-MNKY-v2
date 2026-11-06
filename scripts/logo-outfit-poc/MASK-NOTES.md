@@ -13,7 +13,7 @@
 | Poké Ball chromatic top | **MAY remappart** of primary (intentional — system stock `gold-black` also recolors the ball; not isomorphic) |
 | Ball white / black / seam / highlights | **Protected** via monochrome gates |
 | Black/white/neutral clothing, linework | **Protected** (never in masks) |
-| Face / fur / eyes / hands / skin | **Protected** (identity ellipses) |
+| Face / fur / eyes / hands / skin / **ears** | **Protected** (identity ellipses fitted to full-res silhouettes, incl. dark maroon cavities) |
 | Emblem / logo discs (chest, bag) | **Protected** (disc holdouts + near-white) |
 
 ## What the masks INCLUDE (approx.)
@@ -26,13 +26,15 @@
 
 ## What is EXPLICITLY excluded
 
-- Face / muzzle / inner-ear skin
+- Face / muzzle / **full ear silhouettes including dark maroon inner cavities** (not bright-peach-only)
 - Eye irises (would otherwise match red seed)
-- Hands overlapping the ball
+- Hands overlapping the ball (expanded for dark finger skin)
 - Soft hair band under the cap
 - Near-white logos/trim/emblems
 - Near-black / low-chroma neutrals and line cores
 - Emblem discs (chest + bag circular logos)
+
+**Regression (2ef33e8):** guessed ear ellipses stopped too high; right-ear ROI had ~2215 recolored ear-flesh px (e.g. `(1065,535)` RGB `(115,48,46)` → purple/teal). Fixed by silhouette-fitted ear holdouts + local ear-flesh strip. Old failing masks kept under `regression/` for tests that prove old fails / new passes.
 
 ## Known gaps / uncertain areas (artist follow-up)
 
@@ -44,7 +46,7 @@
 6. **Rim-light / colored bounce on black fur** — not corrected.
 7. **Mask edges** — seed+morphology, not hand-painted; expect 1–2px fringing. If a mask cannot be made exact, treat as **partial uncertainty**.
 8. **Poké Ball (t25u)** — chromatic top is eligible for primary swap; white/black/seam protected. Stock `gold-black.png` is a separate redraw (~97% pixels differ) — reference that ball *may* change, not a pixel mapping target. Prior failing ROI `(388,898,r=150)` missed the ball; current geometry `(394,756,r=148)`.
-9. **Cap brim near ears** — residual 1px edge uncertainty at fur/brim junctions.
+9. **Cap brim near ears** — ear holdouts intentionally prefer keeping adjacent brim cloth unmasked over leaking into ear flesh; some red brim near ears may stay original.
 10. **Shoe / prop details** — conservative; only unambiguously chromatic fabric panels included.
 
 ## What would make this production-ready

@@ -1,32 +1,60 @@
 {
-  "_comment": "Semantic geometry for red-blue.png (1600x1600). t25u: ball chromatic top MAY remappart of the fabric palette swap (system stock gold-black also recolors the ball). Protect ball white/black/seam via monochrome gates, not a full-ball freeze. Stale ROI (388,898,r=150) missed the ball — do not reuse.",
+  "_comment": "Semantic geometry for red-blue.png (1600x1600). t25u: ball chromatic top MAY remappart of primary. Ear holdouts fitted to full-res silhouettes incl. dark maroon cavities (identity failure at 2ef33e8).",
   "base": "public/poke-mnky/avatars/red-blue.png",
   "policy": {
     "ball_chromatic_panels": "may_recolor_with_primary",
     "ball_white_black_seam_highlights": "protected_via_monochrome_gates",
-    "identity_face_eyes_hands_fur": "unchanged",
+    "identity_face_eyes_hands_fur_ears": "unchanged",
     "emblems_logos": "unchanged",
-    "note": "Stock gold-black.png is a separate redraw (~97% pixels differ) — visual reference that ball may change, NOT an isomorphic swap target."
+    "note": "Prefer preserving a bit of cloth at ear/hat borders over recoloring ear flesh. Stock gold-black.png is a separate redraw — ball may change, not an isomorphic map."
   },
   "ball": {
     "cx": 394,
     "cy": 756,
     "rad": 148,
     "dilate_px": 3,
-    "rationale": "Handheld pokéball silhouette for ROI tests (white/black protect + optional chroma swap). Not a full freeze gate."
+    "rationale": "Handheld pokéball silhouette for ROI tests (white/black protect + optional chroma swap)."
   },
   "hand_near_ball": {
     "cx": 430,
     "cy": 900,
-    "rad": 95,
-    "rationale": "Fingers cupping underside/right of ball — peach skin must stay out of clothing masks."
+    "rad": 110,
+    "rationale": "Expanded to cover dark finger/palm skin analogues near the ball."
   },
   "face": {
     "cx": 800,
     "cy": 515,
-    "rad": 160,
-    "rationale": "Muzzle/face core — skin/fur/eyes identity must remain unchanged."
+    "rad": 175,
+    "rationale": "Muzzle/face core — skin/fur identity must remain unchanged."
   },
+  "ears": {
+    "left": {
+      "ellipse_xyxy": [415, 290, 615, 655],
+      "dilate_px": 6,
+      "roi_xyxy": [420, 380, 620, 620],
+      "rationale": "Full left ear silhouette incl. dark inner cavity; prefer cloth loss at brim over flesh recolor."
+    },
+    "right": {
+      "ellipse_xyxy": [980, 300, 1180, 650],
+      "dilate_px": 6,
+      "roi_xyxy": [980, 380, 1180, 620],
+      "rationale": "Full right ear silhouette incl. dark maroon cavity (leak centroid ~1071,558 at 2ef33e8)."
+    }
+  },
+  "ear_flesh_regression_samples": [
+    { "x": 1065, "y": 535, "label": "right_ear_dark_maroon", "base_rgb": [115, 48, 46] },
+    { "x": 1081, "y": 541, "label": "right_ear_dark_maroon_2", "base_rgb": [119, 48, 48] },
+    { "x": 1075, "y": 547, "label": "right_ear_dark_maroon_3", "base_rgb": [119, 48, 48] },
+    { "x": 1068, "y": 553, "label": "right_ear_dark_maroon_4", "base_rgb": [118, 46, 46] },
+    { "x": 1066, "y": 559, "label": "right_ear_dark_maroon_5", "base_rgb": [117, 47, 47] },
+    { "x": 1077, "y": 565, "label": "right_ear_dark_maroon_6", "base_rgb": [117, 47, 47] },
+    { "x": 1065, "y": 572, "label": "right_ear_dark_maroon_7", "base_rgb": [118, 47, 48] },
+    { "x": 1060, "y": 579, "label": "right_ear_dark_maroon_8", "base_rgb": [116, 47, 47] },
+    { "x": 1053, "y": 586, "label": "right_ear_dark_maroon_9", "base_rgb": [123, 52, 53] },
+    { "x": 1103, "y": 380, "label": "right_ear_bright_peach", "base_rgb": [250, 136, 134] },
+    { "x": 530, "y": 483, "label": "left_ear_dark_flesh", "base_rgb": [136, 54, 41] },
+    { "x": 509, "y": 531, "label": "left_ear_cavity", "base_rgb": [172, 105, 82] }
+  ],
   "bag_emblem_samples": [
     { "x": 980, "y": 708, "label": "bag_logo_white_pixel" },
     { "x": 803, "y": 560, "label": "chest_logo_white_pixel" }
@@ -46,5 +74,12 @@
       "dilate_px": 3,
       "label": "bag_circular_logo"
     }
-  ]
+  ],
+  "regression": {
+    "failing_commit": "2ef33e8",
+    "evidence": "regression/ear-leak-correction_a4e1.json",
+    "old_primary_mask": "regression/primary-mask-ear-leak-2ef33e8.png",
+    "old_secondary_mask": "regression/secondary-mask-ear-leak-2ef33e8.png",
+    "right_ear_flesh_in_old_mask": 2215
+  }
 }

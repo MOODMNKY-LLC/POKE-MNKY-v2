@@ -8,17 +8,56 @@ const POC_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..")
 
 export type CircleHoldout = { cx: number; cy: number; rad: number; dilate_px?: number }
 
+export type EarSideHoldout = {
+  ellipse_xyxy: [number, number, number, number]
+  dilate_px?: number
+  roi_xyxy: [number, number, number, number]
+  rationale?: string
+}
+
+export type EarFleshSample = {
+  x: number
+  y: number
+  label: string
+  base_rgb?: [number, number, number] | null
+}
+
 export type HoldoutsFile = {
   ball: CircleHoldout
   hand_near_ball: CircleHoldout
   face?: CircleHoldout
+  ears?: { left: EarSideHoldout; right: EarSideHoldout }
+  ear_flesh_regression_samples?: EarFleshSample[]
   bag_emblem_samples: Array<{ x: number; y: number; label: string }>
   emblem_discs?: Array<CircleHoldout & { label?: string }>
+  regression?: {
+    failing_commit?: string
+    old_primary_mask?: string
+    old_secondary_mask?: string
+    right_ear_flesh_in_old_mask?: number
+    [key: string]: unknown
+  }
   policy?: {
     ball_chromatic_panels?: string
     ball_white_black_seam_highlights?: string
     [key: string]: unknown
   }
+}
+
+/** Axis-aligned box mask from [x0,y0,x1,y1) — y1/x1 exclusive. */
+export function boxMask(
+  width: number,
+  height: number,
+  xyxy: [number, number, number, number],
+): Uint8Array {
+  const [x0, y0, x1, y1] = xyxy
+  const out = new Uint8Array(width * height)
+  for (let y = Math.max(0, y0); y < Math.min(height, y1); y++) {
+    for (let x = Math.max(0, x0); x < Math.min(width, x1); x++) {
+      out[y * width + x] = 1
+    }
+  }
+  return out
 }
 
 export function loadHoldouts(): HoldoutsFile {

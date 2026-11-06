@@ -15,6 +15,7 @@ import {
   assertBagEmblemSamplesUnchanged,
   assertBallPalettePolicy,
   assertHoldoutUnchanged,
+  boxMask,
   circleMask,
   loadHoldouts,
 } from "../src/holdouts"
@@ -145,7 +146,7 @@ describe("logo-outfit-poc", () => {
     const faceRoi = circleMask(
       base.width,
       base.height,
-      holdouts.face ?? { cx: 800, cy: 515, rad: 160 },
+      holdouts.face ?? { cx: 800, cy: 515, rad: 175 },
     )
     const out = compositeOutfit(base, primary, secondary, SAMPLE_PALETTES[0]!)
     const handReport = assertHoldoutUnchanged(base, out, handRoi, primary, secondary)
@@ -160,4 +161,92 @@ describe("logo-outfit-poc", () => {
       expect(maskStrength(primary, i) + maskStrength(secondary, i)).toBe(0)
     }
   }, 30_000)
+
+  it("REGRESSION: old 2ef33e8 masks contained ear flesh; corrected masks must not", () => {
+    const holdouts = loadHoldouts()
+    expect(holdouts.regression?.failing_commit).toBe("2ef33e8")
+    const oldPrimary = readPng(
+      join(POC, holdouts.regression!.old_primary_mask ?? "regression/primary-mask-ear-leak-2ef33e8.png"),
+    )
+    const samples = holdouts.ear_flesh_regression_samples ?? []
+    expect(samples.length).toBeGreaterThanOrEqual(8)
+
+    let oldHits = 0
+    let newHits = 0
+    for (const s of samples) {
+      if (s.base_rgb) {
+        const i = (s.y * base.width + s.x) * 4
+        expect(base.data[i]).toBe(s.base_rgb[0])
+        expect(base.data[i + 1]).toBe(s.base_rgb[1])
+        expect(base.data[i + 2]).toBe(s.base_rgb[2])
+      }
+      const idx = s.y * base.width + s.x
+      if (maskStrength(oldPrimary, idx) > 0) oldHits++
+      if (maskStrength(primary, idx) > 0 || maskStrength(secondary, idx) > 0) newHits++
+    }
+    // Known-failing samples were inside the old primary mask
+    expect(oldHits).toBeGreaterThanOrEqual(8)
+    // Corrected masks must exclude every regression sample
+    expect(newHits).toBe(0)
+
+    // Semantic right-ear ROI: old mask had thousands of hits; new must be near-zero on flesh samples path
+    const rightRoi = boxMask(base.width, base.height, holdouts.ears!.right.roi_xyxy)
+    let oldRoiMask = 0
+    let newRoiMask = 0
+    for (let i = 0; i < rightRoi.length; i++) {
+      if (!rightRoi[i]) continue
+      if (maskStrength(oldPrimary, i) > 0) oldRoiMask++
+      if (maskStrength(primary, i) > 0 || maskStrength(secondary, i) > 0) newRoiMask++
+    }
+    expect(oldRoiMask).toBeGreaterThan(2000)
+    // Allow tiny cloth-at-border residue; not thousands of flesh pixels
+    expect(newRoiMask).toBeLessThan(80)
+  })
+
+  it("ear flesh samples + ear ROIs unchanged for all 3 palettes", () => {
+    const holdouts = loadHoldouts()
+    const samples = holdouts.ear_flesh_regression_samples ?? []
+    const rightRoi = boxMask(base.width, base.height, holdouts.ears!.right.roi_xyxy)
+    const leftRoi = boxMask(base.width, base.height, holdouts.ears!.left.roi_xyxy)
+
+    for (const palette of SAMPLE_PALETTES) {
+      const out = compositeOutfit(base, primary, secondary, palette)
+      for (const s of samples) {
+        const i = (s.y * base.width + s.x) * 4
+        expect(out.data[i]).toBe(base.data[i])
+        expect(out.data[i + 1]).toBe(base.data[i + 1])
+        expect(out.data[i + 2]).toBe(base.data[i + 2])
+        expect(out.data[i + 3]).toBe(base.data[i + 3])
+        const idx = s.y * base.width + s.x
+        expect(maskStrength(primary, idx) + maskStrength(secondary, idx)).toBe(0)
+      }
+      // Within ear ROIs: any changed pixel must be rare (cloth border only)
+      let rightChanged = 0
+      let leftChanged = 0
+      for (let i = 0; i < rightRoi.length; i++) {
+        if (!rightRoi[i]) continue
+        const idx = i * 4
+        if (
+          out.data[idx] !== base.data[idx] ||
+          out.data[idx + 1] !== base.data[idx + 1] ||
+          out.data[idx + 2] !== base.data[idx + 2]
+        ) {
+          rightChanged++
+        }
+      }
+      for (let i = 0; i < leftRoi.length; i++) {
+        if (!leftRoi[i]) continue
+        const idx = i * 4
+        if (
+          out.data[idx] !== base.data[idx] ||
+          out.data[idx + 1] !== base.data[idx + 1] ||
+          out.data[idx + 2] !== base.data[idx + 2]
+        ) {
+          leftChanged++
+        }
+      }
+      expect(rightChanged).toBeLessThan(80)
+      expect(leftChanged).toBeLessThan(80)
+    }
+  }, 90_000)
 })

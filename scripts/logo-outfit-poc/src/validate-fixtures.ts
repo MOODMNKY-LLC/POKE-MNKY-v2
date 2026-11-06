@@ -18,6 +18,7 @@ import {
   assertBagEmblemSamplesUnchanged,
   assertBallPalettePolicy,
   assertHoldoutUnchanged,
+  boxMask,
   circleMask,
   loadHoldouts,
 } from "./holdouts"
@@ -162,10 +163,45 @@ function main(): void {
     }
     assertBagEmblemSamplesUnchanged(base, once, holdouts.bag_emblem_samples)
 
+    // Ear identity: regression samples + ROI change ceilings
+    for (const s of holdouts.ear_flesh_regression_samples ?? []) {
+      const i = (s.y * base.width + s.x) * 4
+      if (
+        once.data[i] !== base.data[i] ||
+        once.data[i + 1] !== base.data[i + 1] ||
+        once.data[i + 2] !== base.data[i + 2] ||
+        once.data[i + 3] !== base.data[i + 3]
+      ) {
+        throw new Error(`${fixture.id}: ear sample ${s.label} changed`)
+      }
+      const idx = s.y * base.width + s.x
+      if (maskStrength(primary, idx) > 0 || maskStrength(secondary, idx) > 0) {
+        throw new Error(`${fixture.id}: ear sample ${s.label} still in fabric mask`)
+      }
+    }
+    let earChanged = 0
+    for (const side of ["left", "right"] as const) {
+      const roi = boxMask(base.width, base.height, holdouts.ears![side].roi_xyxy)
+      for (let i = 0; i < roi.length; i++) {
+        if (!roi[i]) continue
+        const idx = i * 4
+        if (
+          once.data[idx] !== base.data[idx] ||
+          once.data[idx + 1] !== base.data[idx + 1] ||
+          once.data[idx + 2] !== base.data[idx + 2]
+        ) {
+          earChanged++
+        }
+      }
+    }
+    if (earChanged > 100) {
+      throw new Error(`${fixture.id}: ear ROI recolor leak earChanged=${earChanged}`)
+    }
+
     console.log(
       `PASS ${fixture.id} changed=${changed} union=${inv.maskUnionPixels} ` +
         `neutralsOk=${neutrals.protectedChecked} ballChromaChanged=${ball.chromaticChanged} ` +
-        `ballNeutralOk=${ball.neutralProtected} handOk faceChanged=${face.changedPixels}`,
+        `ballNeutralOk=${ball.neutralProtected} handOk faceChanged=${face.changedPixels} earChanged=${earChanged}`,
     )
   }
 

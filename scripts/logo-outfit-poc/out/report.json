@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-06T11:15:13.754Z",
+  "generatedAt": "2026-11-06T11:25:41.443Z",
   "base": "public/poke-mnky/avatars/red-blue.png",
   "jevExercised": false,
   "policy": {
@@ -9,7 +9,7 @@
     "method": "source-color chroma fabric selection + luminance-preserving paletteSwapToward"
   },
   "note": "EXAMPLE logos/palettes only. Offline POC (t24u+t25u fabric palette-swap). Ball chroma MAY remappart of primary intentionally. Jev was not called. Partial artwork.",
-  "maskUnionPixels": 78281,
+  "maskUnionPixels": 73272,
   "fixtures": [
     {
       "id": "contrast-green-purple",
@@ -59,10 +59,10 @@
         "source": "deterministic_suggestion"
       },
       "invariant": {
-        "outsidePixelsChecked": 2481719,
+        "outsidePixelsChecked": 2486728,
         "outsidePixelsChanged": 0,
         "alphaChangedAnywhere": 0,
-        "maskUnionPixels": 78281
+        "maskUnionPixels": 73272
       },
       "outputs": {
         "full": "out/contrast-green-purple.png",
@@ -118,10 +118,10 @@
         "source": "deterministic_suggestion"
       },
       "invariant": {
-        "outsidePixelsChecked": 2481719,
+        "outsidePixelsChecked": 2486728,
         "outsidePixelsChanged": 0,
         "alphaChangedAnywhere": 0,
-        "maskUnionPixels": 78281
+        "maskUnionPixels": 73272
       },
       "outputs": {
         "full": "out/mono-grayscale.png",
@@ -177,10 +177,10 @@
         "source": "explicit_override"
       },
       "invariant": {
-        "outsidePixelsChecked": 2481719,
+        "outsidePixelsChecked": 2486728,
         "outsidePixelsChanged": 0,
         "alphaChangedAnywhere": 0,
-        "maskUnionPixels": 78281
+        "maskUnionPixels": 73272
       },
       "outputs": {
         "full": "out/bw-gold-override.png",

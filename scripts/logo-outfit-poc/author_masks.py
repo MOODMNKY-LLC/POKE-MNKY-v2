@@ -75,16 +75,31 @@ def main() -> None:
         & (y < 235)
     )
 
+    holdouts = json.loads(HOLDOUTS.read_text())
+
     # --- Identity / prop region holdouts (NOT the ball chromatic top — t25u) ---
     face = Image.new("L", (1600, 1600), 0)
-    ImageDraw.Draw(face).ellipse((600, 290, 1000, 740), fill=255)
+    ImageDraw.Draw(face).ellipse((580, 280, 1020, 760), fill=255)
     face_m = np.array(face) > 0
 
+    # Ears: fitted to full-res silhouettes including dark maroon inner cavities.
+    # Prefer losing a bit of adjacent cap-brim cloth over recoloring ear flesh.
     ears = Image.new("L", (1600, 1600), 0)
     edraw = ImageDraw.Draw(ears)
-    edraw.ellipse((500, 250, 720, 520), fill=255)
-    edraw.ellipse((880, 250, 1100, 520), fill=255)
-    ears_m = np.array(ears) > 0
+    ear_specs = holdouts["ears"]
+    for side in ("left", "right"):
+        x0, y0, x1, y1 = ear_specs[side]["ellipse_xyxy"]
+        edraw.ellipse((int(x0), int(y0), int(x1), int(y1)), fill=255)
+    # Dilate to cover cavity borders / anti-aliased ear edges
+    ear_dilate = max(
+        int(ear_specs["left"].get("dilate_px", 6)),
+        int(ear_specs["right"].get("dilate_px", 6)),
+    )
+    ears_m = (
+        np.array(ears.filter(ImageFilter.MaxFilter(ear_dilate * 2 + 1))) > 127
+        if ear_dilate > 0
+        else np.array(ears) > 0
+    )
 
     eyes = Image.new("L", (1600, 1600), 0)
     ed = ImageDraw.Draw(eyes)
@@ -92,8 +107,7 @@ def main() -> None:
     ed.ellipse((840, 400, 945, 505), fill=255)
     eyes_m = np.array(eyes) > 0
 
-    holdouts = json.loads(HOLDOUTS.read_text())
-    # Hands only — ball geometry is used for docs/tests, not to block chroma swap
+    # Hands — ball geometry is used for docs/tests, not to block chroma swap
     hx = holdouts["hand_near_ball"]
     hands = Image.new("L", (1600, 1600), 0)
     ImageDraw.Draw(hands).ellipse(
@@ -118,7 +132,6 @@ def main() -> None:
     neck_m = np.array(neck) > 0
 
     # Emblem discs (white logos on chest / bag / cap) — protect disk + small halo
-    # so fabric morph cannot eat into branded graphics even if chroma leaks at edges.
     emblem_m = np.zeros((1600, 1600), dtype=bool)
     for em in holdouts.get("emblem_discs", []):
         emi = Image.new("L", (1600, 1600), 0)
@@ -156,8 +169,10 @@ def main() -> None:
     primary = morph(primary)
     secondary = morph(secondary) & ~primary
 
-    # Drop residual skin-like pixels (tan / peach)
-    skinish = (
+    # Drop residual skin-like pixels: bright peach AND dark maroon cavities
+    # (maroon has elevated G+B together; saturated cloth red often has near-zero G/B —
+    # but do NOT rely on that alone for ears; geometric holdouts are primary).
+    peach = (
         opaque
         & (r > 165)
         & (g > 110)
@@ -166,6 +181,21 @@ def main() -> None:
         & (r - b < 100)
         & (g > b - 10)
     )
+    dark_maroon_skin = (
+        opaque
+        & (r > 90)
+        & (r < 200)
+        & (g > 32)
+        & (g < 110)
+        & (b > 30)
+        & (b < 110)
+        & (r > g + 20)
+        & (r > b + 20)
+        & (np.abs(g - b) < 28)
+        & (g > 0.28 * r)
+        & (b > 0.26 * r)
+    )
+    skinish = peach | dark_maroon_skin
     primary &= ~skinish
     secondary &= ~skinish
 
@@ -173,11 +203,38 @@ def main() -> None:
     primary &= ~monochrome_protect
     secondary &= ~monochrome_protect
 
-    # Peel mask off dilated identity holdouts
+    # Peel mask off dilated identity holdouts (extra peel on ears — identity > cloth)
     excl_img = Image.fromarray((identity_exclude.astype(np.uint8) * 255), mode="L")
     excl_dilated = np.array(excl_img.filter(ImageFilter.MaxFilter(5))) > 127
-    primary &= ~excl_dilated
-    secondary &= ~excl_dilated
+    ear_extra = np.array(
+        Image.fromarray((ears_m.astype(np.uint8) * 255), mode="L").filter(
+            ImageFilter.MaxFilter(9)
+        )
+    ) > 127
+    primary &= ~excl_dilated & ~ear_extra
+    secondary &= ~excl_dilated & ~ear_extra
+
+    # Belt-and-suspenders: within documented ear ROIs, strip any remaining warm flesh
+    yy, xx = np.mgrid[0:1600, 0:1600]
+    ear_roi = np.zeros((1600, 1600), dtype=bool)
+    for side in ("left", "right"):
+        x0, y0, x1, y1 = ear_specs[side]["roi_xyxy"]
+        ear_roi |= (xx >= int(x0)) & (xx < int(x1)) & (yy >= int(y0)) & (yy < int(y1))
+    ear_flesh_local = ear_roi & opaque & (
+        peach
+        | dark_maroon_skin
+        | (
+            (r > 85)
+            & (g > 30)
+            & (b > 28)
+            & (r > g + 12)
+            & (r > b + 12)
+            & (np.abs(g - b) < 40)
+            & (g > 0.25 * r)
+        )
+    )
+    primary &= ~ear_flesh_local
+    secondary &= ~ear_flesh_local
 
     # Final chroma gate — morph must not reintroduce low-chroma / neutral pixels
     primary &= chroma >= 40
@@ -273,6 +330,11 @@ def main() -> None:
     print(f"monochrome_protect_px={int(monochrome_protect.sum())}")
     print(f"ball_primary_chroma_px={ball_primary} (intentional t25u)")
     print(f"ball_near_white_protected_px={ball_white_protected}")
+    print(f"ear_holdout_px={int(ears_m.sum())} ear_roi_flesh_stripped={int(ear_flesh_local.sum())}")
+    print(
+        f"ear_roi_mask_remaining={int(((primary | secondary) & ear_roi).sum())} "
+        f"(should be cloth-at-border only, not flesh)"
+    )
     print(f"wrote masks + selection map to {OUT}")
 
 

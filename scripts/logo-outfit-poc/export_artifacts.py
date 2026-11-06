@@ -106,6 +106,46 @@ def main() -> None:
     for fid, im in outs.items():
         crop_zoom(im, cap_box).save(EXPORT / f"cap-panel-AFTER-{fid}.png")
 
+    # Ear identity evidence (right ROI from regression JSON) — BEFORE + after all 3
+    ears = holdouts.get("ears", {})
+    if "right" in ears:
+        x0, y0, x1, y1 = ears["right"]["roi_xyxy"]
+        ear_box = (int(x0), int(y0), int(x1), int(y1))
+        crop_zoom(base, ear_box).save(EXPORT / "ear-RIGHT-BEFORE.png")
+        for fid, im in outs.items():
+            crop_zoom(im, ear_box).save(EXPORT / f"ear-RIGHT-AFTER-{fid}.png")
+        # Side-by-side strip: BEFORE + 3 AFTER
+        eh = 280
+        ear_strip = Image.new("RGBA", (eh * 4 + 30, eh + 40), (36, 36, 40, 255))
+        ed = ImageDraw.Draw(ear_strip)
+        ed.text(
+            (8, 6),
+            "RIGHT EAR identity — must stay original (dark maroon cavities included)",
+            fill=(240, 240, 244),
+        )
+        ear_panels = [("BEFORE", base)] + [(fid, outs[fid]) for fid in fixture_ids]
+        for i, (label, im) in enumerate(ear_panels):
+            t = crop_zoom(im, ear_box, eh)
+            ear_strip.paste(t, (8 + i * (eh + 6), 28), t)
+        ear_strip.save(EXPORT / "ear-RIGHT-before-3after.png")
+    if "left" in ears:
+        x0, y0, x1, y1 = ears["left"]["roi_xyxy"]
+        ear_box = (int(x0), int(y0), int(x1), int(y1))
+        crop_zoom(base, ear_box).save(EXPORT / "ear-LEFT-BEFORE.png")
+        for fid, im in outs.items():
+            crop_zoom(im, ear_box).save(EXPORT / f"ear-LEFT-AFTER-{fid}.png")
+
+    # Copy regression audit evidence into final for copy-out
+    reg = POC / "regression"
+    for name in (
+        "ear-RIGHT-audit.png",
+        "ear-LEFT-audit.png",
+        "ear-leak-correction_a4e1.json",
+    ):
+        src = reg / name
+        if src.is_file():
+            shutil.copy2(src, EXPORT / name)
+
     # --- Clean 1x4 before + 3 after (PRIMARY visual deliverable) ---
     thumb_h = 360
     panels = [("ORIGINAL", base)] + [
@@ -250,17 +290,13 @@ def main() -> None:
 
     primary_files = [
         "comparison-before-3after.png",
-        "selection-map-annotated.png",
-        "swatch-legend-fabric-to-palette.png",
         "base-red-blue.png",
         *[f"{fid}.png" for fid in fixture_ids],
-        "ball-crop-BEFORE.png",
-        *[f"ball-crop-AFTER-{fid}.png" for fid in fixture_ids],
-        "SHA256SUMS",
         "manifest.json",
-        "report.json",
         "holdouts.json",
         "MASK-NOTES.md",
+        "ear-RIGHT-before-3after.png",
+        "report.json",
     ]
 
     manifest = {
