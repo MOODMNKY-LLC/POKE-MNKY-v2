@@ -51,7 +51,8 @@
     "discord:post-guide-webhook": "tsx scripts/post-slash-commands-guide-webhook.ts",
     "jev:pilot": "tsx scripts/jev-pilot/run.ts",
     "sim:worker:tick": "tsx scripts/sim-worker/tick.ts",
-    "sim:worker:typecheck": "tsc -p scripts/sim-worker/tsconfig.json"
+    "sim:worker:typecheck": "tsc -p scripts/sim-worker/tsconfig.json",
+    "test:season-sim-pg": "vitest run lib/season-sim/foundation.pg.test.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.12",

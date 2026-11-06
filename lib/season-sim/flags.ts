@@ -3,6 +3,8 @@
  * All default OFF — fail closed when unset/empty.
  */
 
+type EnvLike = Record<string, string | undefined>
+
 function truthy(raw: string | undefined): boolean {
   const v = raw?.trim().toLowerCase()
   return v === "true" || v === "1" || v === "yes" || v === "on"
@@ -10,14 +12,14 @@ function truthy(raw: string | undefined): boolean {
 
 /** Enables create/progress/advance/pause/resume/cancel APIs. */
 export function isSimSandboxV2Enabled(
-  env: NodeJS.ProcessEnv = process.env,
+  env: EnvLike = process.env,
 ): boolean {
   return truthy(env.SIM_SANDBOX_V2)
 }
 
 /** Enables worker tick HTTP + CLI initiator (still requires worker auth). */
 export function isSimWorkerTickEnabled(
-  env: NodeJS.ProcessEnv = process.env,
+  env: EnvLike = process.env,
 ): boolean {
   return truthy(env.SIM_WORKER_TICK_ENABLED)
 }
@@ -27,7 +29,7 @@ export function isSimWorkerTickEnabled(
  * Default off — those paths bypass sandbox v2 isolation.
  */
 export function isLegacySimulationWritesEnabled(
-  env: NodeJS.ProcessEnv = process.env,
+  env: EnvLike = process.env,
 ): boolean {
   return truthy(env.SIM_LEGACY_SIMULATION_WRITES)
 }

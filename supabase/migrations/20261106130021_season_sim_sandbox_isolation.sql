@@ -46,10 +46,15 @@ language plpgsql
 set search_path = public
 as $$
 begin
-  if new.is_sandbox then
-    new.is_current := false;
-    new.is_live_competitive := false;
-    new.sheet_sync_enabled := false;
+  -- Fail closed: never silently "fix" illegal live flags on sandboxes.
+  if new.is_sandbox
+     and (
+       coalesce(new.is_current, false)
+       or coalesce(new.is_live_competitive, false)
+       or coalesce(new.sheet_sync_enabled, false)
+     ) then
+    raise exception 'SANDBOX_LIVE_FLAGS_FORBIDDEN: sandbox seasons cannot be current, live competitive, or sheet-synced'
+      using errcode = 'check_violation';
   end if;
 
   if tg_op = 'UPDATE'

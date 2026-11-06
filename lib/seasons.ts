@@ -151,7 +151,7 @@ export async function getMarkedCurrentSeason(
  */
 export async function getDraftBoardSeasonId(
   currentSeasonId: string,
-  supabase: { from: (table: string) => any }
+  supabase: SupabaseClient,
 ): Promise<string> {
   const trimmed = currentSeasonId.trim()
 
@@ -174,6 +174,19 @@ export async function getDraftBoardSeasonId(
 
   const otherId = (one as { season_id?: string } | null)?.season_id
   if (otherId && otherId.trim()) {
+    // Never auto-switch the live draft board onto a sandbox season.
+    const seasonLookup = await supabase
+      .from("seasons")
+      .select("id, is_sandbox")
+      .eq("id", otherId.trim())
+      .maybeSingle()
+    if (seasonLookup.error?.code === "42703") {
+      return otherId.trim()
+    }
+    const row = seasonLookup.data as { is_sandbox?: boolean } | null
+    if (row?.is_sandbox === true) {
+      return trimmed
+    }
     return otherId.trim()
   }
 

@@ -2,6 +2,8 @@
  * Named deterministic PRNG for season-sim foundation.
  * Algorithm: splitmix64 (public domain / permissive literature).
  * Version string must be stored on simulation_runs before first seeded use.
+ *
+ * Uses BigInt() constructors (not bigint literals) so tsc target ES6/Next build succeeds.
  */
 
 export const SIM_PRNG_ALGORITHM = "splitmix64" as const
@@ -16,14 +18,25 @@ export type SimRngSubstream =
   | "decision_policy"
   | "foundation"
 
+const U64 = BigInt("0xFFFFFFFFFFFFFFFF")
+const GOLDEN = BigInt("0x9e3779b97f4a7c15")
+const SM_A = BigInt("0xbf58476d1ce4e5b9")
+const SM_B = BigInt("0x94d049bb133111eb")
+const FNV_OFFSET = BigInt("0xcbf29ce484222325")
+const FNV_PRIME = BigInt("0x100000001b3")
+
 const SUBSTREAM_SALTS: Record<SimRngSubstream, bigint> = {
-  config_generation: 0x91n,
-  draft: 0xd2n,
-  lineup: 0x37n,
-  statistical_outcomes: 0xa5n,
-  battle_engine: 0x58n,
-  decision_policy: 0xc3n,
-  foundation: 0x11n,
+  config_generation: BigInt(0x91),
+  draft: BigInt(0xd2),
+  lineup: BigInt(0x37),
+  statistical_outcomes: BigInt(0xa5),
+  battle_engine: BigInt(0x58),
+  decision_policy: BigInt(0xc3),
+  foundation: BigInt(0x11),
+}
+
+function asU64(n: bigint): bigint {
+  return n & U64
 }
 
 /** Parse master seed hex (32–64 hex chars) or derive from utf8 string. */
@@ -33,13 +46,13 @@ export function parseMasterSeed(input: string): bigint {
     return BigInt(`0x${trimmed.slice(0, 16)}`)
   }
   // FNV-1a 64-bit over utf8
-  let hash = 0xcbf29ce484222325n
+  let hash = FNV_OFFSET
   const bytes = new TextEncoder().encode(trimmed)
   for (const b of bytes) {
     hash ^= BigInt(b)
-    hash = BigInt.asUintN(64, hash * 0x100000001b3n)
+    hash = asU64(hash * FNV_PRIME)
   }
-  return hash === 0n ? 0x9e3779b97f4a7c15n : hash
+  return hash === BigInt(0) ? GOLDEN : hash
 }
 
 export function generateMasterSeedHex(
@@ -55,18 +68,18 @@ export function generateMasterSeedHex(
 }
 
 function splitmix64(state: bigint): { value: bigint; next: bigint } {
-  let z = BigInt.asUintN(64, state + 0x9e3779b97f4a7c15n)
-  z = BigInt.asUintN(64, (z ^ (z >> 30n)) * 0xbf58476d1ce4e5b9n)
-  z = BigInt.asUintN(64, (z ^ (z >> 27n)) * 0x94d049bb133111ebn)
-  z = BigInt.asUintN(64, z ^ (z >> 31n))
-  return { value: z, next: BigInt.asUintN(64, state + 0x9e3779b97f4a7c15n) }
+  let z = asU64(state + GOLDEN)
+  z = asU64((z ^ (z >> BigInt(30))) * SM_A)
+  z = asU64((z ^ (z >> BigInt(27))) * SM_B)
+  z = asU64(z ^ (z >> BigInt(31)))
+  return { value: z, next: asU64(state + GOLDEN) }
 }
 
 export class SimSplitmix64 {
   private state: bigint
 
   constructor(seed: bigint) {
-    this.state = BigInt.asUintN(64, seed)
+    this.state = asU64(seed)
   }
 
   nextUint64(): bigint {
@@ -79,7 +92,7 @@ export class SimSplitmix64 {
   nextFloat(): number {
     const v = this.nextUint64()
     // top 53 bits → IEEE double fraction
-    return Number(v >> 11n) / Number(1n << 53n)
+    return Number(v >> BigInt(11)) / Number(BigInt(1) << BigInt(53))
   }
 
   /** Inclusive integer range. */
@@ -108,11 +121,10 @@ export function createSubstreamPrng(
 ): SimSplitmix64 {
   const master =
     typeof masterSeed === "bigint" ? masterSeed : parseMasterSeed(masterSeed)
-  const mixed = BigInt.asUintN(
-    64,
+  const mixed = asU64(
     master ^
-      (SUBSTREAM_SALTS[substream] << 56n) ^
-      BigInt.asUintN(64, BigInt(counter) * 0x9e3779b97f4a7c15n),
+      (SUBSTREAM_SALTS[substream] << BigInt(56)) ^
+      asU64(BigInt(counter) * GOLDEN),
   )
   return new SimSplitmix64(mixed)
 }

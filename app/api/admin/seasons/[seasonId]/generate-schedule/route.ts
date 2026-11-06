@@ -9,6 +9,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service"
 import { requireAdminOrCommissioner } from "@/lib/admin-api-auth"
 import { generateSeasonSchedule } from "@/lib/league-season-setup"
 import { logActivity } from "@/lib/rbac"
+import { refuseSandboxSeasonOrResponse } from "@/lib/season-sim/refuse-sandbox-season"
 
 type RouteContext = { params: Promise<{ seasonId: string }> }
 
@@ -33,6 +34,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const replaceExisting = body?.replace_existing !== false
 
     const service = createServiceRoleClient()
+    const sandboxDenied = await refuseSandboxSeasonOrResponse(service, seasonId)
+    if (sandboxDenied) return sandboxDenied
     const result = await generateSeasonSchedule(service, seasonId, {
       replaceExisting,
     })

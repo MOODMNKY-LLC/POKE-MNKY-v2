@@ -48,12 +48,13 @@ export async function GET(request: Request) {
 
   try {
     const supabase = createServiceRoleClient()
-    let season: {
+    type SheetSyncSeasonRow = {
       id: string
       season_id: string | null
       start_date: string | null
       is_sandbox?: boolean
-    } | null = null
+    }
+    let season: SheetSyncSeasonRow | null = null
     let seasonError: { message?: string; code?: string } | null = null
     {
       const full = await supabase
@@ -67,10 +68,10 @@ export async function GET(request: Request) {
           .select("id, season_id, start_date")
           .eq("sheet_sync_enabled", true)
           .maybeSingle()
-        season = legacy.data as typeof season
+        season = (legacy.data as SheetSyncSeasonRow | null) ?? null
         seasonError = legacy.error
       } else {
-        season = full.data as typeof season
+        season = (full.data as SheetSyncSeasonRow | null) ?? null
         seasonError = full.error
       }
     }

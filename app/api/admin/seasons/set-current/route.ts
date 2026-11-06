@@ -10,6 +10,7 @@ import { createServerClient } from "@/lib/supabase/server"
 import { createServiceRoleClient } from "@/lib/supabase/service"
 import { requireAdminOrCommissioner } from "@/lib/admin-api-auth"
 import { logActivity } from "@/lib/rbac"
+import { refuseSandboxSeasonOrResponse } from "@/lib/season-sim/refuse-sandbox-season"
 
 export async function POST(request: NextRequest) {
   try {
@@ -39,6 +40,9 @@ export async function POST(request: NextRequest) {
     }
 
     const service = createServiceRoleClient()
+
+    const sandboxDenied = await refuseSandboxSeasonOrResponse(service, seasonId)
+    if (sandboxDenied) return sandboxDenied
 
     const { error: clearError } = await service
       .from("seasons")

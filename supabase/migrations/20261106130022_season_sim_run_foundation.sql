@@ -454,7 +454,7 @@ begin
       else status
     end,
     updated_at = now(),
-    run_version = run_version + 1
+    run_version = simulation_runs.run_version + 1
   where id = p_run_id
   returning * into v_row;
 
@@ -545,7 +545,7 @@ begin
         lease_expires_at = null,
         active_command_id = null,
         updated_at = now(),
-        run_version = run_version + 1,
+        run_version = simulation_runs.run_version + 1,
         completed_at = coalesce(completed_at, now())
     where id = p_run_id
     returning * into v_row;
@@ -598,7 +598,7 @@ begin
         lease_token = null,
         lease_expires_at = null,
         updated_at = now(),
-        run_version = run_version + 1
+        run_version = simulation_runs.run_version + 1
     where id = p_run_id
     returning * into v_row;
 
@@ -663,7 +663,7 @@ begin
     heartbeat_at = now(),
     lease_expires_at = now() + interval '30 seconds',
     updated_at = now(),
-    run_version = run_version + 1,
+    run_version = simulation_runs.run_version + 1,
     status = 'running'
   where id = p_run_id
   returning * into v_row;

@@ -58,6 +58,37 @@ jobs:
           SHEET_SYNC_APPLY_PG_URL: postgresql://postgres:postgres@localhost:5432/sheet_sync_apply_test
         run: pnpm exec vitest run lib/sheet-sync/apply-ambiguous.test.ts
 
+  season-sim-foundation-pg:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: season_sim_foundation_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - name: Run season-sim foundation postgres integration
+        env:
+          CI: true
+          SEASON_SIM_PG_URL: postgresql://postgres:postgres@localhost:5432/season_sim_foundation_test
+        run: pnpm exec vitest run lib/season-sim/foundation.pg.test.ts
+
   e2e:
     runs-on: ubuntu-latest
     needs: unit

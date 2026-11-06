@@ -15,6 +15,7 @@ import {
   SIM_WORKER_DISABLED_MESSAGE,
 } from "@/lib/season-sim/flags"
 import { processWorkerTick } from "@/lib/season-sim/run-service"
+import { timingSafeEqualString } from "@/lib/security/timing-safe-equal"
 
 function workerKeyValid(request: NextRequest): boolean {
   const key =
@@ -23,7 +24,8 @@ function workerKeyValid(request: NextRequest): boolean {
   const expected =
     process.env.SIMULATION_WORKER_KEY?.trim() ||
     process.env.SIMULATION_API_KEY?.trim()
-  return Boolean(expected && key && key === expected)
+  if (!expected || !key) return false
+  return timingSafeEqualString(key, expected)
 }
 
 export async function POST(request: NextRequest) {
