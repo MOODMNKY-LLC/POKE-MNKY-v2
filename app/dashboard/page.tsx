@@ -230,14 +230,14 @@ export default async function DashboardPage() {
           </Breadcrumb>
         </div>
       </header>
-      <div className="flex flex-1 flex-col gap-4 p-4 pt-0 safe-area-padding">
-          <div className="space-y-4">
+      <div className="flex min-w-0 flex-1 flex-col gap-4 overflow-x-clip p-4 pt-0 safe-area-padding">
+          <div className="min-w-0 space-y-4">
             {/* Welcome Section with Coach Card - Always shown */}
-            <div className="space-y-4">
-              <div className="grid gap-4 lg:grid-cols-2">
+            <div className="min-w-0 space-y-4">
+              <div className="grid min-w-0 gap-4 lg:grid-cols-2">
                 {/* Welcome Text - Takes 50% width on large screens */}
-                <div className="flex flex-col justify-center">
-                  <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+                <div className="flex min-w-0 flex-col justify-center">
+                  <h1 className="text-2xl sm:text-3xl font-bold tracking-tight break-words">
                     Welcome back, {profile.display_name || profile.discord_username || "Member"}!
                   </h1>
                   <p className="text-muted-foreground mt-2 text-sm sm:text-base">
@@ -247,7 +247,7 @@ export default async function DashboardPage() {
                 </div>
                 
                 {/* Coach Card - Toggle demo vs real data; Your teams for coaches */}
-                <div className="w-full flex flex-col items-stretch gap-4 flex-shrink-0">
+                <div className="flex w-full min-w-0 flex-shrink-0 flex-col items-stretch gap-4">
                   <CoachCardWithToggle
                     team={team}
                     userId={profile.id}

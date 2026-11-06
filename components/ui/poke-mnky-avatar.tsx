@@ -13,8 +13,13 @@ interface PokeMnkyAvatarProps {
   palette?: PokeMnkyPalette
   /** Variant - avatar (no bg) or icon (with bg) */
   variant?: PokeMnkyVariant
-  /** Size in pixels */
+  /** Size in pixels (ignored for layout when `fill` is true; still used as intrinsic image size) */
   size?: number
+  /**
+   * Fill the parent box with object-contain art instead of a fixed pixel box.
+   * Parent should set width/height (or aspect-ratio). Prefer this for responsive cards.
+   */
+  fill?: boolean
   /** Additional CSS classes */
   className?: string
   /** Alt text for accessibility */
@@ -38,6 +43,7 @@ export function PokeMnkyAvatar({
   palette = "red-blue",
   variant = "avatar",
   size = 48,
+  fill = false,
   className,
   alt = "POKE MNKY Assistant",
   useSvg = false,
@@ -67,12 +73,19 @@ export function PokeMnkyAvatar({
     }
   }
 
+  const boxStyle = fill ? undefined : { width: size, height: size }
+  const imageStyle = fill ? undefined : { width: size, height: size }
+  const imageClassName = fill ? "h-full w-full object-contain" : "object-contain"
+
   if (!mounted) {
     // Return placeholder during SSR to avoid hydration mismatch
     return (
       <div
-        className={cn("rounded-full bg-muted animate-pulse", className)}
-        style={{ width: size, height: size }}
+        className={cn(
+          fill ? "h-full w-full rounded-full bg-muted animate-pulse" : "rounded-full bg-muted animate-pulse",
+          className,
+        )}
+        style={boxStyle}
         aria-label={alt}
       />
     )
@@ -82,8 +95,8 @@ export function PokeMnkyAvatar({
 
   return (
     <div
-      className={cn("relative inline-block", className)}
-      style={{ width: size, height: size }}
+      className={cn(fill ? "relative block h-full w-full" : "relative inline-block", className)}
+      style={boxStyle}
     >
       {useSvg && variant === "avatar" ? (
         <img
@@ -91,8 +104,8 @@ export function PokeMnkyAvatar({
           alt={alt}
           width={size}
           height={size}
-          className="object-contain"
-          style={{ width: size, height: size }}
+          className={imageClassName}
+          style={imageStyle}
         />
       ) : (
         <Image
@@ -100,8 +113,8 @@ export function PokeMnkyAvatar({
           alt={alt}
           width={size}
           height={size}
-          className="object-contain"
-          style={{ width: size, height: size }}
+          className={imageClassName}
+          style={imageStyle}
           unoptimized={variant === "icon"} // Icons may be larger, allow unoptimized
         />
       )}
