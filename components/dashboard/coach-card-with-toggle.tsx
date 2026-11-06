@@ -70,8 +70,8 @@ export function CoachCardWithToggle({
   }
 
   return (
-    <div className={cn("w-full space-y-2", className)}>
-      <div className="flex items-center justify-end gap-2 flex-wrap">
+    <div className={cn("w-full min-w-0 space-y-2", className)}>
+      <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
         {isCoach && team && demoMode && (
           <span className="text-xs text-muted-foreground">
             Turn off to see your team

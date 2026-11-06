@@ -49,8 +49,8 @@ const MOCK_COACH_DATA = {
   ],
 }
 
-export function CoachCard({ 
-  className, 
+export function CoachCard({
+  className,
   palette = "red-blue",
   coachName = MOCK_COACH_DATA.coachName,
   teamName = MOCK_COACH_DATA.teamName,
@@ -68,8 +68,9 @@ export function CoachCard({
 
   return (
     <MagicCard
+      data-testid="coach-quick-view-card"
       className={cn(
-        "relative overflow-hidden p-5 w-full",
+        "relative min-w-0 overflow-hidden p-3 sm:p-5 w-full",
         "border border-white/20 dark:border-white/10",
         "bg-gradient-to-br from-card/80 via-card/60 to-card/40",
         "backdrop-blur-xl backdrop-saturate-150",
@@ -83,120 +84,104 @@ export function CoachCard({
     >
       {/* Glassmorphic overlay */}
       <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-black/5 pointer-events-none" />
-      
-      {/* Decorative corner accents */}
-      <div className="absolute top-0 left-0 w-12 h-12 border-t-4 border-l-4 border-primary/30 rounded-tl-lg" />
-      <div className="absolute top-0 right-0 w-12 h-12 border-t-4 border-r-4 border-primary/30 rounded-tr-lg" />
-      <div className="absolute bottom-0 left-0 w-12 h-12 border-b-4 border-l-4 border-primary/30 rounded-bl-lg" />
-      <div className="absolute bottom-0 right-0 w-12 h-12 border-b-4 border-r-4 border-primary/30 rounded-br-lg" />
 
-      {/* Horizontal Card Content */}
-      <div className="relative z-10 flex flex-row items-start gap-6">
-        {/* Left: Avatar Section - Prominently Featured */}
-        <div className="relative flex-shrink-0 flex flex-col items-center justify-between gap-1 pt-4 pb-0">
-          {/* Avatar Glow */}
-          <div className="absolute inset-0 bg-primary/30 rounded-full blur-2xl animate-pulse" />
-          <div className="relative mb-0">
-            {isDark ? (
-              <PokeMnkyAvatar
-                palette="gold-black"
-                variant="avatar"
-                size={300}
-                className="drop-shadow-2xl"
-              />
-            ) : (
-              <PokeMnkyAvatar
-                palette="red-blue"
-                variant="avatar"
-                size={300}
-                className="drop-shadow-2xl"
-              />
-            )}
+      {/* Decorative corner accents */}
+      <div className="absolute top-0 left-0 w-8 h-8 sm:w-12 sm:h-12 border-t-4 border-l-4 border-primary/30 rounded-tl-lg" />
+      <div className="absolute top-0 right-0 w-8 h-8 sm:w-12 sm:h-12 border-t-4 border-r-4 border-primary/30 rounded-tr-lg" />
+      <div className="absolute bottom-0 left-0 w-8 h-8 sm:w-12 sm:h-12 border-b-4 border-l-4 border-primary/30 rounded-bl-lg" />
+      <div className="absolute bottom-0 right-0 w-8 h-8 sm:w-12 sm:h-12 border-b-4 border-r-4 border-primary/30 rounded-br-lg" />
+
+      {/* Stack on phones; side-by-side from sm up. min-w-0 prevents flex clip of stats. */}
+      <div className="relative z-10 flex min-w-0 flex-col items-stretch gap-3 sm:flex-row sm:items-start sm:gap-4 md:gap-6">
+        {/* Left: Avatar Section */}
+        <div className="relative mx-auto flex w-full max-w-[9.5rem] shrink-0 flex-col items-center gap-1 pt-2 sm:mx-0 sm:w-[38%] sm:max-w-[12rem] md:w-auto md:max-w-none md:pt-4 md:pb-0">
+          <div className="absolute inset-0 bg-primary/30 rounded-full blur-2xl animate-pulse motion-reduce:animate-none" />
+          <div className="relative aspect-square w-full max-h-[28dvh] sm:max-h-[32dvh] md:h-[300px] md:w-[300px] md:max-h-none">
+            <PokeMnkyAvatar
+              palette={isDark ? "gold-black" : "red-blue"}
+              variant="avatar"
+              size={300}
+              fill
+              useSvg
+              className="drop-shadow-2xl"
+            />
           </div>
-          {/* Tagline - Aligned with bottom of right content */}
-          <p className="text-sm font-medium text-center text-foreground/80 italic max-w-[280px] px-2 leading-relaxed">
+          <p className="relative text-xs sm:text-sm font-medium text-center text-foreground/80 italic max-w-full px-1 leading-relaxed">
             &quot;{tagline}&quot;
           </p>
         </div>
 
-        {/* Right: Coach Info & Stats */}
-        <div className="flex-1 flex flex-col gap-3 min-w-0 pt-8 pl-4">
-          {/* Coach Header */}
-          <div className="space-y-1">
-            <div className="flex items-baseline gap-2 flex-wrap">
-              <h3 className="text-2xl font-bold tracking-tight leading-none" style={{ fontFamily: 'var(--font-marker)' }}>
+        {/* Right: Coach Info & Stats — never clipped by sibling art */}
+        <div className="flex min-w-0 flex-1 flex-col gap-2.5 sm:gap-3 pt-1 sm:pt-4 md:pt-8 md:pl-2">
+          <div className="min-w-0 space-y-1">
+            <div className="flex min-w-0 items-baseline gap-2 flex-wrap">
+              <h3
+                className="min-w-0 text-xl sm:text-2xl font-bold tracking-tight leading-none break-words"
+                style={{ fontFamily: "var(--font-marker)" }}
+              >
                 {coachName}
               </h3>
-              {/* Coach Badge */}
-              <Badge className="bg-primary/90 text-primary-foreground border-2 border-white/20 shadow-lg backdrop-blur-sm flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold leading-tight h-5">
+              <Badge className="bg-primary/90 text-primary-foreground border-2 border-white/20 shadow-lg backdrop-blur-sm flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold leading-tight h-5 shrink-0">
                 <Award className="h-2.5 w-2.5" />
                 <span>Coach</span>
               </Badge>
             </div>
-            <p className="text-sm font-semibold text-primary">
-              {teamName}
-            </p>
-            <div className="flex items-center gap-3 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <Trophy className="h-3 w-3 text-primary" />
+            <p className="text-sm font-semibold text-primary break-words">{teamName}</p>
+            <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm text-muted-foreground">
+              <span className="flex items-center gap-1 whitespace-nowrap">
+                <Trophy className="h-3.5 w-3.5 text-primary shrink-0" aria-hidden="true" />
                 {wins}W - {losses}L
               </span>
-              <span className="flex items-center gap-1">
-                <TrendingUp className="h-3 w-3 text-primary" />
+              <span className="flex items-center gap-1 whitespace-nowrap">
+                <TrendingUp className="h-3.5 w-3.5 text-primary shrink-0" aria-hidden="true" />
                 {winRate}% Win Rate
               </span>
             </div>
           </div>
 
-          {/* Team of 6 Pokemon (Pokeballs) */}
-          <div className="space-y-2">
+          <div className="min-w-0 space-y-2">
             <div className="flex items-center gap-1">
-              <Users className="h-3.5 w-3.5 text-muted-foreground" />
+              <Users className="h-3.5 w-3.5 text-muted-foreground shrink-0" aria-hidden="true" />
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                 Active Team
               </span>
             </div>
-            <div className="grid grid-cols-6 gap-2">
+            <div className="grid grid-cols-3 gap-2 min-[400px]:grid-cols-6 sm:grid-cols-6 sm:gap-2">
               {teamPokemon.slice(0, 6).map((pokemon, index) => (
                 <div
                   key={index}
-                  className="relative flex flex-col items-center gap-1 group"
+                  className="relative flex min-w-0 flex-col items-center gap-1 group"
                   title={pokemon.name}
                 >
-                  {/* Pokeball - Theme-aware */}
-                  <div className="relative w-12 h-12 flex items-center justify-center">
-                    {/* Light mode: Normal Pokeball */}
+                  <div className="relative flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center">
                     <div className="dark:hidden">
                       <Image
                         src="/pokeball-normal.svg"
                         alt={`${pokemon.name} pokeball`}
                         width={48}
                         height={48}
-                        className="drop-shadow-md transition-transform group-hover:scale-110"
+                        className="h-full w-full drop-shadow-md transition-transform group-hover:scale-110 motion-reduce:transition-none"
                       />
                     </div>
-                    {/* Dark mode: Ultra Ball */}
                     <div className="hidden dark:block">
                       <Image
                         src="/pokeball-ultra.svg"
                         alt={`${pokemon.name} ultra ball`}
                         width={48}
                         height={48}
-                        className="drop-shadow-md transition-transform group-hover:scale-110"
+                        className="h-full w-full drop-shadow-md transition-transform group-hover:scale-110 motion-reduce:transition-none"
                       />
                     </div>
-                    {/* Point value badge */}
                     <div className="absolute -bottom-1 -right-1">
-                      <Badge 
-                        variant="secondary" 
+                      <Badge
+                        variant="secondary"
                         className="h-4 px-1 text-[10px] font-bold leading-none border border-background"
                       >
                         {pokemon.pointValue}
                       </Badge>
                     </div>
                   </div>
-                  {/* Pokemon name (truncated) */}
-                  <span className="text-[10px] font-medium text-center leading-tight max-w-[48px] truncate">
+                  <span className="w-full text-[10px] font-medium text-center leading-tight truncate">
                     {pokemon.name}
                   </span>
                 </div>
@@ -204,13 +189,11 @@ export function CoachCard({
             </div>
           </div>
 
-          {/* Stats Row */}
           <div className="grid grid-cols-2 gap-2 pt-1">
-            {/* Total Picks */}
-            <div className="flex items-center justify-between p-2 rounded-lg bg-muted/50 border border-border/50">
+            <div className="flex min-w-0 items-center justify-between p-2 rounded-lg bg-muted/50 border border-border/50">
               <div className="flex items-center gap-1.5 min-w-0">
                 <div className="p-1 rounded-md bg-primary/10 flex-shrink-0">
-                  <Target className="h-3.5 w-3.5 text-primary" />
+                  <Target className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
                 </div>
                 <span className="text-xs font-medium truncate">Picks</span>
               </div>
@@ -219,11 +202,10 @@ export function CoachCard({
               </Badge>
             </div>
 
-            {/* Budget Used */}
-            <div className="flex items-center justify-between p-2 rounded-lg bg-muted/50 border border-border/50">
+            <div className="flex min-w-0 items-center justify-between p-2 rounded-lg bg-muted/50 border border-border/50">
               <div className="flex items-center gap-1.5 min-w-0">
                 <div className="p-1 rounded-md bg-primary/10 flex-shrink-0">
-                  <Zap className="h-3.5 w-3.5 text-primary" />
+                  <Zap className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
                 </div>
                 <span className="text-xs font-medium truncate">Budget</span>
               </div>
@@ -233,8 +215,7 @@ export function CoachCard({
             </div>
           </div>
 
-          {/* Budget Progress */}
-          <div className="space-y-1">
+          <div className="min-w-0 space-y-1">
             <Progress value={budgetPercentage} className="h-2" />
             <span className="text-xs text-muted-foreground">{budgetPercentage}% utilized</span>
           </div>
