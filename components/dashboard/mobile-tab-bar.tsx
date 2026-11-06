@@ -25,10 +25,11 @@ export function MobileTabBar({ ctx }: { ctx: CoachNavContext }) {
     const el = activeTabRef.current
     const scroller = scrollerRef.current
     if (!el || !scroller) return
+    // Scroll only the tab strip — avoid scrollIntoView bubbling to the page.
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    el.scrollIntoView({
-      inline: "center",
-      block: "nearest",
+    const left = el.offsetLeft - (scroller.clientWidth - el.clientWidth) / 2
+    scroller.scrollTo({
+      left: Math.max(0, left),
       behavior: reduceMotion ? "auto" : "smooth",
     })
   }, [activeTabId])

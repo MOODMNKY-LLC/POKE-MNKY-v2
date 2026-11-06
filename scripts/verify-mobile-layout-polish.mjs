@@ -61,10 +61,12 @@ async function checkViewport(browser, viewport) {
       welcomeVisible: Boolean(welcome && welcome.getClientRects().length > 0),
       cardHasRecord: /\d+W\s*-\s*\d+L/i.test(cardText),
       cardHasUtilized: /%\s*utilized/i.test(cardText),
-      cardHasCoachName: /POKE MNKY/i.test(cardText),
+      cardHasCoachName: /Coach With A Very Long Display Name|POKE MNKY/i.test(cardText),
+      cardHasLongTeam: /Garchomps|MNKY MONS/i.test(cardText),
       cardFullyInViewport: Boolean(
         cardRect && cardRect.left >= -1 && cardRect.right <= window.innerWidth + 1,
       ),
+      cardNoInternalOverflow: Boolean(card && card.scrollWidth <= card.clientWidth + 1),
       tabBarVisible: Boolean(tabBar && getComputedStyle(tabBar).display !== "none"),
       moreVisible: Boolean(more && more.getClientRects().length > 0),
       moreMinWidth: moreRect ? moreRect.width : 0,
@@ -83,7 +85,9 @@ async function checkViewport(browser, viewport) {
   if (!metrics.cardHasRecord) failures.push("record not visible in card text")
   if (!metrics.cardHasUtilized) failures.push("utilization not visible in card text")
   if (!metrics.cardHasCoachName) failures.push("coach name missing")
+  if (!metrics.cardHasLongTeam) failures.push("team name missing")
   if (!metrics.cardFullyInViewport) failures.push("card clipped horizontally")
+  if (!metrics.cardNoInternalOverflow) failures.push("card internal horizontal overflow")
   if (isMobile) {
     if (!metrics.tabBarVisible) failures.push("mobile tab bar hidden")
     if (!metrics.moreVisible) failures.push("More control missing")
