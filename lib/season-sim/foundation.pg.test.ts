@@ -18,7 +18,7 @@ const pgUrl =
 
 const root = process.cwd()
 const bootstrapSql = readFileSync(
-  join(root, "lib/season-sim/pg/bootstrap-minimal.sql"),
+  join(root, "fixtures/season-sim/bootstrap-minimal.sql"),
   "utf8",
 )
 const migrationIsolation = readFileSync(
