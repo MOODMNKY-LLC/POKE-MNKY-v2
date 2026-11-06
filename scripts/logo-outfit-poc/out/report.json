@@ -1,0 +1,186 @@
+{
+  "generatedAt": "2026-11-06T10:51:15.860Z",
+  "base": "public/poke-mnky/avatars/red-blue.png",
+  "jevExercised": false,
+  "note": "EXAMPLE logos/palettes only. Offline POC — not the full product feature. Jev was not called.",
+  "maskUnionPixels": 119145,
+  "fixtures": [
+    {
+      "id": "contrast-green-purple",
+      "label": "EXAMPLE: high-contrast green/purple logo",
+      "exampleData": true,
+      "suggested": {
+        "primary": [
+          96,
+          32,
+          224
+        ],
+        "secondary": [
+          32,
+          192,
+          64
+        ],
+        "accent": [
+          224,
+          224,
+          224
+        ],
+        "flags": {
+          "monochrome_logo": false,
+          "low_chroma": false,
+          "transparent_heavy": false
+        },
+        "primaryHex": "#6020E0",
+        "secondaryHex": "#20C040",
+        "accentHex": "#E0E0E0"
+      },
+      "resolved": {
+        "primary": [
+          96,
+          32,
+          224
+        ],
+        "secondary": [
+          32,
+          192,
+          64
+        ],
+        "accent": [
+          224,
+          224,
+          224
+        ],
+        "source": "deterministic_suggestion"
+      },
+      "invariant": {
+        "outsidePixelsChecked": 2440855,
+        "outsidePixelsChanged": 0,
+        "alphaChangedAnywhere": 0,
+        "maskUnionPixels": 119145
+      },
+      "outputs": {
+        "full": "out/contrast-green-purple.png",
+        "mobileLight": "out/contrast-green-purple-mobile-light.png",
+        "mobileDark": "out/contrast-green-purple-mobile-dark.png"
+      }
+    },
+    {
+      "id": "mono-grayscale",
+      "label": "EXAMPLE: monochrome logo (suggestions + B/W roles)",
+      "exampleData": true,
+      "suggested": {
+        "primary": [
+          0,
+          0,
+          0
+        ],
+        "secondary": [
+          160,
+          160,
+          160
+        ],
+        "accent": [
+          128,
+          128,
+          128
+        ],
+        "flags": {
+          "monochrome_logo": true,
+          "low_chroma": true,
+          "transparent_heavy": false
+        },
+        "primaryHex": "#000000",
+        "secondaryHex": "#A0A0A0",
+        "accentHex": "#808080"
+      },
+      "resolved": {
+        "primary": [
+          0,
+          0,
+          0
+        ],
+        "secondary": [
+          160,
+          160,
+          160
+        ],
+        "accent": [
+          128,
+          128,
+          128
+        ],
+        "source": "deterministic_suggestion"
+      },
+      "invariant": {
+        "outsidePixelsChecked": 2440855,
+        "outsidePixelsChanged": 0,
+        "alphaChangedAnywhere": 0,
+        "maskUnionPixels": 119145
+      },
+      "outputs": {
+        "full": "out/mono-grayscale.png",
+        "mobileLight": "out/mono-grayscale-mobile-light.png",
+        "mobileDark": "out/mono-grayscale-mobile-dark.png"
+      }
+    },
+    {
+      "id": "bw-gold-override",
+      "label": "EXAMPLE: B/W+gold logo with explicit coach override (teal/orange kit)",
+      "exampleData": true,
+      "suggested": {
+        "primary": [
+          0,
+          0,
+          0
+        ],
+        "secondary": [
+          224,
+          224,
+          224
+        ],
+        "accent": [
+          128,
+          128,
+          128
+        ],
+        "flags": {
+          "monochrome_logo": true,
+          "low_chroma": true,
+          "transparent_heavy": false
+        },
+        "primaryHex": "#000000",
+        "secondaryHex": "#E0E0E0",
+        "accentHex": "#808080"
+      },
+      "resolved": {
+        "primary": [
+          13,
+          148,
+          136
+        ],
+        "secondary": [
+          234,
+          88,
+          12
+        ],
+        "accent": [
+          212,
+          175,
+          55
+        ],
+        "source": "explicit_override"
+      },
+      "invariant": {
+        "outsidePixelsChecked": 2440855,
+        "outsidePixelsChanged": 0,
+        "alphaChangedAnywhere": 0,
+        "maskUnionPixels": 119145
+      },
+      "outputs": {
+        "full": "out/bw-gold-override.png",
+        "mobileLight": "out/bw-gold-override-mobile-light.png",
+        "mobileDark": "out/bw-gold-override-mobile-dark.png"
+      }
+    }
+  ]
+}
