@@ -181,8 +181,10 @@ test.describe("season-sim demo browser acceptance", () => {
     // Body can take ~6–8m of ticks; keep margin above config default for teardown.
     testInfo.setTimeout(15 * 60 * 1000)
     await signInNonadmin(page)
-    await page.goto(`${APP}/demo/season-sim`)
+    await page.goto(`${APP}/demo/season-sim`, { waitUntil: "domcontentloaded" })
     await expect(page.getByRole("heading", { name: /Season Simulator/i })).toBeVisible()
+    // Auth cookie hydration can trigger a soft navigation on CI — settle first.
+    await page.waitForLoadState("networkidle").catch(() => {})
     await assertNoWorkerKeyInPage(page)
 
     // Configure + create (small synthetic run)

@@ -81,15 +81,43 @@ export async function signInAs(
   return session
 }
 
-/** Assert page scripts never received a worker secret env leak. */
+/**
+ * Assert page scripts never received a worker secret env leak.
+ * Retries across soft navigations (auth cookie hydration can remount the
+ * document and destroy the evaluate context mid-call on CI).
+ */
 export async function assertNoWorkerKeyInPage(page: Page): Promise<void> {
-  const leaked = await page.evaluate(() => {
-    const html = document.documentElement.innerHTML
-    const keys = Object.keys(window as unknown as Record<string, unknown>)
-    const blob = `${html}\n${keys.join("\n")}`
-    return /SIMULATION_WORKER_KEY|local-disposable-sim-worker/i.test(blob)
-  })
-  if (leaked) {
-    throw new Error("Worker secret material appears in page DOM/window")
+  const probe = async () =>
+    page.evaluate(() => {
+      const html = document.documentElement.innerHTML
+      const keys = Object.keys(window as unknown as Record<string, unknown>)
+      const blob = `${html}\n${keys.join("\n")}`
+      return /SIMULATION_WORKER_KEY|local-disposable-sim-worker/i.test(blob)
+    })
+
+  let lastError: unknown
+  for (let attempt = 0; attempt < 5; attempt++) {
+    try {
+      await page.waitForLoadState("domcontentloaded")
+      const leaked = await probe()
+      if (leaked) {
+        throw new Error("Worker secret material appears in page DOM/window")
+      }
+      return
+    } catch (err) {
+      lastError = err
+      const msg = err instanceof Error ? err.message : String(err)
+      if (
+        /Execution context was destroyed|Target closed|navigation/i.test(msg)
+      ) {
+        await page.waitForLoadState("domcontentloaded").catch(() => {})
+        await page.waitForTimeout(150)
+        continue
+      }
+      throw err
+    }
   }
+  throw lastError instanceof Error
+    ? lastError
+    : new Error(`assertNoWorkerKeyInPage failed: ${String(lastError)}`)
 }
