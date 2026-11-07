@@ -432,21 +432,21 @@ async function main() {
       undefined,
       `session.user_metadata.role=${String(metaInSession)}`,
     )
-    const escalate = await appFetch("/api/admin/simulation/runs", {
+    // user_metadata.role=admin must not grant broad league admin (set-current).
+    // Sim create may succeed when spectator is allowlisted — that is intentional.
+    const escalate = await appFetch("/api/admin/seasons/set-current", {
       method: "POST",
       headers: { "content-type": "application/json" },
       cookie: nonAdminCookie,
       body: JSON.stringify({
-        master_seed: "deadbeefdeadbeefdeadbeefdeadbeef",
-        team_count: 2,
-        queue_immediately: false,
+        season_id: "00000000-0000-4000-8000-000000000099",
       }),
     })
     record(
       "RS-06_user_metadata_cannot_grant_admin",
-      escalate.status === 403,
+      escalate.status === 403 || escalate.status === 401,
       escalate.status,
-      "trusted authz=profiles.role; user_metadata ignored",
+      "trusted authz=profiles.role; user_metadata ignored for league admin",
     )
   }
 
@@ -460,15 +460,25 @@ async function main() {
     record("RS-10_unauthenticated_create", res.status === 401, res.status)
   }
 
-  // Non-admin (legitimate spectator session)
+  // Allowlisted spectator (Matt path): sim create allowed when gate ON + UUID listed
   {
     const res = await appFetch("/api/admin/simulation/runs", {
       method: "POST",
       headers: { "content-type": "application/json" },
       cookie: nonAdminCookie,
-      body: JSON.stringify({ team_count: 2 }),
+      body: JSON.stringify({
+        master_seed: "11112222333344445555666677778888",
+        team_count: 2,
+        total_rounds: 2,
+        queue_immediately: false,
+      }),
     })
-    record("RS-11_nonadmin_create_forbidden", res.status === 403, res.status)
+    record(
+      "RS-11_allowlisted_spectator_sim_create_ok",
+      res.status === 201,
+      res.status,
+      "gate ON: spectator on allowlist may create sim (not league admin)",
+    )
   }
 
   // Admin create → advance → conflict → tick → domain block → pause/cancel
@@ -670,14 +680,19 @@ async function main() {
     }
   }
 
-  // Cross-user: nonadmin cannot read admin run
+  // Cross-user: allowlisted spectator may read sandbox sim progress (sim-scoped only)
   {
     nonAdminSession = await passwordGrant(NONADMIN_EMAIL, NONADMIN_PASSWORD)
     nonAdminCookie = sessionCookieHeader(nonAdminSession)
     const res = await appFetch(`/api/admin/simulation/runs/${runId}`, {
       cookie: nonAdminCookie,
     })
-    record("RS-21_cross_user_get_forbidden", res.status === 403, res.status)
+    record(
+      "RS-21_allowlisted_spectator_can_read_sim_progress",
+      res.status === 200,
+      res.status,
+      "sim allowlist grants sim read; still not broad league admin",
+    )
   }
 
   // Fresh run pause/cancel via real admin session
@@ -925,33 +940,35 @@ async function main() {
     )
   }
 
-  // Auth denial: nonadmin cannot create / advance draft
+  // Auth: allowlisted spectator can create/advance; anon still denied
   {
     nonAdminSession = await passwordGrant(NONADMIN_EMAIL, NONADMIN_PASSWORD)
     nonAdminCookie = sessionCookieHeader(nonAdminSession)
-    const deniedCreate = await appFetch("/api/admin/simulation/runs", {
+    const coachCreate = await appFetch("/api/admin/simulation/runs", {
       method: "POST",
       headers: { "content-type": "application/json" },
       cookie: nonAdminCookie,
       body: JSON.stringify({
-        master_seed: DRAFT_SEED,
+        master_seed: "ffffffffffffffffffffffffffffffff",
         team_count: DRAFT_TEAMS,
         total_rounds: DRAFT_ROUNDS,
         selector_draft: "random",
+        queue_immediately: true,
       }),
     })
-    record("RS-51_nonadmin_create_denied", deniedCreate.status === 403, deniedCreate.status)
+    const coachBody = (await coachCreate.json().catch(() => ({}))) as {
+      run?: { run_id?: string; step_seq?: number; run_version?: number }
+    }
+    const coachRunId = String(coachBody.run?.run_id ?? "")
+    record(
+      "RS-51_allowlisted_spectator_draft_create",
+      coachCreate.status === 201 && Boolean(coachRunId),
+      coachCreate.status,
+    )
 
-    adminSession = await passwordGrant(ADMIN_EMAIL, ADMIN_PASSWORD)
-    adminCookie = sessionCookieHeader(adminSession)
-    const probeRun = await createDraftRun({
-      seed: "ffffffffffffffffffffffffffffffff",
-      cookie: adminCookie,
-      label: "RS-51b_admin_probe_run_for_denial",
-    })
-    if (probeRun.ok) {
-      const deniedAdv = await appFetch(
-        `/api/admin/simulation/runs/${probeRun.runId}/advance`,
+    if (coachRunId) {
+      const coachAdv = await appFetch(
+        `/api/admin/simulation/runs/${coachRunId}/advance`,
         {
           method: "POST",
           headers: { "content-type": "application/json" },
@@ -960,15 +977,19 @@ async function main() {
             command_id: crypto.randomUUID(),
             unit: "pick",
             n: 1,
-            expected_step_seq: probeRun.stepSeq,
-            expected_run_version: probeRun.runVersion,
+            expected_step_seq: Number(coachBody.run?.step_seq ?? 0),
+            expected_run_version: Number(coachBody.run?.run_version ?? 0),
           }),
         },
       )
-      record("RS-52_nonadmin_pick_advance_denied", deniedAdv.status === 403, deniedAdv.status)
+      record(
+        "RS-52_allowlisted_spectator_pick_advance",
+        coachAdv.status === 202,
+        coachAdv.status,
+      )
 
       const anonAdv = await appFetch(
-        `/api/admin/simulation/runs/${probeRun.runId}/advance`,
+        `/api/admin/simulation/runs/${coachRunId}/advance`,
         {
           method: "POST",
           headers: { "content-type": "application/json" },
@@ -976,8 +997,8 @@ async function main() {
             command_id: crypto.randomUUID(),
             unit: "pick",
             n: 1,
-            expected_step_seq: probeRun.stepSeq,
-            expected_run_version: probeRun.runVersion,
+            expected_step_seq: Number(coachBody.run?.step_seq ?? 0),
+            expected_run_version: Number(coachBody.run?.run_version ?? 0),
           }),
         },
       )
@@ -987,9 +1008,12 @@ async function main() {
         anonAdv.status,
       )
     }
+
+    adminSession = await passwordGrant(ADMIN_EMAIL, ADMIN_PASSWORD)
+    adminCookie = sessionCookieHeader(adminSession)
   }
 
-  // Authorized create → pick-by-pick → complete → schedule blocked
+  // Authorized create → pick-by-pick → complete → schedule handoff
   let granularPickNames: string[] = []
   let granularSeasonId = ""
   {
