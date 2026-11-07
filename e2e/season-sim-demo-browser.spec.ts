@@ -75,6 +75,21 @@ async function bodyHas(page: Page, re: RegExp): Promise<boolean> {
   return re.test(text)
 }
 
+/** Run lifecycle badge only — never match help copy like "until completed/paused". */
+async function runStatusIs(page: Page, status: string): Promise<boolean> {
+  const badge = page.getByTestId("sim-run-status")
+  if ((await badge.count()) === 0) return false
+  const text = (await badge.innerText()).trim().toLowerCase()
+  return text === status.toLowerCase()
+}
+
+async function activeCommandId(page: Page): Promise<string | null> {
+  const row = page.locator("dt", { hasText: /^Active command$/ }).locator("..")
+  const value = (await row.locator("dd").innerText().catch(() => "")).trim()
+  if (!value || /^none$/i.test(value)) return null
+  return value
+}
+
 /**
  * Deterministic drive: queue Advance when needed, then owner-scoped worker steps.
  * Avoids Auto-run stopping on intermediate `paused` without meeting the goal.
@@ -217,24 +232,32 @@ test.describe("season-sim demo browser acceptance", () => {
 
     await driveUntil(page, {
       label: "season complete / champion",
-      maxTicks: 60,
-      done: async () => bodyHas(page, /\bcompleted\b/i),
+      maxTicks: 80,
+      done: async () => runStatusIs(page, "completed"),
       ensureCommand: async () => {
-        if (await bodyHas(page, /\bcompleted\b/i)) return
-        const adv = page.getByRole("button", { name: "Advance" })
-        if (await adv.isEnabled()) {
-          // Re-queue season unit if prior command drained without completing
-          const unit = page.locator("#sim-unit")
-          const label = await unit.innerText()
-          if (!/Whole season/i.test(label)) {
-            await selectUnit(page, "Whole season")
-            await setCount(page, 1)
+        if (await runStatusIs(page, "completed")) return
+        // Do not re-queue while a command is already active — just tick.
+        if (await activeCommandId(page)) return
+        if (await runStatusIs(page, "paused")) {
+          const r = page.getByRole("button", { name: "Resume" })
+          if (await r.isEnabled()) {
+            await r.click()
+            await waitNotBusy(page)
           }
-          await adv.click()
-          await waitNotBusy(page)
         }
+        const adv = page.getByRole("button", { name: "Advance" })
+        if (!(await adv.isEnabled())) return
+        const unit = page.locator("#sim-unit")
+        const label = await unit.innerText()
+        if (!/Whole season/i.test(label)) {
+          await selectUnit(page, "Whole season")
+          await setCount(page, 1)
+        }
+        await adv.click()
+        await waitNotBusy(page)
       },
     })
+    await expect(page.getByTestId("sim-run-status")).toHaveText(/completed/i)
     await shot(page, `${testInfo.project.name}-season-complete`)
 
     // Season tab: matches + standings with readable names
@@ -262,7 +285,7 @@ test.describe("season-sim demo browser acceptance", () => {
     // Prefer "Resume last run" after reload
     await page.getByRole("tab", { name: "Load run by ID" }).click()
     await page.getByRole("button", { name: /Resume last run/i }).click()
-    await expect(page.getByText(/\bcompleted\b/i).first()).toBeVisible({
+    await expect(page.getByTestId("sim-run-status")).toHaveText(/completed/i, {
       timeout: 30_000,
     })
     await shot(page, `${testInfo.project.name}-reload-recovery`)

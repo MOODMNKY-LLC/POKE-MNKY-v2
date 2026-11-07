@@ -295,7 +295,7 @@ export function ControlsPanel({
           className="text-xs text-muted-foreground text-pretty"
           aria-live="polite"
         >
-          Auto-run ticks the current command until completed/paused without work,
+          Auto-run ticks the current command until a terminal or idle pause state,
           an error, or {AUTO_MAX_ITERATIONS} steps. After draft pause, Resume +
           Advance season first.
         </p>

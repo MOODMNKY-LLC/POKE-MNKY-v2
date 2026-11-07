@@ -84,7 +84,12 @@ export function StatusCard({ progress }: { progress: Progress }) {
       <CardHeader className="gap-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <CardTitle className="text-base">Run {progress.run_id.slice(0, 8)}</CardTitle>
-          <Badge variant={statusVariant(progress.status)}>{progress.status.replace(/_/g, " ")}</Badge>
+          <Badge
+            data-testid="sim-run-status"
+            variant={statusVariant(progress.status)}
+          >
+            {progress.status.replace(/_/g, " ")}
+          </Badge>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
