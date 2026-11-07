@@ -44,10 +44,14 @@ export function buildSyntheticDraftPool(params: {
   )
   const costs = [12, 13, 14, 15, 16, 17, 18, 19, 20]
   const out: Array<{ pokemon_name: string; point_value: number }> = []
+  // Guarantee a feasible cheapest totalRounds path under provisional budget 120:
+  // at least totalRounds mons priced at the floor (12 ⇒ 12*rounds ≤ 120 for rounds≤10).
   for (let i = 0; i < headroom; i++) {
+    const point_value =
+      i < params.totalRounds ? 12 : costs[i % costs.length]!
     out.push({
       pokemon_name: `SandboxMon${String(i + 1).padStart(3, "0")}`,
-      point_value: costs[i % costs.length]!,
+      point_value,
     })
   }
   return out

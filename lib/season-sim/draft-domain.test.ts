@@ -39,16 +39,19 @@ describe("season-sim draft-domain", () => {
     expect(broke.code).toBe("INFEASIBLE_BUDGET")
   })
 
-  it("accepts provisional demo feasible config", () => {
-    const pool = buildSyntheticDraftPool({ teamCount: 12, totalRounds: 10 })
-    const ok = assessDraftFeasibility({
-      teamCount: 12,
-      totalRounds: 10,
-      budgetTotal: 120,
-      pool,
-    })
-    expect(ok.ok).toBe(true)
-    expect(ok.total_picks).toBe(120)
+  it("accepts provisional demo feasible config (incl. small seat counts)", () => {
+    for (const teamCount of [2, 4, 12]) {
+      const pool = buildSyntheticDraftPool({ teamCount, totalRounds: 10 })
+      const ok = assessDraftFeasibility({
+        teamCount,
+        totalRounds: 10,
+        budgetTotal: 120,
+        pool,
+      })
+      expect(ok.ok).toBe(true)
+      expect(ok.total_picks).toBe(teamCount * 10)
+      expect(ok.min_cost_path).toBeLessThanOrEqual(120)
+    }
   })
 
   it("snake order mirrors live draft-pick-logic", () => {

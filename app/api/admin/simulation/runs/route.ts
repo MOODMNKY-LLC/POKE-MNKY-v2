@@ -31,6 +31,16 @@ export async function POST(request: NextRequest) {
     typeof body.master_seed === "string" ? body.master_seed : undefined
   const teamCount =
     typeof body.team_count === "number" ? body.team_count : undefined
+  const totalRounds =
+    typeof body.total_rounds === "number" ? body.total_rounds : undefined
+  const budgetTotal =
+    typeof body.budget_total === "number" ? body.budget_total : undefined
+  const selectorDraft =
+    body.selector_draft === "random" ||
+    body.selector_draft === "heuristic" ||
+    body.selector_draft === "jev"
+      ? body.selector_draft
+      : undefined
   const queueImmediately = body.queue_immediately !== false
 
   try {
@@ -38,6 +48,9 @@ export async function POST(request: NextRequest) {
     const created = await createSandboxSimulationRun(supabase, admin.userId, {
       master_seed: masterSeed,
       team_count: teamCount,
+      total_rounds: totalRounds,
+      budget_total: budgetTotal,
+      selector_draft: selectorDraft,
       queue_immediately: queueImmediately,
     })
 
@@ -47,15 +60,20 @@ export async function POST(request: NextRequest) {
         season_id: created.season_id,
         team_ids: created.team_ids,
         rules_label: "provisional_demo_v0",
-        note: "Synthetic seats only — no auth.users / real coaches created.",
+        note: "Synthetic seats only — no auth.users / real coaches created. Draft pool/budgets seeded under provisional_demo_v0.",
       },
       { status: 201 },
     )
   } catch (err) {
     console.error("[simulation/runs POST]", err)
+    const message = err instanceof Error ? err.message : "Internal server error"
+    const infeasible = /INFEASIBLE_/.test(message)
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Internal server error" },
-      { status: 500 },
+      {
+        error: message,
+        code: infeasible ? message.split(":")[0] : "CREATE_FAILED",
+      },
+      { status: infeasible ? 422 : 500 },
     )
   }
 }

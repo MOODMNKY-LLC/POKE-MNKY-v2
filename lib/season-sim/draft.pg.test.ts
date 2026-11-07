@@ -22,6 +22,7 @@ const migrations = [
   "20261106130022_season_sim_run_foundation.sql",
   "20261106132402_season_sim_foundation_hardening.sql",
   "20261107023900_season_sim_draft_domain.sql",
+  "20261107025000_season_sim_foundation_cursor_preserve.sql",
 ].map((name) =>
   readFileSync(join(root, "supabase/migrations", name), "utf8"),
 )
@@ -513,5 +514,52 @@ describe.skipIf(!hasPgUrl)("season-sim draft domain postgres", () => {
          and grantee in ('anon', 'authenticated', 'PUBLIC')`,
     )
     expect(grants.rowCount).toBe(0)
+  })
+
+  it("foundation checkpoint preserves draft cursor pick_number", async () => {
+    const c = requireClient()
+    // Fresh mini run
+    const season = await c.query<{ id: string }>(
+      `insert into public.seasons (name, is_current, is_sandbox, is_live_competitive, sheet_sync_enabled)
+       values ('Cursor Preserve', false, true, false, false) returning id`,
+    )
+    const sid = season.rows[0]!.id
+    const team = await c.query<{ id: string }>(
+      `insert into public.teams (name, coach_name, season_id) values ('CP1','Bot', $1) returning id`,
+      [sid],
+    )
+    const run = await c.query<{ id: string }>(
+      `insert into public.simulation_runs (
+         season_id, status, phase, config, rules_snapshot, master_seed,
+         rng_algorithm, rng_algorithm_version, config_frozen_at, cursor
+       ) values (
+         $1, 'queued', 'configured', '{"schema_version":1}'::jsonb,
+         '{"rules_version":"provisional_demo_v0"}'::jsonb,
+         '0102030405060708090a0b0c0d0e0f10', 'splitmix64', '1', now(),
+         '{"step_seq":0,"pick_number":3,"round":1,"draft_complete":false}'::jsonb
+       ) returning id`,
+      [sid],
+    )
+    const rid = run.rows[0]!.id
+    void team
+    const token = (
+      await c.query<{ lease_token: string }>(
+        `select lease_token from public.sim_claim_run_lease($1, 'cursor-preserve', 30000)`,
+        [rid],
+      )
+    ).rows[0]!.lease_token
+    await c.query(
+      `select * from public.sim_apply_foundation_step(
+         $1, $2::uuid, 'foundation_checkpoint:cp1', 'foundation_checkpoint', null,
+         '{}'::jsonb, 'system'
+       )`,
+      [rid, token],
+    )
+    const cursor = await c.query<{ cursor: Record<string, unknown> }>(
+      `select cursor from public.simulation_runs where id = $1`,
+      [rid],
+    )
+    expect(cursor.rows[0]?.cursor?.pick_number).toBe(3)
+    expect(cursor.rows[0]?.cursor?.step_seq).toBe(1)
   })
 })

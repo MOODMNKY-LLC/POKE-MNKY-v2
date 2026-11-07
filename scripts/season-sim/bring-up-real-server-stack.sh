@@ -162,6 +162,7 @@ docker exec "$PG_CONTAINER" psql -h 127.0.0.1 -U supabase_admin -d postgres -v O
 docker exec "$PG_CONTAINER" psql -h 127.0.0.1 -U supabase_admin -d postgres -v ON_ERROR_STOP=1 -c \
   "GRANT EXECUTE ON FUNCTION public.sim_claim_run_lease(uuid, text, integer) TO service_role;
    GRANT EXECUTE ON FUNCTION public.sim_apply_foundation_step(uuid, uuid, text, text, uuid, jsonb, text) TO service_role;
+   GRANT EXECUTE ON FUNCTION public.sim_apply_draft_pick(uuid, uuid, text, uuid, integer, uuid, text, integer, integer, text, jsonb, boolean) TO service_role;
    GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;" >/dev/null
 
 # Confirm triggers/RLS still enabled (fail if disabled)
@@ -173,9 +174,19 @@ RLS_ON="$(docker exec "$PG_CONTAINER" psql -h 127.0.0.1 -U supabase_admin -d pos
   "SELECT relrowsecurity FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
    WHERE n.nspname='public' AND c.relname='simulation_runs';" | tr -d '[:space:]')"
 [[ "$RLS_ON" == "t" ]] || fail "simulation_runs RLS is not enabled"
+DRAFT_RLS="$(docker exec "$PG_CONTAINER" psql -h 127.0.0.1 -U supabase_admin -d postgres -tAc \
+  "SELECT COUNT(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+   WHERE n.nspname='public' AND c.relname IN ('sim_draft_pool','sim_draft_budgets','sim_draft_picks')
+     AND c.relrowsecurity;" | tr -d '[:space:]')"
+[[ "$DRAFT_RLS" == "3" ]] || fail "sim_draft_* RLS not fully enabled (got $DRAFT_RLS)"
+DRAFT_FN="$(docker exec "$PG_CONTAINER" psql -h 127.0.0.1 -U supabase_admin -d postgres -tAc \
+  "SELECT COUNT(*) FROM pg_proc WHERE proname='sim_apply_draft_pick';" | tr -d '[:space:]')"
+[[ "$DRAFT_FN" -ge 1 ]] || fail "sim_apply_draft_pick missing after clean replay"
 
 echo "TRIGGERS_ACTIVE_ON_AUTH_USERS=$TRIGGERS_ON"
 echo "SIMULATION_RUNS_RLS=$RLS_ON"
+echo "SIM_DRAFT_RLS_TABLES=$DRAFT_RLS"
+echo "SIM_APPLY_DRAFT_PICK=$DRAFT_FN"
 
 echo "=== GoTrue (${GOTRUE_JWT_EXP}s JWT exp) ==="
 docker rm -f "$GOTRUE_CONTAINER" >/dev/null 2>&1 || true

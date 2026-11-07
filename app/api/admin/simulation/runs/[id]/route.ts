@@ -9,7 +9,11 @@ import {
   isSimSandboxV2Enabled,
   SIM_V2_DISABLED_MESSAGE,
 } from "@/lib/season-sim/flags"
-import { getRun, toProgress } from "@/lib/season-sim/run-service"
+import {
+  getDraftEvidence,
+  getRun,
+  toProgress,
+} from "@/lib/season-sim/run-service"
 import { SandboxIsolationError } from "@/lib/season-sim/sandbox-guard"
 
 export async function GET(
@@ -30,7 +34,11 @@ export async function GET(
   try {
     const supabase = createServiceRoleClient()
     const run = await getRun(supabase, id)
-    return NextResponse.json({ progress: toProgress(run) })
+    const draft = await getDraftEvidence(supabase, id)
+    return NextResponse.json({
+      progress: toProgress(run),
+      draft,
+    })
   } catch (err) {
     if (err instanceof SandboxIsolationError) {
       return NextResponse.json(

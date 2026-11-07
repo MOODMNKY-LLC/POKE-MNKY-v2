@@ -58,6 +58,131 @@ export function toProgress(run: SimRunRow): SimProgressResponse {
   }
 }
 
+/** Admin evidence snapshot for sandbox draft validation (pool/budget/picks/decisions). */
+export type SimDraftEvidence = {
+  pool_available: number
+  pool_drafted: number
+  pick_count: number
+  total_picks_expected: number
+  budgets: Array<{
+    team_id: string
+    total_points: number
+    spent_points: number
+    remaining_points: number
+  }>
+  /** Roster projection for this sandbox run (sim_draft_picks ordered). */
+  roster_picks: Array<{
+    pick_number: number
+    round: number
+    team_id: string
+    pokemon_name: string
+    point_value: number
+    step_seq: number
+    decision_id: string | null
+  }>
+  decisions: Array<{
+    step_seq: number | null
+    source: string
+    answer: Record<string, unknown>
+  }>
+  cursor_pick_number: number
+  cursor_agrees_with_picks: boolean
+  decisions_agree_with_picks: boolean
+}
+
+export async function getDraftEvidence(
+  supabase: ServiceClient,
+  runId: string,
+): Promise<SimDraftEvidence> {
+  const run = await getRun(supabase, runId)
+  const config = (run.config ?? {}) as SimRunConfig
+  const totalExpected =
+    Number(config.team_count ?? 0) * Number(config.total_rounds ?? 0)
+
+  const { data: poolRows } = await supabase
+    .from("sim_draft_pool")
+    .select("status")
+    .eq("run_id", runId)
+  const pool_available = (poolRows ?? []).filter((r) => r.status === "available").length
+  const pool_drafted = (poolRows ?? []).filter((r) => r.status === "drafted").length
+
+  const { data: budgets } = await supabase
+    .from("sim_draft_budgets")
+    .select("team_id, total_points, spent_points, remaining_points")
+    .eq("run_id", runId)
+    .order("team_id", { ascending: true })
+
+  const { data: picks } = await supabase
+    .from("sim_draft_picks")
+    .select(
+      "pick_number, round, team_id, pokemon_name, point_value, step_seq, decision_id",
+    )
+    .eq("run_id", runId)
+    .order("pick_number", { ascending: true })
+
+  const { data: decisions } = await supabase
+    .from("simulation_decisions")
+    .select("step_seq, source, answer")
+    .eq("run_id", runId)
+    .order("step_seq", { ascending: true })
+
+  const roster_picks = (picks ?? []).map((p) => ({
+    pick_number: Number(p.pick_number),
+    round: Number(p.round),
+    team_id: String(p.team_id),
+    pokemon_name: String(p.pokemon_name),
+    point_value: Number(p.point_value),
+    step_seq: Number(p.step_seq),
+    decision_id: (p.decision_id as string | null) ?? null,
+  }))
+
+  const decisionRows = (decisions ?? []).map((d) => ({
+    step_seq: d.step_seq == null ? null : Number(d.step_seq),
+    source: String(d.source),
+    answer: (d.answer ?? {}) as Record<string, unknown>,
+  }))
+
+  const cursorPick = Number(run.cursor?.pick_number ?? 0)
+  const cursor_agrees_with_picks = cursorPick === roster_picks.length
+
+  const draftDecisions = decisionRows.filter(
+    (d) => d.answer?.decision_type === "draft_pick",
+  )
+  let decisions_agree_with_picks = draftDecisions.length === roster_picks.length
+  if (decisions_agree_with_picks) {
+    for (let i = 0; i < roster_picks.length; i++) {
+      const pick = roster_picks[i]!
+      const dec = draftDecisions[i]!
+      if (
+        Number(dec.answer.pick_number) !== pick.pick_number ||
+        String(dec.answer.pokemon_name) !== pick.pokemon_name ||
+        String(dec.answer.team_id) !== pick.team_id
+      ) {
+        decisions_agree_with_picks = false
+        break
+      }
+    }
+  }
+
+  return {
+    pool_available,
+    pool_drafted,
+    pick_count: roster_picks.length,
+    total_picks_expected: totalExpected,
+    budgets: (budgets ?? []).map((b) => ({
+      team_id: String(b.team_id),
+      total_points: Number(b.total_points),
+      spent_points: Number(b.spent_points),
+      remaining_points: Number(b.remaining_points),
+    })),
+    roster_picks,
+    decisions: decisionRows,
+    cursor_pick_number: cursorPick,
+    cursor_agrees_with_picks,
+    decisions_agree_with_picks,
+  }
+}
+
 export async function createSandboxSimulationRun(
   supabase: ServiceClient,
   ownerUserId: string,
