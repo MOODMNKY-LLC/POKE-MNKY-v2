@@ -227,6 +227,16 @@ type ProgressBody = {
     }>
     budgets?: Array<{ spent_points: number; remaining_points: number }>
   }
+  season?: {
+    match_total?: number
+    match_completed?: number
+    match_scheduled?: number
+    regular_completed?: number
+    playoff_completed?: number
+    champion_team_id?: string | null
+    fidelity?: string | null
+    standings?: Array<{ team_id: string; wins: number; seed: number | null }>
+  }
 }
 
 async function refreshProgress(
@@ -244,7 +254,7 @@ async function refreshProgress(
 async function advanceAndTick(params: {
   runId: string
   cookie: string
-  unit: "pick" | "round" | "match" | "foundation"
+  unit: "pick" | "round" | "match" | "week" | "playoff_round" | "season" | "foundation"
   n: number
   stepSeq: number
   runVersion: number
@@ -1025,13 +1035,15 @@ async function main() {
         (x) => `${x.pick_number}:${x.pokemon_name}:${x.point_value}`,
       )
       record(
-        "RS-56_draft_complete_schedule_blocked",
-        p.status === "blocked" &&
-          p.blocked_reason === "DRAFT_COMPLETE_SCHEDULE_UNSUPPORTED" &&
+        "RS-56_draft_complete_paused_awaiting_schedule",
+        p.status === "paused" &&
+          p.cursor?.draft_complete === true &&
+          p.cursor?.awaiting === "schedule" &&
+          !p.blocked_reason &&
           p.phase === "draft" &&
           p.phase !== "complete",
         undefined,
-        `status=${p.status} reason=${p.blocked_reason} phase=${p.phase}`,
+        `status=${p.status} awaiting=${String(p.cursor?.awaiting)} phase=${p.phase}`,
       )
       record(
         "RS-57_persisted_pool_budget_roster_evidence",
@@ -1057,7 +1069,7 @@ async function main() {
         picksRest.status,
       )
 
-      // Schedule advance still blocked
+      // Schedule path now advances (seeds regular schedule on first season-path unit)
       const sched = await advanceAndTick({
         runId: created.runId,
         cookie: adminCookie,
@@ -1066,15 +1078,16 @@ async function main() {
         stepSeq: Number(p.step_seq ?? 0),
         runVersion: Number(p.run_version ?? 0),
         workerId: "after-draft-match",
+        maxSteps: 5,
       })
       record(
-        "RS-59_post_draft_match_stays_blocked",
-        sched.advanceStatus === 409 ||
-          sched.progress.progress?.status === "blocked" ||
-          sched.tick?.reason === "UNSUPPORTED_DOMAIN_STEP" ||
-          sched.tick?.run_status === "blocked",
+        "RS-59_post_draft_match_seeds_or_resolves",
+        sched.advanceStatus === 202 &&
+          sched.tickStatus === 200 &&
+          Number(sched.tick?.steps_applied ?? 0) >= 1 &&
+          (sched.progress.season?.match_total ?? 0) >= 1,
         sched.advanceStatus,
-        sched.tick?.reason ?? sched.progress.progress?.status,
+        `steps=${sched.tick?.steps_applied} matches=${sched.progress.season?.match_total} reason=${sched.tick?.reason}`,
       )
     }
   }
@@ -1124,10 +1137,12 @@ async function main() {
         `granular=${granularPickNames.length} batched=${names.length}`,
       )
       record(
-        "RS-63_batched_also_schedule_blocked",
-        final.progress?.blocked_reason === "DRAFT_COMPLETE_SCHEDULE_UNSUPPORTED",
+        "RS-63_batched_also_paused_awaiting_schedule",
+        final.progress?.status === "paused" &&
+          final.progress?.cursor?.draft_complete === true &&
+          final.progress?.cursor?.awaiting === "schedule",
         undefined,
-        final.progress?.blocked_reason ?? undefined,
+        `status=${final.progress?.status} awaiting=${String(final.progress?.cursor?.awaiting)}`,
       )
     }
   }
@@ -1425,6 +1440,219 @@ async function main() {
       bad.status,
       badBody.code ?? badBody.error,
     )
+  }
+
+  // --- Provisional season path (RS-80+): schedule → statistical results → champion + reset ---
+  {
+    adminSession = await passwordGrant(ADMIN_EMAIL, ADMIN_PASSWORD)
+    adminCookie = sessionCookieHeader(adminSession)
+    const SEASON_SEED = "abcdef0123456789abcdef0123456789"
+    const create = await appFetch("/api/admin/simulation/runs", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      cookie: adminCookie,
+      body: JSON.stringify({
+        master_seed: SEASON_SEED,
+        team_count: 2,
+        total_rounds: 2,
+        schedule_weeks: 2,
+        playoff_size: 2,
+        selector_draft: "random",
+        queue_immediately: true,
+      }),
+    })
+    const createdBody = (await create.json().catch(() => ({}))) as {
+      run?: { run_id?: string; step_seq?: number; run_version?: number }
+      code?: string
+      error?: string
+    }
+    const seasonRunId = String(createdBody.run?.run_id ?? "")
+    record(
+      "RS-80_create_compact_season_path_run",
+      create.status === 201 && Boolean(seasonRunId),
+      create.status,
+      createdBody.code ?? createdBody.error,
+    )
+
+    if (seasonRunId) {
+      let step = Number(createdBody.run?.step_seq ?? 0)
+      let ver = Number(createdBody.run?.run_version ?? 0)
+      // Draft 2×2 = 4 picks
+      for (let i = 0; i < 4; i++) {
+        const r = await advanceAndTick({
+          runId: seasonRunId,
+          cookie: adminCookie,
+          unit: "pick",
+          n: 1,
+          stepSeq: step,
+          runVersion: ver,
+          workerId: `season-draft-${i + 1}`,
+          maxSteps: 2,
+        })
+        step = Number(r.progress.progress?.step_seq ?? step)
+        ver = Number(r.progress.progress?.run_version ?? ver)
+      }
+      const afterDraft = await refreshProgress(seasonRunId, adminCookie)
+      record(
+        "RS-81_draft_complete_before_season_unit",
+        afterDraft.progress?.status === "paused" &&
+          afterDraft.progress?.cursor?.draft_complete === true,
+        undefined,
+        `status=${afterDraft.progress?.status}`,
+      )
+      step = Number(afterDraft.progress?.step_seq ?? step)
+      ver = Number(afterDraft.progress?.run_version ?? ver)
+
+      let completed = false
+      let champion: string | null = null
+      for (let tick = 0; tick < 12 && !completed; tick++) {
+        const r = await advanceAndTick({
+          runId: seasonRunId,
+          cookie: adminCookie,
+          unit: "season",
+          n: 1,
+          stepSeq: step,
+          runVersion: ver,
+          workerId: `season-auto-${tick + 1}`,
+          maxSteps: 50,
+        })
+        step = Number(r.progress.progress?.step_seq ?? step)
+        ver = Number(r.progress.progress?.run_version ?? ver)
+        if (
+          r.progress.progress?.status === "completed" &&
+          r.progress.progress?.phase === "complete"
+        ) {
+          completed = true
+          champion = r.progress.season?.champion_team_id ?? null
+        }
+      }
+      const finalSeason = await refreshProgress(seasonRunId, adminCookie)
+      record(
+        "RS-82_season_completes_with_champion",
+        completed &&
+          finalSeason.progress?.status === "completed" &&
+          finalSeason.progress?.phase === "complete" &&
+          Boolean(finalSeason.season?.champion_team_id) &&
+          finalSeason.season?.fidelity === "statistical_seeded" &&
+          (finalSeason.season?.match_completed ?? 0) >= 1,
+        undefined,
+        `status=${finalSeason.progress?.status} champ=${finalSeason.season?.champion_team_id} matches=${finalSeason.season?.match_completed}`,
+      )
+      void champion
+
+      // Same-seed reproducibility: second run should crown same champion after season unit
+      const create2 = await appFetch("/api/admin/simulation/runs", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        cookie: adminCookie,
+        body: JSON.stringify({
+          master_seed: SEASON_SEED,
+          team_count: 2,
+          total_rounds: 2,
+          schedule_weeks: 2,
+          playoff_size: 2,
+          selector_draft: "random",
+          queue_immediately: true,
+        }),
+      })
+      const body2 = (await create2.json().catch(() => ({}))) as {
+        run?: { run_id?: string; step_seq?: number; run_version?: number }
+      }
+      const run2 = String(body2.run?.run_id ?? "")
+      if (run2) {
+        let s2 = Number(body2.run?.step_seq ?? 0)
+        let v2 = Number(body2.run?.run_version ?? 0)
+        for (let i = 0; i < 4; i++) {
+          const r = await advanceAndTick({
+            runId: run2,
+            cookie: adminCookie,
+            unit: "pick",
+            n: 1,
+            stepSeq: s2,
+            runVersion: v2,
+            workerId: `season-repro-draft-${i + 1}`,
+          })
+          s2 = Number(r.progress.progress?.step_seq ?? s2)
+          v2 = Number(r.progress.progress?.run_version ?? v2)
+        }
+        for (let tick = 0; tick < 12; tick++) {
+          const r = await advanceAndTick({
+            runId: run2,
+            cookie: adminCookie,
+            unit: "season",
+            n: 1,
+            stepSeq: s2,
+            runVersion: v2,
+            workerId: `season-repro-${tick + 1}`,
+            maxSteps: 50,
+          })
+          s2 = Number(r.progress.progress?.step_seq ?? s2)
+          v2 = Number(r.progress.progress?.run_version ?? v2)
+          if (r.progress.progress?.status === "completed") break
+        }
+        const repro = await refreshProgress(run2, adminCookie)
+        // Champions are team UUIDs (different seats) — compare seeded match outcomes count + fidelity
+        record(
+          "RS-83_same_seed_season_reproducible_fidelity",
+          repro.progress?.status === "completed" &&
+            repro.season?.fidelity === "statistical_seeded" &&
+            repro.season?.match_completed === finalSeason.season?.match_completed &&
+            repro.season?.regular_completed === finalSeason.season?.regular_completed &&
+            repro.season?.playoff_completed === finalSeason.season?.playoff_completed,
+          undefined,
+          `a_matches=${finalSeason.season?.match_completed} b_matches=${repro.season?.match_completed}`,
+        )
+      } else {
+        record("RS-83_same_seed_season_reproducible_fidelity", false, create2.status)
+      }
+
+      const resetRes = await appFetch(
+        `/api/admin/simulation/runs/${seasonRunId}/reset`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          cookie: adminCookie,
+          body: "{}",
+        },
+      )
+      const resetBody = (await resetRes.json().catch(() => ({}))) as {
+        ok?: boolean
+        reason?: string
+        status?: string
+      }
+      record(
+        "RS-84_scoped_uuid_reset",
+        resetRes.status === 200 && resetBody.ok === true && resetBody.reason === "DOMAIN_RESET",
+        resetRes.status,
+        resetBody.reason ?? resetBody.status,
+      )
+      const afterReset = await refreshProgress(seasonRunId, adminCookie)
+      record(
+        "RS-85_reset_clears_domain_keeps_run",
+        (afterReset.progress?.status === "queued" ||
+          afterReset.progress?.status === "configured") &&
+          (afterReset.season?.match_total ?? -1) === 0 &&
+          (afterReset.draft?.pick_count ?? -1) === 0 &&
+          (afterReset.draft?.pool_available ?? 0) > 0,
+        undefined,
+        `status=${afterReset.progress?.status} matches=${afterReset.season?.match_total} pool=${afterReset.draft?.pool_available}`,
+      )
+
+      // Public reset must not exist without auth
+      const anonReset = await appFetch(
+        `/api/admin/simulation/runs/${seasonRunId}/reset`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: "{}",
+        },
+      )
+      record(
+        "RS-86_reset_requires_auth",
+        anonReset.status === 401 || anonReset.status === 403,
+        anonReset.status,
+      )
+    }
   }
 
   // --- Session validity / expiry / refresh (RS-40+) ---

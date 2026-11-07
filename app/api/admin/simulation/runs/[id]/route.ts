@@ -3,7 +3,7 @@
  */
 
 import { NextResponse } from "next/server"
-import { requireLeagueAdmin } from "@/lib/admin-api-auth"
+import { requireSimDemoOperator } from "@/lib/season-sim/demo-allowlist"
 import { createServiceRoleClient } from "@/lib/supabase/service"
 import {
   isSimSandboxV2Enabled,
@@ -12,6 +12,7 @@ import {
 import {
   getDraftEvidence,
   getRun,
+  getSeasonEvidence,
   toProgress,
 } from "@/lib/season-sim/run-service"
 import { SandboxIsolationError } from "@/lib/season-sim/sandbox-guard"
@@ -27,7 +28,7 @@ export async function GET(
     )
   }
 
-  const admin = await requireLeagueAdmin()
+  const admin = await requireSimDemoOperator()
   if ("response" in admin) return admin.response
 
   const { id } = await context.params
@@ -35,9 +36,11 @@ export async function GET(
     const supabase = createServiceRoleClient()
     const run = await getRun(supabase, id)
     const draft = await getDraftEvidence(supabase, id)
+    const season = await getSeasonEvidence(supabase, id)
     return NextResponse.json({
       progress: toProgress(run),
       draft,
+      season,
     })
   } catch (err) {
     if (err instanceof SandboxIsolationError) {

@@ -72,6 +72,8 @@ export function buildProvisionalDemoConfig(
     roster_max: number
     total_rounds: number
     budget_total: number
+    schedule_weeks: number
+    playoff_size: number
     selector_draft: "random" | "heuristic" | "jev"
   }> = {},
 ): SimRunConfig {
@@ -102,6 +104,8 @@ export function buildProvisionalDemoConfig(
     roster_max: rosterMax,
     total_rounds: totalRounds,
     budget_total: overrides.budget_total,
+    schedule_weeks: overrides.schedule_weeks,
+    playoff_size: overrides.playoff_size,
     selector_draft: overrides.selector_draft,
   })
 }

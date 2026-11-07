@@ -19,6 +19,8 @@ import {
   type RngCounters,
 } from "@/lib/season-sim/prng"
 import { assertSeasonIsSandbox } from "@/lib/season-sim/sandbox-guard"
+import { domainOperationKey } from "@/lib/season-sim/operation-key"
+import { driveSeasonPathUnit } from "@/lib/season-sim/season-path-worker"
 import type {
   SimAdvanceUnit,
   SimCommandAcceptResponse,
@@ -26,12 +28,20 @@ import type {
   SimRunRow,
 } from "@/lib/season-sim/types"
 
-const STILL_BLOCKED_UNITS = new Set<SimAdvanceUnit>([
+/** Units with no implementation remain blocked (none currently beyond unknown). */
+const STILL_BLOCKED_UNITS = new Set<SimAdvanceUnit>([])
+const SEASON_PATH_UNITS = new Set<SimAdvanceUnit>([
   "match",
   "week",
   "playoff_round",
   "season",
 ])
+
+function isSeasonPathUnit(
+  unit: SimAdvanceUnit,
+): unit is "match" | "week" | "playoff_round" | "season" {
+  return SEASON_PATH_UNITS.has(unit)
+}
 
 type ServiceClient = SupabaseClient
 
@@ -183,6 +193,67 @@ export async function getDraftEvidence(
   }
 }
 
+export type SimSeasonEvidence = {
+  match_total: number
+  match_completed: number
+  match_scheduled: number
+  regular_completed: number
+  playoff_completed: number
+  standings: Array<{
+    team_id: string
+    wins: number
+    losses: number
+    differential: number
+    seed: number | null
+  }>
+  champion_team_id: string | null
+  fidelity: string | null
+  disclaimer: string | null
+}
+
+export async function getSeasonEvidence(
+  supabase: ServiceClient,
+  runId: string,
+): Promise<SimSeasonEvidence> {
+  const { data: matches } = await supabase
+    .from("sim_matches")
+    .select("status, is_playoff, fidelity")
+    .eq("run_id", runId)
+  const rows = matches ?? []
+  const { data: standings } = await supabase
+    .from("sim_standings")
+    .select("team_id, wins, losses, differential, seed")
+    .eq("run_id", runId)
+    .order("seed", { ascending: true })
+  const { data: outcome } = await supabase
+    .from("sim_season_outcomes")
+    .select("champion_team_id, fidelity, disclaimer")
+    .eq("run_id", runId)
+    .maybeSingle()
+
+  return {
+    match_total: rows.length,
+    match_completed: rows.filter((m) => m.status === "completed").length,
+    match_scheduled: rows.filter((m) => m.status === "scheduled").length,
+    regular_completed: rows.filter(
+      (m) => m.status === "completed" && !m.is_playoff,
+    ).length,
+    playoff_completed: rows.filter(
+      (m) => m.status === "completed" && m.is_playoff,
+    ).length,
+    standings: (standings ?? []).map((s) => ({
+      team_id: String(s.team_id),
+      wins: Number(s.wins),
+      losses: Number(s.losses),
+      differential: Number(s.differential),
+      seed: s.seed == null ? null : Number(s.seed),
+    })),
+    champion_team_id: (outcome?.champion_team_id as string | null) ?? null,
+    fidelity: (outcome?.fidelity as string | null) ?? null,
+    disclaimer: (outcome?.disclaimer as string | null) ?? null,
+  }
+}
+
 export async function createSandboxSimulationRun(
   supabase: ServiceClient,
   ownerUserId: string,
@@ -191,6 +262,8 @@ export async function createSandboxSimulationRun(
     team_count?: number
     total_rounds?: number
     budget_total?: number
+    schedule_weeks?: number
+    playoff_size?: number
     selector_draft?: "random" | "heuristic" | "jev"
     queue_immediately?: boolean
   } = {},
@@ -201,6 +274,8 @@ export async function createSandboxSimulationRun(
     team_count: options.team_count,
     total_rounds: options.total_rounds,
     budget_total: options.budget_total,
+    schedule_weeks: options.schedule_weeks,
+    playoff_size: options.playoff_size,
     selector_draft: options.selector_draft,
   })
 
@@ -399,14 +474,22 @@ export async function seedSandboxDraftDomain(
   // Cursor only here — provenance event is written by createSandbox after seed
   // succeeds so failed-seed cleanup can delete the run without fighting append-only
   // simulation_events triggers.
+  const { data: live } = await supabase
+    .from("simulation_runs")
+    .select("step_seq, cursor")
+    .eq("id", args.runId)
+    .maybeSingle()
+  const liveCursor = (live?.cursor ?? {}) as Record<string, unknown>
+  const domainEpoch = Number(liveCursor.domain_epoch ?? 0)
   await supabase
     .from("simulation_runs")
     .update({
       cursor: {
-        step_seq: 0,
+        step_seq: Number(live?.step_seq ?? 0),
         pick_number: 0,
         round: 0,
         draft_complete: false,
+        ...(domainEpoch > 0 ? { domain_epoch: domainEpoch } : {}),
       },
       updated_at: new Date().toISOString(),
     })
@@ -833,6 +916,21 @@ async function driveRun(
     })
   }
 
+  if (isSeasonPathUnit(unit)) {
+    return driveSeasonPathUnit(supabase, {
+      run,
+      runId,
+      leaseToken,
+      workerId,
+      maxSteps,
+      unit,
+      n,
+      commandId: run.active_command_id,
+      commandRowId: cmd?.command_id as string | undefined,
+      getRun,
+    })
+  }
+
   if (unit !== "foundation") {
     const applied = await applyFoundationStepRpc(supabase, {
       runId,
@@ -1034,7 +1132,10 @@ async function driveDraftUnit(
     }
 
     const draftComplete = pickNumber >= totalPicks
-    const operationKey = `draft_pick:${pickNumber}`
+    const operationKey = domainOperationKey(
+      live.cursor,
+      `draft_pick:${pickNumber}`,
+    )
     const applied = await applyDraftPickRpc(supabase, {
       runId: args.runId,
       leaseToken: args.leaseToken,
@@ -1114,9 +1215,11 @@ async function driveDraftUnit(
     step_seq: after.step_seq,
     run_version: after.run_version,
     reason:
-      after.blocked_reason === "DRAFT_COMPLETE_SCHEDULE_UNSUPPORTED"
+      after.status === "paused" && after.cursor?.draft_complete
         ? "DRAFT_COMPLETE"
-        : after.blocked_reason ?? undefined,
+        : after.blocked_reason === "DRAFT_COMPLETE_SCHEDULE_UNSUPPORTED"
+          ? "DRAFT_COMPLETE"
+          : after.blocked_reason ?? undefined,
   }
 }
 

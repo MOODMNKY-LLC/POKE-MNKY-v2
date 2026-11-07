@@ -55,10 +55,14 @@ describe.skipIf(!canRun)("season-sim v2 HTTP + worker (real PostgREST DB)", () =
       "SIM_LEGACY_SIMULATION_WRITES",
       "SIMULATION_WORKER_KEY",
       "SIMULATION_API_KEY",
+      "SIM_DEMO_OPERATOR_GATE",
+      "SIM_DEMO_OPERATOR_ALLOWLIST",
     ])
     process.env.SIM_SANDBOX_V2 = "true"
     process.env.SIM_WORKER_TICK_ENABLED = "true"
     delete process.env.SIM_LEGACY_SIMULATION_WRITES
+    delete process.env.SIM_DEMO_OPERATOR_GATE
+    delete process.env.SIM_DEMO_OPERATOR_ALLOWLIST
     process.env.SIMULATION_WORKER_KEY = WORKER_KEY
   })
 

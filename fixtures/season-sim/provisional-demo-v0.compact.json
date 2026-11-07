@@ -1,0 +1,24 @@
+{
+  "label": "provisional_demo_v0_compact",
+  "rules_version": "provisional_demo_v0",
+  "fidelity": "statistical_seeded",
+  "disclaimer": "DEMO ONLY: outcomes are seeded statistical simulations. Draft rosters are not battle sets. NOT Pokémon Showdown battles.",
+  "master_seed": "abcdef0123456789abcdef0123456789",
+  "team_count": 2,
+  "total_rounds": 2,
+  "schedule_weeks": 2,
+  "playoff_size": 2,
+  "selector_draft": "random",
+  "paid_inference": false,
+  "showdown_battles": false,
+  "side_effects": {
+    "discord": false,
+    "email": false,
+    "sheets": false,
+    "crons": false
+  },
+  "notes": [
+    "Compact fixture for local disposable Matt demo / CI real-server-auth RS-80+",
+    "Full 12-team × 10-week demo uses defaults; may need multiple season ticks (max_steps≤50)"
+  ]
+}
