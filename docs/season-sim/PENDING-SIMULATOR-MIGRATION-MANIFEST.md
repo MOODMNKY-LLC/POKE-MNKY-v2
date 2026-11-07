@@ -5,7 +5,9 @@
 **Guard fix:** `SEASON_SIM_PG_URL` query-host bypass closed in-repo (`pg-disposable-target` + Client from validated fields only).  
 **Rehearsal:** ordered migration rehearsal on a disposable **restored** schema with the **actual** admin helper is **explicitly NOT performed / unverified**. Do not treat CI disposable bootstrap as that rehearsal.  
 **Backup logs:** prior full restore logs were deleted with disposable workdirs; do **not** claim retained full restore logs. Peer-reported Mac snapshot / row-count summary only.  
-**Legacy compatibility (app-side, seven SQL unchanged):** Mock Draft Demo writers are preserved by forcing that named season to `is_sandbox=true` (live flags off) before `recordSimulationRun`; the attach trigger / claim / step / reset gates against genuine nonsandbox seasons stay intact. No writer retirement inferred. **No SQL content change → no rehash of the seven-file table below; no changed-migration / scoped-rollback rehearsal beyond existing §5.** Historical GitGuardian remains a separate release-path gate when required.
+**Legacy compatibility (app-side, seven SQL unchanged):** `ensureMockDraftDemoSandboxSeason` **never converts** an existing nonsandbox/`current`/`live`/`sheet` season and **never clears live flags** (name-only read→UPDATE by id removed). Supported path: **reuse** a single already-sandbox clean demo row, or **create** when no name match exists; otherwise **fail closed**. Attach trigger / claim / step / reset against genuine nonsandbox seasons stay intact. No writer retirement inferred. **No SQL content change → no rehash of the seven-file table below; no changed-migration / scoped-rollback rehearsal beyond existing §5.** Historical GitGuardian remains a separate release-path gate when required.
+
+**Legacy-writer quiescence (schema → compatible-app window):** `SIM_SANDBOX_V2` / worker flags **OFF** do **not** disable old `/api/admin/simulation/{seed,draft,…}` writers — only `SIM_LEGACY_SIMULATION_WRITES` (default off → HTTP 410) does. After #1–#7 apply, a historical nonsandbox row still named `Mock Draft Demo` is **not** auto-promoted; enabling legacy writes against it fails closed until a dedicated sandbox demo exists (create-only when the name is free, or ops-owned rename outside this document). §5 policy rollback restores legacy RLS posture on `simulation_runs` but **does not** remove `is_sandbox` / attach triggers / sandbox CHECKs — treat constraint/trigger presence as sticky across policy rollback.
 
 ---
 
@@ -156,5 +158,6 @@ If new child tables (#2–#6) were created and must be removed, that requires a 
 | Restored-schema ordered rehearsal | **Not performed / unverified** |
 | Full restore logs retained | **No** (deleted with disposable dirs) |
 | Live apply / flags / deploy / merge | **Not authorized by this document** |
-| Seven SQL rehash after tip compat work | **Not required** — SQL files unchanged; app-only Mock Draft Demo sandbox ensure + nonsandbox claim/step/reset denial probe |
-| Nonsandbox-linked run mutation denial (claim/step/reset) | Disposable PG probe (`nonsandbox-run-mutation-denial.pg.test.ts`); not a restored-schema rehearsal substitute |
+| Seven SQL rehash after tip compat work | **Not required** — SQL files unchanged; app-only Mock Draft Demo resolve (reuse/create/refuse) + nonsandbox claim/step/reset denial probe |
+| Nonsandbox-linked run mutation denial (claim/step/reset) | Disposable PG probe (`nonsandbox-run-mutation-denial.pg.test.ts`); accepted; not a restored-schema rehearsal substitute |
+| Name-match conversion / live-flag clear | **Removed** — focused unit refusals (`mock-draft-demo-season.test.ts`) prove no `seasons` UPDATE on ambiguity/current/live/sheet/association/nonsandbox/race class |
