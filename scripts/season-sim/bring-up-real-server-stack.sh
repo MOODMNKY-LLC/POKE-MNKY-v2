@@ -90,6 +90,7 @@ APP_URL="http://127.0.0.1:${APP_PORT}"
 cleanup() {
   local ec=$?
   set +e
+  if [[ -n "${NEXT_FLAGS_OFF_PID:-}" ]]; then kill "$NEXT_FLAGS_OFF_PID" 2>/dev/null; wait "$NEXT_FLAGS_OFF_PID" 2>/dev/null; fi
   if [[ -n "${NEXT_PID:-}" ]]; then kill "$NEXT_PID" 2>/dev/null; wait "$NEXT_PID" 2>/dev/null; fi
   if [[ -n "${GATEWAY_PID:-}" ]]; then kill "$GATEWAY_PID" 2>/dev/null; wait "$GATEWAY_PID" 2>/dev/null; fi
   if [[ "${KEEP_STACK:-0}" != "1" ]]; then
@@ -99,7 +100,7 @@ cleanup() {
   # Scrub runtime credential files and unset in-process secrets
   rm -f "$STATE_DIR"/gotrue.env "$STATE_DIR"/postgrest.env "$STATE_DIR"/passwords.env \
     "$STATE_DIR"/keys.json
-  unset JWT_SECRET ANON_KEY SERVICE_KEY SB_PG_PASS ADMIN_PASSWORD NONADMIN_PASSWORD WORKER_KEY KEYS_JSON
+  unset JWT_SECRET ANON_KEY SERVICE_KEY SB_PG_PASS ADMIN_PASSWORD NONADMIN_PASSWORD OUTSIDER_PASSWORD WORKER_KEY KEYS_JSON
   exit "$ec"
 }
 trap cleanup EXIT
@@ -278,6 +279,9 @@ signup "season-sim-admin@example.invalid" "$ADMIN_PASSWORD" \
   '{"full_name":"Sim Admin Fixture"}' "$STATE_DIR/signup-admin.json"
 signup "season-sim-coach@example.invalid" "$NONADMIN_PASSWORD" \
   '{"full_name":"Sim Coach Fixture","role":"admin"}' "$STATE_DIR/signup-nonadmin.json"
+OUTSIDER_PASSWORD="$(openssl rand -hex 12)Cc3!"
+signup "season-sim-outsider@example.invalid" "$OUTSIDER_PASSWORD" \
+  '{"full_name":"Sim Outsider Fixture"}' "$STATE_DIR/signup-outsider.json"
 
 # Verify authorization source: profiles.role (not user_metadata)
 docker exec "$PG_CONTAINER" psql -h 127.0.0.1 -U supabase_admin -d postgres -tAc \
@@ -287,12 +291,16 @@ grep -q 'season-sim-admin@example.invalid=admin' "$STATE_DIR/profile-roles.txt" 
   || fail "admin fixture profiles.role is not admin"
 grep -q 'season-sim-coach@example.invalid=spectator' "$STATE_DIR/profile-roles.txt" \
   || fail "nonadmin fixture profiles.role is not spectator (user_metadata.role must not elevate)"
+grep -q 'season-sim-outsider@example.invalid=' "$STATE_DIR/profile-roles.txt" \
+  || fail "outsider fixture profile missing"
 
 ADMIN_UUID="$(python3 -c 'import json; print(json.load(open("'"$STATE_DIR"'/signup-admin.json"))["user"]["id"])')"
 COACH_UUID="$(python3 -c 'import json; print(json.load(open("'"$STATE_DIR"'/signup-nonadmin.json"))["user"]["id"])')"
-[[ -n "$ADMIN_UUID" && -n "$COACH_UUID" ]] || fail "fixture user UUIDs missing"
+OUTSIDER_UUID="$(python3 -c 'import json; print(json.load(open("'"$STATE_DIR"'/signup-outsider.json"))["user"]["id"])')"
+[[ -n "$ADMIN_UUID" && -n "$COACH_UUID" && -n "$OUTSIDER_UUID" ]] || fail "fixture user UUIDs missing"
 # Gate ON: allowlisted authenticated users may run sim APIs without league admin.
 # Both fixtures listed so existing admin E2E and Matt-as-spectator path both work.
+# Outsider is intentionally NOT on the allowlist.
 # Membership does NOT grant /api/admin/seasons/* league powers.
 DEMO_ALLOWLIST="${ADMIN_UUID},${COACH_UUID}"
 
@@ -300,9 +308,11 @@ echo "=== next build + start (flags ON for suite; demo allowlist gate ON) ==="
 export NEXT_PUBLIC_SUPABASE_URL="$GATEWAY_URL"
 export NEXT_PUBLIC_SUPABASE_ANON_KEY="$ANON_KEY"
 export SUPABASE_SERVICE_ROLE_KEY="$SERVICE_KEY"
+# Disposable CI VMs OOMed at default ~2GB during tsc; raise heap for this build only.
+export NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=${NEXT_BUILD_MAX_OLD_SPACE_SIZE:-8192}"
 # Build must see NEXT_PUBLIC_* 
 pnpm build >"$STATE_DIR/next-build.log" 2>&1 || {
-  tail -40 "$STATE_DIR/next-build.log" >&2
+  tail -80 "$STATE_DIR/next-build.log" >&2
   fail "next build failed"
 }
 
@@ -332,3 +342,57 @@ export GOTRUE_JWT_EXP
 
 pnpm test:season-sim-real-server | tee "$STATE_DIR/e2e.log"
 echo "REAL_SERVER_AUTH_E2E_OK"
+
+if [[ "${RUN_BROWSER_ACCEPTANCE:-0}" == "1" ]]; then
+  echo "=== Playwright Chromium browser acceptance (/demo/season-sim) ==="
+  if [[ "${GOTRUE_JWT_EXP}" -lt 120 ]]; then
+    fail "RUN_BROWSER_ACCEPTANCE=1 requires GOTRUE_JWT_EXP>=120 (got ${GOTRUE_JWT_EXP}); expiry HTTP cases should be skipped"
+  fi
+  ARTIFACT_DIR="${SEASON_SIM_BROWSER_ARTIFACT_DIR:-/opt/cursor/artifacts/season-sim-browser}"
+  mkdir -p "$ARTIFACT_DIR/screenshots"
+  chmod 777 "$ARTIFACT_DIR" "$ARTIFACT_DIR/screenshots" 2>/dev/null || true
+  # Local FS for Playwright outputDir (fuse artifact mounts reject rmdir).
+  PLAYWRIGHT_OUTPUT_DIR="${SEASON_SIM_PLAYWRIGHT_OUTPUT_DIR:-/tmp/season-sim-browser-playwright-output}"
+  rm -rf "$PLAYWRIGHT_OUTPUT_DIR"
+  mkdir -p "$PLAYWRIGHT_OUTPUT_DIR"
+  export SEASON_SIM_PLAYWRIGHT_OUTPUT_DIR="$PLAYWRIGHT_OUTPUT_DIR"
+
+  # Second Next with flags OFF for browser 503 proof (same build artifacts).
+  FLAGS_OFF_PORT="${FLAGS_OFF_PORT:-3011}"
+  if command -v fuser >/dev/null 2>&1; then
+    fuser -k "${FLAGS_OFF_PORT}/tcp" 2>/dev/null || true
+  fi
+  SIM_SANDBOX_V2=false \
+  SIM_WORKER_TICK_ENABLED=false \
+  SIM_DEMO_OPERATOR_GATE=true \
+  SIM_DEMO_OPERATOR_ALLOWLIST="$DEMO_ALLOWLIST" \
+  SIMULATION_WORKER_KEY="$WORKER_KEY" \
+  NEXT_PUBLIC_SUPABASE_URL="$GATEWAY_URL" \
+  NEXT_PUBLIC_SUPABASE_ANON_KEY="$ANON_KEY" \
+  SUPABASE_SERVICE_ROLE_KEY="$SERVICE_KEY" \
+    pnpm exec next start -H 127.0.0.1 -p "$FLAGS_OFF_PORT" >"$STATE_DIR/next-flags-off.log" 2>&1 &
+  FLAGS_OFF_PID=$!
+  # Extend cleanup for flags-off Next
+  NEXT_FLAGS_OFF_PID="$FLAGS_OFF_PID"
+  wait_http "http://127.0.0.1:${FLAGS_OFF_PORT}/" "next-flags-off" 60
+
+  export BASE_URL="$APP_URL"
+  export APP_BASE_URL="$APP_URL"
+  export SEASON_SIM_FLAGS_OFF_URL="http://127.0.0.1:${FLAGS_OFF_PORT}"
+  export SEASON_SIM_OUTSIDER_EMAIL="season-sim-outsider@example.invalid"
+  export SEASON_SIM_OUTSIDER_PASSWORD="$OUTSIDER_PASSWORD"
+  export SEASON_SIM_BROWSER_ARTIFACT_DIR="$ARTIFACT_DIR"
+  export SEASON_SIM_NONADMIN_EMAIL="season-sim-coach@example.invalid"
+  export SEASON_SIM_NONADMIN_PASSWORD="$NONADMIN_PASSWORD"
+
+  pnpm exec playwright install chromium >/dev/null
+  set -o pipefail
+  pnpm exec playwright test -c playwright.season-sim.config.ts | tee "$STATE_DIR/browser-e2e.log" \
+    || fail "Playwright browser acceptance failed (see $STATE_DIR/browser-e2e.log)"
+  echo "BROWSER_ACCEPTANCE_OK artifacts=$ARTIFACT_DIR"
+
+  if [[ -n "${NEXT_FLAGS_OFF_PID:-}" ]]; then
+    kill "$NEXT_FLAGS_OFF_PID" 2>/dev/null || true
+    wait "$NEXT_FLAGS_OFF_PID" 2>/dev/null || true
+  fi
+fi

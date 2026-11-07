@@ -7,10 +7,9 @@ import { NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase/server"
 import { createServiceRoleClient } from "@/lib/supabase/service"
 import { DraftSystem, type DraftSession } from "@/lib/draft-system"
+import { ensureMockDraftDemoSandboxSeason } from "@/lib/league-simulation/mock-draft-demo-season"
 import { recordSimulationRun } from "@/lib/league-simulation/simulation-engine"
 import { legacySimulationWriteDeniedResponse } from "@/lib/season-sim/legacy-gate"
-
-const MOCK_SEASON_NAME = "Mock Draft Demo"
 
 type DraftSessionStatus = DraftSession["status"]
 
@@ -52,20 +51,7 @@ export async function POST(request: NextRequest) {
     const admin = createServiceRoleClient()
     const draftSystem = new DraftSystem()
 
-    const { data: mockSeason } = await admin
-      .from("seasons")
-      .select("id")
-      .eq("name", MOCK_SEASON_NAME)
-      .maybeSingle()
-
-    if (!mockSeason) {
-      return NextResponse.json(
-        { error: "Mock season not found. Run seed first." },
-        { status: 404 }
-      )
-    }
-
-    const seasonId = mockSeason.id
+    const seasonId = await ensureMockDraftDemoSandboxSeason(admin)
 
     let session = await draftSystem.getActiveSession(seasonId)
     if (!session) {

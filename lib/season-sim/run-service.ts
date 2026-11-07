@@ -1,6 +1,10 @@
 import { randomUUID } from "node:crypto"
 import type { SupabaseClient } from "@supabase/supabase-js"
-import { buildProvisionalDemoConfig, type SimRunConfig } from "@/lib/season-sim/config"
+import {
+  buildProvisionalDemoConfig,
+  clampWorkerTickOptions,
+  type SimRunConfig,
+} from "@/lib/season-sim/config"
 import {
   assessDraftFeasibility,
   buildSyntheticDraftPool,
@@ -193,6 +197,30 @@ export async function getDraftEvidence(
   }
 }
 
+export type SimSeatEvidence = {
+  team_id: string
+  seat_index: number
+  display_name: string
+}
+
+export type SimMatchEvidence = {
+  id: string
+  week: number
+  match_index: number
+  team1_id: string
+  team2_id: string
+  team1_name: string | null
+  team2_name: string | null
+  winner_id: string | null
+  team1_score: number | null
+  team2_score: number | null
+  differential: number | null
+  status: string
+  is_playoff: boolean
+  playoff_round: number | null
+  fidelity: string | null
+}
+
 export type SimSeasonEvidence = {
   match_total: number
   match_completed: number
@@ -205,8 +233,12 @@ export type SimSeasonEvidence = {
     losses: number
     differential: number
     seed: number | null
+    display_name: string | null
   }>
+  seats: SimSeatEvidence[]
+  matches: SimMatchEvidence[]
   champion_team_id: string | null
+  champion_display_name: string | null
   fidelity: string | null
   disclaimer: string | null
 }
@@ -215,11 +247,76 @@ export async function getSeasonEvidence(
   supabase: ServiceClient,
   runId: string,
 ): Promise<SimSeasonEvidence> {
-  const { data: matches } = await supabase
-    .from("sim_matches")
-    .select("status, is_playoff, fidelity")
+  const { data: seatRows } = await supabase
+    .from("sim_bot_seats")
+    .select("team_id, seat_index")
     .eq("run_id", runId)
-  const rows = matches ?? []
+    .order("seat_index", { ascending: true })
+
+  const teamIds = (seatRows ?? [])
+    .map((s) => s.team_id as string | null)
+    .filter((id): id is string => Boolean(id))
+
+  const { data: teamRows } = teamIds.length
+    ? await supabase.from("teams").select("id, name").in("id", teamIds)
+    : { data: [] as Array<{ id: string; name: string | null }> }
+
+  const nameById = new Map<string, string>()
+  for (const t of teamRows ?? []) {
+    nameById.set(String(t.id), String(t.name ?? "").trim() || `Seat`)
+  }
+
+  const seats: SimSeatEvidence[] = (seatRows ?? []).map((s) => {
+    const teamId = String(s.team_id)
+    const seatIndex = Number(s.seat_index)
+    const raw = nameById.get(teamId)
+    const display =
+      raw && raw.length > 0
+        ? raw.includes("·")
+          ? raw.split("·").slice(-1)[0]!.trim() || `Seat ${seatIndex + 1}`
+          : raw
+        : `Seat ${seatIndex + 1}`
+    return {
+      team_id: teamId,
+      seat_index: seatIndex,
+      display_name: display,
+    }
+  })
+  const seatName = new Map(seats.map((s) => [s.team_id, s.display_name]))
+
+  const { data: matchRows } = await supabase
+    .from("sim_matches")
+    .select(
+      "id, week, match_index, team1_id, team2_id, winner_id, team1_score, team2_score, differential, status, is_playoff, playoff_round, fidelity",
+    )
+    .eq("run_id", runId)
+    .order("is_playoff", { ascending: true })
+    .order("week", { ascending: true })
+    .order("match_index", { ascending: true })
+
+  const matches: SimMatchEvidence[] = (matchRows ?? []).map((m) => {
+    const t1 = String(m.team1_id)
+    const t2 = String(m.team2_id)
+    return {
+      id: String(m.id),
+      week: Number(m.week),
+      match_index: Number(m.match_index),
+      team1_id: t1,
+      team2_id: t2,
+      team1_name: seatName.get(t1) ?? null,
+      team2_name: seatName.get(t2) ?? null,
+      winner_id: (m.winner_id as string | null) ?? null,
+      team1_score: m.team1_score == null ? null : Number(m.team1_score),
+      team2_score: m.team2_score == null ? null : Number(m.team2_score),
+      differential: m.differential == null ? null : Number(m.differential),
+      status: String(m.status),
+      is_playoff: Boolean(m.is_playoff),
+      playoff_round:
+        m.playoff_round == null ? null : Number(m.playoff_round),
+      fidelity: (m.fidelity as string | null) ?? null,
+    }
+  })
+
   const { data: standings } = await supabase
     .from("sim_standings")
     .select("team_id, wins, losses, differential, seed")
@@ -231,24 +328,35 @@ export async function getSeasonEvidence(
     .eq("run_id", runId)
     .maybeSingle()
 
+  const championId = (outcome?.champion_team_id as string | null) ?? null
+
   return {
-    match_total: rows.length,
-    match_completed: rows.filter((m) => m.status === "completed").length,
-    match_scheduled: rows.filter((m) => m.status === "scheduled").length,
-    regular_completed: rows.filter(
+    match_total: matches.length,
+    match_completed: matches.filter((m) => m.status === "completed").length,
+    match_scheduled: matches.filter((m) => m.status === "scheduled").length,
+    regular_completed: matches.filter(
       (m) => m.status === "completed" && !m.is_playoff,
     ).length,
-    playoff_completed: rows.filter(
+    playoff_completed: matches.filter(
       (m) => m.status === "completed" && m.is_playoff,
     ).length,
-    standings: (standings ?? []).map((s) => ({
-      team_id: String(s.team_id),
-      wins: Number(s.wins),
-      losses: Number(s.losses),
-      differential: Number(s.differential),
-      seed: s.seed == null ? null : Number(s.seed),
-    })),
-    champion_team_id: (outcome?.champion_team_id as string | null) ?? null,
+    standings: (standings ?? []).map((s) => {
+      const teamId = String(s.team_id)
+      return {
+        team_id: teamId,
+        wins: Number(s.wins),
+        losses: Number(s.losses),
+        differential: Number(s.differential),
+        seed: s.seed == null ? null : Number(s.seed),
+        display_name: seatName.get(teamId) ?? null,
+      }
+    }),
+    seats,
+    matches,
+    champion_team_id: championId,
+    champion_display_name: championId
+      ? seatName.get(championId) ?? null
+      : null,
     fidelity: (outcome?.fidelity as string | null) ?? null,
     disclaimer: (outcome?.disclaimer as string | null) ?? null,
   }
@@ -768,30 +876,78 @@ export async function processWorkerTick(
     worker_id: string
     max_steps?: number
     lease_ms?: number
+    max_runs?: number
   },
 ): Promise<TickResult[]> {
   const results: TickResult[] = []
-  const maxSteps = options.max_steps ?? 25
+  const capped = clampWorkerTickOptions(options)
+  const maxSteps = capped.max_steps
 
   let runIds: string[] = []
   if (options.run_id) {
+    // Explicit target: still require sandbox season (service_role bypasses RLS).
+    const run = await getRun(supabase, options.run_id)
+    if (!run.season_id) {
+      return [
+        {
+          run_id: options.run_id,
+          claimed: false,
+          reason: "RUN_MISSING_SEASON",
+          steps_applied: 0,
+          run_status: run.status,
+          step_seq: run.step_seq,
+          run_version: run.run_version,
+        },
+      ]
+    }
+    await assertSeasonIsSandbox(supabase, run.season_id)
     runIds = [options.run_id]
   } else {
+    // Over-fetch candidates then keep only verified sandbox seasons
+    // (service_role bypasses RLS — never rely on PostgREST alone).
     const { data } = await supabase
       .from("simulation_runs")
-      .select("id")
+      .select("id, season_id")
       .in("status", ["queued", "running", "cancel_requested"])
       .order("updated_at", { ascending: true })
-      .limit(5)
-    runIds = (data ?? []).map((r) => r.id as string)
+      .limit(capped.max_runs * 4)
+    const sandboxIds: string[] = []
+    for (const row of data ?? []) {
+      if (sandboxIds.length >= capped.max_runs) break
+      try {
+        await assertSeasonIsSandbox(supabase, row.season_id as string)
+        sandboxIds.push(row.id as string)
+      } catch {
+        // Skip non-sandbox / illegal live-flag seasons.
+      }
+    }
+    runIds = sandboxIds
   }
 
   for (const runId of runIds) {
+    // Defense in depth: re-assert sandbox before each claim despite service_role.
+    try {
+      const run = await getRun(supabase, runId)
+      if (!run.season_id) throw new Error("RUN_MISSING_SEASON")
+      await assertSeasonIsSandbox(supabase, run.season_id)
+    } catch {
+      results.push({
+        run_id: runId,
+        claimed: false,
+        reason: "NOT_SANDBOX_OR_MISSING",
+        steps_applied: 0,
+        run_status: "unknown",
+        step_seq: 0,
+        run_version: 0,
+      })
+      continue
+    }
+
     const claimed = await claimViaPublicWrapper(
       supabase,
       runId,
       options.worker_id,
-      options.lease_ms ?? 30000,
+      capped.lease_ms,
     )
     if (!claimed) {
       results.push({

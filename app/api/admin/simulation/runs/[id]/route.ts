@@ -1,9 +1,11 @@
 /**
- * GET /api/admin/simulation/runs/[id] — progress snapshot
+ * GET /api/admin/simulation/runs/[id] — progress + draft + season evidence
+ * Owner-scoped (or league admin/commissioner under demo operator gate).
  */
 
 import { NextResponse } from "next/server"
 import { requireSimDemoOperator } from "@/lib/season-sim/demo-allowlist"
+import { assertSandboxRunOperatorAccess } from "@/lib/season-sim/run-access"
 import { createServiceRoleClient } from "@/lib/supabase/service"
 import {
   isSimSandboxV2Enabled,
@@ -11,11 +13,9 @@ import {
 } from "@/lib/season-sim/flags"
 import {
   getDraftEvidence,
-  getRun,
   getSeasonEvidence,
   toProgress,
 } from "@/lib/season-sim/run-service"
-import { SandboxIsolationError } from "@/lib/season-sim/sandbox-guard"
 
 export async function GET(
   _request: Request,
@@ -28,29 +28,19 @@ export async function GET(
     )
   }
 
-  const admin = await requireSimDemoOperator()
-  if ("response" in admin) return admin.response
+  const operator = await requireSimDemoOperator()
+  if ("response" in operator) return operator.response
 
   const { id } = await context.params
-  try {
-    const supabase = createServiceRoleClient()
-    const run = await getRun(supabase, id)
-    const draft = await getDraftEvidence(supabase, id)
-    const season = await getSeasonEvidence(supabase, id)
-    return NextResponse.json({
-      progress: toProgress(run),
-      draft,
-      season,
-    })
-  } catch (err) {
-    if (err instanceof SandboxIsolationError) {
-      return NextResponse.json(
-        { error: err.message, code: err.code },
-        { status: err.status },
-      )
-    }
-    const message = err instanceof Error ? err.message : "Internal server error"
-    const status = message === "Run not found" ? 404 : 500
-    return NextResponse.json({ error: message }, { status })
-  }
+  const supabase = createServiceRoleClient()
+  const access = await assertSandboxRunOperatorAccess(supabase, id, operator)
+  if ("response" in access) return access.response
+
+  const draft = await getDraftEvidence(supabase, id)
+  const season = await getSeasonEvidence(supabase, id)
+  return NextResponse.json({
+    progress: toProgress(access.run),
+    draft,
+    season,
+  })
 }

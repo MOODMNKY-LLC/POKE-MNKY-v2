@@ -7,10 +7,9 @@ import { NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase/server"
 import { createServiceRoleClient } from "@/lib/supabase/service"
 import { generateRoundRobinSchedule } from "@/lib/league-simulation/schedule-generator"
+import { ensureMockDraftDemoSandboxSeason } from "@/lib/league-simulation/mock-draft-demo-season"
 import { recordSimulationRun } from "@/lib/league-simulation/simulation-engine"
 import { legacySimulationWriteDeniedResponse } from "@/lib/season-sim/legacy-gate"
-
-const MOCK_SEASON_NAME = "Mock Draft Demo"
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,24 +37,12 @@ export async function POST(request: NextRequest) {
     const weeks = typeof body.weeks === "number" ? body.weeks : 10
 
     const admin = createServiceRoleClient()
-
-    const { data: season } = await admin
-      .from("seasons")
-      .select("id")
-      .eq("name", MOCK_SEASON_NAME)
-      .maybeSingle()
-
-    if (!season) {
-      return NextResponse.json(
-        { error: "Mock season not found. Run seed first." },
-        { status: 404 }
-      )
-    }
+    const seasonId = await ensureMockDraftDemoSandboxSeason(admin)
 
     const { data: teams } = await admin
       .from("teams")
       .select("id")
-      .eq("season_id", season.id)
+      .eq("season_id", seasonId)
 
     if (!teams || teams.length < 2) {
       return NextResponse.json(
@@ -67,7 +54,7 @@ export async function POST(request: NextRequest) {
     const { data: matchweeks } = await admin
       .from("matchweeks")
       .select("id, week_number")
-      .eq("season_id", season.id)
+      .eq("season_id", seasonId)
       .eq("is_playoff", false)
 
     const matchweekIdsByWeek: Record<number, string> = {}
@@ -86,7 +73,7 @@ export async function POST(request: NextRequest) {
       const { data: match, error } = await admin
         .from("matches")
         .insert({
-          season_id: season.id,
+          season_id: seasonId,
           week: m.week,
           matchweek_id: m.matchweek_id ?? null,
           team1_id: m.team1_id,
@@ -100,7 +87,7 @@ export async function POST(request: NextRequest) {
       if (!error && match) inserted.push(match.id)
     }
 
-    await recordSimulationRun(season.id, "regular_season", { weeks })
+    await recordSimulationRun(seasonId, "regular_season", { weeks })
 
     return NextResponse.json({
       success: true,

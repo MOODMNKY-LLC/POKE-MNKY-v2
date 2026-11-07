@@ -687,7 +687,7 @@ async function main() {
     }
   }
 
-  // Cross-user: allowlisted spectator may read sandbox sim progress (sim-scoped only)
+  // Cross-user: allowlisted spectator cannot read/tick/reset another operator's run
   {
     nonAdminSession = await passwordGrant(NONADMIN_EMAIL, NONADMIN_PASSWORD)
     nonAdminCookie = sessionCookieHeader(nonAdminSession)
@@ -695,10 +695,34 @@ async function main() {
       cookie: nonAdminCookie,
     })
     record(
-      "RS-21_allowlisted_spectator_can_read_sim_progress",
-      res.status === 200,
+      "RS-21_allowlisted_spectator_cannot_read_others_run",
+      res.status === 403,
       res.status,
-      "sim allowlist grants sim read; still not broad league admin",
+      "owner-scoped read; allowlist ≠ cross-run access",
+    )
+    const tick = await appFetch(`/api/admin/simulation/runs/${runId}/tick`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      cookie: nonAdminCookie,
+      body: JSON.stringify({ max_steps: 1 }),
+    })
+    record(
+      "RS-21b_allowlisted_spectator_cannot_tick_others_run",
+      tick.status === 403,
+      tick.status,
+      "owner-scoped operator tick",
+    )
+    const reset = await appFetch(`/api/admin/simulation/runs/${runId}/reset`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      cookie: nonAdminCookie,
+      body: JSON.stringify({}),
+    })
+    record(
+      "RS-21c_allowlisted_spectator_cannot_reset_others_run",
+      reset.status === 403,
+      reset.status,
+      "owner-scoped reset",
     )
   }
 
@@ -1929,6 +1953,17 @@ async function main() {
   }
 
   // --- Session validity / expiry / refresh (RS-40+) ---
+  // Skipped when JWT TTL is long (browser acceptance stack) — those cases need GOTRUE_JWT_EXP≈5.
+  const skipExpiry =
+    process.env.SKIP_REAL_SERVER_EXPIRY_CASES === "1" || JWT_EXP_SECONDS > 30
+  if (skipExpiry) {
+    record(
+      "RS-40plus_expiry_suite_skipped",
+      true,
+      undefined,
+      `skipped jwt_exp=${JWT_EXP_SECONDS}s (browser stack / SKIP_REAL_SERVER_EXPIRY_CASES)`,
+    )
+  } else {
   // Tampered access WITH refresh present is refreshed by SSR getUser (same as expired+refresh).
   // Prove rejection only when refresh cannot restore: strip refresh_token from the cookie.
   {
@@ -2103,6 +2138,7 @@ async function main() {
       "refresh after logout must fail",
     )
   }
+  } // end !skipExpiry
 
   const failed = results.filter((r) => !r.ok)
   const passed = results.length - failed.length

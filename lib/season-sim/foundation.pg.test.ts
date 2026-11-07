@@ -7,7 +7,7 @@
  * Full-chain validation is performed separately against a disposable Supabase-compatible
  * stack (see artifacts under /opt/cursor/artifacts/season-simulator/).
  *
- * Env: SEASON_SIM_PG_URL (preferred) or POSTGRES_URL.
+ * Env: SEASON_SIM_PG_URL only (loopback disposable). Never POSTGRES_URL.
  * When the URL is unset, the suite is honestly skipped (describe.skipIf) — not counted pass.
  * In CI with SEASON_SIM_PG_URL set, connection/setup failures fail the job.
  */
@@ -16,11 +16,14 @@ import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { Client } from "pg"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
+import {
+  connectDisposableHarnessClient,
+  resolveHarnessPgUrlOrSkip,
+} from "@/lib/season-sim/pg-harness"
 
-// Credentials must come from the environment (CI service or local disposable DB).
-// Do not embed passwords in source — GitGuardian / secret scanners flag them.
-const pgUrl = process.env.SEASON_SIM_PG_URL ?? process.env.POSTGRES_URL ?? ""
-const hasPgUrl = Boolean(pgUrl.trim())
+const resolved = resolveHarnessPgUrlOrSkip()
+const pgUrl = resolved.url ?? ""
+const hasPgUrl = Boolean(pgUrl)
 
 const root = process.cwd()
 const bootstrapSql = readFileSync(
@@ -47,9 +50,8 @@ describe.skipIf(!hasPgUrl)("season-sim foundation postgres", () => {
   let liveSeasonId = ""
 
   beforeAll(async () => {
-    const probe = new Client({ connectionString: pgUrl })
+    const probe = await connectDisposableHarnessClient(pgUrl)
     try {
-      await probe.connect()
       await probe.query(bootstrapSql)
       await probe.query(migrationIsolation)
       await probe.query(migrationFoundation)
@@ -268,10 +270,8 @@ describe.skipIf(!hasPgUrl)("season-sim foundation postgres", () => {
       [runId],
     )
 
-    const a = new Client({ connectionString: pgUrl })
-    const b = new Client({ connectionString: pgUrl })
-    await a.connect()
-    await b.connect()
+    const a = await connectDisposableHarnessClient(pgUrl)
+    const b = await connectDisposableHarnessClient(pgUrl)
     try {
       const [ra, rb] = await Promise.all([
         a.query<{ claimed: boolean; lease_token: string }>(

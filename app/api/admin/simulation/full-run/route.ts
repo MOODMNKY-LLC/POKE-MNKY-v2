@@ -11,10 +11,9 @@ import { generateRoundRobinSchedule } from "@/lib/league-simulation/schedule-gen
 import { generatePlayoffRound1Only } from "@/lib/league-simulation/playoff-bracket-generator"
 import { generateMockResult, type ResultStrategy } from "@/lib/league-simulation/mock-result-generator"
 import { updateStandingsFromMatches } from "@/lib/league-simulation/standings-updater"
+import { ensureMockDraftDemoSandboxSeason } from "@/lib/league-simulation/mock-draft-demo-season"
 import { recordSimulationRun, updateSimulationRun } from "@/lib/league-simulation/simulation-engine"
 import { legacySimulationWriteDeniedResponse } from "@/lib/season-sim/legacy-gate"
-
-const MOCK_SEASON_NAME = "Mock Draft Demo"
 
 type DraftSessionStatus = DraftSession["status"]
 
@@ -71,29 +70,7 @@ export async function POST(request: NextRequest) {
     const admin = createServiceRoleClient()
     const draftSystem = new DraftSystem()
 
-    let seasonId: string
-    const { data: existingSeason } = await admin
-      .from("seasons")
-      .select("id")
-      .eq("name", MOCK_SEASON_NAME)
-      .maybeSingle()
-
-    if (existingSeason) {
-      seasonId = existingSeason.id
-    } else {
-      const { data: created } = await admin
-        .from("seasons")
-        .insert({
-          name: MOCK_SEASON_NAME,
-          is_current: false,
-          start_date: new Date().toISOString().slice(0, 10),
-          end_date: new Date(Date.now() + 120 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
-        })
-        .select("id")
-        .single()
-      if (!created) throw new Error("Failed to create season")
-      seasonId = created.id
-    }
+    const seasonId = await ensureMockDraftDemoSandboxSeason(admin)
 
     const runId = await recordSimulationRun(seasonId, "drafting", config)
 
