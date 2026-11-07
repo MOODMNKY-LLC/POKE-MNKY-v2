@@ -78,14 +78,23 @@ Local disposable harness already generates JWT secret + anon/service JWTs at run
 
 ---
 
-## 4. Recommended TODAY path (local-only)
+## 4. Hosting pivot — shared prod DB (guarded sandbox)
 
-1. Engineer machine / CI VM only: `./scripts/season-sim/bring-up-real-server-stack.sh` (or follow-on season-path script).
-2. Matt observes via **screen share / SSH tunnel to loopback** — not a public Vercel URL wired to prod.
-3. Operator account created on disposable GoTrue; UUID placed in allowlist env for that process only.
-4. Tear down: stop Next + containers; secrets scrubbed; no residual prod impact.
+Ops direction: reuse existing Supabase project (**poke-mnky-db**) with a **strictly guarded sandbox**, not a new disposable project. That means:
 
-**Alternative (requires GROK/ops):** brand-new Supabase (or equivalent) project, empty, no prod link, secrets vaulted, allowlist + flags only in that project’s server env, preview/domain pointed **only** there. Until that exists and is verified, **do not** flip prod Vercel env.
+- Ordinary preview still prod-adjacent; flags stay **OFF** until the shared-DB plan is approved.
+- Evidence bar shifts to RLS/RPC/noninterference/sentinels + resource bounds (see `SHARED-DB-SECURITY-RELEASE-CHECKLIST.md`).
+- **Hold all live writes** (migrate / seed / flag enable / Matt prod Auth) until that exact plan is approved.
+- Rollback = feature/worker off + prior app SHA — **not** dropping schema or improvised live restore.
+- Existing production Auth/keys untouched — no disposable fixture users in live Auth, no public demo JWTs/rotation.
+- Matt = real least-privilege identity via established auth **later**, after HTTPS cookies/refresh/origin/CSRF verified.
+
+### TODAY engineering path (still local for proofs)
+
+1. Disposable PG / real-server stack for tests: `./scripts/season-sim/bring-up-real-server-stack.sh`.
+2. Author additive RLS harden + checklist evidence in git; **do not** `db push` to linked prod.
+3. Demo UI at `/demo/season-sim` (not full admin); APIs allowlist + owner scoped.
+4. PR33 required red remains GROK-owned — tip green must not bypass foundation red.
 
 ---
 

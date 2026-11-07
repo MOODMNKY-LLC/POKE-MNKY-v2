@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireSimDemoOperator } from "@/lib/season-sim/demo-allowlist"
+import { assertSandboxRunOperatorAccess } from "@/lib/season-sim/run-access"
 import { createServiceRoleClient } from "@/lib/supabase/service"
 import {
   isSimSandboxV2Enabled,
@@ -19,8 +20,8 @@ export async function POST(
     )
   }
 
-  const admin = await requireSimDemoOperator()
-  if ("response" in admin) return admin.response
+  const operator = await requireSimDemoOperator()
+  if ("response" in operator) return operator.response
 
   const { id } = await context.params
   const body = await request.json().catch(() => ({}))
@@ -48,7 +49,7 @@ export async function POST(
         error: `Unsupported advance unit "${String(body.unit)}"`,
         code: "VALIDATION_FAILED",
         allowed_units: allowedUnits,
-        note: "pick/round execute sandbox draft; match/week/playoff_round/season remain blocked",
+        note: "pick/round execute sandbox draft; match/week/playoff_round/season drive statistical season path",
       },
       { status: 422 },
     )
@@ -65,6 +66,9 @@ export async function POST(
   }
 
   const supabase = createServiceRoleClient()
+  const access = await assertSandboxRunOperatorAccess(supabase, id, operator)
+  if ("response" in access) return access.response
+
   const result = await acceptCommand(supabase, id, {
     command_id: commandId,
     command_type: "advance",

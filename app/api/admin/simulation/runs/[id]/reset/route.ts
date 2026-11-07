@@ -12,6 +12,7 @@ import {
   SIM_V2_DISABLED_MESSAGE,
 } from "@/lib/season-sim/flags"
 import { requireSimDemoOperator } from "@/lib/season-sim/demo-allowlist"
+import { assertSandboxRunOperatorAccess } from "@/lib/season-sim/run-access"
 import { getRun, seedSandboxDraftDomain } from "@/lib/season-sim/run-service"
 import { buildProvisionalDemoConfig } from "@/lib/season-sim/config"
 import { SandboxIsolationError } from "@/lib/season-sim/sandbox-guard"
@@ -27,13 +28,15 @@ export async function POST(
     )
   }
 
-  const admin = await requireSimDemoOperator()
-  if ("response" in admin) return admin.response
+  const operator = await requireSimDemoOperator()
+  if ("response" in operator) return operator.response
 
   const { id } = await context.params
   try {
     const supabase = createServiceRoleClient()
-    const run = await getRun(supabase, id)
+    const access = await assertSandboxRunOperatorAccess(supabase, id, operator)
+    if ("response" in access) return access.response
+    const run = access.run
 
     const { data, error } = await supabase.rpc("sim_reset_run_domain", {
       p_run_id: id,

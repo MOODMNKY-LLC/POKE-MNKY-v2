@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireSimDemoOperator } from "@/lib/season-sim/demo-allowlist"
+import { assertSandboxRunOperatorAccess } from "@/lib/season-sim/run-access"
 import { createServiceRoleClient } from "@/lib/supabase/service"
 import {
   isSimSandboxV2Enabled,
@@ -17,8 +18,8 @@ export async function POST(
       { status: 503 },
     )
   }
-  const admin = await requireSimDemoOperator()
-  if ("response" in admin) return admin.response
+  const operator = await requireSimDemoOperator()
+  if ("response" in operator) return operator.response
 
   const { id } = await context.params
   const body = await request.json().catch(() => ({}))
@@ -35,7 +36,11 @@ export async function POST(
     )
   }
 
-  const result = await acceptCommand(createServiceRoleClient(), id, {
+  const supabase = createServiceRoleClient()
+  const access = await assertSandboxRunOperatorAccess(supabase, id, operator)
+  if ("response" in access) return access.response
+
+  const result = await acceptCommand(supabase, id, {
     command_id: commandId,
     command_type: "resume",
     expected_step_seq: expectedStepSeq,

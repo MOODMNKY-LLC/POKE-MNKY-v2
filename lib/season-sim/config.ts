@@ -30,8 +30,8 @@ export const simRunConfigSchema = z.object({
   pool_source: z.enum(["generated_template", "clone_structure"]).default(
     "generated_template",
   ),
-  schedule_weeks: z.number().int().min(1).default(10),
-  playoff_size: z.number().int().min(2).default(4),
+  schedule_weeks: z.number().int().min(1).max(18).default(10),
+  playoff_size: z.number().int().min(2).max(8).default(4),
   series_length: z.number().int().min(1).default(1),
   bring_n: z.number().int().min(1).max(6).default(6),
   master_seed: z.string().min(8),
@@ -46,10 +46,22 @@ export const simRunConfigSchema = z.object({
   manual_override_policy: z.literal("admin_only").default("admin_only"),
   resource_caps: z
     .object({
-      max_steps_per_tick: z.number().int().positive().default(25),
-      max_wall_ms_per_tick: z.number().int().positive().default(5000),
+      max_steps_per_tick: z.number().int().positive().max(50).default(25),
+      max_wall_ms_per_tick: z.number().int().positive().max(15_000).default(5000),
+      max_runs_per_tick: z.number().int().positive().max(5).default(3),
+      max_estimated_regular_matches: z
+        .number()
+        .int()
+        .positive()
+        .max(500)
+        .default(216),
     })
-    .default({ max_steps_per_tick: 25, max_wall_ms_per_tick: 5000 }),
+    .default({
+      max_steps_per_tick: 25,
+      max_wall_ms_per_tick: 5000,
+      max_runs_per_tick: 3,
+      max_estimated_regular_matches: 216,
+    }),
   participants: z
     .object({
       mode: z.literal("synthetic_bots"),
@@ -91,7 +103,7 @@ export function buildProvisionalDemoConfig(
       "total_rounds cannot exceed roster_max under provisional_demo_v0",
     )
   }
-  return simRunConfigSchema.parse({
+  const config = simRunConfigSchema.parse({
     schema_version: 1,
     rules_version: PROVISIONAL_DEMO_RULES_LABEL,
     rules_label_note: PROVISIONAL_DEMO_RULES_NOTE,
@@ -108,4 +120,87 @@ export function buildProvisionalDemoConfig(
     playoff_size: overrides.playoff_size,
     selector_draft: overrides.selector_draft,
   })
+  assertSharedDbResourceBounds(config)
+  return config
+}
+
+/** Shared-DB hard caps — refuse oversized runs before they consume live Postgres. */
+export const SHARED_DB_HARD_CAPS = {
+  team_count_max: 12,
+  schedule_weeks_max: 18,
+  playoff_size_max: 8,
+  max_steps_per_tick: 50,
+  max_wall_ms_per_tick: 15_000,
+  max_runs_per_tick: 5,
+  max_estimated_regular_matches: 216,
+} as const
+
+export function estimateRegularSeasonMatches(
+  teamCount: number,
+  scheduleWeeks: number,
+): number {
+  if (teamCount < 2 || scheduleWeeks < 1) return 0
+  return scheduleWeeks * Math.floor(teamCount / 2)
+}
+
+export function assertSharedDbResourceBounds(config: SimRunConfig): void {
+  if (config.team_count > SHARED_DB_HARD_CAPS.team_count_max) {
+    throw new Error(
+      `team_count ${config.team_count} exceeds shared-DB hard cap ${SHARED_DB_HARD_CAPS.team_count_max}`,
+    )
+  }
+  if (config.schedule_weeks > SHARED_DB_HARD_CAPS.schedule_weeks_max) {
+    throw new Error(
+      `schedule_weeks ${config.schedule_weeks} exceeds shared-DB hard cap ${SHARED_DB_HARD_CAPS.schedule_weeks_max}`,
+    )
+  }
+  if (config.playoff_size > SHARED_DB_HARD_CAPS.playoff_size_max) {
+    throw new Error(
+      `playoff_size ${config.playoff_size} exceeds shared-DB hard cap ${SHARED_DB_HARD_CAPS.playoff_size_max}`,
+    )
+  }
+  if (config.playoff_size > config.team_count) {
+    throw new Error("playoff_size cannot exceed team_count")
+  }
+  const estimated = estimateRegularSeasonMatches(
+    config.team_count,
+    config.schedule_weeks,
+  )
+  const matchCap =
+    config.resource_caps.max_estimated_regular_matches ??
+    SHARED_DB_HARD_CAPS.max_estimated_regular_matches
+  if (estimated > matchCap) {
+    throw new Error(
+      `estimated regular-season matches ${estimated} exceeds cap ${matchCap}`,
+    )
+  }
+  if (
+    config.resource_caps.max_steps_per_tick > SHARED_DB_HARD_CAPS.max_steps_per_tick
+  ) {
+    throw new Error("max_steps_per_tick exceeds shared-DB hard cap")
+  }
+  if (
+    config.resource_caps.max_wall_ms_per_tick >
+    SHARED_DB_HARD_CAPS.max_wall_ms_per_tick
+  ) {
+    throw new Error("max_wall_ms_per_tick exceeds shared-DB hard cap")
+  }
+}
+
+/** Clamp worker tick options against shared-DB caps (service-role path). */
+export function clampWorkerTickOptions(options: {
+  max_steps?: number
+  lease_ms?: number
+  max_runs?: number
+}): { max_steps: number; lease_ms: number; max_runs: number } {
+  const maxSteps = Math.min(
+    Math.max(1, options.max_steps ?? 25),
+    SHARED_DB_HARD_CAPS.max_steps_per_tick,
+  )
+  const leaseMs = Math.min(Math.max(1_000, options.lease_ms ?? 30_000), 60_000)
+  const maxRuns = Math.min(
+    Math.max(1, options.max_runs ?? 3),
+    SHARED_DB_HARD_CAPS.max_runs_per_tick,
+  )
+  return { max_steps: maxSteps, lease_ms: leaseMs, max_runs: maxRuns }
 }

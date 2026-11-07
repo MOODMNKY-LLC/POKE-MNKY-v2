@@ -687,7 +687,7 @@ async function main() {
     }
   }
 
-  // Cross-user: allowlisted spectator may read sandbox sim progress (sim-scoped only)
+  // Cross-user: allowlisted spectator cannot read another operator's run
   {
     nonAdminSession = await passwordGrant(NONADMIN_EMAIL, NONADMIN_PASSWORD)
     nonAdminCookie = sessionCookieHeader(nonAdminSession)
@@ -695,10 +695,10 @@ async function main() {
       cookie: nonAdminCookie,
     })
     record(
-      "RS-21_allowlisted_spectator_can_read_sim_progress",
-      res.status === 200,
+      "RS-21_allowlisted_spectator_cannot_read_others_run",
+      res.status === 403,
       res.status,
-      "sim allowlist grants sim read; still not broad league admin",
+      "owner-scoped read; allowlist ≠ cross-run access",
     )
   }
 

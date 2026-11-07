@@ -11,6 +11,8 @@ on:
       - master
       - cursor/season-sim-sandbox-foundation-2199
       - cursor/season-sim-sandbox-draft-domain-2199
+      - cursor/season-sim-sandbox-season-path-2199
+      - cursor/season-sim-sandbox-v0-console-2199
 
 jobs:
   unit:
