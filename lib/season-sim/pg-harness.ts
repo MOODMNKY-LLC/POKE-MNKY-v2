@@ -4,8 +4,8 @@
 
 import { Client } from "pg"
 import {
-  assertDisposableSeasonSimPgUrl,
   DisposablePgTargetError,
+  disposablePgClientConfigFromUrl,
   resolveSeasonSimPgUrl,
 } from "@/lib/season-sim/pg-disposable-target"
 
@@ -35,9 +35,17 @@ export function resolveHarnessPgUrlOrSkip(): {
 export async function connectDisposableHarnessClient(
   connectionString: string,
 ): Promise<Client> {
-  // Second gate immediately before connect (defense in depth).
-  assertDisposableSeasonSimPgUrl(connectionString)
-  const client = new Client({ connectionString })
+  // Defense in depth: validate + build Client from authority/path fields only.
+  // Never pass `connectionString` to pg — pg-connection-string would honor
+  // ?host= / ?hostaddr= overrides and bypass a hostname-only guard.
+  const config = disposablePgClientConfigFromUrl(connectionString)
+  const client = new Client({
+    host: config.host,
+    port: config.port,
+    database: config.database,
+    user: config.user,
+    password: config.password,
+  })
   await client.connect()
   return client
 }

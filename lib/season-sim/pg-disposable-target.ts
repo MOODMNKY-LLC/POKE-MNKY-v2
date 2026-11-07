@@ -5,8 +5,12 @@
  * commonly pointed at shared/prod. Harnesses must set SEASON_SIM_PG_URL explicitly
  * to a loopback disposable database whose name includes a disposable marker.
  *
- * URL validation is pure (no network). Call assertDisposableSeasonSimPgUrl before
- * any Client.connect / write.
+ * URL validation is pure (no network). Call assertDisposableSeasonSimPgUrl /
+ * disposablePgClientConfigFromUrl before any Client.connect / write.
+ *
+ * IMPORTANT: never pass the raw connection string to `pg.Client`. The
+ * `pg-connection-string` parser (2.14.x) prefers query keys such as `?host=`
+ * over the URL hostname, which would bypass a hostname-only guard.
  */
 
 export class DisposablePgTargetError extends Error {
@@ -31,6 +35,43 @@ export const DISPOSABLE_DB_NAME_MARKERS = [
   "test_",
 ] as const
 
+/**
+ * Query keys that `pg-connection-string` can use to override connection target
+ * or session behavior. Rejected outright — no allowlist for target overrides.
+ * (Inert keys are also rejected: safest is no query string at all for harnesses.)
+ */
+export const PG_CONNECTION_TARGET_OVERRIDE_QUERY_KEYS = [
+  "host",
+  "hostaddr",
+  "hostname",
+  "port",
+  "user",
+  "username",
+  "password",
+  "database",
+  "dbname",
+  "options",
+  "sslmode",
+  "ssl",
+  "sslrootcert",
+  "sslcert",
+  "sslkey",
+  "sslcrl",
+  "application_name",
+  "fallback_application_name",
+  "connect_timeout",
+  "client_encoding",
+  "keepalives",
+  "keepalives_idle",
+  "replication",
+  "gssencmode",
+  "krbsrvname",
+  "gsslib",
+  "service",
+  "target_session_attrs",
+  "channel_binding",
+] as const
+
 const BLOCKED_ENV_FALLBACKS = [
   "POSTGRES_URL",
   "POSTGRES_PRISMA_URL",
@@ -41,6 +82,15 @@ const BLOCKED_ENV_FALLBACKS = [
 ] as const
 
 const LOOPBACK_HOSTS = new Set(["127.0.0.1", "localhost", "::1"])
+
+/** Effective Client fields built only from validated URL authority + path. */
+export interface DisposablePgClientConfig {
+  host: string
+  port: number
+  database: string
+  user?: string
+  password?: string
+}
 
 function hostnameIsLoopback(hostname: string): boolean {
   const h = hostname.trim().toLowerCase().replace(/^\[|\]$/g, "")
@@ -69,8 +119,36 @@ function looksHostedSupabaseOrProd(hostname: string): boolean {
   return false
 }
 
+function rejectConnectionQueryOverrides(url: URL): void {
+  // Safest: no query parameters at all for harness targets. pg-connection-string
+  // treats many keys as libpq overrides (host/hostaddr/port/user/…).
+  if (url.search && url.search !== "?") {
+    const keys = [...url.searchParams.keys()]
+    const overrideHit = keys.find((k) =>
+      (PG_CONNECTION_TARGET_OVERRIDE_QUERY_KEYS as readonly string[]).includes(
+        k.toLowerCase(),
+      ),
+    )
+    if (overrideHit) {
+      throw new DisposablePgTargetError(
+        "QUERY_TARGET_OVERRIDE",
+        `${SEASON_SIM_PG_URL_ENV} rejects connection-target query override ` +
+          `?${overrideHit}=… (pg-connection-string would prefer it over URL host). ` +
+          `Use authority + path only.`,
+      )
+    }
+    // Any remaining query key is also refused (strict: no inert allowlist yet).
+    throw new DisposablePgTargetError(
+      "QUERY_PARAMS_FORBIDDEN",
+      `${SEASON_SIM_PG_URL_ENV} must not include query parameters ` +
+        `(got ?${keys.join("&")}); harness Client is built from validated URL fields only`,
+    )
+  }
+}
+
 /**
  * Pure validation — does not open a socket. Throws DisposablePgTargetError on reject.
+ * Returns the parsed WHATWG URL (authority + path only; no trusted query).
  */
 export function assertDisposableSeasonSimPgUrl(raw: string): URL {
   const trimmed = raw.trim()
@@ -105,6 +183,8 @@ export function assertDisposableSeasonSimPgUrl(raw: string): URL {
     )
   }
 
+  rejectConnectionQueryOverrides(url)
+
   if (looksHostedSupabaseOrProd(url.hostname)) {
     throw new DisposablePgTargetError(
       "HOSTED_REJECTED",
@@ -131,6 +211,51 @@ export function assertDisposableSeasonSimPgUrl(raw: string): URL {
 }
 
 /**
+ * Build the exact Client config the harness will use — authority + path only.
+ * Never returns a connectionString. Re-validates effective host/database.
+ */
+export function disposablePgClientConfigFromUrl(
+  raw: string,
+): DisposablePgClientConfig {
+  const url = assertDisposableSeasonSimPgUrl(raw)
+  const host = url.hostname.replace(/^\[|\]$/g, "")
+  const database = decodeURIComponent(url.pathname.replace(/^\//, ""))
+  const port = url.port ? Number(url.port) : 5432
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    throw new DisposablePgTargetError(
+      "BAD_PORT",
+      `${SEASON_SIM_PG_URL_ENV} has invalid port`,
+    )
+  }
+
+  if (!hostnameIsLoopback(host)) {
+    throw new DisposablePgTargetError(
+      "NON_LOOPBACK",
+      `${SEASON_SIM_PG_URL_ENV} effective host must be loopback; got ${host}`,
+    )
+  }
+  if (!dbNameLooksDisposable(`/${database}`)) {
+    throw new DisposablePgTargetError(
+      "DB_NAME_NOT_DISPOSABLE",
+      `${SEASON_SIM_PG_URL_ENV} effective database name is not disposable: ${database}`,
+    )
+  }
+
+  const config: DisposablePgClientConfig = {
+    host,
+    port,
+    database,
+  }
+  if (url.username) {
+    config.user = decodeURIComponent(url.username)
+  }
+  if (url.password) {
+    config.password = decodeURIComponent(url.password)
+  }
+  return config
+}
+
+/**
  * Resolve SEASON_SIM_PG_URL for harnesses. Returns null when unset (honest skip).
  * Throws if set but unsafe, or if a blocked generic env is the only candidate
  * someone might have intended (we never use those values).
@@ -140,12 +265,14 @@ export function resolveSeasonSimPgUrl(
 ): string | null {
   const explicit = env[SEASON_SIM_PG_URL_ENV]?.trim() ?? ""
   if (explicit) {
+    // Validate (incl. query rejection) but still return the original string for
+    // logging/diagnostics — connect path must use disposablePgClientConfigFromUrl.
     assertDisposableSeasonSimPgUrl(explicit)
     return explicit
   }
 
   // Fail closed: if operator set a generic prod-ish URL but forgot the disposable
-  // var, refuse rather than silently skipping when they thought tests would run
+  // var, throw rather than silently skipping when they thought tests would run
   // against that URL (or worse, if a future edit reintroduces fallback).
   for (const key of BLOCKED_ENV_FALLBACKS) {
     if (env[key]?.trim()) {

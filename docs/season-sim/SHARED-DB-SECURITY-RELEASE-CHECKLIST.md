@@ -108,9 +108,11 @@ Also cover:
 
 In-repo: `lib/season-sim/shared-db-rls.pg.test.ts` (SET ROLE + JWT personas), `lib/season-sim/noninterference.pg.test.ts` (prefixed sentinel tables only).
 
-**Harness safety:** all season-sim PG suites require `SEASON_SIM_PG_URL` → loopback + disposable DB name marker. **No** `POSTGRES_URL` / `DATABASE_URL` fallback (`lib/season-sim/pg-disposable-target.ts`). Hosted/prod hostnames rejected without connecting.
+**Harness safety:** all season-sim PG suites require `SEASON_SIM_PG_URL` → loopback + disposable DB name marker. **No** `POSTGRES_URL` / `DATABASE_URL` fallback (`lib/season-sim/pg-disposable-target.ts`). Hosted/prod hostnames rejected without connecting. **Query target overrides rejected** (`?host=` / `hostaddr` / `port` / `user` / …); harness `Client` is built from validated authority+path fields only — never raw `connectionString` (pg-connection-string 2.14.x prefers query `host` over URL hostname).
 
 **Do not treat raw PG suite pass counts as proven persona isolation** unless the SET ROLE cases above are green.
+
+**HTTP 83/83 (browser stack):** includes an explicit success-labelled skip of the short-TTL expiry suite (`RS-40plus_expiry_suite_skipped` when `GOTRUE_JWT_EXP=3600` / `SKIP_REAL_SERVER_EXPIRY_CASES=1`). That count is **not** exhaustive expiry/refresh proof.
 
 ---
 
@@ -124,12 +126,14 @@ In-repo: `lib/season-sim/shared-db-rls.pg.test.ts` (SET ROLE + JWT personas), `l
 4. App deploy with flags **OFF** first; only after RLS evidence + approval, consider flag enablement as a **separate** change  
 5. Current-prod compatibility: live seasons without `is_sandbox` treated fail-closed for sandbox writes; live reads filter sandbox out
 
-**Rollback (feature/worker off + prior app):**
+**Rollback (feature/worker off + prior app is NOT policy restore):**
 
 1. Unset `SIM_SANDBOX_V2`, `SIM_WORKER_TICK_ENABLED`, clear allowlist if needed  
-2. Redeploy prior app SHA  
+2. Redeploy prior app SHA (inventory READY `ffd9d6d` / verify alias separately)  
 3. **Do not** drop sim schema; **do not** improvise live restore from sandbox rows  
-4. Schema leave-in-place is acceptable; RLS harden can remain (strictest posture)
+4. If `#7` / intermediate stack altered live `simulation_runs` policies/grants/FORCE: run scoped restore `docs/season-sim/ROLLBACK-scoped-legacy-simulation-runs.md` (four inventory admin policies; FORCE off) — compare to `tables-before.json` first  
+5. Exact seven-file ordered set, lock/abort plan, and inventory: `docs/season-sim/PENDING-SIMULATOR-MIGRATION-MANIFEST.md`  
+6. Restored-schema ordered rehearsal remains **unverified** until explicitly performed; full prior restore logs were **not** retained
 
 ---
 
