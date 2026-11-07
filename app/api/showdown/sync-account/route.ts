@@ -7,10 +7,14 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { syncShowdownAccount } from '@/lib/showdown/sync'
+import { legacyShowdownSyncDeniedResponse } from '@/lib/showdown/identity-flags'
 import { NextRequest, NextResponse } from 'next/server'
 
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   try {
+    const denied = legacyShowdownSyncDeniedResponse()
+    if (denied) return denied
+
     // Get authenticated user from Supabase
     const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -22,7 +26,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Sync Showdown account
+    // Legacy parallel loginserver register (not central-account verification)
     const result = await syncShowdownAccount(user.id)
 
     if (!result.success) {

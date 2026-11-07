@@ -13,6 +13,7 @@ import { createServiceRoleClient } from '@/lib/supabase/service'
 import { createServerClient } from '@/lib/supabase/server'
 import { extractBotKey } from '@/lib/auth/bot-key'
 import { generateShowdownPassword, getChallengeString, cleanShowdownUsername } from '@/lib/showdown/sync'
+import { legacyShowdownSyncDeniedResponse } from '@/lib/showdown/identity-flags'
 import { NextRequest, NextResponse } from 'next/server'
 
 async function authorizeShowdownSync(request: NextRequest, discordId: string): Promise<NextResponse | null> {
@@ -40,6 +41,9 @@ async function authorizeShowdownSync(request: NextRequest, discordId: string): P
 
 export async function POST(request: NextRequest) {
   try {
+    const legacyDenied = legacyShowdownSyncDeniedResponse()
+    if (legacyDenied) return legacyDenied
+
     // Get Discord ID from request body
     const body = await request.json()
     const { discord_id } = body
