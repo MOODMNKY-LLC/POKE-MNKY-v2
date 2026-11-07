@@ -626,7 +626,7 @@ async function main() {
     )
   }
 
-  // Unsupported later domain (match) — pick/round are implemented separately
+  // Season-path unit before draft complete must fail closed (DRAFT_INCOMPLETE)
   {
     const domainCmd = crypto.randomUUID()
     const adv = await appFetch(`/api/admin/simulation/runs/${runId}/advance`, {
@@ -660,19 +660,26 @@ async function main() {
         }),
       })
       const body = (await tick.json().catch(() => ({}))) as {
-        results?: Array<{ run_status?: string; reason?: string }>
+        results?: Array<{
+          run_status?: string
+          reason?: string
+          steps_applied?: number
+        }>
       }
       const r = body?.results?.[0]
       record(
-        "RS-20_domain_blocked_honest",
+        "RS-20_match_before_draft_fail_closed",
         tick.status === 200 &&
-          (r?.run_status === "blocked" || r?.reason === "UNSUPPORTED_DOMAIN_STEP"),
+          Number(r?.steps_applied ?? -1) === 0 &&
+          (r?.reason === "DRAFT_INCOMPLETE" ||
+            r?.reason === "UNSUPPORTED_DOMAIN_STEP" ||
+            r?.run_status === "blocked"),
         tick.status,
         r?.reason,
       )
     } else {
       record(
-        "RS-20_domain_blocked_honest",
+        "RS-20_match_before_draft_fail_closed",
         [422, 409].includes(adv.status),
         adv.status,
         "advance rejected before tick",
