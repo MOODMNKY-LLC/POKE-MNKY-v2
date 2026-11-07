@@ -11,6 +11,7 @@ import { createServerClient } from "@/lib/supabase/server"
 import { createServiceRoleClient } from "@/lib/supabase/service"
 import { DraftSystem, type DraftSession } from "@/lib/draft-system"
 import { scoreCandidatesForAutopick } from "@/lib/draft-autopick-heuristics"
+import { legacySimulationWriteDeniedResponse } from "@/lib/league-simulation/legacy-simulation-writes-gate"
 
 const MOCK_SEASON_NAME = "Mock Draft Demo"
 
@@ -42,6 +43,9 @@ async function sendDiscordMessage(text: string) {
 
 export async function POST(request: NextRequest) {
   try {
+    const legacyDenied = legacySimulationWriteDeniedResponse()
+    if (legacyDenied) return legacyDenied
+
     const supabase = await createServerClient()
     const {
       data: { user },

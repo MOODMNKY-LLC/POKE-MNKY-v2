@@ -11,6 +11,7 @@ import { generateRoundRobinSchedule } from "@/lib/league-simulation/schedule-gen
 import { generatePlayoffRound1Only } from "@/lib/league-simulation/playoff-bracket-generator"
 import { generateMockResult, type ResultStrategy } from "@/lib/league-simulation/mock-result-generator"
 import { updateStandingsFromMatches } from "@/lib/league-simulation/standings-updater"
+import { legacySimulationWriteDeniedResponse } from "@/lib/league-simulation/legacy-simulation-writes-gate"
 import { recordSimulationRun, updateSimulationRun } from "@/lib/league-simulation/simulation-engine"
 
 const MOCK_SEASON_NAME = "Mock Draft Demo"
@@ -37,6 +38,10 @@ function isSimulationApiKeyValid(request: NextRequest): boolean {
 
 export async function POST(request: NextRequest) {
   try {
+    // Before API-key / session auth and before any DB work (covers n8n→full-run).
+    const legacyDenied = legacySimulationWriteDeniedResponse()
+    if (legacyDenied) return legacyDenied
+
     const apiKeyValid = isSimulationApiKeyValid(request)
     if (!apiKeyValid) {
       const supabase = await createServerClient()

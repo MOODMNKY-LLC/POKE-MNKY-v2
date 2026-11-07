@@ -7,12 +7,16 @@ import { NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase/server"
 import { createServiceRoleClient } from "@/lib/supabase/service"
 import { generatePlayoffRound1Only } from "@/lib/league-simulation/playoff-bracket-generator"
+import { legacySimulationWriteDeniedResponse } from "@/lib/league-simulation/legacy-simulation-writes-gate"
 import { recordSimulationRun } from "@/lib/league-simulation/simulation-engine"
 
 const MOCK_SEASON_NAME = "Mock Draft Demo"
 
 export async function POST(request: NextRequest) {
   try {
+    const legacyDenied = legacySimulationWriteDeniedResponse()
+    if (legacyDenied) return legacyDenied
+
     const supabase = await createServerClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 

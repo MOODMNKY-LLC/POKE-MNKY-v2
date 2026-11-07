@@ -7,6 +7,7 @@
 import { NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase/server"
 import { createServiceRoleClient } from "@/lib/supabase/service"
+import { legacySimulationWriteDeniedResponse } from "@/lib/league-simulation/legacy-simulation-writes-gate"
 import { recordSimulationRun } from "@/lib/league-simulation/simulation-engine"
 
 const MOCK_SEASON_NAME = "Mock Draft Demo"
@@ -15,6 +16,9 @@ const BUDGET_TOTAL = 120
 
 export async function POST() {
   try {
+    const legacyDenied = legacySimulationWriteDeniedResponse()
+    if (legacyDenied) return legacyDenied
+
     const supabase = await createServerClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
