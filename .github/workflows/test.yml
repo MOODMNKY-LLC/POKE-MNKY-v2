@@ -105,10 +105,23 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Pull pinned disposable stack images
         run: |
-          docker pull public.ecr.aws/supabase/postgres:17.11.0.006
-          docker pull public.ecr.aws/supabase/storage-api:v1.88.0
-          docker pull public.ecr.aws/supabase/gotrue:v2.197.0
-          docker pull public.ecr.aws/supabase/postgrest:v16.5
+          set -euo pipefail
+          pull_with_retry() {
+            local img="$1" attempt=1
+            until docker pull "$img"; do
+              if [[ "$attempt" -ge 5 ]]; then
+                echo "FATAL: docker pull failed after ${attempt} attempts: $img" >&2
+                exit 1
+              fi
+              echo "docker pull retry ${attempt} for $img (likely registry rate limit)"
+              sleep $((attempt * 20))
+              attempt=$((attempt + 1))
+            done
+          }
+          pull_with_retry public.ecr.aws/supabase/postgres:17.11.0.006
+          pull_with_retry public.ecr.aws/supabase/storage-api:v1.88.0
+          pull_with_retry public.ecr.aws/supabase/gotrue:v2.197.0
+          pull_with_retry public.ecr.aws/supabase/postgrest:v16.5
       - name: Real Next+GoTrue session suite (disposable stack)
         run: pnpm test:season-sim-real-server-stack
         env:
