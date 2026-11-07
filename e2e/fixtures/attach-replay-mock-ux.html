@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Attach replay mock UX (NOT Auth/RLS proof)</title>
+    <style>
+      :root {
+        --bg: #f7f4f0;
+        --fg: #1a1512;
+        --muted: #6b635c;
+        --border: #d9d1c7;
+        --danger: #9b1c1c;
+        --accent: #3b2f7a;
+      }
+      body {
+        margin: 0;
+        font-family: "Segoe UI", system-ui, sans-serif;
+        background: linear-gradient(160deg, #f7f4f0, #ebe4da);
+        color: var(--fg);
+        min-height: 100vh;
+      }
+      .banner {
+        background: #3b2f7a;
+        color: #fff;
+        padding: 0.5rem 1rem;
+        font-size: 0.8rem;
+      }
+      main {
+        max-width: 40rem;
+        margin: 1.5rem auto;
+        padding: 0 1rem 3rem;
+      }
+      .match {
+        border: 1px solid var(--border);
+        border-radius: 0.5rem;
+        padding: 1rem;
+        background: #fff;
+      }
+      button {
+        font: inherit;
+        border-radius: 0.375rem;
+        border: 1px solid var(--border);
+        background: #fff;
+        padding: 0.4rem 0.75rem;
+        cursor: pointer;
+      }
+      button.primary {
+        background: var(--accent);
+        color: #fff;
+        border-color: var(--accent);
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      dialog {
+        border: 1px solid var(--border);
+        border-radius: 0.75rem;
+        padding: 1.25rem;
+        width: min(32rem, calc(100vw - 2rem));
+      }
+      label {
+        display: block;
+        font-size: 0.85rem;
+        margin-bottom: 0.25rem;
+      }
+      input {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 0.5rem;
+        border: 1px solid var(--border);
+        border-radius: 0.375rem;
+      }
+      .err {
+        color: var(--danger);
+        border: 1px solid #f1c0c0;
+        background: #fff5f5;
+        padding: 0.75rem;
+        border-radius: 0.5rem;
+        margin-top: 0.75rem;
+      }
+      .preview {
+        border: 1px solid var(--border);
+        background: #faf8f5;
+        padding: 0.75rem;
+        border-radius: 0.5rem;
+        margin-top: 0.75rem;
+        font-size: 0.9rem;
+      }
+      .actions {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        margin-top: 1rem;
+        justify-content: flex-end;
+      }
+      .muted {
+        color: var(--muted);
+        font-size: 0.8rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="banner" role="status">
+      MOCK UX FIXTURE — not Supabase Auth JWT / RLS proof. Isolated browser harness only.
+    </div>
+    <main>
+      <h1>Weekly match history (fixture)</h1>
+      <p class="muted">
+        Mirrors AttachReplayPanel copy/flow with in-page fetch stubs. Feature default OFF path and
+        deny paths included.
+      </p>
+      <div class="match">
+        <p><strong>Week 3</strong> · Team Alpha vs Team Beta · completed</p>
+        <button type="button" id="open-attach" aria-haspopup="dialog">
+          Attach replay
+        </button>
+      </div>
+
+      <dialog id="attach-dialog" aria-labelledby="dlg-title">
+        <h2 id="dlg-title">Attach official public replay</h2>
+        <p class="muted">
+          Paste a replay.pokemonshowdown.com URL. Public replays only. No Showdown account
+          required. Does not change standings or MVP.
+        </p>
+        <label for="replay-url">Replay URL</label>
+        <input
+          id="replay-url"
+          name="replay-url"
+          placeholder="https://replay.pokemonshowdown.com/…"
+          autocomplete="off"
+        />
+        <div id="error" class="err" hidden role="alert"></div>
+        <div id="preview" class="preview" hidden></div>
+        <div class="actions">
+          <button type="button" id="btn-preview">Preview</button>
+          <button type="button" id="btn-confirm" class="primary" disabled>
+            Confirm archive
+          </button>
+          <button type="button" id="btn-close">Close</button>
+        </div>
+        <p class="muted" id="scenario-note"></p>
+      </dialog>
+    </main>
+    <script>
+      /**
+       * Isolated fetch stubs — never hits production or real Showdown.
+       * Scenarios via ?scenario=
+       *  off | public_ok | private | foreign | season
+       */
+      const params = new URLSearchParams(location.search)
+      const scenario = params.get("scenario") || "public_ok"
+      const note = document.getElementById("scenario-note")
+      note.textContent = "scenario=" + scenario
+
+      const dialog = document.getElementById("attach-dialog")
+      const errorEl = document.getElementById("error")
+      const previewEl = document.getElementById("preview")
+      const urlInput = document.getElementById("replay-url")
+      const confirmBtn = document.getElementById("btn-confirm")
+
+      function showError(msg) {
+        errorEl.hidden = false
+        errorEl.textContent = msg
+        previewEl.hidden = true
+        confirmBtn.disabled = true
+      }
+
+      function showPreview(data) {
+        errorEl.hidden = true
+        previewEl.hidden = false
+        previewEl.innerHTML =
+          "<p><strong>Players:</strong> " +
+          data.players.join(" vs ") +
+          "</p><p><strong>Winner:</strong> " +
+          data.winner +
+          "</p><p><strong>Turns:</strong> " +
+          data.turns +
+          " · <strong>Faints:</strong> " +
+          data.faints +
+          " (events, not KO credit)</p>"
+        confirmBtn.disabled = false
+      }
+
+      document.getElementById("open-attach").onclick = () => {
+        if (scenario === "off") {
+          alert("Official replay archive is off. Optional — league results still stand.")
+          return
+        }
+        dialog.showModal()
+      }
+      document.getElementById("btn-close").onclick = () => dialog.close()
+
+      document.getElementById("btn-preview").onclick = () => {
+        const url = urlInput.value.trim()
+        if (!url) {
+          showError("Replay URL is required")
+          return
+        }
+        if (!url.startsWith("https://replay.pokemonshowdown.com/")) {
+          showError("Only replay.pokemonshowdown.com is allowed for Phase 1")
+          return
+        }
+        if (/-([0-9a-z]{8,})pw$/i.test(url)) {
+          showError("Password-protected / private replay IDs are not supported in Phase 1")
+          return
+        }
+        if (scenario === "private") {
+          showError("Replay is not public (private=1). Phase 1 allows public only.")
+          return
+        }
+        if (scenario === "foreign") {
+          showError("Not a participant on this match")
+          return
+        }
+        if (scenario === "season") {
+          showError("No league team for this match season")
+          return
+        }
+        showPreview({
+          players: ["Alice", "Bob"],
+          winner: "Alice",
+          turns: 12,
+          faints: 3,
+        })
+      }
+
+      document.getElementById("btn-confirm").onclick = () => {
+        if (scenario === "foreign" || scenario === "season") {
+          showError("Not allowed to attach this archive to the match")
+          return
+        }
+        previewEl.innerHTML =
+          '<p role="status"><strong>Archived</strong> (fixture) — standings unchanged.</p>'
+        confirmBtn.disabled = true
+      }
+    </script>
+  </body>
+</html>
