@@ -310,7 +310,7 @@ Effort labels are **coarse estimates** (S/M/L relative complexity), not calendar
 - Migration file only: `20261107102017_league_replay_archives.sql` (additive; **not** applied to prod).
 - Attach UX on weekly-matches history; no standings/MVP/sheet writes; simulator remains paused.
 - Dedup does not grant foreign ACL or leak archive ids on deny.
-- **Local RLS limitation:** no Docker / no disposable Supabase in this cloud agent — migration + RLS SQL reviewed against current docs; role/foreign/concurrency tests not executed live.
+- **Disposable RLS:** `supabase/tests/test-league-replay-archives-rls.sql` on local PostgreSQL 16 (ROLLBACK) — anon deny, foreign-season deny, match-participant read, authenticated insert deny, creator read (`ALL_RLS_CHECKS_PASSED`). Not applied to production. Stub parent tables + `auth.uid()` stand-in (no Docker/Supabase CLI).
 
 ### Phase 2 — Verified account link (M) — **blocked on client_id**
 - OAuth start/callback when client_id + registered origin exist.
