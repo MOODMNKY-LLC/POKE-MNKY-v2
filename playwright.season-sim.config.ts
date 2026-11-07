@@ -23,6 +23,12 @@ const baseURL = (
 const artifactDir =
   process.env.SEASON_SIM_BROWSER_ARTIFACT_DIR ??
   path.join("/opt/cursor/artifacts", "season-sim-browser")
+// Playwright rmdir(outputDir) fails with ENOTEMPTY on fuse.agent-store
+// artifact mounts. Keep traces/videos on a real local filesystem; curated
+// screenshots still go to artifactDir via the spec's shot() helper.
+const playwrightOutputDir =
+  process.env.SEASON_SIM_PLAYWRIGHT_OUTPUT_DIR ??
+  path.join("/tmp", "season-sim-browser-playwright-output")
 
 export default defineConfig({
   testDir: "./e2e",
@@ -37,9 +43,9 @@ export default defineConfig({
   expect: { timeout: 30_000 },
   reporter: [
     ["list"],
-    ["html", { open: "never", outputFolder: path.join(artifactDir, "html-report") }],
+    ["html", { open: "never", outputFolder: path.join(playwrightOutputDir, "html-report") }],
   ],
-  outputDir: path.join(artifactDir, "test-results"),
+  outputDir: path.join(playwrightOutputDir, "test-results"),
   use: {
     baseURL,
     // Full-run tracing made successful champion tests fail in After Hooks

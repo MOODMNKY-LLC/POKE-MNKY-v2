@@ -351,6 +351,11 @@ if [[ "${RUN_BROWSER_ACCEPTANCE:-0}" == "1" ]]; then
   ARTIFACT_DIR="${SEASON_SIM_BROWSER_ARTIFACT_DIR:-/opt/cursor/artifacts/season-sim-browser}"
   mkdir -p "$ARTIFACT_DIR/screenshots"
   chmod 777 "$ARTIFACT_DIR" "$ARTIFACT_DIR/screenshots" 2>/dev/null || true
+  # Local FS for Playwright outputDir (fuse artifact mounts reject rmdir).
+  PLAYWRIGHT_OUTPUT_DIR="${SEASON_SIM_PLAYWRIGHT_OUTPUT_DIR:-/tmp/season-sim-browser-playwright-output}"
+  rm -rf "$PLAYWRIGHT_OUTPUT_DIR"
+  mkdir -p "$PLAYWRIGHT_OUTPUT_DIR"
+  export SEASON_SIM_PLAYWRIGHT_OUTPUT_DIR="$PLAYWRIGHT_OUTPUT_DIR"
 
   # Second Next with flags OFF for browser 503 proof (same build artifacts).
   FLAGS_OFF_PORT="${FLAGS_OFF_PORT:-3011}"
