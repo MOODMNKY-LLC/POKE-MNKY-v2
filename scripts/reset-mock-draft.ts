@@ -8,6 +8,7 @@
 
 import { config } from "dotenv"
 import { resolve } from "path"
+import { assertLegacySimulationWritesAllowed } from "../lib/league-simulation/legacy-simulation-writes-gate"
 import { createServiceRoleClient } from "../lib/supabase/service"
 
 config({ path: resolve(process.cwd(), ".env.local") })
@@ -16,6 +17,7 @@ config({ path: resolve(process.cwd(), ".env") })
 const MOCK_SEASON_NAME = "Mock Draft Demo"
 
 async function resetMockDraft() {
+  assertLegacySimulationWritesAllowed()
   console.log("Resetting Mock Draft state...\n")
   const supabase = createServiceRoleClient()
 

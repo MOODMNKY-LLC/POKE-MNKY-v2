@@ -5,6 +5,7 @@
 
 import { createServiceRoleClient } from "@/lib/supabase/service"
 import { DraftSystem } from "@/lib/draft-system"
+import { assertLegacySimulationWritesAllowed } from "@/lib/league-simulation/legacy-simulation-writes-gate"
 import { generateRoundRobinSchedule } from "./schedule-generator"
 import { generatePlayoffRound1Only } from "./playoff-bracket-generator"
 import { generateMockResult, type ResultStrategy } from "./mock-result-generator"
@@ -115,6 +116,8 @@ export async function recordSimulationRun(
   config: SimulationConfig = {},
   errorMessage?: string
 ): Promise<string> {
+  // Fail closed before any DB client / write (schema-independent cutover gate).
+  assertLegacySimulationWritesAllowed()
   const supabase = createServiceRoleClient()
   const { data, error } = await supabase
     .from("simulation_runs")
@@ -136,6 +139,7 @@ export async function updateSimulationRun(
   runId: string,
   updates: { status?: string; completed_at?: string; error_message?: string }
 ): Promise<void> {
+  assertLegacySimulationWritesAllowed()
   const supabase = createServiceRoleClient()
   await supabase.from("simulation_runs").update(updates).eq("id", runId)
 }

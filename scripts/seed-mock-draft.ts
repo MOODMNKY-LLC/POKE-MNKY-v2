@@ -7,6 +7,7 @@
 
 import { config } from "dotenv"
 import { resolve } from "path"
+import { assertLegacySimulationWritesAllowed } from "../lib/league-simulation/legacy-simulation-writes-gate"
 import { createServiceRoleClient } from "../lib/supabase/service"
 
 config({ path: resolve(process.cwd(), ".env.local") })
@@ -18,6 +19,7 @@ const MOCK_TEAM_NAMES = ["Mock Draft Team A", "Mock Draft Team B", "Mock Draft T
 const BUDGET_TOTAL = 120
 
 async function seedMockDraft() {
+  assertLegacySimulationWritesAllowed()
   console.log("Seeding Mock Draft environment...\n")
   const supabase = createServiceRoleClient()
 

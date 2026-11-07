@@ -8,6 +8,7 @@
 
 import { config } from "dotenv"
 import { resolve } from "path"
+import { assertLegacySimulationWritesAllowed } from "../lib/league-simulation/legacy-simulation-writes-gate"
 import { createServiceRoleClient } from "../lib/supabase/service"
 import { DraftSystem } from "../lib/draft-system"
 
@@ -31,6 +32,7 @@ async function sendDiscordMessage(text: string) {
 }
 
 async function runMockDraft() {
+  assertLegacySimulationWritesAllowed()
   const maxPicks = parseInt(process.argv[2] ?? "0", 10) || 0
   console.log("Run Mock Draft (max picks:", maxPicks || "all", ")\n")
 
