@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { requireLeagueAdmin } from "@/lib/admin-api-auth"
+import { requireSimDemoOperator } from "@/lib/season-sim/demo-allowlist"
 import { createServiceRoleClient } from "@/lib/supabase/service"
 import {
   isSimSandboxV2Enabled,
@@ -17,7 +17,7 @@ export async function POST(
       { status: 503 },
     )
   }
-  const admin = await requireLeagueAdmin()
+  const admin = await requireSimDemoOperator()
   if ("response" in admin) return admin.response
 
   const { id } = await context.params

@@ -23,6 +23,7 @@ const migrations = [
   "20261106132402_season_sim_foundation_hardening.sql",
   "20261107023900_season_sim_draft_domain.sql",
   "20261107025000_season_sim_foundation_cursor_preserve.sql",
+  "20261107033000_season_sim_season_path.sql",
 ].map((name) =>
   readFileSync(join(root, "supabase/migrations", name), "utf8"),
 )
@@ -421,25 +422,29 @@ describe.skipIf(!hasPgUrl)("season-sim draft domain postgres", () => {
       expect(res.rows[0]?.applied).toBe(true)
       if (complete) {
         expect(res.rows[0]?.reason).toBe("DRAFT_COMPLETE")
-        expect(res.rows[0]?.run_status).toBe("blocked")
+        expect(res.rows[0]?.run_status).toBe("paused")
       }
     }
 
     const final = await c.query<{
       status: string
-      blocked_reason: string
+      blocked_reason: string | null
       phase: string
       pick_count: string
+      awaiting: string | null
+      draft_complete: boolean | null
     }>(
       `select r.status, r.blocked_reason, r.phase,
+              r.cursor->>'awaiting' as awaiting,
+              (r.cursor->>'draft_complete')::boolean as draft_complete,
               (select count(*)::text from public.sim_draft_picks p where p.run_id = r.id) as pick_count
        from public.simulation_runs r where r.id = $1`,
       [runId],
     )
-    expect(final.rows[0]?.status).toBe("blocked")
-    expect(final.rows[0]?.blocked_reason).toBe(
-      "DRAFT_COMPLETE_SCHEDULE_UNSUPPORTED",
-    )
+    expect(final.rows[0]?.status).toBe("paused")
+    expect(final.rows[0]?.blocked_reason).toBeNull()
+    expect(final.rows[0]?.awaiting).toBe("schedule")
+    expect(final.rows[0]?.draft_complete).toBe(true)
     expect(final.rows[0]?.phase).toBe("draft")
     expect(Number(final.rows[0]?.pick_count)).toBe(totalPicks)
     expect(final.rows[0]?.phase).not.toBe("complete")

@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server"
-import { requireLeagueAdmin } from "@/lib/admin-api-auth"
+import { requireSimDemoOperator } from "@/lib/season-sim/demo-allowlist"
 import { createServiceRoleClient } from "@/lib/supabase/service"
 import {
   isSimSandboxV2Enabled,
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const admin = await requireLeagueAdmin()
+  const admin = await requireSimDemoOperator()
   if ("response" in admin) return admin.response
 
   const body = await request.json().catch(() => ({}))
@@ -35,6 +35,10 @@ export async function POST(request: NextRequest) {
     typeof body.total_rounds === "number" ? body.total_rounds : undefined
   const budgetTotal =
     typeof body.budget_total === "number" ? body.budget_total : undefined
+  const scheduleWeeks =
+    typeof body.schedule_weeks === "number" ? body.schedule_weeks : undefined
+  const playoffSize =
+    typeof body.playoff_size === "number" ? body.playoff_size : undefined
   const selectorDraft =
     body.selector_draft === "random" ||
     body.selector_draft === "heuristic" ||
@@ -50,6 +54,8 @@ export async function POST(request: NextRequest) {
       team_count: teamCount,
       total_rounds: totalRounds,
       budget_total: budgetTotal,
+      schedule_weeks: scheduleWeeks,
+      playoff_size: playoffSize,
       selector_draft: selectorDraft,
       queue_immediately: queueImmediately,
     })
