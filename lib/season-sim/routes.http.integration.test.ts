@@ -253,7 +253,7 @@ describe.skipIf(!canRun)("season-sim v2 HTTP + worker (real PostgREST DB)", () =
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
             command_id: domainCmd,
-            unit: "draft",
+            unit: "match",
             n: 1,
             expected_step_seq: stepSeq,
             expected_run_version: runVersion,
@@ -262,7 +262,7 @@ describe.skipIf(!canRun)("season-sim v2 HTTP + worker (real PostgREST DB)", () =
       ),
       { params: Promise.resolve({ id: runId }) },
     )
-    // May 202 accept then worker blocks, or 422 if unit rejected at API — either honest
+    // Later domains (match+) still accept then worker-block; draft pick/round are separate.
     expect([202, 409, 422].includes(domainAdv.status)).toBe(true)
 
     if (domainAdv.status === 202) {

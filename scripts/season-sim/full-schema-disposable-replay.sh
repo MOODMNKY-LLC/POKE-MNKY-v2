@@ -168,7 +168,7 @@ done
 RECORDED=$(docker exec "$CONTAINER_NAME" psql -h 127.0.0.1 -U supabase_admin -d postgres -tAc \
   "SELECT COUNT(*) FROM supabase_migrations.schema_migrations" | tr -d '[:space:]')
 FEATURE=$(docker exec "$CONTAINER_NAME" psql -h 127.0.0.1 -U supabase_admin -d postgres -tAc \
-  "SELECT COUNT(*) FROM supabase_migrations.schema_migrations WHERE version IN ('20261106130021','20261106130022','20261106132402')" | tr -d '[:space:]')
+  "SELECT COUNT(*) FROM supabase_migrations.schema_migrations WHERE version IN ('20261106130021','20261106130022','20261106132402','20261107023900','20261107025000')" | tr -d '[:space:]')
 
 {
   echo "ENGINE=$SUPABASE_PG_IMAGE"

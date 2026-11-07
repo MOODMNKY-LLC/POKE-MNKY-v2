@@ -4,7 +4,12 @@ on:
   push:
     branches: [main, master]
   pull_request:
-    branches: [main, master]
+    # Include stacked season-sim foundation base so draft-domain PR CI still runs
+    # (GitHub only matches the PR base branch, not the head).
+    branches:
+      - main
+      - master
+      - cursor/season-sim-sandbox-foundation-2199
 
 jobs:
   unit:

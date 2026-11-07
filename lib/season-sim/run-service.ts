@@ -1,6 +1,14 @@
 import { randomUUID } from "node:crypto"
 import type { SupabaseClient } from "@supabase/supabase-js"
-import { buildProvisionalDemoConfig } from "@/lib/season-sim/config"
+import { buildProvisionalDemoConfig, type SimRunConfig } from "@/lib/season-sim/config"
+import {
+  assessDraftFeasibility,
+  buildSyntheticDraftPool,
+  chooseDraftPick,
+  legalCandidatesForTeam,
+  onClockTeam,
+  type SimDraftPoolCandidate,
+} from "@/lib/season-sim/draft-domain"
 import { hashCommandPayload } from "@/lib/season-sim/payload-hash"
 import {
   SIM_PRNG_ALGORITHM,
@@ -17,6 +25,13 @@ import type {
   SimProgressResponse,
   SimRunRow,
 } from "@/lib/season-sim/types"
+
+const STILL_BLOCKED_UNITS = new Set<SimAdvanceUnit>([
+  "match",
+  "week",
+  "playoff_round",
+  "season",
+])
 
 type ServiceClient = SupabaseClient
 
@@ -43,12 +58,140 @@ export function toProgress(run: SimRunRow): SimProgressResponse {
   }
 }
 
+/** Admin evidence snapshot for sandbox draft validation (pool/budget/picks/decisions). */
+export type SimDraftEvidence = {
+  pool_available: number
+  pool_drafted: number
+  pick_count: number
+  total_picks_expected: number
+  budgets: Array<{
+    team_id: string
+    total_points: number
+    spent_points: number
+    remaining_points: number
+  }>
+  /** Roster projection for this sandbox run (sim_draft_picks ordered). */
+  roster_picks: Array<{
+    pick_number: number
+    round: number
+    team_id: string
+    pokemon_name: string
+    point_value: number
+    step_seq: number
+    decision_id: string | null
+  }>
+  decisions: Array<{
+    step_seq: number | null
+    source: string
+    answer: Record<string, unknown>
+  }>
+  cursor_pick_number: number
+  cursor_agrees_with_picks: boolean
+  decisions_agree_with_picks: boolean
+}
+
+export async function getDraftEvidence(
+  supabase: ServiceClient,
+  runId: string,
+): Promise<SimDraftEvidence> {
+  const run = await getRun(supabase, runId)
+  const config = (run.config ?? {}) as SimRunConfig
+  const totalExpected =
+    Number(config.team_count ?? 0) * Number(config.total_rounds ?? 0)
+
+  const { data: poolRows } = await supabase
+    .from("sim_draft_pool")
+    .select("status")
+    .eq("run_id", runId)
+  const pool_available = (poolRows ?? []).filter((r) => r.status === "available").length
+  const pool_drafted = (poolRows ?? []).filter((r) => r.status === "drafted").length
+
+  const { data: budgets } = await supabase
+    .from("sim_draft_budgets")
+    .select("team_id, total_points, spent_points, remaining_points")
+    .eq("run_id", runId)
+    .order("team_id", { ascending: true })
+
+  const { data: picks } = await supabase
+    .from("sim_draft_picks")
+    .select(
+      "pick_number, round, team_id, pokemon_name, point_value, step_seq, decision_id",
+    )
+    .eq("run_id", runId)
+    .order("pick_number", { ascending: true })
+
+  const { data: decisions } = await supabase
+    .from("simulation_decisions")
+    .select("step_seq, source, answer")
+    .eq("run_id", runId)
+    .order("step_seq", { ascending: true })
+
+  const roster_picks = (picks ?? []).map((p) => ({
+    pick_number: Number(p.pick_number),
+    round: Number(p.round),
+    team_id: String(p.team_id),
+    pokemon_name: String(p.pokemon_name),
+    point_value: Number(p.point_value),
+    step_seq: Number(p.step_seq),
+    decision_id: (p.decision_id as string | null) ?? null,
+  }))
+
+  const decisionRows = (decisions ?? []).map((d) => ({
+    step_seq: d.step_seq == null ? null : Number(d.step_seq),
+    source: String(d.source),
+    answer: (d.answer ?? {}) as Record<string, unknown>,
+  }))
+
+  const cursorPick = Number(run.cursor?.pick_number ?? 0)
+  const cursor_agrees_with_picks = cursorPick === roster_picks.length
+
+  const draftDecisions = decisionRows.filter(
+    (d) => d.answer?.decision_type === "draft_pick",
+  )
+  let decisions_agree_with_picks = draftDecisions.length === roster_picks.length
+  if (decisions_agree_with_picks) {
+    for (let i = 0; i < roster_picks.length; i++) {
+      const pick = roster_picks[i]!
+      const dec = draftDecisions[i]!
+      if (
+        Number(dec.answer.pick_number) !== pick.pick_number ||
+        String(dec.answer.pokemon_name) !== pick.pokemon_name ||
+        String(dec.answer.team_id) !== pick.team_id
+      ) {
+        decisions_agree_with_picks = false
+        break
+      }
+    }
+  }
+
+  return {
+    pool_available,
+    pool_drafted,
+    pick_count: roster_picks.length,
+    total_picks_expected: totalExpected,
+    budgets: (budgets ?? []).map((b) => ({
+      team_id: String(b.team_id),
+      total_points: Number(b.total_points),
+      spent_points: Number(b.spent_points),
+      remaining_points: Number(b.remaining_points),
+    })),
+    roster_picks,
+    decisions: decisionRows,
+    cursor_pick_number: cursorPick,
+    cursor_agrees_with_picks,
+    decisions_agree_with_picks,
+  }
+}
+
 export async function createSandboxSimulationRun(
   supabase: ServiceClient,
   ownerUserId: string,
   options: {
     master_seed?: string
     team_count?: number
+    total_rounds?: number
+    budget_total?: number
+    selector_draft?: "random" | "heuristic" | "jev"
     queue_immediately?: boolean
   } = {},
 ): Promise<{ run: SimRunRow; season_id: string; team_ids: string[] }> {
@@ -56,6 +199,9 @@ export async function createSandboxSimulationRun(
   const config = buildProvisionalDemoConfig({
     master_seed: masterSeed,
     team_count: options.team_count,
+    total_rounds: options.total_rounds,
+    budget_total: options.budget_total,
+    selector_draft: options.selector_draft,
   })
 
   const seasonName = `Sandbox Sim ${new Date().toISOString().slice(0, 19)}Z ${masterSeed.slice(0, 8)}`
@@ -152,7 +298,24 @@ export async function createSandboxSimulationRun(
     throw new Error(`Failed to create synthetic seats: ${seatError.message}`)
   }
 
-  // Provenance event
+  let draftSeedMeta: { pool_size: number; total_picks: number }
+  try {
+    draftSeedMeta = await seedSandboxDraftDomain(supabase, {
+      runId: run.id,
+      seasonId: season.id,
+      teamIds,
+      config,
+    })
+  } catch (seedErr) {
+    await supabase.from("sim_draft_pool").delete().eq("run_id", run.id)
+    await supabase.from("sim_draft_budgets").delete().eq("run_id", run.id)
+    await supabase.from("sim_bot_seats").delete().eq("run_id", run.id)
+    await supabase.from("simulation_runs").delete().eq("id", run.id)
+    await supabase.from("seasons").delete().eq("id", season.id)
+    throw seedErr
+  }
+
+  // Provenance event (includes draft seed summary)
   await supabase.from("simulation_events").insert({
     run_id: run.id,
     season_id: season.id,
@@ -163,6 +326,10 @@ export async function createSandboxSimulationRun(
       team_count: config.team_count,
       rules_version: config.rules_version,
       queued: queueNow,
+      draft_seeded: true,
+      pool_size: draftSeedMeta.pool_size,
+      total_picks: draftSeedMeta.total_picks,
+      provisional: true,
     },
   })
   await supabase
@@ -172,6 +339,83 @@ export async function createSandboxSimulationRun(
 
   const refreshed = await getRun(supabase, run.id)
   return { run: refreshed, season_id: season.id, team_ids: teamIds }
+}
+
+/**
+ * Seed sim-scoped pool + budgets. Rejects infeasible configs with actionable codes
+ * (never invents illegal picks later).
+ */
+export async function seedSandboxDraftDomain(
+  supabase: ServiceClient,
+  args: {
+    runId: string
+    seasonId: string
+    teamIds: string[]
+    config: SimRunConfig
+  },
+): Promise<{ pool_size: number; total_picks: number }> {
+  const pool = buildSyntheticDraftPool({
+    teamCount: args.config.team_count,
+    totalRounds: args.config.total_rounds,
+  })
+  const feasibility = assessDraftFeasibility({
+    teamCount: args.config.team_count,
+    totalRounds: args.config.total_rounds,
+    budgetTotal: args.config.budget_total,
+    pool,
+  })
+  if (!feasibility.ok) {
+    throw new Error(
+      `${feasibility.code}: ${feasibility.message ?? "infeasible sandbox draft config"}`,
+    )
+  }
+
+  const { error: poolError } = await supabase.from("sim_draft_pool").insert(
+    pool.map((row) => ({
+      run_id: args.runId,
+      season_id: args.seasonId,
+      pokemon_name: row.pokemon_name,
+      point_value: row.point_value,
+      status: "available",
+    })),
+  )
+  if (poolError) {
+    throw new Error(`Failed to seed sim_draft_pool: ${poolError.message}`)
+  }
+
+  const { error: budgetError } = await supabase.from("sim_draft_budgets").insert(
+    args.teamIds.map((teamId) => ({
+      run_id: args.runId,
+      season_id: args.seasonId,
+      team_id: teamId,
+      total_points: args.config.budget_total,
+      spent_points: 0,
+    })),
+  )
+  if (budgetError) {
+    throw new Error(`Failed to seed sim_draft_budgets: ${budgetError.message}`)
+  }
+
+  // Cursor only here — provenance event is written by createSandbox after seed
+  // succeeds so failed-seed cleanup can delete the run without fighting append-only
+  // simulation_events triggers.
+  await supabase
+    .from("simulation_runs")
+    .update({
+      cursor: {
+        step_seq: 0,
+        pick_number: 0,
+        round: 0,
+        draft_complete: false,
+      },
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", args.runId)
+
+  return {
+    pool_size: feasibility.pool_size,
+    total_picks: feasibility.total_picks,
+  }
 }
 
 export async function getRun(
@@ -365,8 +609,8 @@ function validateLifecycle(
         message: `Cannot advance from status ${status}`,
       }
     }
-    if (unit && unit !== "foundation") {
-      // Allowed to accept command; worker will block unsupported domain — do not fabricate.
+    // pick/round are executed by the worker; later domains stay accept→block.
+    if (unit && STILL_BLOCKED_UNITS.has(unit)) {
       return null
     }
   }
@@ -555,6 +799,40 @@ async function driveRun(
   const unit = (cmd?.unit as SimAdvanceUnit | null) ?? "foundation"
   const n = typeof cmd?.n === "number" && cmd.n > 0 ? Math.min(cmd.n, maxSteps) : 1
 
+  if (STILL_BLOCKED_UNITS.has(unit)) {
+    const applied = await applyFoundationStepRpc(supabase, {
+      runId,
+      leaseToken,
+      operationKey: `unsupported:${unit}:${run.step_seq}`,
+      kind: `domain:${unit}`,
+      commandId: run.active_command_id,
+      output: { deferred: true, unit },
+    })
+    return {
+      run_id: runId,
+      claimed: true,
+      steps_applied: 0,
+      run_status: applied.run_status,
+      step_seq: applied.step_seq,
+      run_version: applied.run_version,
+      reason: applied.reason || "UNSUPPORTED_DOMAIN_STEP",
+    }
+  }
+
+  if (unit === "pick" || unit === "round") {
+    return driveDraftUnit(supabase, {
+      run,
+      runId,
+      leaseToken,
+      workerId,
+      maxSteps,
+      unit,
+      n,
+      commandId: run.active_command_id,
+      commandRowId: cmd?.command_id as string | undefined,
+    })
+  }
+
   if (unit !== "foundation") {
     const applied = await applyFoundationStepRpc(supabase, {
       runId,
@@ -571,7 +849,7 @@ async function driveRun(
       run_status: applied.run_status,
       step_seq: applied.step_seq,
       run_version: applied.run_version,
-      reason: applied.reason,
+      reason: applied.reason || "UNSUPPORTED_DOMAIN_STEP",
     }
   }
 
@@ -621,40 +899,364 @@ async function driveRun(
       .eq("lease_token", leaseToken)
   }
 
-  if (cmd && stepsApplied >= n) {
-    await supabase
-      .from("simulation_commands")
-      .update({
-        status: "completed",
-        completed_at: new Date().toISOString(),
-      })
-      .eq("run_id", runId)
-      .eq("command_id", cmd.command_id)
+  await completeActiveCommandIfDone(supabase, {
+    runId,
+    leaseToken,
+    commandId: cmd?.command_id as string | undefined,
+    stepsApplied,
+    n,
+    status,
+  })
 
-    await supabase
-      .from("simulation_runs")
-      .update({
-        active_command_id: null,
-        // Stay queued/running-capable; never mark completed from foundation-only steps.
-        status: status === "running" ? "paused" : status,
-        lease_owner: null,
-        lease_token: null,
-        lease_expires_at: null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", runId)
-      .eq("lease_token", leaseToken)
-
-    status = status === "running" ? "paused" : status
-  }
-
+  const after = await getRun(supabase, runId)
   return {
     run_id: runId,
     claimed: true,
     steps_applied: stepsApplied,
-    run_status: status,
-    step_seq: stepSeq,
-    run_version: runVersion,
+    run_status: after.status,
+    step_seq: after.step_seq,
+    run_version: after.run_version,
+  }
+}
+
+async function driveDraftUnit(
+  supabase: ServiceClient,
+  args: {
+    run: SimRunRow
+    runId: string
+    leaseToken: string
+    workerId: string
+    maxSteps: number
+    unit: "pick" | "round"
+    n: number
+    commandId: string | null
+    commandRowId?: string
+  },
+): Promise<TickResult> {
+  const config = args.run.config as SimRunConfig
+  const totalRounds = Number(config.total_rounds ?? 10)
+  const teamCount = Number(config.team_count ?? 0)
+  const totalPicks = teamCount * totalRounds
+  const selector =
+    config.selector_draft === "random" ||
+    config.selector_draft === "heuristic" ||
+    config.selector_draft === "jev"
+      ? config.selector_draft
+      : "heuristic"
+
+  const { data: seats } = await supabase
+    .from("sim_bot_seats")
+    .select("team_id, seat_index, selector")
+    .eq("run_id", args.runId)
+    .order("seat_index", { ascending: true })
+
+  const turnOrder = (seats ?? [])
+    .map((s) => s.team_id as string | null)
+    .filter((id): id is string => Boolean(id))
+
+  if (turnOrder.length < 2) {
+    return blockDraftInfeasible(supabase, args, "INFEASIBLE_SEATS", "Need ≥2 synthetic seats")
+  }
+
+  let stepsApplied = 0
+  let status = args.run.status
+  let stepSeq = args.run.step_seq
+  let runVersion = args.run.run_version
+  let counters = (args.run.rng_counters ?? {}) as RngCounters
+  let currentRound: number | null = null
+  const pickTarget =
+    args.unit === "pick" ? Math.min(args.n, args.maxSteps) : args.maxSteps
+
+  while (stepsApplied < pickTarget) {
+    const live = await getRun(supabase, args.runId)
+    if (live.status === "cancel_requested") {
+      break
+    }
+    if (live.cursor?.draft_complete === true || live.status === "blocked") {
+      status = live.status
+      stepSeq = live.step_seq
+      runVersion = live.run_version
+      break
+    }
+
+    const pickNumber = Number(live.cursor?.pick_number ?? 0) + 1
+    if (pickNumber > totalPicks) {
+      break
+    }
+
+    const clock = onClockTeam({ turnOrder, pickNumber, draftType: "snake" })
+    if (!clock) {
+      return blockDraftInfeasible(
+        supabase,
+        args,
+        "CLOCK_RESOLVE_FAILED",
+        `Could not resolve on-clock team for pick ${pickNumber}`,
+      )
+    }
+
+    if (args.unit === "round") {
+      if (currentRound === null) currentRound = clock.round
+      if (clock.round !== currentRound) break
+    }
+
+    const { data: poolRows } = await supabase
+      .from("sim_draft_pool")
+      .select("pokemon_name, point_value, status")
+      .eq("run_id", args.runId)
+
+    const { data: budgetRow } = await supabase
+      .from("sim_draft_budgets")
+      .select("remaining_points")
+      .eq("run_id", args.runId)
+      .eq("team_id", clock.teamId)
+      .maybeSingle()
+
+    const remaining = Number(budgetRow?.remaining_points ?? 0)
+    const pool = (poolRows ?? []) as SimDraftPoolCandidate[]
+    const candidates = legalCandidatesForTeam({ pool, remainingPoints: remaining }).sort(
+      (a, b) =>
+        a.pokemon_name.localeCompare(b.pokemon_name) ||
+        (a.point_value ?? 0) - (b.point_value ?? 0),
+    )
+
+    const bumped = bumpCounter(counters, "draft")
+    // Counter equals pick number for crash-resume + granular/batch equivalence.
+    counters = { ...bumped.next, draft: pickNumber }
+    const prng = createSubstreamPrng(live.master_seed ?? "0", "draft", pickNumber)
+    const choice = chooseDraftPick({
+      selector,
+      candidates,
+      prng,
+    })
+
+    if ("error" in choice) {
+      return blockDraftInfeasible(supabase, args, choice.code, choice.error)
+    }
+
+    const draftComplete = pickNumber >= totalPicks
+    const operationKey = `draft_pick:${pickNumber}`
+    const applied = await applyDraftPickRpc(supabase, {
+      runId: args.runId,
+      leaseToken: args.leaseToken,
+      operationKey,
+      commandId: args.commandId,
+      pickNumber,
+      teamId: clock.teamId,
+      pokemonName: choice.pick.pokemon_name,
+      pointValue: Number(choice.pick.point_value ?? 0),
+      round: clock.round,
+      decisionSource: choice.decision_source,
+      decisionPayload: {
+        reason: choice.reason,
+        selector,
+        worker_id: args.workerId,
+        candidate_count: candidates.length,
+        rng_counter: pickNumber,
+      },
+      draftComplete,
+    })
+
+    status = applied.run_status
+    stepSeq = applied.step_seq
+    runVersion = applied.run_version
+
+    if (!applied.applied && applied.reason !== "ALREADY_APPLIED") {
+      return {
+        run_id: args.runId,
+        claimed: true,
+        steps_applied: stepsApplied,
+        run_status: status,
+        step_seq: stepSeq,
+        run_version: runVersion,
+        reason: applied.reason,
+      }
+    }
+
+    stepsApplied += applied.applied || applied.reason === "ALREADY_APPLIED" ? 1 : 0
+
+    await supabase
+      .from("simulation_runs")
+      .update({ rng_counters: counters, updated_at: new Date().toISOString() })
+      .eq("id", args.runId)
+      .eq("lease_token", args.leaseToken)
+
+    if (applied.run_status === "blocked" || draftComplete) {
+      break
+    }
+  }
+
+  if (status !== "blocked" && status !== "cancelled") {
+    await completeActiveCommandIfDone(supabase, {
+      runId: args.runId,
+      leaseToken: args.leaseToken,
+      commandId: args.commandRowId,
+      stepsApplied,
+      n: args.unit === "round" ? stepsApplied || 1 : args.n,
+      status,
+    })
+  } else if (args.commandRowId) {
+    await supabase
+      .from("simulation_commands")
+      .update({
+        status: status === "blocked" ? "completed" : "cancelled",
+        completed_at: new Date().toISOString(),
+      })
+      .eq("run_id", args.runId)
+      .eq("command_id", args.commandRowId)
+  }
+
+  const after = await getRun(supabase, args.runId)
+  return {
+    run_id: args.runId,
+    claimed: true,
+    steps_applied: stepsApplied,
+    run_status: after.status,
+    step_seq: after.step_seq,
+    run_version: after.run_version,
+    reason:
+      after.blocked_reason === "DRAFT_COMPLETE_SCHEDULE_UNSUPPORTED"
+        ? "DRAFT_COMPLETE"
+        : after.blocked_reason ?? undefined,
+  }
+}
+
+async function blockDraftInfeasible(
+  supabase: ServiceClient,
+  args: {
+    runId: string
+    leaseToken: string
+    commandId: string | null
+  },
+  code: string,
+  message: string,
+): Promise<TickResult> {
+  // Honest block via foundation unsupported path (no illegal pick emission),
+  // then relabel with an actionable draft code for operators.
+  const applied = await applyFoundationStepRpc(supabase, {
+    runId: args.runId,
+    leaseToken: args.leaseToken,
+    operationKey: `draft_block:${code}`,
+    kind: "draft_infeasible",
+    commandId: args.commandId,
+    output: { code, message, deferred: false },
+  })
+  await supabase
+    .from("simulation_runs")
+    .update({
+      status: "blocked",
+      blocked_reason: code,
+      error_code: code,
+      error_message: message,
+      active_command_id: null,
+      lease_owner: null,
+      lease_token: null,
+      lease_expires_at: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", args.runId)
+
+  const after = await getRun(supabase, args.runId)
+  return {
+    run_id: args.runId,
+    claimed: true,
+    steps_applied: applied.applied ? 1 : 0,
+    run_status: after.status,
+    step_seq: after.step_seq,
+    run_version: after.run_version,
+    reason: code,
+  }
+}
+
+async function completeActiveCommandIfDone(
+  supabase: ServiceClient,
+  args: {
+    runId: string
+    leaseToken: string
+    commandId?: string
+    stepsApplied: number
+    n: number
+    status: string
+  },
+): Promise<void> {
+  if (!args.commandId || args.stepsApplied < args.n) return
+  if (args.status === "blocked" || args.status === "cancelled") return
+
+  await supabase
+    .from("simulation_commands")
+    .update({
+      status: "completed",
+      completed_at: new Date().toISOString(),
+    })
+    .eq("run_id", args.runId)
+    .eq("command_id", args.commandId)
+
+  await supabase
+    .from("simulation_runs")
+    .update({
+      active_command_id: null,
+      status: args.status === "running" ? "paused" : args.status,
+      lease_owner: null,
+      lease_token: null,
+      lease_expires_at: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", args.runId)
+    .eq("lease_token", args.leaseToken)
+}
+
+async function applyDraftPickRpc(
+  supabase: ServiceClient,
+  args: {
+    runId: string
+    leaseToken: string
+    operationKey: string
+    commandId: string | null
+    pickNumber: number
+    teamId: string
+    pokemonName: string
+    pointValue: number
+    round: number
+    decisionSource: string
+    decisionPayload: Record<string, unknown>
+    draftComplete: boolean
+  },
+): Promise<{
+  applied: boolean
+  step_seq: number
+  run_version: number
+  run_status: string
+  reason: string
+}> {
+  const { data, error } = await supabase.rpc("sim_apply_draft_pick", {
+    p_run_id: args.runId,
+    p_lease_token: args.leaseToken,
+    p_operation_key: args.operationKey,
+    p_command_id: args.commandId,
+    p_pick_number: args.pickNumber,
+    p_team_id: args.teamId,
+    p_pokemon_name: args.pokemonName,
+    p_point_value: args.pointValue,
+    p_round: args.round,
+    p_decision_source: args.decisionSource,
+    p_decision_payload: args.decisionPayload,
+    p_draft_complete: args.draftComplete,
+  })
+  if (error) {
+    return {
+      applied: false,
+      step_seq: 0,
+      run_version: 0,
+      run_status: "failed",
+      reason: error.message,
+    }
+  }
+  const row = Array.isArray(data) ? data[0] : data
+  return {
+    applied: Boolean(row?.applied),
+    step_seq: Number(row?.step_seq ?? 0),
+    run_version: Number(row?.run_version ?? 0),
+    run_status: String(row?.run_status ?? "unknown"),
+    reason: String(row?.reason ?? ""),
   }
 }
 

@@ -33,6 +33,27 @@ export async function POST(
   const expectedStepSeq = Number(body.expected_step_seq)
   const expectedRunVersion = Number(body.expected_run_version)
 
+  const allowedUnits: SimAdvanceUnit[] = [
+    "foundation",
+    "pick",
+    "round",
+    "match",
+    "week",
+    "playoff_round",
+    "season",
+  ]
+  if (!allowedUnits.includes(unit)) {
+    return NextResponse.json(
+      {
+        error: `Unsupported advance unit "${String(body.unit)}"`,
+        code: "VALIDATION_FAILED",
+        allowed_units: allowedUnits,
+        note: "pick/round execute sandbox draft; match/week/playoff_round/season remain blocked",
+      },
+      { status: 422 },
+    )
+  }
+
   if (!Number.isFinite(expectedStepSeq) || !Number.isFinite(expectedRunVersion)) {
     return NextResponse.json(
       {

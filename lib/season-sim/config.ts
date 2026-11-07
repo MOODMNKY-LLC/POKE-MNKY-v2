@@ -70,6 +70,9 @@ export function buildProvisionalDemoConfig(
     team_count: number
     roster_min: number
     roster_max: number
+    total_rounds: number
+    budget_total: number
+    selector_draft: "random" | "heuristic" | "jev"
   }> = {},
 ): SimRunConfig {
   const rosterMax = overrides.roster_max ?? 10
@@ -78,6 +81,12 @@ export function buildProvisionalDemoConfig(
     // Keep conflict explicit — callers must not silently pick "11" as league truth.
     throw new Error(
       "P0–P1 demo config freezes roster_min=8 roster_max=10 under provisional_demo_v0; change requires a new rules_version label",
+    )
+  }
+  const totalRounds = overrides.total_rounds ?? rosterMax
+  if (totalRounds > rosterMax) {
+    throw new Error(
+      "total_rounds cannot exceed roster_max under provisional_demo_v0",
     )
   }
   return simRunConfigSchema.parse({
@@ -91,6 +100,8 @@ export function buildProvisionalDemoConfig(
     team_count: overrides.team_count ?? 12,
     roster_min: rosterMin,
     roster_max: rosterMax,
-    total_rounds: rosterMax,
+    total_rounds: totalRounds,
+    budget_total: overrides.budget_total,
+    selector_draft: overrides.selector_draft,
   })
 }
