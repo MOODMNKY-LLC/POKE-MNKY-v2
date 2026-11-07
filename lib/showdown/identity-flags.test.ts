@@ -5,6 +5,7 @@ import {
   isShowdownOauthLinkAvailable,
   legacyShowdownSyncDeniedResponse,
   LEGACY_SHOWDOWN_SYNC_DISABLED_CODE,
+  SHOWDOWN_OAUTH_LINK_IMPLEMENTED,
 } from "./identity-flags"
 
 describe("showdown identity flags", () => {
@@ -26,14 +27,20 @@ describe("showdown identity flags", () => {
     }
   })
 
-  it("treats oauth as unavailable without client id", () => {
+  it("does not enable oauth from CLIENT_ID alone while unimplemented", () => {
+    expect(SHOWDOWN_OAUTH_LINK_IMPLEMENTED).toBe(false)
     expect(isShowdownOauthLinkAvailable({})).toBe(false)
     expect(
-      isShowdownOauthLinkAvailable({ SHOWDOWN_OAUTH_CLIENT_ID: "  " }),
-    ).toBe(false)
-    expect(
       isShowdownOauthLinkAvailable({ SHOWDOWN_OAUTH_CLIENT_ID: "ps-client" }),
-    ).toBe(true)
+    ).toBe(false)
+    const status = getShowdownIdentityStatus({
+      SHOWDOWN_OAUTH_CLIENT_ID: "ps-client",
+    })
+    expect(status.oauth_link_available).toBe(false)
+    expect(status.oauth_link_implemented).toBe(false)
+    expect(status.oauth_unavailable_reason?.toLowerCase()).toContain("not shipped")
+    // Never leak client id into status payload
+    expect(JSON.stringify(status)).not.toContain("ps-client")
   })
 
   it("status never claims team cloud import", () => {
@@ -49,6 +56,7 @@ describe("showdown identity flags", () => {
     expect(res!.status).toBe(410)
     const body = await res!.json()
     expect(body.code).toBe(LEGACY_SHOWDOWN_SYNC_DISABLED_CODE)
+    expect(JSON.stringify(body)).not.toMatch(/SHOWDOWN_OAUTH_CLIENT_ID/)
   })
 
   it("allows legacy sync when flag on", () => {

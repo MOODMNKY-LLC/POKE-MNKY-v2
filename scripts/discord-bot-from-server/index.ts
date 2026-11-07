@@ -690,27 +690,52 @@ async function handleValidateTeamCommand(interaction: any) {
   await interaction.deferReply()
 
   try {
-    // Call app API to validate team
+    // App validate-team requires a logged-in coach session + explicit season_id
+    // for roster checks. Discord Bearer keys are not accepted; parse-only is
+    // the honest bot fallback until a dedicated bot auth path exists.
+    const seasonId = process.env.SHOWDOWN_VALIDATE_SEASON_ID?.trim() || ""
     const response = await fetch(`${APP_URL}/api/showdown/validate-team`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${SHOWDOWN_API_KEY}`,
       },
       body: JSON.stringify({
-        team: teamText,
+        team_text: teamText,
+        check: seasonId ? "roster" : "parse",
+        ...(seasonId ? { season_id: seasonId } : {}),
+        // discord_id retained for future bot-auth; currently unused by the route
         discord_id: discordId,
       }),
     })
 
     const data = await response.json()
 
-    if (data.valid) {
+    if (response.status === 401) {
       await interaction.editReply(
-        `✅ **Team Valid!**\n\nYour team is valid and complies with league rules.`,
+        `⚠️ **Session required**\n\nRoster validation runs through the app while signed in. ` +
+          `Use **Preview parse / Validate** on the website, or paste your export in Upload.`,
+      )
+      return
+    }
+
+    if (data.fully_validated || data.valid) {
+      await interaction.editReply(
+        `✅ **Team Valid!**\n\nParse and roster checks passed for the configured season.`,
+      )
+    } else if (data.parse_ok) {
+      const errorsList =
+        data.errors?.map((e: string) => `• ${e}`).join("\n") ||
+        data.message ||
+        "Roster check incomplete"
+      await interaction.editReply(
+        `⚠️ **Parsed OK — not fully validated**\n\n${errorsList}\n\n` +
+          `_Syntax parse alone is not league roster validation._`,
       )
     } else {
-      const errorsList = data.errors?.map((e: string) => `• ${e}`).join("\n") || "Unknown validation errors"
+      const errorsList =
+        data.errors?.map((e: string) => `• ${e}`).join("\n") ||
+        data.error ||
+        "Unknown validation errors"
       await interaction.editReply(`❌ **Team Invalid**\n\n**Errors:**\n${errorsList}`)
     }
   } catch (error: any) {
@@ -787,6 +812,16 @@ async function handleShowdownLinkCommand(interaction: any) {
         showdown_username: showdownUsername,
       }),
     })
+
+    if (response.status === 410) {
+      const disabled = await response.json().catch(() => ({}))
+      await interaction.editReply(
+        `⚠️ **Legacy Showdown registration disabled**\n\n` +
+          `${disabled.error || "Auto-registration is off."}\n\n` +
+          `Paste team exports in the app instead. Verified Main-account linking is not available yet.`,
+      )
+      return
+    }
 
     // Handle 404 (endpoint doesn't exist yet)
     if (response.status === 404) {

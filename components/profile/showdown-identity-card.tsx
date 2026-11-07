@@ -89,10 +89,18 @@ export function ShowdownIdentityCard({
           <>
             <div className="space-y-2">
               <Label>Verified central account link</Label>
-              {oauthAvailable ? (
-                <div className="flex items-center gap-2 text-sm">
-                  <CheckCircle2 className="h-4 w-4 text-green-500" />
-                  <span>Available (use Link when prompted)</span>
+              {/*
+                oauth_link_available requires an implemented OAuth flow AND client id.
+                Never render a Link button from client-id alone — Phase 2 ships the flow.
+              */}
+              {oauthAvailable && status.oauth_link_implemented ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Info className="h-4 w-4" />
+                  <span>
+                    Linking is enabled server-side. Use the in-app Link control when
+                    it appears in a later release — this card does not claim you are
+                    verified.
+                  </span>
                 </div>
               ) : (
                 <Alert>
@@ -100,7 +108,7 @@ export function ShowdownIdentityCard({
                   <AlertTitle>Unavailable</AlertTitle>
                   <AlertDescription>
                     {status.oauth_unavailable_reason ||
-                      "Verified linking to an existing Pokémon Showdown Main account is not configured yet."}
+                      "Verified linking to an existing Pokémon Showdown Main account is not available yet."}
                   </AlertDescription>
                 </Alert>
               )}
