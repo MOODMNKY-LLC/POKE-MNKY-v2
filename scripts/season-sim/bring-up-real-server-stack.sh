@@ -38,8 +38,6 @@ STATE_DIR="$WORKDIR/state"
 mkdir -p "$STATE_DIR"
 chmod 700 "$STATE_DIR"
 
-# Well-known local Supabase demo JWT secret (public demo; not a production secret).
-JWT_SECRET="${JWT_SECRET:-super-secret-jwt-token-with-at-least-32-characters-long}"
 # Short access-token TTL so expiry cases finish without unbounded waits.
 GOTRUE_JWT_EXP="${GOTRUE_JWT_EXP:-5}"
 
@@ -60,15 +58,31 @@ if ! docker info >/dev/null 2>&1; then
   fail "docker daemon not available"
 fi
 
-# Runtime-only disposable password (never echoed).
+# Runtime-only disposable credentials (never committed, never logged).
 SB_PG_PASS="$(openssl rand -hex 16)"
 ADMIN_PASSWORD="$(openssl rand -hex 12)Aa1!"
 NONADMIN_PASSWORD="$(openssl rand -hex 12)Bb2!"
 WORKER_KEY="local-disposable-sim-worker-$(openssl rand -hex 8)"
-
-# Public local demo anon/service JWTs matching JWT_SECRET (same as supabase start defaults).
-ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'
-SERVICE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU'
+# Per-run HS256 signing secret + matching anon/service API JWTs (not demo defaults).
+JWT_SECRET="$(openssl rand -hex 32)"
+export JWT_SECRET
+umask 077
+JWT_SECRET="$JWT_SECRET" python3 "$ROOT/scripts/season-sim/mint-disposable-jwts.py" \
+  >"$STATE_DIR/keys.json" \
+  || fail "failed to mint disposable anon/service JWTs"
+ANON_KEY="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["anon_key"])' "$STATE_DIR/keys.json")"
+SERVICE_KEY="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["service_role_key"])' "$STATE_DIR/keys.json")"
+rm -f "$STATE_DIR/keys.json"
+[[ -n "$ANON_KEY" && -n "$SERVICE_KEY" ]] || fail "minted keys empty"
+# Sanity: keys must look like JWTs (3 segments) without printing them.
+python3 - "$ANON_KEY" "$SERVICE_KEY" <<'PY' || fail "minted JWT shape invalid"
+import sys
+for label, tok in (("anon", sys.argv[1]), ("service", sys.argv[2])):
+    parts = tok.split(".")
+    if len(parts) != 3 or not all(parts):
+        raise SystemExit(f"{label} key is not a 3-part JWT")
+print("minted_disposable_jwts_ok")
+PY
 
 GATEWAY_URL="http://127.0.0.1:${GATEWAY_PORT}"
 APP_URL="http://127.0.0.1:${APP_PORT}"
@@ -82,8 +96,10 @@ cleanup() {
     docker rm -f "$GOTRUE_CONTAINER" "$REST_CONTAINER" "$PG_CONTAINER" >/dev/null 2>&1
     docker network rm "$NETWORK_NAME" >/dev/null 2>&1
   fi
-  # Scrub runtime password files
-  rm -f "$STATE_DIR"/gotrue.env "$STATE_DIR"/postgrest.env "$STATE_DIR"/passwords.env
+  # Scrub runtime credential files and unset in-process secrets
+  rm -f "$STATE_DIR"/gotrue.env "$STATE_DIR"/postgrest.env "$STATE_DIR"/passwords.env \
+    "$STATE_DIR"/keys.json
+  unset JWT_SECRET ANON_KEY SERVICE_KEY SB_PG_PASS ADMIN_PASSWORD NONADMIN_PASSWORD WORKER_KEY KEYS_JSON
   exit "$ec"
 }
 trap cleanup EXIT
@@ -127,6 +143,7 @@ if [[ "${SKIP_CLEAN_REPLAY:-0}" == "1" ]]; then
   # Password must already match the running container.
 else
   export SB_PG_PASS
+  export JWT_SECRET
   export SUPABASE_PG_IMAGE STORAGE_API_IMAGE
   export CONTAINER_NAME="$PG_CONTAINER"
   export HOST_PG_PORT NETWORK_NAME

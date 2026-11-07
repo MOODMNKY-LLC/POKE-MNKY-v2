@@ -46,6 +46,19 @@ if [[ -z "${SB_PG_PASS:-}" ]]; then
   echo "SB_PG_PASS must be set to a disposable local password (not printed)." >&2
   exit 2
 fi
+# Per-run signing material only — never use a committed/shared default secret.
+if [[ -z "${JWT_SECRET:-}" ]]; then
+  if ! command -v openssl >/dev/null 2>&1; then
+    echo "JWT_SECRET unset and openssl missing; refuse fixed demo secret." >&2
+    exit 2
+  fi
+  JWT_SECRET="$(openssl rand -hex 32)"
+  export JWT_SECRET
+fi
+if [[ "${#JWT_SECRET}" -lt 32 ]]; then
+  echo "JWT_SECRET must be at least 32 characters." >&2
+  exit 2
+fi
 
 mkdir -p "$WORKDIR"
 : >"$WORKDIR/storage.log"
@@ -65,7 +78,7 @@ docker rm "$TMP_STORAGE" >/dev/null
 docker run -d --name "$CONTAINER_NAME" --network "$NETWORK_NAME" \
   -e POSTGRES_PASSWORD="$SB_PG_PASS" \
   -e POSTGRES_HOST=/var/run/postgresql \
-  -e JWT_SECRET="${JWT_SECRET:-super-secret-jwt-token-with-at-least-32-characters-long}" \
+  -e JWT_SECRET="$JWT_SECRET" \
   -v "$ROOT/supabase/migrations:/migrations:ro" \
   -v "$STORAGE_SQL_HOST:/storage-migrations:ro" \
   -p "127.0.0.1:${HOST_PG_PORT}:5432" \

@@ -31,9 +31,10 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
+        # Disposable CI-only Postgres; trust auth avoids embedding a password in YAML.
         image: postgres:16
         env:
-          POSTGRES_PASSWORD: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
           POSTGRES_DB: sheet_sync_apply_test
         ports:
           - 5432:5432
@@ -55,7 +56,7 @@ jobs:
       - name: Run sheet_sync_apply postgres regression
         env:
           CI: true
-          SHEET_SYNC_APPLY_PG_URL: postgresql://postgres:postgres@localhost:5432/sheet_sync_apply_test
+          SHEET_SYNC_APPLY_PG_URL: postgresql://postgres@localhost:5432/sheet_sync_apply_test
         run: pnpm exec vitest run lib/sheet-sync/apply-ambiguous.test.ts
 
   season-sim-foundation-pg:
@@ -64,7 +65,7 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_PASSWORD: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
           POSTGRES_DB: season_sim_foundation_test
         ports:
           - 5432:5432
@@ -86,11 +87,8 @@ jobs:
       - name: Run season-sim foundation postgres integration
         env:
           CI: true
-          # Disposable GitHub Actions postgres service only (not a real secret).
-          POSTGRES_PASSWORD: postgres
-        run: |
-          export SEASON_SIM_PG_URL="postgresql://postgres:${POSTGRES_PASSWORD}@localhost:5432/season_sim_foundation_test"
-          pnpm test:season-sim-pg
+          SEASON_SIM_PG_URL: postgresql://postgres@localhost:5432/season_sim_foundation_test
+        run: pnpm test:season-sim-pg
 
   season-sim-real-server-auth:
     runs-on: ubuntu-latest
@@ -115,7 +113,7 @@ jobs:
         run: pnpm test:season-sim-real-server-stack
         env:
           CI: true
-          # Runtime passwords are generated inside the script; never committed.
+          # Per-run JWT signing secret + API keys are minted inside the script.
 
   e2e:
     runs-on: ubuntu-latest
@@ -134,9 +132,10 @@ jobs:
       - name: Build
         run: pnpm build
         env:
+          # Opaque build stubs only — not JWTs, not used for real Auth in this job.
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.placeholder
-          SUPABASE_SERVICE_ROLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.placeholder
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-build-anon-key-not-for-auth
+          SUPABASE_SERVICE_ROLE_KEY: ci-build-service-role-key-not-for-auth
       - name: Start server and run E2E
         run: |
           pnpm start &
@@ -146,5 +145,5 @@ jobs:
           CI: true
           BASE_URL: http://localhost:3000
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.placeholder
-          SUPABASE_SERVICE_ROLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.placeholder
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-build-anon-key-not-for-auth
+          SUPABASE_SERVICE_ROLE_KEY: ci-build-service-role-key-not-for-auth
