@@ -76,7 +76,9 @@ grant select, insert, update, delete on public.league_replay_archives to service
 grant select, insert, update, delete on public.league_replay_parse_runs to service_role;
 grant select, insert, update, delete on public.league_match_replay_links to service_role;
 
--- Authenticated select: creator, coaches on acl owner team, or coaches on linked match sides
+-- Authenticated select: creator, team via profiles.team_id OR coaches→teams
+-- (aligns with resolveCoachTeamForSeason), or coaches on linked match sides.
+-- No SECURITY DEFINER helpers — policies stay invoker-scoped.
 create policy "Archives readable by creator or match/team coaches"
   on public.league_replay_archives
   for select
@@ -92,12 +94,31 @@ create policy "Archives readable by creator or match/team coaches"
     )
     or exists (
       select 1
+      from public.coaches c
+      join public.teams t on t.coach_id = c.id
+      where c.user_id = (select auth.uid())
+        and t.id = acl_owner_team_id
+    )
+    or exists (
+      select 1
       from public.league_match_replay_links l
       join public.matches m on m.id = l.match_id
-      join public.profiles p on p.id = (select auth.uid())
       where l.archive_id = league_replay_archives.id
-        and p.team_id is not null
-        and (p.team_id = m.team1_id or p.team_id = m.team2_id)
+        and (
+          exists (
+            select 1 from public.profiles p
+            where p.id = (select auth.uid())
+              and p.team_id is not null
+              and (p.team_id = m.team1_id or p.team_id = m.team2_id)
+          )
+          or exists (
+            select 1
+            from public.coaches c
+            join public.teams t on t.coach_id = c.id
+            where c.user_id = (select auth.uid())
+              and (t.id = m.team1_id or t.id = m.team2_id)
+          )
+        )
     )
   );
 
@@ -120,12 +141,31 @@ create policy "Parse runs readable with parent archive"
           )
           or exists (
             select 1
+            from public.coaches c
+            join public.teams t on t.coach_id = c.id
+            where c.user_id = (select auth.uid())
+              and t.id = a.acl_owner_team_id
+          )
+          or exists (
+            select 1
             from public.league_match_replay_links l
             join public.matches m on m.id = l.match_id
-            join public.profiles p on p.id = (select auth.uid())
             where l.archive_id = a.id
-              and p.team_id is not null
-              and (p.team_id = m.team1_id or p.team_id = m.team2_id)
+              and (
+                exists (
+                  select 1 from public.profiles p
+                  where p.id = (select auth.uid())
+                    and p.team_id is not null
+                    and (p.team_id = m.team1_id or p.team_id = m.team2_id)
+                )
+                or exists (
+                  select 1
+                  from public.coaches c
+                  join public.teams t on t.coach_id = c.id
+                  where c.user_id = (select auth.uid())
+                    and (t.id = m.team1_id or t.id = m.team2_id)
+                )
+              )
           )
         )
     )
@@ -140,10 +180,22 @@ create policy "Match replay links readable by match coaches"
     or exists (
       select 1
       from public.matches m
-      join public.profiles p on p.id = (select auth.uid())
       where m.id = match_id
-        and p.team_id is not null
-        and (p.team_id = m.team1_id or p.team_id = m.team2_id)
+        and (
+          exists (
+            select 1 from public.profiles p
+            where p.id = (select auth.uid())
+              and p.team_id is not null
+              and (p.team_id = m.team1_id or p.team_id = m.team2_id)
+          )
+          or exists (
+            select 1
+            from public.coaches c
+            join public.teams t on t.coach_id = c.id
+            where c.user_id = (select auth.uid())
+              and (t.id = m.team1_id or t.id = m.team2_id)
+          )
+        )
     )
   );
 
