@@ -23,6 +23,8 @@ interface SeasonRow {
   name: string
   season_id: string | null
   is_current: boolean
+  /** Present after P0 migration; inventory intentionally includes sandboxes (labeled). */
+  is_sandbox?: boolean
   start_date?: string | null
   end_date?: string | null
   conference_count?: number | null
@@ -58,12 +60,25 @@ export function LeagueSeasonsTab() {
     setLoading(true)
     setError(null)
     try {
-      const { data, error } = await supabase
+      // Inventory UI: include sandboxes when column exists, labeled in the table.
+      const full = await supabase
         .from("seasons")
         .select(
-          "id, name, season_id, is_current, start_date, end_date, conference_count, division_count, team_slot_count, regular_season_weeks, playoff_weeks"
+          "id, name, season_id, is_current, is_sandbox, start_date, end_date, conference_count, division_count, team_slot_count, regular_season_weeks, playoff_weeks"
         )
         .order("start_date", { ascending: false })
+      let data = full.data
+      let error = full.error
+      if (error?.code === "42703") {
+        const legacy = await supabase
+          .from("seasons")
+          .select(
+            "id, name, season_id, is_current, start_date, end_date, conference_count, division_count, team_slot_count, regular_season_weeks, playoff_weeks"
+          )
+          .order("start_date", { ascending: false })
+        data = legacy.data
+        error = legacy.error
+      }
       if (error) throw error
       setSeasons((data as SeasonRow[]) ?? [])
     } catch (err) {
@@ -264,7 +279,14 @@ export function LeagueSeasonsTab() {
               ) : (
                 seasons.map((season) => (
                   <TableRow key={season.id}>
-                    <TableCell className="font-medium">{season.name}</TableCell>
+                    <TableCell className="font-medium">
+                      <span className="inline-flex items-center gap-2">
+                        {season.name}
+                        {season.is_sandbox === true ? (
+                          <Badge variant="secondary">SANDBOX</Badge>
+                        ) : null}
+                      </span>
+                    </TableCell>
                     <TableCell className="font-mono text-sm">{season.season_id ?? "—"}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {season.conference_count ?? 2}c · {season.division_count ?? 4}d ·{" "}
@@ -291,7 +313,14 @@ export function LeagueSeasonsTab() {
                       <Button
                         variant="outline"
                         size="sm"
-                        disabled={schedulingId === season.id}
+                        disabled={
+                          season.is_sandbox === true || schedulingId === season.id
+                        }
+                        title={
+                          season.is_sandbox === true
+                            ? "Sandbox seasons use the simulator foundation, not live schedule generation"
+                            : undefined
+                        }
                         onClick={() => handleGenerateSchedule(season.id)}
                       >
                         {schedulingId === season.id ? (
@@ -303,7 +332,14 @@ export function LeagueSeasonsTab() {
                       <Button
                         variant="outline"
                         size="sm"
-                        disabled={playoffsId === season.id}
+                        disabled={
+                          season.is_sandbox === true || playoffsId === season.id
+                        }
+                        title={
+                          season.is_sandbox === true
+                            ? "Sandbox seasons use the simulator foundation, not live playoffs"
+                            : undefined
+                        }
                         onClick={() => handleGeneratePlayoffs(season.id)}
                       >
                         {playoffsId === season.id ? (
@@ -315,7 +351,16 @@ export function LeagueSeasonsTab() {
                       <Button
                         variant="outline"
                         size="sm"
-                        disabled={season.is_current || settingId === season.id}
+                        disabled={
+                          season.is_sandbox === true ||
+                          season.is_current ||
+                          settingId === season.id
+                        }
+                        title={
+                          season.is_sandbox === true
+                            ? "Sandbox seasons cannot be set as current"
+                            : undefined
+                        }
                         onClick={() => handleSetCurrent(season.id)}
                       >
                         {settingId === season.id ? (

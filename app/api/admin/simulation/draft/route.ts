@@ -8,6 +8,7 @@ import { createServerClient } from "@/lib/supabase/server"
 import { createServiceRoleClient } from "@/lib/supabase/service"
 import { DraftSystem, type DraftSession } from "@/lib/draft-system"
 import { recordSimulationRun } from "@/lib/league-simulation/simulation-engine"
+import { legacySimulationWriteDeniedResponse } from "@/lib/season-sim/legacy-gate"
 
 const MOCK_SEASON_NAME = "Mock Draft Demo"
 
@@ -25,6 +26,9 @@ function isDraftSessionStatus(value: string | null | undefined): value is DraftS
 
 export async function POST(request: NextRequest) {
   try {
+    const legacyDenied = legacySimulationWriteDeniedResponse()
+    if (legacyDenied) return legacyDenied
+
     const supabase = await createServerClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 

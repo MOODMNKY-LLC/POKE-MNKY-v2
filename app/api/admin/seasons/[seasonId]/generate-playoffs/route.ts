@@ -23,6 +23,7 @@ import {
   assertSeasonAllowsPlayoffWrites,
   SheetSyncWriteBlockedError,
 } from "@/lib/sheet-sync-write-gate"
+import { refuseSandboxSeasonOrResponse } from "@/lib/season-sim/refuse-sandbox-season"
 
 type RouteContext = { params: Promise<{ seasonId: string }> }
 
@@ -84,6 +85,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const requireRegularComplete = body?.require_regular_complete === true
 
     const service = createServiceRoleClient()
+    const sandboxDenied = await refuseSandboxSeasonOrResponse(service, seasonId)
+    if (sandboxDenied) return sandboxDenied
     await assertSeasonAllowsPlayoffWrites(service, seasonId)
 
     const readiness = await checkPlayoffReadiness(service, seasonId, {

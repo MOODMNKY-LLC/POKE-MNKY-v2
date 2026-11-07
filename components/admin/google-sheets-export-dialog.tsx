@@ -85,13 +85,23 @@ export function GoogleSheetsExportDialog({ onExportComplete }: GoogleSheetsExpor
       const supabase = createBrowserClient()
       
       // Fetch seasons
-      const { data: seasonsData } = await supabase
+      const full = await supabase
         .from("seasons")
-        .select("id, name, is_current")
+        .select("id, name, is_current, is_sandbox")
         .order("created_at", { ascending: false })
-      
+      let seasonsData = full.data as
+        | Array<{ id: string; name: string; is_current: boolean; is_sandbox?: boolean }>
+        | null
+      if (full.error?.code === "42703") {
+        const legacy = await supabase
+          .from("seasons")
+          .select("id, name, is_current")
+          .order("created_at", { ascending: false })
+        seasonsData = legacy.data as typeof seasonsData
+      }
       if (seasonsData) {
-        setSeasons(seasonsData)
+        // Export targets live league sheets only — exclude sandboxes.
+        setSeasons(seasonsData.filter((s) => s.is_sandbox !== true))
       }
       
       // Fetch current user

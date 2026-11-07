@@ -14,6 +14,11 @@ import {
   type MatchSubmitBody,
 } from "@/lib/validation/match-submit"
 import { assertLiveSeasonAllowsResultWrites } from "@/lib/sheet-sync-write-gate"
+import {
+  shouldEmitLiveSideEffectsForSeason,
+  fetchSeasonSandboxFlags,
+} from "@/lib/season-sim/sandbox-guard"
+import { getCurrentSeasonIdWithFallback } from "@/lib/seasons"
 
 export type CompleteMatchResult = {
   match_id: string
@@ -23,33 +28,11 @@ export type CompleteMatchResult = {
   discord_error?: string
 }
 
+/** Live/competitive season only — never resolves a sandbox season. */
 export async function resolveCurrentSeasonId(
   supabase: SupabaseClient
 ): Promise<string | null> {
-  const { data: current } = await supabase
-    .from("seasons")
-    .select("id")
-    .eq("is_current", true)
-    .maybeSingle()
-
-  if (current?.id) return current.id
-
-  const { data: season7 } = await supabase
-    .from("seasons")
-    .select("id")
-    .or("name.eq.Season 7,season_id.eq.AABPBL-Season-7-2027")
-    .maybeSingle()
-
-  if (season7?.id) return season7.id
-
-  const { data: recent } = await supabase
-    .from("seasons")
-    .select("id")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  return recent?.id ?? null
+  return getCurrentSeasonIdWithFallback(supabase)
 }
 
 export async function assertCanSubmitMatch(
@@ -91,16 +74,22 @@ export async function finalizeMatchAfterInsert(
   let discord_notified = false
   let discord_error: string | undefined
 
-  try {
-    await notifyMatchResult(matchId)
-    discord_notified = true
-  } catch (err) {
-    discord_error =
-      err instanceof Error ? err.message : "Discord notification failed"
-    console.error("[match-result-complete] Discord notify failed:", err)
+  // Fail closed: unknown season identity / sandbox → no live side effects.
+  // Pre-migration (missing is_sandbox column) still allows notify for known seasons.
+  const emitLive = await shouldEmitLiveSideEffectsForSeason(supabase, seasonId)
+
+  if (emitLive) {
+    try {
+      await notifyMatchResult(matchId)
+      discord_notified = true
+    } catch (err) {
+      discord_error =
+        err instanceof Error ? err.message : "Discord notification failed"
+      console.error("[match-result-complete] Discord notify failed:", err)
+    }
   }
 
-  if (submittedBy) {
+  if (submittedBy && emitLive) {
     try {
       await logActivity(supabase, submittedBy, "match_submitted", {
         resource_type: "match",
@@ -143,6 +132,14 @@ export async function completeMatchResult(
 
   if (!seasonId) {
     throw new Error("No current season configured")
+  }
+
+  // Refuse completing matches into a sandbox season via live competitive path.
+  const seasonFlags = await fetchSeasonSandboxFlags(supabase, seasonId)
+  if (seasonFlags?.is_sandbox === true) {
+    throw new Error(
+      "Sandbox seasons cannot receive live match results; use the season simulator foundation",
+    )
   }
 
   const differential = signedMatchDifferential(parsed.team1_score, parsed.team2_score)

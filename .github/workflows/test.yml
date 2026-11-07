@@ -31,9 +31,10 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
+        # Disposable CI-only Postgres; trust auth avoids embedding a password in YAML.
         image: postgres:16
         env:
-          POSTGRES_PASSWORD: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
           POSTGRES_DB: sheet_sync_apply_test
         ports:
           - 5432:5432
@@ -55,8 +56,77 @@ jobs:
       - name: Run sheet_sync_apply postgres regression
         env:
           CI: true
-          SHEET_SYNC_APPLY_PG_URL: postgresql://postgres:postgres@localhost:5432/sheet_sync_apply_test
+          SHEET_SYNC_APPLY_PG_URL: postgresql://postgres@localhost:5432/sheet_sync_apply_test
         run: pnpm exec vitest run lib/sheet-sync/apply-ambiguous.test.ts
+
+  season-sim-foundation-pg:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: season_sim_foundation_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - name: Run season-sim foundation postgres integration
+        env:
+          CI: true
+          SEASON_SIM_PG_URL: postgresql://postgres@localhost:5432/season_sim_foundation_test
+        run: pnpm test:season-sim-pg
+
+  season-sim-real-server-auth:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - name: Pull pinned disposable stack images
+        run: |
+          set -euo pipefail
+          pull_with_retry() {
+            local img="$1" attempt=1
+            until docker pull "$img"; do
+              if [[ "$attempt" -ge 5 ]]; then
+                echo "FATAL: docker pull failed after ${attempt} attempts: $img" >&2
+                exit 1
+              fi
+              echo "docker pull retry ${attempt} for $img (likely registry rate limit)"
+              sleep $((attempt * 20))
+              attempt=$((attempt + 1))
+            done
+          }
+          pull_with_retry public.ecr.aws/supabase/postgres:17.11.0.006
+          pull_with_retry public.ecr.aws/supabase/storage-api:v1.88.0
+          pull_with_retry public.ecr.aws/supabase/gotrue:v2.197.0
+          pull_with_retry public.ecr.aws/supabase/postgrest:v16.5
+      - name: Real Next+GoTrue session suite (disposable stack)
+        run: pnpm test:season-sim-real-server-stack
+        env:
+          CI: true
+          # Per-run JWT signing secret + API keys are minted inside the script.
 
   e2e:
     runs-on: ubuntu-latest
@@ -75,9 +145,10 @@ jobs:
       - name: Build
         run: pnpm build
         env:
+          # Opaque build stubs only — not JWTs, not used for real Auth in this job.
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.placeholder
-          SUPABASE_SERVICE_ROLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.placeholder
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-build-anon-key-not-for-auth
+          SUPABASE_SERVICE_ROLE_KEY: ci-build-service-role-key-not-for-auth
       - name: Start server and run E2E
         run: |
           pnpm start &
@@ -87,5 +158,5 @@ jobs:
           CI: true
           BASE_URL: http://localhost:3000
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.placeholder
-          SUPABASE_SERVICE_ROLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.placeholder
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-build-anon-key-not-for-auth
+          SUPABASE_SERVICE_ROLE_KEY: ci-build-service-role-key-not-for-auth
