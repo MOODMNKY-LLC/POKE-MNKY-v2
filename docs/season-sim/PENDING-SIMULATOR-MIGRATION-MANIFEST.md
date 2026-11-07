@@ -4,7 +4,8 @@
 **Inventory basis:** sanitized read-only prod inventory 2026-11-07 (~12:33–12:40 ICT). Re-compare if tip/SQL changes.  
 **Guard fix:** `SEASON_SIM_PG_URL` query-host bypass closed in-repo (`pg-disposable-target` + Client from validated fields only).  
 **Rehearsal:** ordered migration rehearsal on a disposable **restored** schema with the **actual** admin helper is **explicitly NOT performed / unverified**. Do not treat CI disposable bootstrap as that rehearsal.  
-**Backup logs:** prior full restore logs were deleted with disposable workdirs; do **not** claim retained full restore logs. Peer-reported Mac snapshot / row-count summary only.
+**Backup logs:** prior full restore logs were deleted with disposable workdirs; do **not** claim retained full restore logs. Peer-reported Mac snapshot / row-count summary only.  
+**Legacy compatibility (app-side, seven SQL unchanged):** Mock Draft Demo writers are preserved by forcing that named season to `is_sandbox=true` (live flags off) before `recordSimulationRun`; the attach trigger / claim / step / reset gates against genuine nonsandbox seasons stay intact. No writer retirement inferred. **No SQL content change → no rehash of the seven-file table below; no changed-migration / scoped-rollback rehearsal beyond existing §5.** Historical GitGuardian remains a separate release-path gate when required.
 
 ---
 
@@ -155,3 +156,5 @@ If new child tables (#2–#6) were created and must be removed, that requires a 
 | Restored-schema ordered rehearsal | **Not performed / unverified** |
 | Full restore logs retained | **No** (deleted with disposable dirs) |
 | Live apply / flags / deploy / merge | **Not authorized by this document** |
+| Seven SQL rehash after tip compat work | **Not required** — SQL files unchanged; app-only Mock Draft Demo sandbox ensure + nonsandbox claim/step/reset denial probe |
+| Nonsandbox-linked run mutation denial (claim/step/reset) | Disposable PG probe (`nonsandbox-run-mutation-denial.pg.test.ts`); not a restored-schema rehearsal substitute |

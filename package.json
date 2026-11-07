@@ -52,7 +52,7 @@
     "jev:pilot": "tsx scripts/jev-pilot/run.ts",
     "sim:worker:tick": "tsx scripts/sim-worker/tick.ts",
     "sim:worker:typecheck": "tsc -p scripts/sim-worker/tsconfig.json",
-    "test:season-sim-pg": "vitest run --config vitest.integration.config.ts lib/season-sim/foundation.pg.test.ts lib/season-sim/draft.pg.test.ts lib/season-sim/shared-db-rls.pg.test.ts lib/season-sim/noninterference.pg.test.ts",
+    "test:season-sim-pg": "vitest run --config vitest.integration.config.ts lib/season-sim/foundation.pg.test.ts lib/season-sim/draft.pg.test.ts lib/season-sim/shared-db-rls.pg.test.ts lib/season-sim/noninterference.pg.test.ts lib/season-sim/nonsandbox-run-mutation-denial.pg.test.ts",
     "test:season-sim-http": "vitest run --config vitest.integration.config.ts lib/season-sim/routes.http.integration.test.ts",
     "test:season-sim-real-server": "tsx scripts/season-sim/real-server-auth-e2e.ts",
     "test:season-sim-real-server-stack": "bash scripts/season-sim/bring-up-real-server-stack.sh",
