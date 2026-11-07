@@ -19,12 +19,12 @@ import { UserAvatar } from "@/components/ui/user-avatar"
 import { PokeballIcon } from "@/components/ui/pokeball-icon"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { User, Shield, History, Gamepad2, CheckCircle2, XCircle, Loader2, RefreshCw, Upload } from "lucide-react"
+import { User, Shield, History, Gamepad2, Loader2, Upload } from "lucide-react"
 import { getCurrentUserProfile, canAccessCoachFeatures, type UserProfile, type DiscordRole } from "@/lib/rbac"
 import { DISCORD_TO_APP_ROLE_MAP } from "@/lib/discord-role-mappings"
 import { CoachCard } from "@/components/profile/coach-card"
 import { ShowdownTeamsSection } from "@/components/profile/showdown-teams-section"
+import { ShowdownIdentityCard } from "@/components/profile/showdown-identity-card"
 import { toast } from "sonner"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
@@ -231,21 +231,24 @@ export function ProfileSheet({ open, onOpenChange }: ProfileSheetProps) {
       const data = await response.json()
 
       if (!response.ok || !data.success) {
-        throw new Error(data.error || "Failed to sync Showdown account")
+        throw new Error(
+          data.error || "Legacy Showdown registration failed or is disabled",
+        )
       }
 
       setSyncMessage({
         type: "success",
-        text: `Showdown account synced successfully! Username: ${data.showdown_username}`,
+        text: `Legacy loginserver registration recorded. Username: ${data.showdown_username}. This is not a verified Main-account link.`,
       })
 
-      // Reload profile to get updated sync status
       await loadProfile()
     } catch (error: any) {
-      console.error("Error syncing Showdown account:", error)
+      console.error("Error in legacy Showdown registration:", error)
       setSyncMessage({
         type: "error",
-        text: error.message || "Failed to sync Showdown account. Please try again.",
+        text:
+          error.message ||
+          "Legacy Showdown registration failed. Paste team exports instead.",
       })
     } finally {
       setSyncing(false)
@@ -414,101 +417,12 @@ export function ProfileSheet({ open, onOpenChange }: ProfileSheetProps) {
                     </CardContent>
                   </Card>
 
-                  {/* Showdown Sync Section */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Showdown Account Sync</CardTitle>
-                      <CardDescription>
-                        Sync your POKE MNKY account with Pokémon Showdown to enable seamless battle integration
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      {/* Sync Status */}
-                      <div className="space-y-2">
-                        <Label>Sync Status</Label>
-                        <div className="flex items-center gap-2">
-                          {profile.showdown_account_synced ? (
-                            <>
-                              <CheckCircle2 className="h-5 w-5 text-green-500" />
-                              <span className="text-sm font-medium">Account Synced</span>
-                            </>
-                          ) : (
-                            <>
-                              <XCircle className="h-5 w-5 text-muted-foreground" />
-                              <span className="text-sm text-muted-foreground">Not Synced</span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Showdown Username */}
-                      {profile.showdown_username && (
-                        <div className="space-y-2">
-                          <Label>Showdown Username</Label>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="font-mono">
-                              {profile.showdown_username}
-                            </Badge>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Last Synced */}
-                      {profile.showdown_account_synced_at && (
-                        <div className="space-y-2">
-                          <Label>Last Synced</Label>
-                          <p className="text-sm text-muted-foreground">
-                            {new Date(profile.showdown_account_synced_at).toLocaleString()}
-                          </p>
-                        </div>
-                      )}
-
-                      {/* Sync Message Alert */}
-                      {syncMessage.type && (
-                        <Alert variant={syncMessage.type === "error" ? "destructive" : "default"}>
-                          {syncMessage.type === "success" ? (
-                            <CheckCircle2 className="h-4 w-4" />
-                          ) : (
-                            <XCircle className="h-4 w-4" />
-                          )}
-                          <AlertTitle>{syncMessage.type === "success" ? "Success" : "Error"}</AlertTitle>
-                          <AlertDescription>{syncMessage.text}</AlertDescription>
-                        </Alert>
-                      )}
-
-                      {/* Sync Button */}
-                      <div className="pt-4">
-                        <Button
-                          onClick={syncShowdownAccount}
-                          disabled={syncing}
-                          className="w-full sm:w-auto"
-                        >
-                          {syncing ? (
-                            <>
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                              Syncing...
-                            </>
-                          ) : (
-                            <>
-                              <RefreshCw className="h-4 w-4 mr-2" />
-                              {profile.showdown_account_synced ? "Re-sync Account" : "Sync Showdown Account"}
-                            </>
-                          )}
-                        </Button>
-                      </div>
-
-                      {/* Info Section */}
-                      <div className="pt-4 border-t">
-                        <h4 className="text-sm font-medium mb-2">About Showdown Sync</h4>
-                        <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                          <li>Syncs your POKE MNKY account with the Showdown loginserver</li>
-                          <li>Enables seamless login to Showdown battle rooms</li>
-                          <li>Your Showdown username is automatically generated from your Discord username</li>
-                          <li>You can also sync via Discord bot: <code className="bg-muted px-1 rounded">/showdown-link</code></li>
-                        </ul>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <ShowdownIdentityCard
+                    profile={profile}
+                    onLegacySync={syncShowdownAccount}
+                    syncing={syncing}
+                    syncMessage={syncMessage}
+                  />
                 </TabsContent>
 
                 {/* Permissions Tab */}

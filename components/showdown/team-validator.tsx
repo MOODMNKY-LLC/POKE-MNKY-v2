@@ -1,17 +1,35 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { CheckCircle2, XCircle, Copy, Loader2, FileText, Upload, Info, Save } from 'lucide-react';
 import { toast } from 'sonner';
+import { createBrowserClient } from '@/lib/supabase/client';
+import {
+  pickStandingsSeason,
+  type StandingsSeasonRow,
+} from '@/lib/standings-season';
 
 interface ValidationResult {
   valid: boolean;
+  parse_ok?: boolean;
+  roster_checked?: boolean;
+  fully_validated?: boolean;
   errors: string[];
+  message?: string;
+  season_id?: string | null;
   team?: {
     pokemon: Array<{
       name: string;
@@ -34,6 +52,35 @@ export default function TeamValidator() {
   const [teamText, setTeamText] = useState('');
   const [validating, setValidating] = useState(false);
   const [result, setResult] = useState<ValidationResult | null>(null);
+  const [seasons, setSeasons] = useState<StandingsSeasonRow[]>([]);
+  const [seasonId, setSeasonId] = useState<string>('');
+
+  useEffect(() => {
+    const supabase = createBrowserClient();
+    void (async () => {
+      const { data, error } = await supabase
+        .from('seasons')
+        .select(
+          'id, name, season_id, is_current, is_live_competitive, sheet_sync_enabled, start_date, end_date',
+        )
+        .order('start_date', { ascending: false });
+      if (error || !data) {
+        const fallback = await supabase
+          .from('seasons')
+          .select('id, name, season_id, is_current, start_date, end_date')
+          .order('start_date', { ascending: false });
+        if (fallback.data) {
+          setSeasons(fallback.data as StandingsSeasonRow[]);
+          const picked = pickStandingsSeason(fallback.data as StandingsSeasonRow[], null);
+          if (picked) setSeasonId(picked.id);
+        }
+        return;
+      }
+      setSeasons(data as StandingsSeasonRow[]);
+      const picked = pickStandingsSeason(data as StandingsSeasonRow[], null);
+      if (picked) setSeasonId(picked.id);
+    })();
+  }, []);
 
   const handleFileUpload = async (file: File) => {
     if (!file.name.endsWith('.txt') && !file.name.endsWith('.team')) {
@@ -63,6 +110,10 @@ export default function TeamValidator() {
       toast.error('Please paste a Showdown team export');
       return;
     }
+    if (!seasonId) {
+      toast.error('Select a season for roster validation');
+      return;
+    }
 
     setValidating(true);
     setResult(null);
@@ -72,31 +123,32 @@ export default function TeamValidator() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ team_text: teamText })
+        body: JSON.stringify({
+          team_text: teamText,
+          season_id: seasonId,
+          check: 'roster',
+        }),
       });
 
       const data = await response.json();
 
-      if (response.ok) {
-        setResult(data);
-        if (data.valid) {
-          toast.success('Team is valid!');
-        } else {
-          toast.error(`Team validation failed: ${data.errors.length} error(s)`);
-        }
+      setResult(data);
+      if (response.ok && data.fully_validated) {
+        toast.success('Team passed parse and roster checks');
+      } else if (data.parse_ok && !data.fully_validated) {
+        toast.error(
+          data.message ||
+            `Roster check failed: ${(data.errors || []).length} error(s)`,
+        );
       } else {
         toast.error(data.error || 'Failed to validate team');
-        setResult({
-          valid: false,
-          errors: [data.error || 'Validation failed']
-        });
       }
     } catch (error) {
       console.error('Failed to validate team:', error);
       toast.error('Failed to validate team. Please try again.');
       setResult({
         valid: false,
-        errors: ['Network error. Please try again.']
+        errors: ['Network error. Please try again.'],
       });
     } finally {
       setValidating(false);
@@ -111,8 +163,14 @@ export default function TeamValidator() {
   };
 
   const handleSaveTeam = async () => {
-    if (!result?.valid || !teamText.trim()) {
-      toast.error('Team must be valid before saving');
+    // Allow save after successful parse even if roster failed — library storage
+    // is separate from roster compliance.
+    if (!result?.parse_ok && !result?.valid) {
+      toast.error('Fix parse errors before saving');
+      return;
+    }
+    if (!teamText.trim()) {
+      toast.error('Paste a team first');
       return;
     }
 
@@ -147,7 +205,8 @@ export default function TeamValidator() {
       <div>
         <h2 className="text-2xl font-bold mb-2">Team Validator</h2>
         <p className="text-muted-foreground">
-          Paste your Showdown team export to validate it against your drafted roster and league rules
+          Paste a Showdown export and check it against your drafted roster for an
+          explicit season. Syntax parse alone is not full league validation.
         </p>
       </div>
 
@@ -155,10 +214,29 @@ export default function TeamValidator() {
         <CardHeader>
           <CardTitle>Paste Team Export</CardTitle>
           <CardDescription>
-            Copy your team from Showdown and paste it here to validate
+            Copy your team from Showdown and paste it here. Choose the season to
+            avoid mixing live Season 7 with a draft placeholder season.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="validator-season">Season (required for roster check)</Label>
+            <Select value={seasonId} onValueChange={setSeasonId}>
+              <SelectTrigger id="validator-season">
+                <SelectValue placeholder="Select season" />
+              </SelectTrigger>
+              <SelectContent>
+                {seasons.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.name}
+                    {s.sheet_sync_enabled ? ' (sheet live)' : ''}
+                    {s.is_current ? ' (is_current)' : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="flex gap-2">
             <input
               type="file"
@@ -186,7 +264,7 @@ export default function TeamValidator() {
           
           <Button
             onClick={handleValidate}
-            disabled={validating || !teamText.trim()}
+            disabled={validating || !teamText.trim() || !seasonId}
             className="w-full"
           >
             {validating ? (
@@ -256,11 +334,11 @@ export default function TeamValidator() {
               </div>
             )}
 
-            {result.valid ? (
+            {result.fully_validated || result.valid ? (
               <Alert>
                 <CheckCircle2 className="h-4 w-4" />
                 <AlertDescription>
-                  Your team is valid and ready for battle!
+                  Parse and roster checks passed for the selected season.
                 </AlertDescription>
               </Alert>
             ) : (
@@ -268,9 +346,11 @@ export default function TeamValidator() {
                 <XCircle className="h-4 w-4" />
                 <AlertDescription>
                   <div className="space-y-2">
-                    <p className="font-semibold">Validation Errors:</p>
+                    <p className="font-semibold">
+                      {result.message || 'Validation Errors:'}
+                    </p>
                     <ul className="list-disc list-inside space-y-1">
-                      {result.errors.map((error, index) => (
+                      {(result.errors || []).map((error, index) => (
                         <li key={index}>{error}</li>
                       ))}
                     </ul>
