@@ -37,8 +37,11 @@
 ### AuthZ for Matt
 - [ ] Authenticated session required (GoTrue / project Auth)
 - [ ] **Allowlist** of operator subject IDs (UUID) via server env `SIM_DEMO_OPERATOR_ALLOWLIST` — comma-separated UUIDs
-- [ ] League `admin`/`commissioner` alone is **not** sufficient for demo create/advance/reset when allowlist is configured (fail closed if allowlist empty while demo gate mode is on)
-- [ ] Non-allowlisted authenticated users → 403 on sim mutation routes
+- [ ] When gate ON: allowlisted UUID is enough — **league admin is NOT required**
+- [ ] Allowlist membership does **not** grant broad league admin (`/api/admin/seasons/*` etc. still fail closed for spectators)
+- [ ] Gate OFF (dev only): `requireLeagueAdmin` fallback
+- [ ] Fail closed if allowlist empty while gate mode is on
+- [ ] Non-allowlisted authenticated users → 403 on sim routes
 
 ### Surface hardening
 - [ ] Worker tick requires shared secret header; secret not public

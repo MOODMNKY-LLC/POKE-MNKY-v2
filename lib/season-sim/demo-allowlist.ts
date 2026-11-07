@@ -1,15 +1,23 @@
 /**
  * Demo operator allowlist for provisional sandbox sim mutations.
  *
- * When SIM_DEMO_OPERATOR_GATE=true (or SIM_DEMO_OPERATOR_ALLOWLIST is non-empty),
- * league admin alone is insufficient — user UUID must appear in the allowlist.
- * Fail closed: empty allowlist under gate mode denies everyone.
+ * Gate ON (SIM_DEMO_OPERATOR_GATE=true or non-empty ALLOWLIST):
+ *   Authenticated + allowlisted UUID is enough. League admin is NOT required
+ *   and allowlist membership does NOT grant broad league admin APIs.
+ * Gate OFF:
+ *   Falls back to requireLeagueAdmin (local/dev convenience only).
  *
+ * Fail closed: empty allowlist under gate mode denies everyone.
  * Never log allowlist contents.
  */
 
 import { NextResponse } from "next/server"
-import { requireLeagueAdmin, unauthorizedJson } from "@/lib/admin-api-auth"
+import {
+  requireLeagueAdmin,
+  requireSignedInUser,
+  unauthorizedJson,
+} from "@/lib/admin-api-auth"
+import { createServiceRoleClient } from "@/lib/supabase/service"
 
 type EnvLike = Record<string, string | undefined>
 
@@ -54,28 +62,43 @@ export function isDemoOperatorAllowlisted(
 }
 
 /**
- * League admin + (when gate on) allowlist. Use for create/advance/reset/pause/cancel.
+ * Sandbox sim mutation/read gate.
  * Worker tick remains worker-key auth (not user allowlist).
  */
 export async function requireSimDemoOperator(): Promise<
   { userId: string; role: string } | { response: NextResponse }
 > {
-  const admin = await requireLeagueAdmin()
-  if ("response" in admin) return admin
-
   if (isDemoOperatorGateEnabled()) {
-    if (!isDemoOperatorAllowlisted(admin.userId)) {
+    const signed = await requireSignedInUser()
+    if ("response" in signed) return signed
+    if (!isDemoOperatorAllowlisted(signed.userId)) {
       return {
         response: unauthorizedJson(
-          "Forbidden — authenticated admin is not on SIM_DEMO_OPERATOR_ALLOWLIST",
+          "Forbidden — authenticated user is not on SIM_DEMO_OPERATOR_ALLOWLIST",
           403,
         ),
       }
     }
+    // Role is informational only — spectator Matt is valid for sim routes.
+    let role = "spectator"
+    try {
+      const service = createServiceRoleClient()
+      const { data: profile } = await service
+        .from("profiles")
+        .select("role")
+        .eq("id", signed.userId)
+        .maybeSingle()
+      if (typeof profile?.role === "string" && profile.role) {
+        role = profile.role
+      }
+    } catch {
+      role = "spectator"
+    }
+    return { userId: signed.userId, role }
   }
 
-  return admin
+  return requireLeagueAdmin()
 }
 
 export const DEMO_OPERATOR_GATE_NOTE =
-  "When SIM_DEMO_OPERATOR_GATE=true or SIM_DEMO_OPERATOR_ALLOWLIST is set, only allowlisted UUIDs may mutate sandbox sim runs (in addition to league admin)."
+  "When SIM_DEMO_OPERATOR_GATE=true or SIM_DEMO_OPERATOR_ALLOWLIST is set, only allowlisted authenticated UUIDs may use sandbox sim APIs. Membership does not grant league admin. Gate off → league admin fallback (dev only)."

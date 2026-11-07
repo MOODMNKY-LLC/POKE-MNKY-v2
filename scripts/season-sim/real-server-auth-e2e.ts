@@ -1652,6 +1652,239 @@ async function main() {
         anonReset.status === 401 || anonReset.status === 403,
         anonReset.status,
       )
+
+      // Replay after reset → champion again (domain_epoch operation keys)
+      {
+        let s = Number(afterReset.progress?.step_seq ?? 0)
+        let v = Number(afterReset.progress?.run_version ?? 0)
+        for (let i = 0; i < 4; i++) {
+          const r = await advanceAndTick({
+            runId: seasonRunId,
+            cookie: adminCookie,
+            unit: "pick",
+            n: 1,
+            stepSeq: s,
+            runVersion: v,
+            workerId: `reset-replay-draft-${i + 1}`,
+          })
+          s = Number(r.progress.progress?.step_seq ?? s)
+          v = Number(r.progress.progress?.run_version ?? v)
+        }
+        let replayOk = false
+        for (let tick = 0; tick < 12; tick++) {
+          const r = await advanceAndTick({
+            runId: seasonRunId,
+            cookie: adminCookie,
+            unit: "season",
+            n: 1,
+            stepSeq: s,
+            runVersion: v,
+            workerId: `reset-replay-season-${tick + 1}`,
+            maxSteps: 50,
+          })
+          s = Number(r.progress.progress?.step_seq ?? s)
+          v = Number(r.progress.progress?.run_version ?? v)
+          if (r.progress.progress?.status === "completed") {
+            replayOk = Boolean(r.progress.season?.champion_team_id)
+            break
+          }
+        }
+        record(
+          "RS-87_reset_replay_reaches_champion",
+          replayOk,
+          undefined,
+          "domain_epoch replay after scoped UUID reset",
+        )
+      }
+
+      // Granular match ticks vs full-auto season unit (same seed, two fresh runs)
+      const EQ_SEED = "fedcba9876543210fedcba9876543210"
+      async function driveDraftThen(
+        seed: string,
+        mode: "granular_match" | "season_auto",
+      ): Promise<{
+        ok: boolean
+        matchCompleted: number
+        regularCompleted: number
+        playoffCompleted: number
+        fidelity: string | null
+      }> {
+        const create = await appFetch("/api/admin/simulation/runs", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          cookie: adminCookie,
+          body: JSON.stringify({
+            master_seed: seed,
+            team_count: 2,
+            total_rounds: 2,
+            schedule_weeks: 2,
+            playoff_size: 2,
+            selector_draft: "random",
+            queue_immediately: true,
+          }),
+        })
+        const body = (await create.json().catch(() => ({}))) as {
+          run?: { run_id?: string; step_seq?: number; run_version?: number }
+        }
+        const id = String(body.run?.run_id ?? "")
+        if (create.status !== 201 || !id) {
+          return {
+            ok: false,
+            matchCompleted: -1,
+            regularCompleted: -1,
+            playoffCompleted: -1,
+            fidelity: null,
+          }
+        }
+        let s = Number(body.run?.step_seq ?? 0)
+        let v = Number(body.run?.run_version ?? 0)
+        for (let i = 0; i < 4; i++) {
+          const r = await advanceAndTick({
+            runId: id,
+            cookie: adminCookie,
+            unit: "pick",
+            n: 1,
+            stepSeq: s,
+            runVersion: v,
+            workerId: `${mode}-draft-${i}`,
+          })
+          s = Number(r.progress.progress?.step_seq ?? s)
+          v = Number(r.progress.progress?.run_version ?? v)
+        }
+        for (let tick = 0; tick < 40; tick++) {
+          const unit = mode === "granular_match" ? "match" : "season"
+          const r = await advanceAndTick({
+            runId: id,
+            cookie: adminCookie,
+            unit,
+            n: 1,
+            stepSeq: s,
+            runVersion: v,
+            workerId: `${mode}-tick-${tick}`,
+            maxSteps: mode === "granular_match" ? 5 : 50,
+          })
+          s = Number(r.progress.progress?.step_seq ?? s)
+          v = Number(r.progress.progress?.run_version ?? v)
+          if (r.progress.progress?.status === "completed") {
+            return {
+              ok: true,
+              matchCompleted: Number(r.progress.season?.match_completed ?? 0),
+              regularCompleted: Number(r.progress.season?.regular_completed ?? 0),
+              playoffCompleted: Number(r.progress.season?.playoff_completed ?? 0),
+              fidelity: r.progress.season?.fidelity ?? null,
+            }
+          }
+        }
+        return {
+          ok: false,
+          matchCompleted: -1,
+          regularCompleted: -1,
+          playoffCompleted: -1,
+          fidelity: null,
+        }
+      }
+      const granular = await driveDraftThen(EQ_SEED, "granular_match")
+      const auto = await driveDraftThen(EQ_SEED, "season_auto")
+      record(
+        "RS-88_granular_match_vs_season_auto_equivalence",
+        granular.ok &&
+          auto.ok &&
+          granular.matchCompleted === auto.matchCompleted &&
+          granular.regularCompleted === auto.regularCompleted &&
+          granular.playoffCompleted === auto.playoffCompleted &&
+          granular.fidelity === "statistical_seeded" &&
+          auto.fidelity === "statistical_seeded",
+        undefined,
+        `g=${granular.matchCompleted}/${granular.regularCompleted}/${granular.playoffCompleted} a=${auto.matchCompleted}/${auto.regularCompleted}/${auto.playoffCompleted}`,
+      )
+    }
+  }
+
+  // --- Allowlisted spectator (Matt path): sim OK, broad league admin NOT granted ---
+  {
+    nonAdminSession = await passwordGrant(NONADMIN_EMAIL, NONADMIN_PASSWORD)
+    nonAdminCookie = sessionCookieHeader(nonAdminSession)
+    const coachCreate = await appFetch("/api/admin/simulation/runs", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      cookie: nonAdminCookie,
+      body: JSON.stringify({
+        master_seed: "01010101010101010101010101010101",
+        team_count: 2,
+        total_rounds: 2,
+        schedule_weeks: 1,
+        playoff_size: 2,
+        selector_draft: "random",
+        queue_immediately: false,
+      }),
+    })
+    const coachBody = (await coachCreate.json().catch(() => ({}))) as {
+      run?: { run_id?: string }
+      code?: string
+      error?: string
+    }
+    record(
+      "RS-90_allowlisted_spectator_can_create_sim",
+      coachCreate.status === 201 && Boolean(coachBody.run?.run_id),
+      coachCreate.status,
+      coachBody.code ?? coachBody.error,
+    )
+
+    const leagueAdminProbe = await appFetch("/api/admin/seasons/set-current", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      cookie: nonAdminCookie,
+      body: JSON.stringify({
+        season_id: "00000000-0000-4000-8000-000000000099",
+      }),
+    })
+    record(
+      "RS-91_allowlisted_spectator_no_broad_league_admin",
+      leagueAdminProbe.status === 403 || leagueAdminProbe.status === 401,
+      leagueAdminProbe.status,
+      "sim allowlist must not elevate seasons set-current",
+    )
+
+    // Outsider authenticated but not on allowlist → sim denied
+    const outsiderEmail = `season-sim-outsider-${Date.now()}@example.invalid`
+    const outsiderPassword = "Outsider1Aa!"
+    const signupRes = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
+      method: "POST",
+      headers: {
+        apikey: ANON,
+        Authorization: `Bearer ${ANON}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        email: outsiderEmail,
+        password: outsiderPassword,
+        data: { full_name: "Outsider Fixture" },
+      }),
+    })
+    record(
+      "RS-92a_outsider_signup",
+      signupRes.status === 200,
+      signupRes.status,
+    )
+    if (signupRes.status === 200) {
+      const outsiderSession = await passwordGrant(outsiderEmail, outsiderPassword)
+      const outsiderCookie = sessionCookieHeader(outsiderSession)
+      const denied = await appFetch("/api/admin/simulation/runs", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        cookie: outsiderCookie,
+        body: JSON.stringify({
+          master_seed: "02020202020202020202020202020202",
+          team_count: 2,
+        }),
+      })
+      record(
+        "RS-92_non_allowlisted_authenticated_sim_denied",
+        denied.status === 403,
+        denied.status,
+      )
+    } else {
+      record("RS-92_non_allowlisted_authenticated_sim_denied", false, signupRes.status)
     }
   }
 

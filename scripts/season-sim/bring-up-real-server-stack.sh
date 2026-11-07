@@ -163,7 +163,14 @@ docker exec "$PG_CONTAINER" psql -h 127.0.0.1 -U supabase_admin -d postgres -v O
   "GRANT EXECUTE ON FUNCTION public.sim_claim_run_lease(uuid, text, integer) TO service_role;
    GRANT EXECUTE ON FUNCTION public.sim_apply_foundation_step(uuid, uuid, text, text, uuid, jsonb, text) TO service_role;
    GRANT EXECUTE ON FUNCTION public.sim_apply_draft_pick(uuid, uuid, text, uuid, integer, uuid, text, integer, integer, text, jsonb, boolean) TO service_role;
+   GRANT EXECUTE ON FUNCTION public.sim_reset_run_domain(uuid, boolean) TO service_role;
    GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;" >/dev/null
+# Season-path tables must exist after migration replay
+SEASON_PATH_TABLES="$(docker exec "$PG_CONTAINER" psql -h 127.0.0.1 -U supabase_admin -d postgres -tAc \
+  "SELECT COUNT(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+   WHERE n.nspname='public' AND c.relname IN ('sim_matches','sim_standings','sim_season_outcomes')
+     AND c.relkind='r';" | tr -d '[:space:]')"
+[[ "$SEASON_PATH_TABLES" == "3" ]] || fail "season-path tables missing after replay (got $SEASON_PATH_TABLES)"
 
 # Confirm triggers/RLS still enabled (fail if disabled)
 TRIGGERS_ON="$(docker exec "$PG_CONTAINER" psql -h 127.0.0.1 -U supabase_admin -d postgres -tAc \
@@ -281,7 +288,15 @@ grep -q 'season-sim-admin@example.invalid=admin' "$STATE_DIR/profile-roles.txt" 
 grep -q 'season-sim-coach@example.invalid=spectator' "$STATE_DIR/profile-roles.txt" \
   || fail "nonadmin fixture profiles.role is not spectator (user_metadata.role must not elevate)"
 
-echo "=== next build + start (flags ON for suite) ==="
+ADMIN_UUID="$(python3 -c 'import json; print(json.load(open("'"$STATE_DIR"'/signup-admin.json"))["user"]["id"])')"
+COACH_UUID="$(python3 -c 'import json; print(json.load(open("'"$STATE_DIR"'/signup-nonadmin.json"))["user"]["id"])')"
+[[ -n "$ADMIN_UUID" && -n "$COACH_UUID" ]] || fail "fixture user UUIDs missing"
+# Gate ON: allowlisted authenticated users may run sim APIs without league admin.
+# Both fixtures listed so existing admin E2E and Matt-as-spectator path both work.
+# Membership does NOT grant /api/admin/seasons/* league powers.
+DEMO_ALLOWLIST="${ADMIN_UUID},${COACH_UUID}"
+
+echo "=== next build + start (flags ON for suite; demo allowlist gate ON) ==="
 export NEXT_PUBLIC_SUPABASE_URL="$GATEWAY_URL"
 export NEXT_PUBLIC_SUPABASE_ANON_KEY="$ANON_KEY"
 export SUPABASE_SERVICE_ROLE_KEY="$SERVICE_KEY"
@@ -293,6 +308,8 @@ pnpm build >"$STATE_DIR/next-build.log" 2>&1 || {
 
 SIM_SANDBOX_V2=true \
 SIM_WORKER_TICK_ENABLED=true \
+SIM_DEMO_OPERATOR_GATE=true \
+SIM_DEMO_OPERATOR_ALLOWLIST="$DEMO_ALLOWLIST" \
 SIMULATION_WORKER_KEY="$WORKER_KEY" \
 NEXT_PUBLIC_SUPABASE_URL="$GATEWAY_URL" \
 NEXT_PUBLIC_SUPABASE_ANON_KEY="$ANON_KEY" \

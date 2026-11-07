@@ -1,38 +1,34 @@
 # provisional_demo_v0 — API contract (sanitized)
 
 **Status:** In-repo contract for local disposable / future cleared disposable remote.  
-**Not** production authorization. Flags default OFF.
+**Not** production authorization. Flags default OFF.  
+**Machine-readable shapes:** `docs/season-sim/FRONTEND-API-CONTRACT.v0.json` (v0 UI must consume this; do not invent routes).
 
 ## Auth
 
 | Caller | Mechanism |
 |---|---|
-| Operator (Matt) | Session cookie; league admin **and** (when gate on) `SIM_DEMO_OPERATOR_ALLOWLIST` |
-| Worker | `x-simulation-worker-key: <SIMULATION_WORKER_KEY>` |
-| Anon / non-allowlisted | 401/403 on mutations; no public seed/reset |
+| Operator (Matt) | Session cookie + UUID on `SIM_DEMO_OPERATOR_ALLOWLIST` when gate ON. **League admin not required.** Allowlist does **not** grant other `/api/admin/*` league powers. |
+| Gate OFF (dev only) | `requireLeagueAdmin` fallback |
+| Worker | `x-simulation-worker-key` |
+| Anon / non-allowlisted | 401/403; no public seed/reset |
 
 ## Endpoints
 
-| Method | Path | Unit / body notes |
+| Method | Path | Notes |
 |---|---|---|
-| POST | `/api/admin/simulation/runs` | Create sandbox season + run; synthetic seats; optional `schedule_weeks`, `playoff_size`, `team_count`, `total_rounds`, `master_seed` |
-| GET | `/api/admin/simulation/runs/[id]` | `progress` + `draft` + `season` evidence |
-| POST | `/api/admin/simulation/runs/[id]/advance` | `{ command_id, unit, n, expected_step_seq, expected_run_version }` — units: `pick`\|`round`\|`match`\|`week`\|`playoff_round`\|`season`\|`foundation` |
-| POST | `/api/admin/simulation/runs/[id]/pause` \| `resume` \| `cancel` | Lifecycle |
-| POST | `/api/admin/simulation/runs/[id]/reset` | Scoped UUID domain reset (sim_* only); bumps `domain_epoch` |
-| POST | `/api/admin/simulation/worker/tick` | `{ run_id, worker_id, max_steps≤50 }` — lease claim + apply |
+| POST | `/api/admin/simulation/runs` | Optional `schedule_weeks`, `playoff_size`, `team_count`, `total_rounds`, `master_seed` |
+| GET | `/api/admin/simulation/runs/[id]` | `{ progress, draft, season }` |
+| POST | `…/advance` | units: `pick`\|`round`\|`match`\|`week`\|`playoff_round`\|`season`\|`foundation` |
+| POST | `…/pause` \| `…/resume` \| `…/cancel` | Lifecycle |
+| POST | `…/reset` | Scoped UUID domain reset; bumps `domain_epoch` |
+| POST | `/api/admin/simulation/worker/tick` | `max_steps≤50` |
 
-## Units (provisional)
+## Units
 
-1. **Draft:** `pick` / `round` → on last pick: `paused`, `cursor.draft_complete=true`, `awaiting=schedule`
-2. **Season path:** `match` / `week` / `playoff_round` / `season` → schedule seed → statistical results → standings → playoffs → `sim_season_outcomes` champion → `completed` / `phase=complete`
-3. **Fidelity:** `statistical_seeded` only; `showdown_battle` → blocked
-
-## Labels
-
-- `rules_version`: `provisional_demo_v0`
-- Draft rosters ≠ battle sets
-- Paid inference OFF; no Discord/email/sheet side effects on sandbox
+1. Draft `pick`/`round` → paused `awaiting=schedule`
+2. Season path → schedule → statistical results → standings → playoffs → champion → `completed`
+3. Fidelity `statistical_seeded` only
 
 ## Kill switch
 
