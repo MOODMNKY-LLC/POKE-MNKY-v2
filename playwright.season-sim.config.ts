@@ -31,7 +31,9 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: 0,
   workers: 1,
-  timeout: 10 * 60 * 1000,
+  // Champion path + reset is long; leave headroom so context teardown
+  // (trace finalize) cannot consume the entire budget after assertions pass.
+  timeout: 15 * 60 * 1000,
   expect: { timeout: 30_000 },
   reporter: [
     ["list"],
@@ -40,8 +42,10 @@ export default defineConfig({
   outputDir: path.join(artifactDir, "test-results"),
   use: {
     baseURL,
-    trace: "on",
-    screenshot: "on",
+    // Full-run tracing made successful champion tests fail in After Hooks
+    // ("Tearing down context exceeded the test timeout"). Keep artifacts on failure.
+    trace: "retain-on-failure",
+    screenshot: "only-on-failure",
     video: "retain-on-failure",
     locale: "en-US",
   },

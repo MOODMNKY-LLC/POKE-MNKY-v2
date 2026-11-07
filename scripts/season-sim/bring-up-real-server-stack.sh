@@ -381,7 +381,9 @@ if [[ "${RUN_BROWSER_ACCEPTANCE:-0}" == "1" ]]; then
   export SEASON_SIM_NONADMIN_PASSWORD="$NONADMIN_PASSWORD"
 
   pnpm exec playwright install chromium >/dev/null
-  pnpm exec playwright test -c playwright.season-sim.config.ts | tee "$STATE_DIR/browser-e2e.log"
+  set -o pipefail
+  pnpm exec playwright test -c playwright.season-sim.config.ts | tee "$STATE_DIR/browser-e2e.log" \
+    || fail "Playwright browser acceptance failed (see $STATE_DIR/browser-e2e.log)"
   echo "BROWSER_ACCEPTANCE_OK artifacts=$ARTIFACT_DIR"
 
   if [[ -n "${NEXT_FLAGS_OFF_PID:-}" ]]; then

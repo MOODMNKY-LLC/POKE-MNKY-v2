@@ -178,6 +178,8 @@ test.describe("season-sim demo browser acceptance", () => {
   test("nonadmin allowlisted: create→draft→season champion→reset + recovery", async ({
     page,
   }, testInfo) => {
+    // Body can take ~6–8m of ticks; keep margin above config default for teardown.
+    testInfo.setTimeout(15 * 60 * 1000)
     await signInNonadmin(page)
     await page.goto(`${APP}/demo/season-sim`)
     await expect(page.getByRole("heading", { name: /Season Simulator/i })).toBeVisible()
