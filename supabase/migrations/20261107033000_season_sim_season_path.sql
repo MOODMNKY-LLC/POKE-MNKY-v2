@@ -217,13 +217,15 @@ begin
     set
       step_seq = v_next,
       event_seq = v_event,
-      cursor = jsonb_build_object(
+      -- Preserve domain_epoch so post-reset operation_keys stay namespaced.
+      cursor = jsonb_strip_nulls(jsonb_build_object(
         'step_seq', v_next,
         'pick_number', p_pick_number,
         'round', p_round,
         'draft_complete', true,
-        'awaiting', 'schedule'
-      ),
+        'awaiting', 'schedule',
+        'domain_epoch', nullif(v_row.cursor->>'domain_epoch', '')::int
+      )),
       phase = 'draft',
       status = 'paused',
       blocked_reason = null,
@@ -262,12 +264,13 @@ begin
     step_seq = v_next,
     event_seq = v_event,
     phase = 'draft',
-    cursor = jsonb_build_object(
+    cursor = jsonb_strip_nulls(jsonb_build_object(
       'step_seq', v_next,
       'pick_number', p_pick_number,
       'round', p_round,
-      'draft_complete', false
-    ),
+      'draft_complete', false,
+      'domain_epoch', nullif(v_row.cursor->>'domain_epoch', '')::int
+    )),
     heartbeat_at = now(),
     lease_expires_at = now() + interval '30 seconds',
     updated_at = now(),

@@ -1686,8 +1686,11 @@ async function main() {
 
       // Replay after reset → champion again (domain_epoch operation keys)
       {
-        let s = Number(afterReset.progress?.step_seq ?? 0)
-        let v = Number(afterReset.progress?.run_version ?? 0)
+        adminSession = await passwordGrant(ADMIN_EMAIL, ADMIN_PASSWORD)
+        adminCookie = sessionCookieHeader(adminSession)
+        const refreshed = await refreshProgress(seasonRunId, adminCookie)
+        let s = Number(refreshed.progress?.step_seq ?? afterReset.progress?.step_seq ?? 0)
+        let v = Number(refreshed.progress?.run_version ?? afterReset.progress?.run_version ?? 0)
         for (let i = 0; i < 4; i++) {
           const r = await advanceAndTick({
             runId: seasonRunId,
@@ -1702,6 +1705,7 @@ async function main() {
           v = Number(r.progress.progress?.run_version ?? v)
         }
         let replayOk = false
+        let lastDetail = "incomplete"
         for (let tick = 0; tick < 12; tick++) {
           const r = await advanceAndTick({
             runId: seasonRunId,
@@ -1715,8 +1719,13 @@ async function main() {
           })
           s = Number(r.progress.progress?.step_seq ?? s)
           v = Number(r.progress.progress?.run_version ?? v)
+          lastDetail = `status=${r.progress.progress?.status} reason=${r.tick?.reason} epoch=${String(r.progress.progress?.cursor?.domain_epoch)} matches=${r.progress.season?.match_completed}`
           if (r.progress.progress?.status === "completed") {
             replayOk = Boolean(r.progress.season?.champion_team_id)
+            break
+          }
+          if (r.advanceStatus !== 202 && r.advanceStatus !== 0) {
+            lastDetail = `advance=${r.advanceStatus} ${lastDetail}`
             break
           }
         }
@@ -1724,7 +1733,7 @@ async function main() {
           "RS-87_reset_replay_reaches_champion",
           replayOk,
           undefined,
-          "domain_epoch replay after scoped UUID reset",
+          lastDetail,
         )
       }
 
