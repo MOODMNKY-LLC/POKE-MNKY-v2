@@ -2,6 +2,14 @@
 -- Goal: direct PostgREST must not allow anon/outsider write or cross-run leakage.
 -- Mutations remain service_role-only (Next.js API with ownership checks).
 -- NOT authorization to apply on production — hold until reviewed plan approved.
+--
+-- Policy reconciliation (CRITICAL):
+-- PostgreSQL OR's permissive policies. Leaving any older permissive SELECT/ALL
+-- policy in place would OR with the new owner-scoped policy and leak rows.
+-- This migration therefore DROPS EVERY existing policy on the inventoried sim
+-- tables, then recreates only the intended owner-or-admin SELECT policies.
+-- Before apply on shared prod: capture read-only pg_policies inventory and
+-- confirm no unexpected tables/policies outside this list (checklist §1).
 
 -- ---------------------------------------------------------------------------
 -- Helper: run owned by caller (STABLE for RLS)
@@ -25,86 +33,6 @@ $$;
 revoke all on function public.sim_run_owned_by_caller(uuid) from public, anon;
 grant execute on function public.sim_run_owned_by_caller(uuid) to authenticated, service_role;
 
--- ---------------------------------------------------------------------------
--- Revoke authenticated DML on sim domain tables; keep SELECT via owner/admin policy
--- ---------------------------------------------------------------------------
-do $$
-declare
-  t text;
-begin
-  foreach t in array array[
-    'simulation_runs',
-    'simulation_commands',
-    'simulation_steps',
-    'simulation_events',
-    'simulation_decisions',
-    'sim_bot_seats',
-    'sim_draft_pool',
-    'sim_draft_budgets',
-    'sim_draft_picks',
-    'sim_matches',
-    'sim_standings',
-    'sim_season_outcomes'
-  ]
-  loop
-    if to_regclass('public.' || t) is null then
-      continue;
-    end if;
-    execute format('revoke all on table public.%I from public, anon', t);
-    execute format('revoke insert, update, delete, truncate on table public.%I from authenticated', t);
-    execute format('grant select on table public.%I to authenticated', t);
-    execute format('grant select, insert, update, delete on table public.%I to service_role', t);
-    execute format('alter table public.%I enable row level security', t);
-  end loop;
-end $$;
-
--- Drop broad admin-write policies on sim_* (replace with select-only + owner scope)
-do $$
-declare
-  pol record;
-begin
-  for pol in
-    select schemaname, tablename, policyname
-    from pg_policies
-    where schemaname = 'public'
-      and tablename in (
-        'simulation_runs',
-        'simulation_commands',
-        'simulation_steps',
-        'simulation_events',
-        'simulation_decisions',
-        'sim_bot_seats',
-        'sim_draft_pool',
-        'sim_draft_budgets',
-        'sim_draft_picks',
-        'sim_matches',
-        'sim_standings',
-        'sim_season_outcomes'
-      )
-      and (
-        policyname ilike '%write%'
-        or policyname ilike '%all%'
-        or cmd = 'ALL'
-      )
-  loop
-    execute format('drop policy if exists %I on public.%I', pol.policyname, pol.tablename);
-  end loop;
-end $$;
-
--- simulation_runs: owner OR league admin may SELECT; no authenticated INSERT/UPDATE/DELETE
-drop policy if exists "admins select simulation_runs" on public.simulation_runs;
-drop policy if exists "admins write simulation_runs" on public.simulation_runs;
-drop policy if exists "owner or admin select simulation_runs" on public.simulation_runs;
-create policy "owner or admin select simulation_runs"
-  on public.simulation_runs for select to authenticated
-  using (
-    owner_user_id = (select auth.uid())
-    or (select public.user_has_role_or_higher((select auth.uid()), 'admin'))
-  );
-
--- Child tables: SELECT if parent run owned by caller OR league admin
--- (no authenticated write policies → fail closed for PostgREST mutations)
-
 create or replace function public.sim_run_readable_by_caller(p_run_id uuid)
 returns boolean
 language sql
@@ -126,6 +54,96 @@ $$;
 revoke all on function public.sim_run_readable_by_caller(uuid) from public, anon;
 grant execute on function public.sim_run_readable_by_caller(uuid) to authenticated, service_role;
 
+-- ---------------------------------------------------------------------------
+-- Grants + FORCE RLS + drop ALL existing policies (deterministic isolation)
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  t text;
+  pol record;
+  sim_tables text[] := array[
+    'simulation_runs',
+    'simulation_commands',
+    'simulation_steps',
+    'simulation_events',
+    'simulation_decisions',
+    'sim_bot_seats',
+    'sim_draft_pool',
+    'sim_draft_budgets',
+    'sim_draft_picks',
+    'sim_matches',
+    'sim_standings',
+    'sim_season_outcomes'
+  ];
+begin
+  foreach t in array sim_tables
+  loop
+    if to_regclass('public.' || t) is null then
+      continue;
+    end if;
+
+    execute format('revoke all on table public.%I from public, anon', t);
+    execute format(
+      'revoke insert, update, delete, truncate on table public.%I from authenticated',
+      t
+    );
+    execute format('grant select on table public.%I to authenticated', t);
+    execute format(
+      'grant select, insert, update, delete on table public.%I to service_role',
+      t
+    );
+    execute format('alter table public.%I enable row level security', t);
+    -- Table owners / migration roles must not bypass intended policies in app paths
+    execute format('alter table public.%I force row level security', t);
+
+    -- Drop EVERY policy (not just write/%all%) so no leftover permissive SELECT ORs
+    for pol in
+      select policyname
+      from pg_policies
+      where schemaname = 'public'
+        and tablename = t
+    loop
+      execute format('drop policy if exists %I on public.%I', pol.policyname, t);
+    end loop;
+  end loop;
+end $$;
+
+-- Fail-closed preflight: after drops, zero policies must remain on inventoried tables
+do $$
+declare
+  leftover int;
+begin
+  select count(*) into leftover
+  from pg_policies
+  where schemaname = 'public'
+    and tablename in (
+      'simulation_runs',
+      'simulation_commands',
+      'simulation_steps',
+      'simulation_events',
+      'simulation_decisions',
+      'sim_bot_seats',
+      'sim_draft_pool',
+      'sim_draft_budgets',
+      'sim_draft_picks',
+      'sim_matches',
+      'sim_standings',
+      'sim_season_outcomes'
+    );
+  if leftover <> 0 then
+    raise exception 'SIM_RLS_POLICY_RECONCILE_FAILED: % policies remain after drop', leftover;
+  end if;
+end $$;
+
+-- simulation_runs: owner OR league admin may SELECT; no authenticated INSERT/UPDATE/DELETE
+create policy "owner or admin select simulation_runs"
+  on public.simulation_runs for select to authenticated
+  using (
+    owner_user_id = (select auth.uid())
+    or (select public.user_has_role_or_higher((select auth.uid()), 'admin'))
+  );
+
+-- Child tables: SELECT only via readable helper (owner or admin)
 do $$
 declare
   t text;
@@ -148,10 +166,7 @@ begin
     if to_regclass('public.' || t) is null then
       continue;
     end if;
-    -- Drop prior admin-select policies by common names
-    execute format('drop policy if exists %I on public.%I', 'admins select ' || t, t);
     pname := 'owner or admin select ' || t;
-    execute format('drop policy if exists %I on public.%I', pname, t);
     execute format(
       'create policy %I on public.%I for select to authenticated using ((select public.sim_run_readable_by_caller(run_id)))',
       pname,

@@ -55,7 +55,8 @@
     "test:season-sim-pg": "vitest run --config vitest.integration.config.ts lib/season-sim/foundation.pg.test.ts lib/season-sim/draft.pg.test.ts lib/season-sim/shared-db-rls.pg.test.ts lib/season-sim/noninterference.pg.test.ts",
     "test:season-sim-http": "vitest run --config vitest.integration.config.ts lib/season-sim/routes.http.integration.test.ts",
     "test:season-sim-real-server": "tsx scripts/season-sim/real-server-auth-e2e.ts",
-    "test:season-sim-real-server-stack": "bash scripts/season-sim/bring-up-real-server-stack.sh"
+    "test:season-sim-real-server-stack": "bash scripts/season-sim/bring-up-real-server-stack.sh",
+    "test:season-sim-browser-acceptance": "GOTRUE_JWT_EXP=3600 RUN_BROWSER_ACCEPTANCE=1 SKIP_REAL_SERVER_EXPIRY_CASES=1 bash scripts/season-sim/bring-up-real-server-stack.sh"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.12",

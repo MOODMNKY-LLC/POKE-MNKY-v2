@@ -2,7 +2,15 @@ name: Test
 
 on:
   push:
-    branches: [main, master]
+    # Tip + stacked bases: push must also run Test (PR base alone is not enough for
+    # every agent push path; PR36 bases on season-path which is listed under pull_request).
+    branches:
+      - main
+      - master
+      - cursor/season-sim-sandbox-foundation-2199
+      - cursor/season-sim-sandbox-draft-domain-2199
+      - cursor/season-sim-sandbox-season-path-2199
+      - cursor/season-sim-sandbox-v0-console-2199
   pull_request:
     # Include stacked season-sim bases so tip PRs still run Test
     # (GitHub only matches the PR base branch, not the head).
@@ -130,11 +138,12 @@ jobs:
           pull_with_retry public.ecr.aws/supabase/storage-api:v1.88.0
           pull_with_retry public.ecr.aws/supabase/gotrue:v2.197.0
           pull_with_retry public.ecr.aws/supabase/postgrest:v16.5
-      - name: Real Next+GoTrue session suite (disposable stack)
-        run: pnpm test:season-sim-real-server-stack
+      - name: Real Next+GoTrue session suite + Playwright browser acceptance
+        run: pnpm test:season-sim-browser-acceptance
         env:
           CI: true
           # Per-run JWT signing secret + API keys are minted inside the script.
+          # GOTRUE_JWT_EXP=3600 + browser Chromium; short-TTL expiry HTTP cases skipped.
 
   e2e:
     runs-on: ubuntu-latest

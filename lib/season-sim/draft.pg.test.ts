@@ -1,16 +1,21 @@
 /**
  * Isolated PostgreSQL integration for season-sim draft domain slice.
- * Env: SEASON_SIM_PG_URL (preferred) or POSTGRES_URL.
+ * Env: SEASON_SIM_PG_URL only (loopback disposable). Never POSTGRES_URL.
  */
 
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
-import { Client } from "pg"
+import type { Client } from "pg"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 import { buildSyntheticDraftPool } from "@/lib/season-sim/draft-domain"
+import {
+  connectDisposableHarnessClient,
+  resolveHarnessPgUrlOrSkip,
+} from "@/lib/season-sim/pg-harness"
 
-const pgUrl = process.env.SEASON_SIM_PG_URL ?? process.env.POSTGRES_URL ?? ""
-const hasPgUrl = Boolean(pgUrl.trim())
+const resolved = resolveHarnessPgUrlOrSkip()
+const pgUrl = resolved.url ?? ""
+const hasPgUrl = Boolean(pgUrl)
 const root = process.cwd()
 
 const bootstrapSql = readFileSync(
@@ -38,9 +43,8 @@ describe.skipIf(!hasPgUrl)("season-sim draft domain postgres", () => {
   let siblingTeamIds: string[] = []
 
   beforeAll(async () => {
-    const probe = new Client({ connectionString: pgUrl })
+    const probe = await connectDisposableHarnessClient(pgUrl)
     try {
-      await probe.connect()
       await probe.query(bootstrapSql)
       for (const sql of migrations) {
         await probe.query(sql)

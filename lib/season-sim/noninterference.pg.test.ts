@@ -1,19 +1,24 @@
 /**
- * Non-interference: full-season reset + concurrent lease fencing must not mutate
- * realistic non-sandbox sentinels (live teams / matches / results / standings /
- * current season / settings).
+ * Non-interference: reset + concurrent lease fencing must not mutate
+ * disposable *sentinel* tables (never live-named matches/standings/settings).
  *
- * Env: SEASON_SIM_PG_URL or POSTGRES_URL.
+ * Env: SEASON_SIM_PG_URL only (loopback disposable). Never POSTGRES_URL.
  */
 
 import { createHash } from "node:crypto"
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
-import { Client } from "pg"
+import type { Client } from "pg"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
+import { SEASON_SIM_FIXTURE_MARKER } from "@/lib/season-sim/pg-disposable-target"
+import {
+  connectDisposableHarnessClient,
+  resolveHarnessPgUrlOrSkip,
+} from "@/lib/season-sim/pg-harness"
 
-const pgUrl = process.env.SEASON_SIM_PG_URL ?? process.env.POSTGRES_URL ?? ""
-const hasPgUrl = Boolean(pgUrl.trim())
+const resolved = resolveHarnessPgUrlOrSkip()
+const pgUrl = resolved.url ?? ""
+const hasPgUrl = Boolean(pgUrl)
 const root = process.cwd()
 
 const bootstrapSql = readFileSync(
@@ -32,40 +37,48 @@ const migrations = [
   readFileSync(join(root, "supabase/migrations", name), "utf8"),
 )
 
+/**
+ * Intentionally NOT named matches/match_results/standings/league_settings —
+ * those are live prod names. Harness-only prefixed tables only.
+ */
 const LIVE_FIXTURE_DDL = `
-drop table if exists public.match_results cascade;
-drop table if exists public.matches cascade;
-drop table if exists public.standings cascade;
-drop table if exists public.league_settings cascade;
-create table public.matches (
+drop table if exists public.season_sim_sentinel_match_results cascade;
+drop table if exists public.season_sim_sentinel_matches cascade;
+drop table if exists public.season_sim_sentinel_standings cascade;
+drop table if exists public.season_sim_sentinel_settings cascade;
+create table public.season_sim_sentinel_matches (
   id uuid primary key default gen_random_uuid(),
   season_id uuid not null references public.seasons(id),
   home_team_id uuid not null references public.teams(id),
   away_team_id uuid not null references public.teams(id),
   week int not null,
   status text not null default 'scheduled',
+  fixture_marker text not null check (fixture_marker = '${SEASON_SIM_FIXTURE_MARKER}'),
   sentinel text not null
 );
-create table public.match_results (
+create table public.season_sim_sentinel_match_results (
   id uuid primary key default gen_random_uuid(),
-  match_id uuid not null references public.matches(id),
+  match_id uuid not null references public.season_sim_sentinel_matches(id),
   winner_team_id uuid references public.teams(id),
   score_home int not null,
   score_away int not null,
+  fixture_marker text not null check (fixture_marker = '${SEASON_SIM_FIXTURE_MARKER}'),
   sentinel text not null
 );
-create table public.standings (
+create table public.season_sim_sentinel_standings (
   id uuid primary key default gen_random_uuid(),
   season_id uuid not null references public.seasons(id),
   team_id uuid not null references public.teams(id),
   wins int not null,
   losses int not null,
+  fixture_marker text not null check (fixture_marker = '${SEASON_SIM_FIXTURE_MARKER}'),
   sentinel text not null
 );
-create table public.league_settings (
+create table public.season_sim_sentinel_settings (
   id uuid primary key default gen_random_uuid(),
   key text not null unique,
   value jsonb not null,
+  fixture_marker text not null check (fixture_marker = '${SEASON_SIM_FIXTURE_MARKER}'),
   sentinel text not null
 );
 `
@@ -87,8 +100,7 @@ describe.skipIf(!hasPgUrl)("season-sim shared-DB noninterference", () => {
   let beforeFp = ""
 
   beforeAll(async () => {
-    const probe = new Client({ connectionString: pgUrl })
-    await probe.connect()
+    const probe = await connectDisposableHarnessClient(pgUrl)
     await probe.query(bootstrapSql)
     for (const sql of migrations) {
       await probe.query(sql)
@@ -115,25 +127,29 @@ describe.skipIf(!hasPgUrl)("season-sim shared-DB noninterference", () => {
     liveTeamB = tb.rows[0]!.id
 
     const match = await probe.query<{ id: string }>(
-      `insert into public.matches (season_id, home_team_id, away_team_id, week, status, sentinel)
-       values ($1, $2, $3, 1, 'final', 'IMMUTABLE_MATCH_SENTINEL') returning id`,
-      [liveSeasonId, liveTeamA, liveTeamB],
+      `insert into public.season_sim_sentinel_matches
+         (season_id, home_team_id, away_team_id, week, status, fixture_marker, sentinel)
+       values ($1, $2, $3, 1, 'final', $4, 'IMMUTABLE_MATCH_SENTINEL') returning id`,
+      [liveSeasonId, liveTeamA, liveTeamB, SEASON_SIM_FIXTURE_MARKER],
     )
     await probe.query(
-      `insert into public.match_results (match_id, winner_team_id, score_home, score_away, sentinel)
-       values ($1, $2, 2, 1, 'IMMUTABLE_RESULT_SENTINEL')`,
-      [match.rows[0]!.id, liveTeamA],
+      `insert into public.season_sim_sentinel_match_results
+         (match_id, winner_team_id, score_home, score_away, fixture_marker, sentinel)
+       values ($1, $2, 2, 1, $3, 'IMMUTABLE_RESULT_SENTINEL')`,
+      [match.rows[0]!.id, liveTeamA, SEASON_SIM_FIXTURE_MARKER],
     )
     await probe.query(
-      `insert into public.standings (season_id, team_id, wins, losses, sentinel)
-       values ($1, $2, 7, 2, 'IMMUTABLE_STANDINGS_A'),
-              ($1, $3, 2, 7, 'IMMUTABLE_STANDINGS_B')`,
-      [liveSeasonId, liveTeamA, liveTeamB],
+      `insert into public.season_sim_sentinel_standings
+         (season_id, team_id, wins, losses, fixture_marker, sentinel)
+       values
+         ($1, $2, 7, 2, $4, 'IMMUTABLE_STANDINGS_A'),
+         ($1, $3, 2, 7, $4, 'IMMUTABLE_STANDINGS_B')`,
+      [liveSeasonId, liveTeamA, liveTeamB, SEASON_SIM_FIXTURE_MARKER],
     )
     await probe.query(
-      `insert into public.league_settings (key, value, sentinel)
-       values ('current_season_pointer', jsonb_build_object('season_id', $1::text), 'IMMUTABLE_SETTINGS')`,
-      [liveSeasonId],
+      `insert into public.season_sim_sentinel_settings (key, value, fixture_marker, sentinel)
+       values ('current_season_pointer', jsonb_build_object('season_id', $1::text), $2, 'IMMUTABLE_SETTINGS')`,
+      [liveSeasonId, SEASON_SIM_FIXTURE_MARKER],
     )
 
     const sandbox = await probe.query<{ id: string }>(
@@ -174,7 +190,6 @@ describe.skipIf(!hasPgUrl)("season-sim shared-DB noninterference", () => {
       )
     }
 
-    // Sibling sandbox season+run — must survive reset of primary (one active run/season)
     const siblingSeason = await probe.query<{ id: string }>(
       `insert into public.seasons (name, is_current, is_sandbox, is_live_competitive, sheet_sync_enabled)
        values ('Sandbox Sibling', false, true, false, false) returning id`,
@@ -208,7 +223,6 @@ describe.skipIf(!hasPgUrl)("season-sim shared-DB noninterference", () => {
       [siblingRunId, siblingSeasonId],
     )
 
-    // Seed primary domain rows that reset should purge
     await probe.query(
       `insert into public.sim_matches (
          run_id, season_id, week, match_index, team1_id, team2_id, status, fidelity
@@ -241,24 +255,24 @@ describe.skipIf(!hasPgUrl)("season-sim shared-DB noninterference", () => {
       [liveSeasonId],
     )
     const matches = await c.query(
-      `select id, season_id, home_team_id, away_team_id, week, status, sentinel
-       from public.matches where season_id = $1 order by id`,
+      `select id, season_id, home_team_id, away_team_id, week, status, sentinel, fixture_marker
+       from public.season_sim_sentinel_matches where season_id = $1 order by id`,
       [liveSeasonId],
     )
     const results = await c.query(
-      `select r.id, r.match_id, r.winner_team_id, r.score_home, r.score_away, r.sentinel
-       from public.match_results r
-       join public.matches m on m.id = r.match_id
+      `select r.id, r.match_id, r.winner_team_id, r.score_home, r.score_away, r.sentinel, r.fixture_marker
+       from public.season_sim_sentinel_match_results r
+       join public.season_sim_sentinel_matches m on m.id = r.match_id
        where m.season_id = $1 order by r.id`,
       [liveSeasonId],
     )
     const standings = await c.query(
-      `select id, season_id, team_id, wins, losses, sentinel
-       from public.standings where season_id = $1 order by team_id`,
+      `select id, season_id, team_id, wins, losses, sentinel, fixture_marker
+       from public.season_sim_sentinel_standings where season_id = $1 order by team_id`,
       [liveSeasonId],
     )
     const settings = await c.query(
-      `select key, value, sentinel from public.league_settings order by key`,
+      `select key, value, sentinel, fixture_marker from public.season_sim_sentinel_settings order by key`,
     )
     return fingerprint([
       seasons.rows,
@@ -275,7 +289,7 @@ describe.skipIf(!hasPgUrl)("season-sim shared-DB noninterference", () => {
     return client
   }
 
-  it("reset + concurrent claim leave live sentinels and sibling sandbox intact", async () => {
+  it("reset + concurrent claim leave sentinel fixtures and sibling sandbox intact", async () => {
     const c = requireClient()
 
     const reset = await c.query<{ ok: boolean; reason: string }>(

@@ -106,7 +106,11 @@ Also cover:
 - [ ] Reset + replay `domain_epoch` / operation_key isolation
 - [ ] Retry of same command is idempotent; does not touch live tables
 
-In-repo: `lib/season-sim/shared-db-rls.pg.test.ts`, `lib/season-sim/noninterference.pg.test.ts`.
+In-repo: `lib/season-sim/shared-db-rls.pg.test.ts` (SET ROLE + JWT personas), `lib/season-sim/noninterference.pg.test.ts` (prefixed sentinel tables only).
+
+**Harness safety:** all season-sim PG suites require `SEASON_SIM_PG_URL` → loopback + disposable DB name marker. **No** `POSTGRES_URL` / `DATABASE_URL` fallback (`lib/season-sim/pg-disposable-target.ts`). Hosted/prod hostnames rejected without connecting.
+
+**Do not treat raw PG suite pass counts as proven persona isolation** unless the SET ROLE cases above are green.
 
 ---
 
