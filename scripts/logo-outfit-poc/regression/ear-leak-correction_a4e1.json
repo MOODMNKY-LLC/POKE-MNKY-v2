@@ -1,0 +1,213 @@
+{
+  "issue": "primary-mask includes right inner-ear flesh; recolors to purple/teal",
+  "roi_box_xyxy": [
+    980,
+    380,
+    1180,
+    620
+  ],
+  "ear_flesh_in_mask_count": 2215,
+  "bbox_of_leak": [
+    1012,
+    380,
+    1154,
+    619
+  ],
+  "centroid": [
+    1071,
+    558
+  ],
+  "sample_pixels": [
+    {
+      "x": 1103,
+      "y": 380,
+      "base_rgb": [
+        250,
+        136,
+        134
+      ],
+      "after_contrast_rgb": [
+        255,
+        86,
+        255
+      ],
+      "after_override_rgb": [
+        18,
+        200,
+        184
+      ]
+    },
+    {
+      "x": 1065,
+      "y": 535,
+      "base_rgb": [
+        115,
+        48,
+        46
+      ],
+      "after_contrast_rgb": [
+        100,
+        33,
+        234
+      ],
+      "after_override_rgb": [
+        7,
+        78,
+        71
+      ]
+    },
+    {
+      "x": 1081,
+      "y": 541,
+      "base_rgb": [
+        119,
+        48,
+        48
+      ],
+      "after_contrast_rgb": [
+        102,
+        34,
+        238
+      ],
+      "after_override_rgb": [
+        7,
+        79,
+        72
+      ]
+    },
+    {
+      "x": 1075,
+      "y": 547,
+      "base_rgb": [
+        119,
+        48,
+        48
+      ],
+      "after_contrast_rgb": [
+        102,
+        34,
+        238
+      ],
+      "after_override_rgb": [
+        7,
+        79,
+        72
+      ]
+    },
+    {
+      "x": 1068,
+      "y": 553,
+      "base_rgb": [
+        118,
+        46,
+        46
+      ],
+      "after_contrast_rgb": [
+        99,
+        33,
+        231
+      ],
+      "after_override_rgb": [
+        7,
+        77,
+        70
+      ]
+    },
+    {
+      "x": 1066,
+      "y": 559,
+      "base_rgb": [
+        117,
+        47,
+        47
+      ],
+      "after_contrast_rgb": [
+        100,
+        33,
+        233
+      ],
+      "after_override_rgb": [
+        7,
+        77,
+        71
+      ]
+    },
+    {
+      "x": 1077,
+      "y": 565,
+      "base_rgb": [
+        117,
+        47,
+        47
+      ],
+      "after_contrast_rgb": [
+        100,
+        33,
+        233
+      ],
+      "after_override_rgb": [
+        7,
+        77,
+        71
+      ]
+    },
+    {
+      "x": 1065,
+      "y": 572,
+      "base_rgb": [
+        118,
+        47,
+        48
+      ],
+      "after_contrast_rgb": [
+        100,
+        33,
+        234
+      ],
+      "after_override_rgb": [
+        7,
+        78,
+        71
+      ]
+    },
+    {
+      "x": 1060,
+      "y": 579,
+      "base_rgb": [
+        116,
+        47,
+        47
+      ],
+      "after_contrast_rgb": [
+        100,
+        33,
+        232
+      ],
+      "after_override_rgb": [
+        7,
+        77,
+        71
+      ]
+    },
+    {
+      "x": 1053,
+      "y": 586,
+      "base_rgb": [
+        123,
+        52,
+        53
+      ],
+      "after_contrast_rgb": [
+        108,
+        36,
+        253
+      ],
+      "after_override_rgb": [
+        7,
+        84,
+        77
+      ]
+    }
+  ],
+  "suggested_fix": "Subtract ear_flesh / peach from primary-mask in this ROI (and re-check left ear). Not a 1px fringe \u2014 thousands of pixels."
+}

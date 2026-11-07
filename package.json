@@ -49,7 +49,12 @@
     "discord:register-commands": "tsx scripts/register-discord-commands.ts",
     "discord:post-guide-embed": "tsx scripts/post-slash-commands-guide-embed.ts",
     "discord:post-guide-webhook": "tsx scripts/post-slash-commands-guide-webhook.ts",
-    "jev:pilot": "tsx scripts/jev-pilot/run.ts"
+    "jev:pilot": "tsx scripts/jev-pilot/run.ts",
+    "logo-outfit:poc": "tsx scripts/logo-outfit-poc/src/run-poc.ts",
+    "logo-outfit:test": "vitest run scripts/logo-outfit-poc/test/outfit-poc.test.ts",
+    "logo-outfit:validate": "tsx scripts/logo-outfit-poc/src/validate-fixtures.ts",
+    "logo-outfit:export": "python3 scripts/logo-outfit-poc/export_artifacts.py",
+    "logo-outfit:all": "python3 scripts/logo-outfit-poc/author_masks.py && python3 scripts/logo-outfit-poc/make_fixture_logos.py && pnpm logo-outfit:poc && pnpm logo-outfit:validate && pnpm logo-outfit:test && pnpm logo-outfit:export"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.12",
@@ -160,6 +165,7 @@
     "@playwright/test": "^1.49.0",
     "@tailwindcss/postcss": "^4.1.9",
     "@types/node": "^22.20.5",
+    "@types/pngjs": "^6.0.5",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "baseline-browser-mapping": "^2.11.34",
@@ -169,6 +175,7 @@
     "eslint-config-next": "16.4.3",
     "openapi-typescript": "^7.10.1",
     "orval": "^8.46.0",
+    "pngjs": "^7.0.0",
     "postcss": "^8.5.32",
     "shadcn": "^3.6.3",
     "tailwindcss": "^4.1.9",
