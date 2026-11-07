@@ -41,6 +41,18 @@ describe("provisional demo config", () => {
         schedule_weeks: 99,
       }),
     ).toThrow()
+    const small = buildProvisionalDemoConfig({
+      master_seed: "0123456789abcdef",
+      team_count: 2,
+    })
+    expect(small.playoff_size).toBe(2)
+    expect(() =>
+      buildProvisionalDemoConfig({
+        master_seed: "0123456789abcdef",
+        team_count: 2,
+        playoff_size: 4,
+      }),
+    ).toThrow(/playoff_size/)
     const ok = buildProvisionalDemoConfig({
       master_seed: "0123456789abcdef",
       team_count: 12,

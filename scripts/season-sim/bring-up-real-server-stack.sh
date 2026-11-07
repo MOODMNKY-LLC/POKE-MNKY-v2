@@ -308,9 +308,11 @@ echo "=== next build + start (flags ON for suite; demo allowlist gate ON) ==="
 export NEXT_PUBLIC_SUPABASE_URL="$GATEWAY_URL"
 export NEXT_PUBLIC_SUPABASE_ANON_KEY="$ANON_KEY"
 export SUPABASE_SERVICE_ROLE_KEY="$SERVICE_KEY"
+# Disposable CI VMs OOMed at default ~2GB during tsc; raise heap for this build only.
+export NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=${NEXT_BUILD_MAX_OLD_SPACE_SIZE:-8192}"
 # Build must see NEXT_PUBLIC_* 
 pnpm build >"$STATE_DIR/next-build.log" 2>&1 || {
-  tail -40 "$STATE_DIR/next-build.log" >&2
+  tail -80 "$STATE_DIR/next-build.log" >&2
   fail "next build failed"
 }
 

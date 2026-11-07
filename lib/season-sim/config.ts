@@ -103,6 +103,13 @@ export function buildProvisionalDemoConfig(
       "total_rounds cannot exceed roster_max under provisional_demo_v0",
     )
   }
+  const teamCount = overrides.team_count ?? 12
+  // Default playoff bracket must fit the team count (e2e often uses team_count=2).
+  const playoffSize =
+    overrides.playoff_size ?? Math.min(4, Math.max(2, teamCount))
+  if (playoffSize < 2 || playoffSize > teamCount) {
+    throw new Error("playoff_size must be between 2 and team_count")
+  }
   const config = simRunConfigSchema.parse({
     schema_version: 1,
     rules_version: PROVISIONAL_DEMO_RULES_LABEL,
@@ -111,13 +118,13 @@ export function buildProvisionalDemoConfig(
     format_id: "gen9aabdraft_provisional",
     provisional_rules_labeled: true,
     master_seed: overrides.master_seed,
-    team_count: overrides.team_count ?? 12,
+    team_count: teamCount,
     roster_min: rosterMin,
     roster_max: rosterMax,
     total_rounds: totalRounds,
     budget_total: overrides.budget_total,
     schedule_weeks: overrides.schedule_weeks,
-    playoff_size: overrides.playoff_size,
+    playoff_size: playoffSize,
     selector_draft: overrides.selector_draft,
   })
   assertSharedDbResourceBounds(config)
@@ -159,8 +166,8 @@ export function assertSharedDbResourceBounds(config: SimRunConfig): void {
       `playoff_size ${config.playoff_size} exceeds shared-DB hard cap ${SHARED_DB_HARD_CAPS.playoff_size_max}`,
     )
   }
-  if (config.playoff_size > config.team_count) {
-    throw new Error("playoff_size cannot exceed team_count")
+  if (config.playoff_size > config.team_count || config.playoff_size < 2) {
+    throw new Error("playoff_size must be between 2 and team_count")
   }
   const estimated = estimateRegularSeasonMatches(
     config.team_count,

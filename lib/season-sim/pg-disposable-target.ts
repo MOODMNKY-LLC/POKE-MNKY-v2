@@ -136,7 +136,7 @@ export function assertDisposableSeasonSimPgUrl(raw: string): URL {
  * someone might have intended (we never use those values).
  */
 export function resolveSeasonSimPgUrl(
-  env: NodeJS.ProcessEnv = process.env,
+  env: Record<string, string | undefined> = process.env,
 ): string | null {
   const explicit = env[SEASON_SIM_PG_URL_ENV]?.trim() ?? ""
   if (explicit) {
