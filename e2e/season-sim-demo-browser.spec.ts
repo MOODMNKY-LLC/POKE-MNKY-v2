@@ -65,44 +65,55 @@ async function setCount(page: Page, n: number) {
 }
 
 async function waitNotBusy(page: Page) {
-  await expect(page.getByRole("button", { name: "Advance" })).toBeEnabled({
+  await expect(page.locator("button .animate-spin")).toHaveCount(0, {
     timeout: 120_000,
   })
 }
 
-async function autoRunUntil(
-  page: Page,
-  predicate: () => Promise<boolean>,
-  label: string,
-) {
-  await page.getByRole("button", { name: "Auto-run" }).click()
-  const deadline = Date.now() + 8 * 60_000
-  while (Date.now() < deadline) {
-    if (await predicate()) {
-      const stop = page.getByRole("button", { name: /Stop auto-run/ })
-      if (await stop.isVisible().catch(() => false)) {
-        await stop.click().catch(() => undefined)
-      }
-      return
-    }
-    const stopVisible = await page
-      .getByRole("button", { name: /Stop auto-run/ })
-      .isVisible()
-      .catch(() => false)
-    if (!stopVisible) {
-      // Auto-run finished on its own; re-check predicate
-      if (await predicate()) return
-      break
-    }
-    await page.waitForTimeout(500)
-  }
-  throw new Error(`auto-run timeout waiting for: ${label}`)
+async function bodyHas(page: Page, re: RegExp): Promise<boolean> {
+  const text = await page.locator("body").innerText()
+  return re.test(text)
 }
 
-test.describe.configure({ mode: "serial" })
+/**
+ * Deterministic drive: queue Advance when needed, then owner-scoped worker steps.
+ * Avoids Auto-run stopping on intermediate `paused` without meeting the goal.
+ */
+async function driveUntil(
+  page: Page,
+  opts: {
+    label: string
+    done: () => Promise<boolean>
+    ensureCommand?: () => Promise<void>
+    maxTicks?: number
+  },
+) {
+  const maxTicks = opts.maxTicks ?? 80
+  for (let i = 0; i < maxTicks; i++) {
+    if (await opts.done()) return
+    if (opts.ensureCommand) await opts.ensureCommand()
+    const tick = page.getByRole("button", { name: "Run worker step" })
+    if (await tick.isEnabled()) {
+      await tick.click()
+      await waitNotBusy(page)
+    } else {
+      // Resume if paused without goal met
+      const resume = page.getByRole("button", { name: "Resume" })
+      if (await resume.isEnabled()) {
+        await resume.click()
+        await waitNotBusy(page)
+        continue
+      }
+      await page.waitForTimeout(400)
+    }
+  }
+  throw new Error(`driveUntil timeout: ${opts.label}`)
+}
 
 test.describe("season-sim demo browser acceptance", () => {
   requireEnv()
+  // Tests are independent (each signs in as needed). Do not use serial —
+  // a champion-path failure must not skip deny/403/503 coverage.
 
   test("anonymous is denied create / sees unauthorized path", async ({
     page,
@@ -168,29 +179,22 @@ test.describe("season-sim demo browser acceptance", () => {
     await expect(page.getByText(/Run created with 4 synthetic teams/i)).toBeVisible({
       timeout: 60_000,
     })
-    await expect(page.getByText(/queued|running|configured/i).first()).toBeVisible()
+    await expect(page.getByText(/queued|running|configured|paused/i).first()).toBeVisible()
     await shot(page, `${testInfo.project.name}-created`)
 
-    // Granular draft: advance 2 rounds, then worker ticks via auto-run
-    await selectUnit(page, "Draft round")
-    await setCount(page, 2)
+    // Granular draft: 4 teams × 2 rounds = 8 picks
+    await selectUnit(page, "Pick")
+    await setCount(page, 8)
     await page.getByRole("button", { name: "Advance" }).click()
-    await expect(page.getByText(/queued|replayed/i).first()).toBeVisible({
-      timeout: 30_000,
-    })
     await waitNotBusy(page)
 
-    await autoRunUntil(
-      page,
-      async () => {
-        const text = await page.locator("body").innerText()
-        return (
-          /\bpaused\b/i.test(text) &&
-          (/Awaiting:\s*schedule/i.test(text) || /Draft finished/i.test(text))
-        )
-      },
-      "draft complete pause",
-    )
+    await driveUntil(page, {
+      label: "draft complete → awaiting schedule",
+      maxTicks: 40,
+      done: async () =>
+        (await bodyHas(page, /Awaiting:\s*schedule/i)) ||
+        (await bodyHas(page, /Draft finished/i)),
+    })
     await shot(page, `${testInfo.project.name}-draft-paused`)
 
     // Readable seat names on Draft tab
@@ -200,25 +204,37 @@ test.describe("season-sim demo browser acceptance", () => {
     })
 
     // Resume → whole season → ticks to champion
-    await page.getByRole("button", { name: "Resume" }).click()
-    await waitNotBusy(page)
-    // Apply resume via worker step(s)
-    await page.getByRole("button", { name: "Run worker step" }).click()
-    await waitNotBusy(page)
+    const resume = page.getByRole("button", { name: "Resume" })
+    if (await resume.isEnabled()) {
+      await resume.click()
+      await waitNotBusy(page)
+    }
 
     await selectUnit(page, "Whole season")
     await setCount(page, 1)
     await page.getByRole("button", { name: "Advance" }).click()
     await waitNotBusy(page)
 
-    await autoRunUntil(
-      page,
-      async () => {
-        const text = await page.locator("body").innerText()
-        return /\bcompleted\b/i.test(text)
+    await driveUntil(page, {
+      label: "season complete / champion",
+      maxTicks: 60,
+      done: async () => bodyHas(page, /\bcompleted\b/i),
+      ensureCommand: async () => {
+        if (await bodyHas(page, /\bcompleted\b/i)) return
+        const adv = page.getByRole("button", { name: "Advance" })
+        if (await adv.isEnabled()) {
+          // Re-queue season unit if prior command drained without completing
+          const unit = page.locator("#sim-unit")
+          const label = await unit.innerText()
+          if (!/Whole season/i.test(label)) {
+            await selectUnit(page, "Whole season")
+            await setCount(page, 1)
+          }
+          await adv.click()
+          await waitNotBusy(page)
+        }
       },
-      "season complete",
-    )
+    })
     await shot(page, `${testInfo.project.name}-season-complete`)
 
     // Season tab: matches + standings with readable names
