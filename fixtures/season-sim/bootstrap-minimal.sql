@@ -22,6 +22,9 @@ stable
 as $$ select null::uuid $$;
 
 -- Drop any leftover sim tables from prior runs (create-if-not-exists otherwise skips FKs).
+drop table if exists public.sim_draft_picks cascade;
+drop table if exists public.sim_draft_budgets cascade;
+drop table if exists public.sim_draft_pool cascade;
 drop table if exists public.sim_bot_seats cascade;
 drop table if exists public.simulation_decisions cascade;
 drop table if exists public.simulation_events cascade;
