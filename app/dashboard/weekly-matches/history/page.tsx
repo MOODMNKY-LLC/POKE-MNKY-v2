@@ -14,6 +14,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar"
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import Link from "next/link"
+import { AttachReplayPanel } from "@/components/dashboard/attach-replay-panel"
 
 type HistoryMatch = {
   id: string
@@ -172,7 +173,7 @@ export default async function WeeklyMatchesHistoryPage() {
                         {m.team1_score}–{m.team2_score} · Winner: {m.winner?.name}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <Badge variant="secondary">{m.status}</Badge>
                       {m.replay_url ? (
                         <Button asChild size="sm" variant="outline">
@@ -185,6 +186,10 @@ export default async function WeeklyMatchesHistoryPage() {
                           </a>
                         </Button>
                       ) : null}
+                      <AttachReplayPanel
+                        matchId={m.id}
+                        existingReplayUrl={m.replay_url}
+                      />
                     </div>
                   </div>
                 ))
