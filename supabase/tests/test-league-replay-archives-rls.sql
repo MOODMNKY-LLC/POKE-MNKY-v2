@@ -59,8 +59,9 @@ create table if not exists public.matches (
 grant select on public.profiles, public.teams, public.seasons, public.matches, public.coaches
   to authenticated, service_role;
 
--- Apply Phase1 migration body (idempotent create)
+-- Apply Phase1 migration body + grant-hardening follow-up
 \i supabase/migrations/20261107102017_league_replay_archives.sql
+\i supabase/migrations/20261108014024_league_replay_archives_authenticated_select_only.sql
 
 -- Seed
 truncate public.league_match_replay_links, public.league_replay_parse_runs, public.league_replay_archives cascade;
