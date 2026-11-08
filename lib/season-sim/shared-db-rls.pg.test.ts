@@ -21,7 +21,7 @@ const bootstrapSql = readFileSync(
   join(root, "fixtures/season-sim/bootstrap-minimal.sql"),
   "utf8",
 )
-const migrations = [
+const migrationNames = [
   "20261108150121_season_sim_sandbox_isolation.sql",
   "20261108150122_season_sim_run_foundation.sql",
   "20261108150123_season_sim_foundation_hardening.sql",
@@ -29,9 +29,48 @@ const migrations = [
   "20261108150250_season_sim_foundation_cursor_preserve.sql",
   "20261108150330_season_sim_season_path.sql",
   "20261108150450_season_sim_shared_db_rls_harden.sql",
-].map((name) =>
+] as const
+const migrations = migrationNames.map((name) =>
   readFileSync(join(root, "supabase/migrations", name), "utf8"),
 )
+
+/** Tables inventoried by the shared-DB harden migration. */
+const SIM_TABLES = [
+  "simulation_runs",
+  "simulation_commands",
+  "simulation_steps",
+  "simulation_events",
+  "simulation_decisions",
+  "sim_bot_seats",
+  "sim_draft_pool",
+  "sim_draft_budgets",
+  "sim_draft_picks",
+  "sim_matches",
+  "sim_standings",
+  "sim_season_outcomes",
+] as const
+
+/**
+ * Simulate Supabase ALTER DEFAULT PRIVILEGES leftovers (arwdDxtm) that survive
+ * selective REVOKE — the PR39/PR40 incident class.
+ */
+async function poisonSupabaseDefaultTableAcls(client: Client) {
+  for (const t of SIM_TABLES) {
+    const exists = await client.query(
+      `select to_regclass($1) is not null as ok`,
+      [`public.${t}`],
+    )
+    if (!exists.rows[0]?.ok) continue
+    await client.query(
+      `grant select, insert, update, delete, truncate, references, trigger
+       on table public.${t} to anon, authenticated, service_role`,
+    )
+    // PG17 MAINTAIN when available (Supabase poke-mnky is PG17)
+    await client
+      .query(`grant maintain on table public.${t} to anon, authenticated, service_role`)
+      .catch(() => undefined)
+  }
+}
 
 /** Must run as table/superuser role (not SET ROLE anon/authenticated). */
 async function asJwtUser(client: Client, userId: string | null) {
@@ -80,9 +119,12 @@ describe.skipIf(!hasPgUrl)("season-sim shared-DB RLS personas (SET ROLE)", () =>
   beforeAll(async () => {
     const probe = await connectDisposableHarnessClient(pgUrl)
     await probe.query(bootstrapSql)
-    for (const sql of migrations) {
-      await probe.query(sql)
+    // Apply #1–#6, poison broad defaults, then #7 harden (PR39-class repro).
+    for (let i = 0; i < migrations.length - 1; i++) {
+      await probe.query(migrations[i]!)
     }
+    await poisonSupabaseDefaultTableAcls(probe)
+    await probe.query(migrations[migrations.length - 1]!)
 
     // JWT-claim auth.uid() (Supabase-shaped) — not a permanent prod replace;
     // disposable harness only.
@@ -382,26 +424,67 @@ describe.skipIf(!hasPgUrl)("season-sim shared-DB RLS personas (SET ROLE)", () =>
          )`,
     )
     for (const p of pols.rows) {
-      if (
-        ![
-          "simulation_runs",
-          "simulation_commands",
-          "simulation_steps",
-          "simulation_events",
-          "simulation_decisions",
-          "sim_bot_seats",
-          "sim_draft_pool",
-          "sim_draft_budgets",
-          "sim_draft_picks",
-          "sim_matches",
-          "sim_standings",
-          "sim_season_outcomes",
-        ].includes(p.tablename)
-      ) {
+      if (!(SIM_TABLES as readonly string[]).includes(p.tablename)) {
         continue
       }
       expect(p.cmd).toBe("SELECT")
       expect(p.policyname).toMatch(/owner or admin select/)
+    }
+  })
+
+  it("effective table ACL: authenticated SELECT-only; anon none; service_role DML without truncate/trigger/maintain", async () => {
+    const c = requireClient()
+    const forbiddenAuth = [
+      "INSERT",
+      "UPDATE",
+      "DELETE",
+      "TRUNCATE",
+      "TRIGGER",
+      "REFERENCES",
+    ]
+    const pgVersion = await c.query<{ v: number }>(
+      `select current_setting('server_version_num')::int as v`,
+    )
+    const supportsMaintain = (pgVersion.rows[0]?.v ?? 0) >= 170000
+    if (supportsMaintain) forbiddenAuth.push("MAINTAIN")
+
+    for (const t of SIM_TABLES) {
+      const sel = await c.query<{ ok: boolean }>(
+        `select has_table_privilege('authenticated', 'public.' || $1, 'SELECT') as ok`,
+        [t],
+      )
+      expect(sel.rows[0]?.ok, `${t} authenticated SELECT`).toBe(true)
+
+      for (const priv of forbiddenAuth) {
+        const row = await c.query<{ ok: boolean }>(
+          `select has_table_privilege('authenticated', 'public.' || $1, $2) as ok`,
+          [t, priv],
+        )
+        expect(row.rows[0]?.ok, `${t} authenticated must NOT ${priv}`).toBe(false)
+      }
+
+      for (const priv of ["SELECT", "INSERT", "TRUNCATE", ...(supportsMaintain ? ["MAINTAIN"] : [])]) {
+        const anon = await c.query<{ ok: boolean }>(
+          `select has_table_privilege('anon', 'public.' || $1, $2) as ok`,
+          [t, priv],
+        )
+        expect(anon.rows[0]?.ok, `${t} anon must NOT ${priv}`).toBe(false)
+      }
+
+      for (const priv of ["SELECT", "INSERT", "UPDATE", "DELETE"]) {
+        const sr = await c.query<{ ok: boolean }>(
+          `select has_table_privilege('service_role', 'public.' || $1, $2) as ok`,
+          [t, priv],
+        )
+        expect(sr.rows[0]?.ok, `${t} service_role ${priv}`).toBe(true)
+      }
+      for (const priv of ["TRUNCATE", "TRIGGER", ...(supportsMaintain ? ["MAINTAIN"] : [])]) {
+        const sr = await c.query<{ ok: boolean }>(
+          `select has_table_privilege('service_role', 'public.' || $1, $2) as ok`,
+          [t, priv],
+        )
+        expect(sr.rows[0]?.ok, `${t} service_role must NOT ${priv}`).toBe(false)
+      }
     }
   })
 })

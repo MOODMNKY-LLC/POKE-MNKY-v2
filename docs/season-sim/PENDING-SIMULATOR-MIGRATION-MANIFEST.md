@@ -14,8 +14,8 @@
 | Field | Value |
 |---|---|
 | Supabase project | `chmrszrwlfeqovwxyrmt` (`poke-mnky-db`) |
-| Applied migration records (parent) | **200** after PR40; latest **`20261108014024`** (confirm) |
-| Pending simulator SQL versions | **exactly seven** retimed `20261108150121`…`20261108150450` (content hashes match prior seven) |
+| Applied migration records (parent verified 2026-11-08) | **200**; latest **`20261108014024`** applied on `chmrszrwlfeqovwxyrmt` |
+| Pending simulator SQL versions | **exactly seven** retimed `20261108150121`…`20261108150450` (#1–#6 content hashes match prior; #7 rehashed after ACL wipe fix) |
 | Prod Vercel project / team | `prj_vaC0p4lYOlmn16tMUMaVnWFB7rhz` / `team_4VdnVxvnFkQg6uxXYa1mNpsN` |
 | App main SHA (this preflight) | **`2743893035c3328de9b36870b3a9935d0eb8a080`** (#40); cutover gate from #37 already on main |
 | Custom-domain alias | **not independently verified** — READY record ≠ proven live alias |
@@ -52,7 +52,7 @@ Approve **these exact files and content hashes**. Never blanket-push unrelated p
 | 4 | `20261108150239_season_sim_draft_domain.sql` | `7bb65161dc1d73688565519d6d455a4f7a30dfe3d18fa1a199fb4a6228b4c149` | Draft tables + pick RPC |
 | 5 | `20261108150250_season_sim_foundation_cursor_preserve.sql` | `674ec0c2663d7f46a56c0a0a24bfed45872e34ac54da9dce65f3cb4a187788da` | Cursor preserve |
 | 6 | `20261108150330_season_sim_season_path.sql` | `dd716161adc2187949f23db38d587006330f54ade4cbdfda9a72af4340c9e135` | Matches/standings/outcomes + reset |
-| 7 | `20261108150450_season_sim_shared_db_rls_harden.sql` | `e64abf127456eb02911ba73a749633c7aeb9a9a20213128986b780d53031a849` | Drop ALL policies; FORCE RLS; owner/admin SELECT; service_role-only mutation EXECUTE |
+| 7 | `20261108150450_season_sim_shared_db_rls_harden.sql` | `c45e146d8ff54a825046241949d31857bf0e6528b6189f6ccf7dcb25db941e9d` | Drop ALL policies; FORCE RLS; wipe PUBLIC/anon/authenticated/service_role ACLs then SELECT-only + service_role DML (no truncate/trigger/maintain). Prior hash `e64abf12…1a849` |
 
 Re-hash after any SQL edit:
 

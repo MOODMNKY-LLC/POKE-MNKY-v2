@@ -82,12 +82,15 @@ begin
       continue;
     end if;
 
-    execute format('revoke all on table public.%I from public, anon', t);
-    execute format(
-      'revoke insert, update, delete, truncate on table public.%I from authenticated',
-      t
-    );
+    -- Match PR40 lesson: Supabase default privileges grant authenticated/service_role
+    -- ALL (arwdDxtm incl. TRUNCATE/TRIGGER/MAINTAIN). Selective REVOKE of DML alone
+    -- leaves those leftovers; GRANT is additive. Wipe then re-grant least privilege.
+    execute format('revoke all on table public.%I from public', t);
+    execute format('revoke all on table public.%I from anon', t);
+    execute format('revoke all on table public.%I from authenticated', t);
+    execute format('revoke all on table public.%I from service_role', t);
     execute format('grant select on table public.%I to authenticated', t);
+    -- service_role: intended API DML (bypasses RLS); no truncate/trigger/maintain
     execute format(
       'grant select, insert, update, delete on table public.%I to service_role',
       t
