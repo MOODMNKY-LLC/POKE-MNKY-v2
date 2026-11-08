@@ -6,6 +6,7 @@
 import { createServiceRoleClient } from "@/lib/supabase/service"
 import { DraftSystem } from "@/lib/draft-system"
 import { assertLegacySimulationWritesAllowed } from "@/lib/league-simulation/legacy-simulation-writes-gate"
+import { assertSeasonAllowsSimulationRunAttach } from "@/lib/league-simulation/mock-draft-demo-season"
 import { generateRoundRobinSchedule } from "./schedule-generator"
 import { generatePlayoffRound1Only } from "./playoff-bracket-generator"
 import { generateMockResult, type ResultStrategy } from "./mock-result-generator"
@@ -119,6 +120,9 @@ export async function recordSimulationRun(
   // Fail closed before any DB client / write (schema-independent cutover gate).
   assertLegacySimulationWritesAllowed()
   const supabase = createServiceRoleClient()
+  // Post-isolation: refuse nonsandbox attach. Pre-isolation: assert is a no-op.
+  // Callers that use Mock Draft Demo must ensureMockDraftDemoSandboxSeason first.
+  await assertSeasonAllowsSimulationRunAttach(supabase, seasonId)
   const { data, error } = await supabase
     .from("simulation_runs")
     .insert({

@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createServiceRoleClient } from "@/lib/supabase/service"
 import { validateBotKeyPresent } from "@/lib/auth/bot-key"
+import { getCurrentSeasonIdWithFallback } from "@/lib/seasons"
 
 export async function GET(request: NextRequest) {
   const botKeyValidation = validateBotKeyPresent(request)
@@ -14,11 +15,7 @@ export async function GET(request: NextRequest) {
   }
 
   const supabase = createServiceRoleClient()
-  const { data: season } = await supabase
-    .from("seasons")
-    .select("id")
-    .eq("is_current", true)
-    .maybeSingle()
+  const seasonId = await getCurrentSeasonIdWithFallback(supabase)
 
-  return NextResponse.json({ season_id: season?.id ?? null })
+  return NextResponse.json({ season_id: seasonId })
 }

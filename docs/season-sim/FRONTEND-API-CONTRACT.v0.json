@@ -1,0 +1,181 @@
+{
+  "schema_version": 1,
+  "rules_version": "provisional_demo_v0",
+  "fidelity": "statistical_seeded",
+  "auth": {
+    "operator": {
+      "when_gate_on": "authenticated session cookie + UUID in SIM_DEMO_OPERATOR_ALLOWLIST (league admin NOT required; membership does NOT grant other /api/admin/*)",
+      "when_gate_off": "requireLeagueAdmin fallback (dev only)",
+      "worker": "header x-simulation-worker-key = SIMULATION_WORKER_KEY"
+    }
+  },
+  "flags_default_off": [
+    "SIM_SANDBOX_V2",
+    "SIM_WORKER_TICK_ENABLED",
+    "SIM_LEGACY_SIMULATION_WRITES"
+  ],
+  "env_names_only": [
+    "SIM_SANDBOX_V2",
+    "SIM_WORKER_TICK_ENABLED",
+    "SIMULATION_WORKER_KEY",
+    "SIM_DEMO_OPERATOR_GATE",
+    "SIM_DEMO_OPERATOR_ALLOWLIST",
+    "NEXT_PUBLIC_SUPABASE_URL",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    "SUPABASE_SERVICE_ROLE_KEY"
+  ],
+  "routes": [
+    {
+      "method": "POST",
+      "path": "/api/admin/simulation/runs",
+      "request": {
+        "master_seed": "string?",
+        "team_count": "number?",
+        "total_rounds": "number?",
+        "budget_total": "number?",
+        "schedule_weeks": "number?",
+        "playoff_size": "number?",
+        "selector_draft": "random|heuristic|jev?",
+        "queue_immediately": "boolean?"
+      },
+      "success_status": 201,
+      "response": {
+        "run": "SimProgressResponse",
+        "season_id": "uuid",
+        "team_ids": "uuid[]",
+        "rules_label": "provisional_demo_v0",
+        "note": "string"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/simulation/runs/[id]",
+      "success_status": 200,
+      "response": {
+        "progress": "SimProgressResponse",
+        "draft": "SimDraftEvidence",
+        "season": "SimSeasonEvidence"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/simulation/runs/[id]/advance",
+      "request": {
+        "command_id": "uuid",
+        "unit": "foundation|pick|round|match|week|playoff_round|season",
+        "n": "number?",
+        "expected_step_seq": "number",
+        "expected_run_version": "number"
+      },
+      "success_status": 202,
+      "response": "SimCommandAcceptResponse"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/simulation/runs/[id]/pause|/resume|/cancel",
+      "success_status": 202
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/simulation/runs/[id]/reset",
+      "success_status": 200,
+      "response": {
+        "ok": true,
+        "reason": "DOMAIN_RESET",
+        "run_id": "uuid",
+        "status": "queued|configured",
+        "note": "string"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/simulation/worker/tick",
+      "request": {
+        "run_id": "uuid?",
+        "worker_id": "string",
+        "max_steps": "number? (<=50)"
+      },
+      "success_status": 200,
+      "response": {
+        "results": [
+          {
+            "run_id": "uuid",
+            "claimed": "boolean",
+            "steps_applied": "number",
+            "run_status": "string",
+            "step_seq": "number",
+            "run_version": "number",
+            "reason": "string?"
+          }
+        ]
+      }
+    }
+  ],
+  "shapes": {
+    "SimProgressResponse": {
+      "run_id": "uuid",
+      "season_id": "uuid|null",
+      "phase": "configured|draft|regular|playoffs|complete",
+      "status": "configured|queued|running|paused|blocked|cancel_requested|cancelled|failed|completed|archived",
+      "step_seq": "number",
+      "event_seq": "number",
+      "run_version": "number",
+      "seed_frozen": "boolean",
+      "active_command_id": "uuid|null",
+      "blocked_reason": "string|null",
+      "error_code": "string|null",
+      "error_message": "string|null",
+      "cursor": "object",
+      "config": "object"
+    },
+    "SimDraftEvidence": {
+      "pool_available": "number",
+      "pool_drafted": "number",
+      "pick_count": "number",
+      "total_picks_expected": "number",
+      "budgets": "array",
+      "roster_picks": "array",
+      "decisions": "array",
+      "cursor_pick_number": "number",
+      "cursor_agrees_with_picks": "boolean",
+      "decisions_agree_with_picks": "boolean"
+    },
+    "SimSeasonEvidence": {
+      "match_total": "number",
+      "match_completed": "number",
+      "match_scheduled": "number",
+      "regular_completed": "number",
+      "playoff_completed": "number",
+      "standings": [
+        {
+          "team_id": "uuid",
+          "wins": "number",
+          "losses": "number",
+          "differential": "number",
+          "seed": "number|null"
+        }
+      ],
+      "champion_team_id": "uuid|null",
+      "fidelity": "statistical_seeded|null",
+      "disclaimer": "string|null"
+    },
+    "SimCommandAcceptResponse": {
+      "command_id": "uuid",
+      "run_id": "uuid",
+      "run_version": "number",
+      "expected_cursor": { "step_seq": "number" },
+      "status": "accepted",
+      "replayed": "boolean?"
+    }
+  },
+  "cursor_milestones": {
+    "draft_complete": { "draft_complete": true, "awaiting": "schedule", "status": "paused" },
+    "season_complete": {
+      "phase": "complete",
+      "status": "completed",
+      "cursor.complete": true,
+      "cursor.champion_team_id": "uuid"
+    }
+  },
+  "ui_out_of_scope_here": "v0 interface preparation is separate; do not invent alternate routes"
+}

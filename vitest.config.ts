@@ -7,6 +7,14 @@ export default defineConfig({
     environment: "node",
     // Only *.test.ts — e2e/*.spec.ts is Playwright, not Vitest
     include: ["**/*.test.ts"],
-    exclude: ["node_modules", ".next", "**/test-e2e*", "e2e/**"],
+    exclude: [
+      "node_modules",
+      ".next",
+      "**/test-e2e*",
+      "e2e/**",
+      // Dedicated jobs / local disposable stacks — must not inflate unit totals via skip-pass.
+      "**/*.pg.test.ts",
+      "**/*.http.integration.test.ts",
+    ],
   },
 })
