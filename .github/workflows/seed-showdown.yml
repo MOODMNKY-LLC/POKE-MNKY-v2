@@ -8,9 +8,10 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
+        # Disposable CI-only Postgres. Trust auth keeps the password out of the workflow.
         image: postgres:15
         env:
-          POSTGRES_PASSWORD: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
         ports:
           - 5432:5432
         options: >-
@@ -29,8 +30,6 @@ jobs:
         run: until pg_isready -h localhost -p 5432; do sleep 1; done
 
       - name: Run showdown seed SQL
-        env:
-          PGPASSWORD: postgres
         run: |
-          psql "postgresql://postgres:postgres@localhost:5432/postgres" -f supabase/seeds/seed_showdown_stock_teams.sql
+          psql "postgresql://postgres@localhost:5432/postgres" -f supabase/seeds/seed_showdown_stock_teams.sql
 
