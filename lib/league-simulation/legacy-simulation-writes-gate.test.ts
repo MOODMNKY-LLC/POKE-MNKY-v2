@@ -106,7 +106,6 @@ describe("mutation route surface (source inventory)", () => {
       "app/api/admin/simulation/playoffs/route.ts",
       "app/api/admin/simulation/run-results/route.ts",
       "app/api/admin/simulation/full-run/route.ts",
-      "app/api/admin/simulation/reset/route.ts",
       "app/api/draft/mock/run/route.ts",
     ]
     for (const rel of gated) {
@@ -114,6 +113,13 @@ describe("mutation route surface (source inventory)", () => {
       expect(src).toContain("legacySimulationWriteDeniedResponse")
       expect(src).toMatch(/legacyDenied[\s\S]{0,80}return legacyDenied/)
     }
+    // Name-based reset is permanently retired (not flag-gated).
+    const reset = readFileSync(
+      join(root, "app/api/admin/simulation/reset/route.ts"),
+      "utf8",
+    )
+    expect(reset).toContain("legacyNameBasedResetDeniedResponse")
+    expect(reset).not.toContain("recordSimulationRun")
     // Read path must remain ungated.
     const status = readFileSync(
       join(root, "app/api/admin/simulation/status/route.ts"),
