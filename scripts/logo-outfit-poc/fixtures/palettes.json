@@ -1,0 +1,32 @@
+{
+  "_comment": "EXAMPLE DATA only — not Matt's logos or approved team colors. Overrides demonstrate coach-resolved palettes after suggestions.",
+  "baseAvatar": "public/poke-mnky/avatars/red-blue.png",
+  "jevExercised": false,
+  "fixtures": [
+    {
+      "id": "contrast-green-purple",
+      "label": "EXAMPLE: high-contrast green/purple logo",
+      "logo": "fixtures/logos/example-contrast.png",
+      "useSuggested": true,
+      "overrides": null
+    },
+    {
+      "id": "mono-grayscale",
+      "label": "EXAMPLE: monochrome logo (suggestions + B/W roles)",
+      "logo": "fixtures/logos/example-mono.png",
+      "useSuggested": true,
+      "overrides": null
+    },
+    {
+      "id": "bw-gold-override",
+      "label": "EXAMPLE: B/W+gold logo with explicit coach override (teal/orange kit)",
+      "logo": "fixtures/logos/example-bw-accent.png",
+      "useSuggested": false,
+      "overrides": {
+        "primary": "#0D9488",
+        "secondary": "#EA580C",
+        "accent": "#D4AF37"
+      }
+    }
+  ]
+}
