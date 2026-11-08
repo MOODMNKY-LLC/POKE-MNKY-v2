@@ -31,9 +31,10 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
+        # Disposable CI-only Postgres. Trust auth keeps the password out of the workflow.
         image: postgres:16
         env:
-          POSTGRES_PASSWORD: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
           POSTGRES_DB: sheet_sync_apply_test
         ports:
           - 5432:5432
@@ -55,7 +56,7 @@ jobs:
       - name: Run sheet_sync_apply postgres regression
         env:
           CI: true
-          SHEET_SYNC_APPLY_PG_URL: postgresql://postgres:postgres@localhost:5432/sheet_sync_apply_test
+          SHEET_SYNC_APPLY_PG_URL: postgresql://postgres@localhost:5432/sheet_sync_apply_test
         run: pnpm exec vitest run lib/sheet-sync/apply-ambiguous.test.ts
 
   e2e:
