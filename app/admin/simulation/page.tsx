@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -145,8 +146,18 @@ export default function AdminSimulationPage() {
     <div className="container mx-auto py-8 px-4 max-w-7xl">
       <AdminPageHeader
         title="League Simulation"
-        description="Run end-to-end tests: seed mock season, draft, schedule, playoffs, and results"
+        description="Legacy mock-draft controls. They stay disabled. Use the sandbox console for a new statistical run."
       />
+
+      <div className="mb-6 rounded-lg border bg-muted/40 p-4 text-sm">
+        <p className="font-medium">Sandbox simulator</p>
+        <p className="mt-1 text-muted-foreground">
+          Statistical sandbox runs, synthetic teams, and manual steps live on the Season Simulator console. This page does not create those runs and does not change Season 7 or Season 8.
+        </p>
+        <Link href="/demo/season-sim" className="mt-2 inline-flex font-medium text-primary underline-offset-4 hover:underline">
+          Open Season Simulator
+        </Link>
+      </div>
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
