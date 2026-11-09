@@ -21,6 +21,11 @@ yarn-error.log*
 .env*
 !.env.example
 
+# Infisical CLI project file. It can name the instance origin.
+# Keep that origin in INFISICAL_DOMAIN and pass it with pnpm secrets:*.
+.infisical.json
+.infisical.yaml
+
 # vercel
 .vercel
 

@@ -5,6 +5,8 @@
   "scripts": {
     "build": "eslint . && next build",
     "dev": "next dev --disable-source-maps",
+    "secrets:plan": "tsx scripts/infisical-run.ts --plan",
+    "secrets:run": "tsx scripts/infisical-run.ts",
     "dev:webpack": "next dev --webpack --disable-source-maps",
     "lint": "eslint .",
     "start": "next start",

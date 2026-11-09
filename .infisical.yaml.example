@@ -1,0 +1,9 @@
+# EXAMPLE ONLY. The Infisical CLI does not read this filename.
+# Do not commit .infisical.yaml or .infisical.json.
+# Do not put general.domain in a committed project file: the CLI would send
+# credentials there, and a file change could redirect them.
+# pnpm secrets:plan / pnpm secrets:run always pass --domain, --projectId, and --env.
+version: 1
+general: {}
+secrets-management:
+  project-id: REPLACE_WITH_PROJECT_ID
