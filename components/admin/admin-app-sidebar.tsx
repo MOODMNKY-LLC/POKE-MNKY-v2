@@ -75,8 +75,8 @@ const adminNavItems = [
     items: [
       { title: "Discord", url: "/admin/discord" },
       { title: "Google Sheets (Legacy)", url: "/admin/google-sheets" },
-      { title: "Simulation", url: "/admin/simulation" },
-      { title: "Season Sim demo", url: "/demo/season-sim" },
+      { title: "Season simulator", url: "/demo/season-sim" },
+      { title: "Simulation (legacy)", url: "/admin/simulation" },
       { title: "Music", url: "/admin/music" },
     ],
   },

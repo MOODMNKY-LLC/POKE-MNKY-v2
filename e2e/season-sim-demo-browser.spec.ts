@@ -55,13 +55,29 @@ async function signInNonadmin(page: Page) {
   })
 }
 
+async function openAdvanced(page: Page) {
+  const unit = page.locator("#sim-unit")
+  if (await unit.isVisible()) return
+  await page.getByRole("button", { name: "Advanced controls" }).click()
+  await expect(unit).toBeVisible()
+}
+
 async function selectUnit(page: Page, label: string) {
+  await openAdvanced(page)
   await page.locator("#sim-unit").click()
   await page.getByRole("option", { name: label, exact: true }).click()
 }
 
 async function setCount(page: Page, n: number) {
+  await openAdvanced(page)
   await page.locator("#sim-n").fill(String(n))
+}
+
+async function openRunOptions(page: Page) {
+  const teamCount = page.getByLabel("Team count")
+  if (await teamCount.isVisible()) return
+  await page.getByRole("button", { name: "Run options" }).click()
+  await expect(teamCount).toBeVisible()
 }
 
 async function waitNotBusy(page: Page) {
@@ -138,6 +154,7 @@ test.describe("season-sim demo browser acceptance", () => {
     await shot(page, `${testInfo.project.name}-anon-landing`)
 
     // Attempt create without session
+    await openRunOptions(page)
     await page.getByLabel("Team count").fill("4")
     await page.getByLabel("Draft rounds").fill("2")
     await page.getByLabel("Schedule weeks").fill("2")
@@ -163,6 +180,7 @@ test.describe("season-sim demo browser acceptance", () => {
       password: OUTSIDER_PASSWORD,
     })
     await page.goto(`${APP}/demo/season-sim`)
+    await openRunOptions(page)
     await page.getByLabel("Team count").fill("4")
     await page.getByLabel("Draft rounds").fill("2")
     await page.getByLabel("Schedule weeks").fill("2")
@@ -188,6 +206,7 @@ test.describe("season-sim demo browser acceptance", () => {
     await assertNoWorkerKeyInPage(page)
 
     // Configure + create (small synthetic run)
+    await openRunOptions(page)
     await page.getByLabel("Team count").fill("4")
     await page.getByLabel("Draft rounds").fill("2")
     await page.getByLabel("Schedule weeks").fill("2")
@@ -287,7 +306,6 @@ test.describe("season-sim demo browser acceptance", () => {
     await page.reload()
     await expect(page.getByRole("heading", { name: /Season Simulator/i })).toBeVisible()
     // Prefer "Resume last run" after reload
-    await page.getByRole("tab", { name: "Load run by ID" }).click()
     await page.getByRole("button", { name: /Resume last run/i }).click()
     await expect(page.getByTestId("sim-run-status")).toHaveText(/completed/i, {
       timeout: 30_000,
@@ -372,6 +390,7 @@ test.describe("season-sim demo browser acceptance", () => {
     )
     await signInNonadmin(page)
     await page.goto(`${FLAGS_OFF_URL}/demo/season-sim`)
+    await openRunOptions(page)
     await page.getByLabel("Team count").fill("4")
     await page.getByRole("button", { name: "Create run" }).click()
     await expect(

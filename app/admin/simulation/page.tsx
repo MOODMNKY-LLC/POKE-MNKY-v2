@@ -165,6 +165,14 @@ export default function AdminSimulationPage() {
         </div>
       ) : (
         <>
+          <Collapsible>
+            <CollapsibleTrigger asChild>
+              <Button variant="outline" className="mb-6 h-11">
+                Legacy tools (disabled)
+                <ChevronDown className="size-4" aria-hidden="true" />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
           {/* Status Overview */}
           <Card className="mb-8 bg-muted/50">
             <CardHeader>
@@ -393,6 +401,9 @@ export default function AdminSimulationPage() {
                 </CardContent>
               </CollapsibleContent>
             </Card>
+          </Collapsible>
+
+            </CollapsibleContent>
           </Collapsible>
 
           <div className="mt-8">
