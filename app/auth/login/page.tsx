@@ -22,6 +22,8 @@ function LoginForm() {
   const [isDiscordLoading, setIsDiscordLoading] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
+  const next = searchParams.get("next")
+  const afterLogin = next && next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard"
 
   // Handle error from OAuth callback
   useEffect(() => {
@@ -41,7 +43,7 @@ function LoginForm() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "discord",
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(afterLogin)}`,
         },
       })
       if (error) throw error
@@ -63,7 +65,7 @@ function LoginForm() {
         password,
       })
       if (error) throw error
-      router.push("/dashboard")
+      router.push(afterLogin)
       router.refresh()
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "An error occurred")

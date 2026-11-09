@@ -83,6 +83,8 @@ export function EvidencePanel({ sim }: { sim: SimConsoleState }) {
         ["seed", seedOf(progress.config)],
         ["seed_frozen", String(progress.seed_frozen)],
         ["active_command_id", progress.active_command_id ?? "—"],
+        ["rules_id", sim.createInfo?.rules_label ?? "—"],
+        ["server_note", sim.createInfo?.note ?? "—"],
       ]
     : []
 

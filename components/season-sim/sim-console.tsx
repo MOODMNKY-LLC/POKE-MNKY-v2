@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { Loader2, X } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -17,16 +18,20 @@ import { useSimConsole } from "./use-sim-console"
 
 export type SimConsoleState = ReturnType<typeof useSimConsole>
 
-const SANDBOX_DISCLAIMER =
-  "Statistical sandbox only. This is not Pokémon Showdown, and it is not Season 7 or Season 8."
-
 export function SimConsole() {
   const sim = useSimConsole()
   const { detail, access, busy, notice, loadError } = sim
   const hasRun = Boolean(detail?.progress)
+  const [hydrated, setHydrated] = useState(false)
+  useEffect(() => {
+    setHydrated(true)
+  }, [])
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-10">
+    <div
+      className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-10"
+      data-hydrated={hydrated ? "true" : "false"}
+    >
       <div className="flex flex-col gap-2">
         <h1 className="text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
           Season Simulator
@@ -36,10 +41,10 @@ export function SimConsole() {
         </p>
       </div>
 
-      <ProvisionalBanner disclaimer={SANDBOX_DISCLAIMER} />
+      <ProvisionalBanner disclaimer={detail?.season.disclaimer} />
 
       {access ? (
-        <AccessNotice issue={access} />
+        <AccessNotice issue={access} detail={sim.errors[0]?.message} />
       ) : (
         <>
           {notice ? (
@@ -66,8 +71,7 @@ export function SimConsole() {
           {sim.createInfo && hasRun ? (
             <Alert>
               <AlertDescription className="text-pretty">
-                Run created with {sim.createInfo.team_ids.length} synthetic teams ({sim.createInfo.rules_label}).{" "}
-                {sim.createInfo.note}
+                Run created with {sim.createInfo.team_ids.length} synthetic teams.
               </AlertDescription>
             </Alert>
           ) : null}

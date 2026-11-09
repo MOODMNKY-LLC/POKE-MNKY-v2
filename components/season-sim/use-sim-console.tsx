@@ -178,6 +178,11 @@ export function useSimConsole() {
         await refresh(runId)
       } else if (failure.code === WORKER_TICK_DISABLED_CODE) {
         setNotice({ tone: "warn", text: "Worker steps are disabled in this environment." })
+      } else {
+        setNotice({
+          tone: "warn",
+          text: failure.error || "The server rejected that command. Review the run and retry.",
+        })
       }
     },
     [refresh],

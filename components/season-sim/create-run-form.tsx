@@ -61,7 +61,8 @@ export function CreateRunForm({ sim }: { sim: SimConsoleState }) {
       else body[key] = value
     }
     if (selector !== "default") body.selector_draft = selector
-    if (queueImmediately) body.queue_immediately = true
+    // Server treats a missing flag as queue-now. Send false so leaving this unchecked actually leaves the run configured.
+    body.queue_immediately = queueImmediately
 
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length > 0) return
