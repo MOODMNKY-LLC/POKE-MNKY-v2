@@ -7,10 +7,10 @@
 import { NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase/server"
 import { createServiceRoleClient } from "@/lib/supabase/service"
+import { ensureMockDraftDemoSandboxSeason } from "@/lib/league-simulation/mock-draft-demo-season"
 import { legacySimulationWriteDeniedResponse } from "@/lib/league-simulation/legacy-simulation-writes-gate"
 import { recordSimulationRun } from "@/lib/league-simulation/simulation-engine"
 
-const MOCK_SEASON_NAME = "Mock Draft Demo"
 const MOCK_TEAM_NAMES = ["Mock Draft Team A", "Mock Draft Team B", "Mock Draft Team C"]
 const BUDGET_TOTAL = 120
 
@@ -38,7 +38,7 @@ export async function POST() {
 
     const admin = createServiceRoleClient()
 
-    const mockSeasonId = await getOrCreateMockSeason(admin)
+    const mockSeasonId = await ensureMockDraftDemoSandboxSeason(admin)
     const teamIds = await getOrCreateMockTeams(admin, mockSeasonId)
     await ensureMatchweeks(admin, mockSeasonId)
     await seedDraftPool(admin, mockSeasonId)
@@ -59,30 +59,6 @@ export async function POST() {
       { status: 500 }
     )
   }
-}
-
-async function getOrCreateMockSeason(supabase: ReturnType<typeof createServiceRoleClient>): Promise<string> {
-  const { data: existing } = await supabase
-    .from("seasons")
-    .select("id")
-    .eq("name", MOCK_SEASON_NAME)
-    .maybeSingle()
-
-  if (existing) return existing.id
-
-  const { data: created, error } = await supabase
-    .from("seasons")
-    .insert({
-      name: MOCK_SEASON_NAME,
-      is_current: false,
-      start_date: new Date().toISOString().slice(0, 10),
-      end_date: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
-    })
-    .select("id")
-    .single()
-
-  if (error || !created) throw new Error(`Failed to create mock season: ${error?.message ?? "unknown"}`)
-  return created.id
 }
 
 async function ensureMatchweeks(

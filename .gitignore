@@ -40,6 +40,7 @@ temp/*.json
 *.sql
 !supabase/migrations/*.sql
 !supabase/tests/*.sql
+!fixtures/**/*.sql
 
 # Development tools and resources (not needed in production)
 # These are git submodules or local development tools

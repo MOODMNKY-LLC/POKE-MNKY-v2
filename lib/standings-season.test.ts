@@ -53,6 +53,22 @@ describe("resolveMatchesSeasonId", () => {
     expect(s8.is_current).toBe(true)
     expect(s7.sheet_sync_enabled).toBe(true)
   })
+
+  it("does not resolve sandbox seasons via name, uuid, or default", () => {
+    const sandbox = {
+      id: "sbx",
+      name: "Sandbox",
+      season_id: null,
+      is_current: false,
+      sheet_sync_enabled: false,
+      is_sandbox: true as const,
+      start_date: "2026-01-01",
+      end_date: "2026-12-31",
+    }
+    expect(resolveMatchesSeasonId([s7, s8, sandbox], { season: "Sandbox" })).toBeNull()
+    expect(resolveMatchesSeasonId([s7, s8, sandbox], { seasonId: "sbx" })).toBeNull()
+    expect(resolveMatchesSeasonId([sandbox, s8], {})).toBe("s8")
+  })
 })
 
 describe("listStandingsSeasons", () => {

@@ -48,13 +48,42 @@ export async function GET(request: Request) {
 
   try {
     const supabase = createServiceRoleClient()
-    const { data: season, error: seasonError } = await supabase
-      .from("seasons")
-      .select("id, season_id, start_date")
-      .eq("sheet_sync_enabled", true)
-      .maybeSingle()
+    type SheetSyncSeasonRow = {
+      id: string
+      season_id: string | null
+      start_date: string | null
+      is_sandbox?: boolean
+    }
+    let season: SheetSyncSeasonRow | null = null
+    let seasonError: { message?: string; code?: string } | null = null
+    {
+      const full = await supabase
+        .from("seasons")
+        .select("id, season_id, start_date, is_sandbox")
+        .eq("sheet_sync_enabled", true)
+        .maybeSingle()
+      if (full.error?.code === "42703") {
+        const legacy = await supabase
+          .from("seasons")
+          .select("id, season_id, start_date")
+          .eq("sheet_sync_enabled", true)
+          .maybeSingle()
+        season = (legacy.data as SheetSyncSeasonRow | null) ?? null
+        seasonError = legacy.error
+      } else {
+        season = (full.data as SheetSyncSeasonRow | null) ?? null
+        seasonError = full.error
+      }
+    }
     if (seasonError || !season?.id) {
       return NextResponse.json({ success: false, error: seasonError?.message ?? "No sheet_sync_enabled season" }, { status: 409 })
+    }
+    // Defense: sandbox seasons cannot be sheet-synced (DB CHECK + explicit guard).
+    if (season.is_sandbox === true) {
+      return NextResponse.json(
+        { success: false, error: "Sandbox seasons cannot be sheet-synced" },
+        { status: 409 },
+      )
     }
 
     const bundle = await loadSheetBundleFromGoogle()

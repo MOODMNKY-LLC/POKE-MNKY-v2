@@ -76,6 +76,7 @@ const adminNavItems = [
       { title: "Discord", url: "/admin/discord" },
       { title: "Google Sheets (Legacy)", url: "/admin/google-sheets" },
       { title: "Simulation", url: "/admin/simulation" },
+      { title: "Season Sim demo", url: "/demo/season-sim" },
       { title: "Music", url: "/admin/music" },
     ],
   },
@@ -103,19 +104,32 @@ type ActiveDraftSessionRow = {
 
 function fetchSeasons(): Promise<AdminSeason[]> {
   const supabase = createBrowserClient()
+  // Competitive sidebar picker: exclude sandboxes. Deployment-safe if column missing.
   return supabase
     .from("seasons")
-    .select("id, name, is_current")
+    .select("id, name, is_current, is_sandbox")
     .order("start_date", { ascending: false })
-    .limit(10)
-    .then(({ data }: { data: SeasonRow[] | null }) =>
-      (data || []).map((s) => ({
-        id: s.id,
-        name: s.name,
-        plan: s.is_current ? "Current" : "",
-        is_current: Boolean(s.is_current),
-      }))
-    )
+    .limit(20)
+    .then(async (full: { data: (SeasonRow & { is_sandbox?: boolean })[] | null; error: { code?: string } | null }) => {
+      let rows = full.data
+      if (full.error?.code === "42703") {
+        const legacy = await supabase
+          .from("seasons")
+          .select("id, name, is_current")
+          .order("start_date", { ascending: false })
+          .limit(10)
+        rows = legacy.data as SeasonRow[] | null
+      }
+      return (rows || [])
+        .filter((s) => (s as { is_sandbox?: boolean }).is_sandbox !== true)
+        .slice(0, 10)
+        .map((s) => ({
+          id: s.id,
+          name: s.name,
+          plan: s.is_current ? "Current" : "",
+          is_current: Boolean(s.is_current),
+        }))
+    })
 }
 
 export function AdminAppSidebar(props: React.ComponentProps<typeof Sidebar>) {

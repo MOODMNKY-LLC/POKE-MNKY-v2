@@ -107,13 +107,26 @@ export function AdminPlayoffsPanel() {
     if (!supabase) return
     const full = await supabase
       .from("seasons")
-      .select("id, name, is_current, sheet_sync_enabled")
+      .select("id, name, is_current, sheet_sync_enabled, is_sandbox")
       .order("start_date", { ascending: false })
-    const query =
-      full.error?.code === "42703"
-        ? await supabase.from("seasons").select("id, name, is_current").order("start_date", { ascending: false })
-        : full
-    const rows = (query.data as SeasonOption[]) ?? []
+    let query = full
+    if (full.error?.code === "42703") {
+      const liveFlags = await supabase
+        .from("seasons")
+        .select("id, name, is_current, sheet_sync_enabled")
+        .order("start_date", { ascending: false })
+      query =
+        liveFlags.error?.code === "42703"
+          ? await supabase
+              .from("seasons")
+              .select("id, name, is_current")
+              .order("start_date", { ascending: false })
+          : liveFlags
+    }
+    // Competitive playoff admin picker: never include sandboxes.
+    const rows = ((query.data as (SeasonOption & { is_sandbox?: boolean })[]) ?? []).filter(
+      (s) => s.is_sandbox !== true,
+    )
     setSeasons(rows)
     const preferred =
       rows.find((s) => s.sheet_sync_enabled) ?? rows.find((s) => s.is_current) ?? rows[0]

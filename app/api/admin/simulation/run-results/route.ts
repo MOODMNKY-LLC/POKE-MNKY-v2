@@ -8,10 +8,9 @@ import { createServerClient } from "@/lib/supabase/server"
 import { createServiceRoleClient } from "@/lib/supabase/service"
 import { generateMockResult, type ResultStrategy } from "@/lib/league-simulation/mock-result-generator"
 import { updateStandingsFromMatches } from "@/lib/league-simulation/standings-updater"
+import { ensureMockDraftDemoSandboxSeason } from "@/lib/league-simulation/mock-draft-demo-season"
 import { legacySimulationWriteDeniedResponse } from "@/lib/league-simulation/legacy-simulation-writes-gate"
 import { recordSimulationRun } from "@/lib/league-simulation/simulation-engine"
-
-const MOCK_SEASON_NAME = "Mock Draft Demo"
 
 export async function POST(request: NextRequest) {
   try {
@@ -40,24 +39,12 @@ export async function POST(request: NextRequest) {
     const strategy: ResultStrategy = body.result_strategy ?? "random"
 
     const admin = createServiceRoleClient()
-
-    const { data: season } = await admin
-      .from("seasons")
-      .select("id")
-      .eq("name", MOCK_SEASON_NAME)
-      .maybeSingle()
-
-    if (!season) {
-      return NextResponse.json(
-        { error: "Mock season not found. Run seed first." },
-        { status: 404 }
-      )
-    }
+    const seasonId = await ensureMockDraftDemoSandboxSeason(admin)
 
     let query = admin
       .from("matches")
       .select("id, team1_id, team2_id")
-      .eq("season_id", season.id)
+      .eq("season_id", seasonId)
       .eq("status", "scheduled")
 
     if (week !== undefined) {
@@ -92,8 +79,8 @@ export async function POST(request: NextRequest) {
       if (!error) updated++
     }
 
-    await updateStandingsFromMatches(admin, season.id)
-    await recordSimulationRun(season.id, "regular_season", { result_strategy: strategy })
+    await updateStandingsFromMatches(admin, seasonId)
+    await recordSimulationRun(seasonId, "regular_season", { result_strategy: strategy })
 
     return NextResponse.json({
       success: true,

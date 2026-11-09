@@ -49,28 +49,52 @@ describe("match-submit validation", () => {
   })
 })
 
+function mockServiceClient(seasonRow: {
+  id: string
+  is_sandbox?: boolean
+  name?: string
+} | null) {
+  return {
+    from: (table: string) => {
+      if (table !== "seasons") {
+        return {
+          insert: vi.fn(),
+        }
+      }
+      return {
+        select: () => ({
+          eq: () => ({
+            maybeSingle: vi.fn().mockResolvedValue({
+              data: seasonRow,
+              error: null,
+            }),
+          }),
+        }),
+      }
+    },
+  }
+}
+
 describe("finalizeMatchAfterInsert", () => {
   beforeEach(() => {
     vi.resetModules()
+    vi.clearAllMocks()
   })
 
-  it("calls standings, discord, and activity in order", async () => {
+  it("calls standings, discord, and activity for a real (non-sandbox) season", async () => {
     const { notifyMatchResult } = await import("@/lib/discord-notifications")
     const { updateStandingsFromMatches } = await import(
       "@/lib/league-simulation/standings-updater"
     )
     const { logActivity } = await import("@/lib/rbac")
 
-    const insertMock = vi.fn().mockReturnValue({
-      select: vi.fn().mockReturnValue({
-        single: vi.fn().mockResolvedValue({ data: { id: "season-1" }, error: null }),
-      }),
-    })
-
     vi.doMock("@/lib/supabase/service", () => ({
-      createServiceRoleClient: () => ({
-        from: () => ({ insert: insertMock }),
-      }),
+      createServiceRoleClient: () =>
+        mockServiceClient({
+          id: "season-uuid",
+          is_sandbox: false,
+          name: "Season 7",
+        }),
     }))
 
     const { finalizeMatchAfterInsert } = await import("@/lib/match-result-complete")
@@ -78,7 +102,7 @@ describe("finalizeMatchAfterInsert", () => {
     const result = await finalizeMatchAfterInsert(
       "match-uuid",
       "season-uuid",
-      "user-uuid"
+      "user-uuid",
     )
 
     expect(updateStandingsFromMatches).toHaveBeenCalled()
@@ -86,5 +110,53 @@ describe("finalizeMatchAfterInsert", () => {
     expect(logActivity).toHaveBeenCalled()
     expect(result.standings_updated).toBe(2)
     expect(result.discord_notified).toBe(true)
+  })
+
+  it("skips discord and activity for sandbox seasons", async () => {
+    const { notifyMatchResult } = await import("@/lib/discord-notifications")
+    const { logActivity } = await import("@/lib/rbac")
+
+    vi.doMock("@/lib/supabase/service", () => ({
+      createServiceRoleClient: () =>
+        mockServiceClient({
+          id: "sandbox-uuid",
+          is_sandbox: true,
+          name: "Sandbox Sim",
+        }),
+    }))
+
+    const { finalizeMatchAfterInsert } = await import("@/lib/match-result-complete")
+
+    const result = await finalizeMatchAfterInsert(
+      "match-uuid",
+      "sandbox-uuid",
+      "user-uuid",
+    )
+
+    expect(notifyMatchResult).not.toHaveBeenCalled()
+    expect(logActivity).not.toHaveBeenCalled()
+    expect(result.discord_notified).toBe(false)
+    expect(result.standings_updated).toBe(2)
+  })
+
+  it("skips discord when season identity is unknown (fail closed)", async () => {
+    const { notifyMatchResult } = await import("@/lib/discord-notifications")
+    const { logActivity } = await import("@/lib/rbac")
+
+    vi.doMock("@/lib/supabase/service", () => ({
+      createServiceRoleClient: () => mockServiceClient(null),
+    }))
+
+    const { finalizeMatchAfterInsert } = await import("@/lib/match-result-complete")
+
+    const result = await finalizeMatchAfterInsert(
+      "match-uuid",
+      "missing-season",
+      "user-uuid",
+    )
+
+    expect(notifyMatchResult).not.toHaveBeenCalled()
+    expect(logActivity).not.toHaveBeenCalled()
+    expect(result.discord_notified).toBe(false)
   })
 })

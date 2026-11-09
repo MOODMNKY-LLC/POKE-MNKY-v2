@@ -1,0 +1,10 @@
+# Security policy for GitGuardian (local/CI). Prefer fewer ignores, not more.
+# Disposable CI Postgres service credentials in workflows remain reviewable findings;
+# do NOT ignore the workflow file — human disposition required when GG flags them.
+#
+# Intentionally empty ignored_paths after PR33 security review (t41u): previous
+# broad ignores of **/*.test.ts, **/*.spec.ts, fixtures/**, and
+# .github/workflows/test.yml unjustifiably reduced coverage.
+version: 2
+secret:
+  ignored_paths: []
