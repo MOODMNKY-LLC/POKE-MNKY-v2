@@ -249,7 +249,7 @@ export async function getSeasonEvidence(
 ): Promise<SimSeasonEvidence> {
   const { data: seatRows } = await supabase
     .from("sim_bot_seats")
-    .select("team_id, seat_index")
+    .select("team_id, seat_index, display_name")
     .eq("run_id", runId)
     .order("seat_index", { ascending: true })
 
@@ -269,13 +269,15 @@ export async function getSeasonEvidence(
   const seats: SimSeatEvidence[] = (seatRows ?? []).map((s) => {
     const teamId = String(s.team_id)
     const seatIndex = Number(s.seat_index)
+    const seatLabel = String(s.display_name ?? "").trim()
     const raw = nameById.get(teamId)
-    const display =
+    const fromTeam =
       raw && raw.length > 0
         ? raw.includes("·")
           ? raw.split("·").slice(-1)[0]!.trim() || `Seat ${seatIndex + 1}`
           : raw
         : `Seat ${seatIndex + 1}`
+    const display = seatLabel || fromTeam
     return {
       team_id: teamId,
       seat_index: seatIndex,
@@ -962,18 +964,41 @@ export async function processWorkerTick(
       continue
     }
 
-    results.push(
-      await driveRun(
-        supabase,
-        runId,
-        claimed.lease_token,
-        options.worker_id,
-        maxSteps,
-      ),
-    )
+    try {
+      results.push(
+        await driveRun(
+          supabase,
+          runId,
+          claimed.lease_token,
+          options.worker_id,
+          maxSteps,
+        ),
+      )
+    } finally {
+      // The lease blocks a concurrent worker during this tick only.
+      // Leaving it held made the next operator click (and Auto-run's next
+      // iteration) no-op until lease_ms elapsed, so queued commands never applied.
+      await releaseRunLease(supabase, runId, claimed.lease_token)
+    }
   }
 
   return results
+}
+
+async function releaseRunLease(
+  supabase: ServiceClient,
+  runId: string,
+  leaseToken: string,
+): Promise<void> {
+  await supabase
+    .from("simulation_runs")
+    .update({
+      lease_owner: null,
+      lease_token: null,
+      lease_expires_at: null,
+    })
+    .eq("id", runId)
+    .eq("lease_token", leaseToken)
 }
 
 async function claimViaPublicWrapper(

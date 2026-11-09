@@ -45,7 +45,9 @@ export function PlayoffsTab({ season }: { season: SeasonEvidence }) {
                 )}
             </p>
           ) : (
-            <p className="text-sm text-muted-foreground">No champion yet.</p>
+            <p className="text-sm text-muted-foreground">
+              No champion yet. Finish the draft, then simulate the season.
+            </p>
           )}
         </CardContent>
       </Card>
@@ -66,7 +68,7 @@ export function PlayoffsTab({ season }: { season: SeasonEvidence }) {
         <CardContent>
           {seeds.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              Seeds are assigned once the regular season ends.
+              Playoff order appears after the regular season is simulated.
             </p>
           ) : (
             <ol className="divide-y text-sm">
@@ -93,7 +95,7 @@ export function PlayoffsTab({ season }: { season: SeasonEvidence }) {
 
       {rounds.length === 0 ? (
         <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-          Playoff bracket appears after the regular season completes.
+          The playoff bracket appears after the regular season is simulated.
         </p>
       ) : (
         rounds.map((round) => (

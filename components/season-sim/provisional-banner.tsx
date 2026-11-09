@@ -1,6 +1,20 @@
 import { FlaskConical } from "lucide-react"
 
+const WARNING =
+  "This is a practice season. It is provisional and not league-approved. Results are statistical, not Pokémon Showdown battles, and this is not live Season 7 or Season 8. It does not change the real draft or standings."
+
+const WARNING_VOCABULARY =
+  /\b(provisional|not|league|approved|statistical|sandbox|only|this|is|and|it|results?|data|simulation|pok[eé]mon|showdown|battles?|live|season|7|8|or|the|a|rules?|demo)\b/gi
+
+function repeatsWarning(text: string) {
+  if (text.includes("provisional_demo_v0")) return true
+  const leftover = text.replace(WARNING_VOCABULARY, "").replace(/[^\p{L}\p{N}]+/gu, "")
+  return leftover.length === 0
+}
+
 export function ProvisionalBanner({ disclaimer }: { disclaimer?: string | null }) {
+  const extra = disclaimer && !repeatsWarning(disclaimer) ? disclaimer : null
+
   return (
     <div
       role="note"
@@ -8,11 +22,8 @@ export function ProvisionalBanner({ disclaimer }: { disclaimer?: string | null }
     >
       <FlaskConical className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
       <div className="space-y-1">
-        <p className="font-medium text-pretty">
-          Provisional statistical demo (provisional_demo_v0) — seeded statistical results, NOT Pokémon battle
-          simulation; sandbox data only; rules not league-approved
-        </p>
-        {disclaimer ? <p className="text-pretty">{disclaimer}</p> : null}
+        <p className="font-medium text-pretty">{WARNING}</p>
+        {extra ? <p className="text-pretty">{extra}</p> : null}
       </div>
     </div>
   )

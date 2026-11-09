@@ -146,13 +146,14 @@ export default function AdminSimulationPage() {
     <div className="container mx-auto py-8 px-4 max-w-7xl">
       <AdminPageHeader
         title="League Simulation"
-        description="Legacy mock-draft controls. They stay disabled. Use the sandbox console for a new statistical run."
+        description="Older mock-draft tools. They stay off. Start a practice season on the Season Simulator instead."
       />
 
       <div className="mb-6 rounded-lg border bg-muted/40 p-4 text-sm">
-        <p className="font-medium">Sandbox simulator</p>
+        <p className="font-medium">Practice seasons</p>
         <p className="mt-1 text-muted-foreground">
-          Statistical sandbox runs, synthetic teams, and manual steps live on the Season Simulator console. This page does not create those runs and does not change Season 7 or Season 8.
+          Practice seasons, made-up teams, and statistical results live on the Season Simulator. This page does not
+          start those seasons and does not change Season 7 or Season 8.
         </p>
         <Link href="/demo/season-sim" className="mt-2 inline-flex font-medium text-primary underline-offset-4 hover:underline">
           Open Season Simulator
@@ -165,6 +166,14 @@ export default function AdminSimulationPage() {
         </div>
       ) : (
         <>
+          <Collapsible>
+            <CollapsibleTrigger asChild>
+              <Button variant="outline" className="mb-6 h-11">
+                Legacy tools (disabled)
+                <ChevronDown className="size-4" aria-hidden="true" />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
           {/* Status Overview */}
           <Card className="mb-8 bg-muted/50">
             <CardHeader>
@@ -393,6 +402,9 @@ export default function AdminSimulationPage() {
                 </CardContent>
               </CollapsibleContent>
             </Card>
+          </Collapsible>
+
+            </CollapsibleContent>
           </Collapsible>
 
           <div className="mt-8">

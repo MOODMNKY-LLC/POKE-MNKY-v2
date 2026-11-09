@@ -127,11 +127,11 @@ export default function RootLayout({
             </div>
           </InstallAppProvider>
           <ThemeColorSync />
+          <AssistantWrapper />
         </ThemeProvider>
         <Analytics />
         <ServiceWorkerRegistration />
         <Toaster position="top-right" />
-        <AssistantWrapper />
         <MobileMusicPlayer />
       </body>
     </html>

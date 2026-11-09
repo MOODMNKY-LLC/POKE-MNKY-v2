@@ -1,154 +1,241 @@
 "use client"
 
-import { useState } from "react"
-import { Dices, Loader2 } from "lucide-react"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { ChevronDown, FlaskConical, History, Loader2 } from "lucide-react"
+import { useState, type FormEvent } from "react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Switch } from "@/components/ui/switch"
-import { randomSeed, type ApiFailure, type CreateRunBody, type SelectorDraft } from "@/lib/season-sim/client-api"
+import type { SimConsoleState } from "./sim-console"
 
-type NumericField = "team_count" | "total_rounds" | "budget_total" | "schedule_weeks" | "playoff_size"
+const TOUCH = "h-11 sm:h-9"
+const SELECT_TOUCH = "h-11 w-full sm:h-9 data-[size=default]:h-11 sm:data-[size=default]:h-9"
 
-const NUMERIC_FIELDS: { key: NumericField; label: string }[] = [
-  { key: "team_count", label: "Team count" },
-  { key: "total_rounds", label: "Draft rounds" },
-  { key: "budget_total", label: "Budget per team" },
-  { key: "schedule_weeks", label: "Schedule weeks" },
-  { key: "playoff_size", label: "Playoff size" },
-]
+const NUMERIC_FIELDS = [
+  { key: "team_count", label: "Team count", help: "How many practice teams. Example: 4 for a short test, 12 for a full league." },
+  { key: "total_rounds", label: "Draft rounds", help: "How many times each team drafts. Example: 2 is a short draft." },
+  { key: "budget_total", label: "Budget per team", help: "Points each practice team can spend. Example: 120." },
+  { key: "schedule_weeks", label: "Schedule weeks", help: "Weeks in the regular season. Example: 2 is a short season." },
+  { key: "playoff_size", label: "Playoff size", help: "How many teams reach the playoffs. Example: 2." },
+] as const
 
-interface CreateRunFormProps {
-  busy: boolean
-  creating: boolean
-  error: ApiFailure | null
-  onCreate: (body: CreateRunBody) => Promise<boolean>
+type NumericKey = (typeof NUMERIC_FIELDS)[number]["key"]
+type CreateBody = Parameters<SimConsoleState["create"]>[0]
+
+function messageOf(value: unknown): string {
+  if (typeof value === "string") return value
+  if (value instanceof Error) return value.message
+  return JSON.stringify(value)
 }
 
-export function CreateRunForm({ busy, creating, error, onCreate }: CreateRunFormProps) {
+export function CreateRunForm({ sim }: { sim: SimConsoleState }) {
   const [seed, setSeed] = useState("")
-  const [numbers, setNumbers] = useState<Record<NumericField, string>>({
+  const [numbers, setNumbers] = useState<Record<NumericKey, string>>({
     team_count: "",
     total_rounds: "",
     budget_total: "",
     schedule_weeks: "",
     playoff_size: "",
   })
-  const [selector, setSelector] = useState<SelectorDraft | "default">("default")
+  const [selector, setSelector] = useState("default")
   const [queueImmediately, setQueueImmediately] = useState(false)
-  const [fieldErrors, setFieldErrors] = useState<Partial<Record<NumericField, string>>>({})
+  const [errors, setErrors] = useState<Partial<Record<NumericKey, string>>>({})
+  const [loadId, setLoadId] = useState("")
 
-  async function handleSubmit(event: React.FormEvent) {
+  function submitCreate(event: FormEvent) {
     event.preventDefault()
-    const body: CreateRunBody = { queue_immediately: queueImmediately }
-    const problems: Partial<Record<NumericField, string>> = {}
+    const body: Record<string, unknown> = {}
+    const nextErrors: Partial<Record<NumericKey, string>> = {}
 
-    if (seed.trim()) body.master_seed = seed.trim()
-    if (selector !== "default") body.selector_draft = selector
-
+    const trimmedSeed = seed.trim()
+    if (trimmedSeed) body.master_seed = trimmedSeed
     for (const { key } of NUMERIC_FIELDS) {
       const raw = numbers[key].trim()
       if (!raw) continue
       const value = Number(raw)
-      if (!Number.isInteger(value) || value < 1) {
-        problems[key] = "Enter a whole number of 1 or more."
-      } else {
-        body[key] = value
-      }
+      if (!Number.isInteger(value) || value < 1) nextErrors[key] = "Enter a whole number of 1 or more, or leave blank."
+      else body[key] = value
     }
+    if (selector !== "default") body.selector_draft = selector
+    // Server treats a missing flag as queue-now. Send false so leaving this unchecked actually leaves the run configured.
+    body.queue_immediately = queueImmediately
 
-    setFieldErrors(problems)
-    if (Object.keys(problems).length > 0) return
-    await onCreate(body)
+    setErrors(nextErrors)
+    if (Object.keys(nextErrors).length > 0) return
+    void sim.create(body as CreateBody)
+  }
+
+  function submitLoad(event: FormEvent) {
+    event.preventDefault()
+    const id = loadId.trim()
+    if (id) void sim.loadRun(id)
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-      <p className="text-sm text-muted-foreground text-pretty">
-        Leave a field blank to use the server default.
-      </p>
+    <div className="grid gap-6 lg:grid-cols-5">
+      <Card className="lg:col-span-3">
+        <CardHeader>
+          <CardTitle className="text-xl">Start a practice season</CardTitle>
+          <CardDescription className="text-pretty">
+            This makes a practice league with made-up teams. It does not use the live season, and it does not change
+            the real draft or standings. Blank settings use the usual defaults.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={submitCreate} className="space-y-4" noValidate>
+            <Button type="submit" className="h-12 w-full text-base sm:h-11" disabled={sim.busy}>
+              {sim.busy ? <Loader2 className="animate-spin" aria-hidden="true" /> : <FlaskConical aria-hidden="true" />}
+              Start a practice season
+            </Button>
 
-      <div className="space-y-2">
-        <Label htmlFor="sim-seed">Master seed</Label>
-        <div className="flex gap-2">
-          <Input
-            id="sim-seed"
-            value={seed}
-            onChange={(e) => setSeed(e.target.value)}
-            placeholder="server default"
-            autoComplete="off"
-            className="h-11 sm:h-9"
-          />
-          <Button
-            type="button"
-            variant="outline"
-            className="size-11 shrink-0 sm:size-9"
-            onClick={() => setSeed(randomSeed())}
-            disabled={busy}
-            aria-label="Generate random seed"
-          >
-            <Dices aria-hidden="true" />
-          </Button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {NUMERIC_FIELDS.map(({ key, label }) => (
-          <div key={key} className="space-y-2">
-            <Label htmlFor={`sim-${key}`}>{label}</Label>
-            <Input
-              id={`sim-${key}`}
-              inputMode="numeric"
-              value={numbers[key]}
-              onChange={(e) => setNumbers((prev) => ({ ...prev, [key]: e.target.value }))}
-              placeholder="default"
-              aria-invalid={fieldErrors[key] ? true : undefined}
-              aria-describedby={fieldErrors[key] ? `sim-${key}-error` : undefined}
-              className="h-11 sm:h-9"
-            />
-            {fieldErrors[key] ? (
-              <p id={`sim-${key}-error`} className="text-xs text-destructive">
-                {fieldErrors[key]}
-              </p>
+            <div role="status" className="space-y-2 empty:hidden">
+              {sim.createInfo ? <p className="text-sm text-foreground">{messageOf(sim.createInfo)}</p> : null}
+            </div>
+            {sim.createError ? (
+              <Alert variant="destructive">
+                <AlertDescription>
+                  <span className="font-medium">The practice season did not start. </span>
+                  Sign in if you are signed out, then try again.
+                  <span className="mt-1 block text-muted-foreground">Technical note: {sim.createError.error}</span>
+                </AlertDescription>
+              </Alert>
             ) : null}
-          </div>
-        ))}
 
-        <div className="space-y-2">
-          <Label htmlFor="sim-selector">Draft selector</Label>
-          <Select value={selector} onValueChange={(v) => setSelector(v as SelectorDraft | "default")}>
-            <SelectTrigger id="sim-selector" className="h-11 w-full sm:h-9">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="default">Server default</SelectItem>
-              <SelectItem value="random">Random</SelectItem>
-              <SelectItem value="heuristic">Heuristic</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+            <Collapsible>
+              <CollapsibleTrigger asChild>
+                <Button type="button" variant="outline" className="group h-11 w-full justify-between sm:h-9">
+                  Practice settings
+                  <ChevronDown
+                    className="transition-transform group-data-[state=open]:rotate-180"
+                    aria-hidden="true"
+                  />
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-4 pt-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="opt-seed">Repeatable simulation number</Label>
+                  <Input
+                    id="opt-seed"
+                    value={seed}
+                    placeholder="Leave blank for a new number"
+                    autoComplete="off"
+                    aria-describedby="opt-seed-help"
+                    className={`${TOUCH} font-mono`}
+                    onChange={(event) => setSeed(event.target.value)}
+                  />
+                  <p id="opt-seed-help" className="text-sm text-muted-foreground">
+                    The same number produces the same practice results. Leave it blank to start a new one. This is not
+                    a game code.
+                  </p>
+                </div>
 
-      <div className="flex min-h-11 items-center gap-3">
-        <Switch id="sim-queue" checked={queueImmediately} onCheckedChange={setQueueImmediately} />
-        <Label htmlFor="sim-queue">Queue immediately</Label>
-      </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {NUMERIC_FIELDS.map(({ key, label, help }) => (
+                    <div key={key} className="space-y-1.5">
+                      <Label htmlFor={`opt-${key}`}>{label}</Label>
+                      <Input
+                        id={`opt-${key}`}
+                        type="number"
+                        inputMode="numeric"
+                        min={1}
+                        step={1}
+                        value={numbers[key]}
+                        placeholder="Usual default"
+                        className={TOUCH}
+                        aria-invalid={Boolean(errors[key])}
+                        aria-describedby={errors[key] ? `opt-${key}-help opt-${key}-error` : `opt-${key}-help`}
+                        onChange={(event) => setNumbers((current) => ({ ...current, [key]: event.target.value }))}
+                      />
+                      <p id={`opt-${key}-help`} className="text-sm text-muted-foreground">
+                        {help}
+                      </p>
+                      {errors[key] ? (
+                        <p id={`opt-${key}-error`} className="text-sm text-destructive">
+                          {errors[key]}
+                        </p>
+                      ) : null}
+                    </div>
+                  ))}
 
-      {error ? (
-        <Alert variant="destructive">
-          <AlertTitle>
-            Could not create run{error.code ? ` (${error.code})` : ""}
-          </AlertTitle>
-          <AlertDescription>{error.error}</AlertDescription>
-        </Alert>
-      ) : null}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="opt-selector">How teams choose</Label>
+                    <Select value={selector} onValueChange={setSelector}>
+                      <SelectTrigger id="opt-selector" className={SELECT_TOUCH}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="default">Usual choice</SelectItem>
+                        <SelectItem value="random">Random picks</SelectItem>
+                        <SelectItem value="heuristic">Best available pick</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
 
-      <Button type="submit" disabled={busy} className="h-11 w-full sm:h-9 sm:w-auto">
-        {creating ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
-        Create run
-      </Button>
-    </form>
+                <Label
+                  htmlFor="sim-queue"
+                  className="flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border border-border p-3 leading-snug"
+                >
+                  <Checkbox
+                    id="sim-queue"
+                    className="mt-0.5"
+                    checked={queueImmediately}
+                    onCheckedChange={(checked) => setQueueImmediately(checked === true)}
+                  />
+                  <span className="text-pretty">
+                    Prepare the first pick as soon as the season starts. The pick is not made until you simulate it.
+                  </span>
+                </Label>
+              </CollapsibleContent>
+            </Collapsible>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card className="self-start lg:col-span-2">
+        <CardHeader>
+          <CardTitle className="text-xl">Open a saved practice season</CardTitle>
+          <CardDescription className="text-pretty">
+            Paste the season code from a season you already started. Copy it from the line under the season name.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={submitLoad} className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="load-run-id">Season code</Label>
+              <Input
+                id="load-run-id"
+                value={loadId}
+                autoComplete="off"
+                spellCheck={false}
+                className={`${TOUCH} font-mono`}
+                onChange={(event) => setLoadId(event.target.value)}
+              />
+            </div>
+            <Button type="submit" variant="secondary" className={`${TOUCH} w-full`} disabled={sim.busy || !loadId.trim()}>
+              Open saved simulation
+            </Button>
+            {sim.lastRunId ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="h-auto min-h-11 w-full justify-start whitespace-normal py-2 text-left sm:min-h-9"
+                disabled={sim.busy}
+                onClick={() => void sim.loadRun(sim.lastRunId as string)}
+              >
+                <History aria-hidden="true" />
+                <span className="min-w-0 break-all">
+                  Reopen last practice season · <span className="font-mono">{sim.lastRunId.slice(0, 8)}</span>
+                </span>
+              </Button>
+            ) : null}
+          </form>
+        </CardContent>
+      </Card>
+    </div>
   )
 }

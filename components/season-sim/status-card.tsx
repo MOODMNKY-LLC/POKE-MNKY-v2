@@ -1,137 +1,242 @@
-import { AlertTriangle, Hourglass } from "lucide-react"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { cn } from "@/lib/utils"
+"use client"
+
 import {
-  configValue,
-  cursorText,
-  type Progress,
-  type RunPhase,
-  type RunStatus,
-} from "@/lib/season-sim/client-api"
+  Ban,
+  CheckCircle2,
+  Circle,
+  CircleDot,
+  Clock,
+  Loader2,
+  OctagonAlert,
+  Pause,
+  RefreshCw,
+  Trophy,
+} from "lucide-react"
+import type { ComponentType } from "react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { teamLabel } from "@/lib/season-sim/client-api"
+import type { SimConsoleState } from "./sim-console"
 
-const PHASES: { id: Exclude<RunPhase, "configured">; label: string }[] = [
+const PHASES = [
+  { id: "configured", label: "Setup" },
   { id: "draft", label: "Draft" },
-  { id: "regular", label: "Regular" },
+  { id: "regular", label: "Regular season" },
   { id: "playoffs", label: "Playoffs" },
-  { id: "complete", label: "Complete" },
-]
+  { id: "complete", label: "Champion" },
+] as const
 
-function statusVariant(status: RunStatus): "default" | "secondary" | "destructive" | "outline" {
-  switch (status) {
-    case "completed":
-      return "default"
-    case "running":
-    case "queued":
-      return "secondary"
-    case "failed":
-    case "blocked":
-    case "cancel_requested":
-      return "destructive"
+type BadgeVariant = "default" | "secondary" | "destructive" | "outline"
+
+const STATUS_META: Record<
+  string,
+  { label: string; variant: BadgeVariant; icon: ComponentType<{ className?: string; "aria-hidden"?: boolean | "true" }> }
+> = {
+  configured: { label: "Ready", variant: "outline", icon: Circle },
+  queued: { label: "Ready to simulate", variant: "default", icon: Clock },
+  running: { label: "Simulating", variant: "default", icon: Loader2 },
+  paused: { label: "Paused", variant: "secondary", icon: Pause },
+  blocked: { label: "Needs attention", variant: "destructive", icon: OctagonAlert },
+  cancel_requested: { label: "Cancelling", variant: "destructive", icon: Ban },
+  cancelled: { label: "Cancelled", variant: "outline", icon: Ban },
+  failed: { label: "Stopped", variant: "destructive", icon: OctagonAlert },
+  completed: { label: "Finished", variant: "secondary", icon: CheckCircle2 },
+  archived: { label: "Archived", variant: "outline", icon: Circle },
+}
+
+export const TERMINAL_STATUSES = ["completed", "cancelled", "archived"]
+
+export function shortRunId(runId: string): string {
+  return runId.slice(0, 8)
+}
+
+export function readChampion(detail: SimConsoleState["detail"]): string | null {
+  const season = detail?.season
+  if (!season) return null
+  if (season.champion_display_name) return season.champion_display_name
+  if (season.champion_team_id) {
+    return teamLabel(season.champion_team_id, season.seats, season.standings)
+  }
+  return null
+}
+
+function draftFinished(progress: { phase: string; cursor: Record<string, unknown> }) {
+  return (
+    progress.cursor.draft_complete === true ||
+    progress.phase === "regular" ||
+    progress.phase === "playoffs" ||
+    progress.phase === "complete"
+  )
+}
+
+function plainAwaiting(value: string): string | null {
+  switch (value) {
+    case "schedule":
+      return "The draft is finished."
+    case "regular":
+      return "The regular season is next."
+    case "playoffs":
+      return "The playoffs are next."
     default:
-      return "outline"
+      return null
   }
 }
 
-function PhaseStepper({ phase }: { phase: RunPhase }) {
-  const currentIndex = PHASES.findIndex((p) => p.id === phase)
+export function StatusCard({ sim }: { sim: SimConsoleState }) {
+  const progress = sim.detail?.progress
+  if (!progress) return null
 
-  return (
-    <ol aria-label="Run phase" className="grid grid-cols-4 gap-2">
-      {PHASES.map((step, index) => {
-        const isCurrent = index === currentIndex
-        const isDone = currentIndex > index || phase === "complete"
-        return (
-          <li key={step.id} aria-current={isCurrent ? "step" : undefined} className="space-y-1.5">
-            <div
-              className={cn("h-1.5 rounded-full", isDone || isCurrent ? "bg-primary" : "bg-muted")}
-              aria-hidden="true"
-            />
-            <p
-              className={cn(
-                "text-xs sm:text-sm",
-                isCurrent ? "font-semibold text-foreground" : "text-muted-foreground",
-              )}
-            >
-              {step.label}
-              <span className="sr-only">{isCurrent ? " (current)" : isDone ? " (done)" : " (upcoming)"}</span>
-            </p>
-          </li>
-        )
-      })}
-    </ol>
-  )
-}
+  const meta = STATUS_META[progress.status] ?? { label: progress.status, variant: "outline" as const, icon: Circle }
+  const StatusIcon = meta.icon
+  const phaseIndex = PHASES.findIndex((phase) => phase.id === progress.phase)
+  const champion = progress.status === "completed" ? readChampion(sim.detail) : null
+  const awaiting = typeof progress.cursor.awaiting === "string" ? plainAwaiting(progress.cursor.awaiting) : null
+  const hasPrepared = Boolean(progress.active_command_id)
+  const draftDone = draftFinished(progress)
+  const serverReason = progress.blocked_reason ?? progress.error_message ?? null
 
-function Fact({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
-  return (
-    <div className="min-w-0">
-      <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className={cn("truncate text-sm font-medium", mono && "font-mono")} title={value}>
-        {value}
-      </dd>
-    </div>
-  )
-}
-
-export function StatusCard({ progress }: { progress: Progress }) {
-  const awaiting = cursorText(progress, "awaiting")
-  const seed = configValue(progress, "master_seed")
+  let message: string
+  switch (progress.status) {
+    case "queued":
+      message = "Ready to simulate. Results have not changed yet."
+      break
+    case "running":
+      message = "Simulating the prepared part. Picks and scores update when it finishes."
+      break
+    case "paused":
+      message = draftDone
+        ? "The draft is finished. Continue, then simulate the rest of the season."
+        : "Paused. Continue this practice season when you want to prepare the next part."
+      break
+    case "configured":
+      message = hasPrepared
+        ? "Ready to simulate. Results have not changed yet."
+        : "Nothing is prepared yet. Prepare the next part, then simulate it."
+      break
+    case "completed":
+      message = "This practice season is finished. The real league was not changed."
+      break
+    case "blocked":
+    case "failed":
+      message = "This practice season stopped before it finished. The real league was not changed."
+      break
+    case "cancel_requested":
+      message = "Stopping this practice season. Simulate the prepared part once so it can finish stopping."
+      break
+    case "cancelled":
+      message = "This practice season was stopped. The real league was not changed."
+      break
+    case "archived":
+      message = "This practice season is archived."
+      break
+    default:
+      message = `This practice season is ${meta.label.toLowerCase()}.`
+  }
 
   return (
     <Card>
-      <CardHeader className="gap-2">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <CardTitle className="text-base">Run {progress.run_id.slice(0, 8)}</CardTitle>
+      <CardHeader className="gap-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 space-y-1">
+            <CardTitle className="text-xl">Practice season {shortRunId(progress.run_id)}</CardTitle>
+            <CardDescription className="text-pretty">
+              Season code, copy this to open the season later:{" "}
+              <span className="break-all font-mono text-xs">{progress.run_id}</span>
+            </CardDescription>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-11 shrink-0 sm:h-9"
+            disabled={sim.busy || sim.autoRunning}
+            onClick={() => void sim.loadRun(progress.run_id)}
+          >
+            <RefreshCw className={sim.busy ? "animate-spin" : undefined} aria-hidden="true" />
+            Refresh
+          </Button>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
           <Badge
             data-testid="sim-run-status"
-            variant={statusVariant(progress.status)}
+            data-prepared={hasPrepared ? "true" : "false"}
+            variant={meta.variant}
+            className="gap-1.5 px-2.5 py-1 text-sm"
           >
-            {progress.status.replace(/_/g, " ")}
+            <StatusIcon className={progress.status === "running" ? "size-3.5 animate-spin" : "size-3.5"} aria-hidden="true" />
+            {meta.label}
+          </Badge>
+          <Badge variant="outline" className="px-2.5 py-1 text-sm">
+            Stage: {phaseIndex >= 0 ? PHASES[phaseIndex].label : progress.phase}
           </Badge>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <PhaseStepper phase={progress.phase} />
-        {progress.phase === "configured" ? (
-          <p className="text-sm text-muted-foreground">Configured. No phase has started yet.</p>
-        ) : null}
 
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
-          <Fact label="step_seq" value={String(progress.step_seq)} mono />
-          <Fact label="run_version" value={String(progress.run_version)} mono />
-          <Fact label="event_seq" value={String(progress.event_seq)} mono />
-          <Fact label="Seed" value={seed ?? "unknown"} mono />
-          <Fact label="Seed frozen" value={progress.seed_frozen ? "Yes" : "No"} />
-          <Fact label="Fidelity" value={configValue(progress, "fidelity") ?? "n/a"} />
-          <Fact label="Active command" value={progress.active_command_id ?? "none"} mono />
-          <Fact label="Season" value={progress.season_id ? progress.season_id.slice(0, 8) : "none"} mono />
-        </dl>
+      <CardContent className="space-y-6">
+        <div role="status" className="space-y-3">
+          <p className="text-pretty text-base font-medium">{message}</p>
+          <p className="text-sm text-muted-foreground">
+            {progress.status === "completed"
+              ? "You can tell it worked when the Playoffs tab names a champion."
+              : "You can tell it worked when the Draft tab gains picks, or the Season tab shows scores."}
+          </p>
+          {sim.autoRunning ? (
+            <p className="text-sm text-muted-foreground">
+              Simulating ahead in this tab. Leave the tab open. Stop simulating ahead ends the loop between steps.
+            </p>
+          ) : null}
+          {serverReason && ["blocked", "failed", "cancel_requested"].includes(progress.status) ? (
+            <div className="rounded-lg border border-destructive/60 bg-destructive/10 p-3 text-sm">
+              <p className="font-medium text-foreground">What happened</p>
+              <p className="text-pretty text-foreground">{serverReason}</p>
+            </div>
+          ) : null}
+          {awaiting && !message.includes(awaiting) ? (
+            <p className="text-sm text-muted-foreground">{awaiting}</p>
+          ) : null}
+          {progress.status === "completed" ? (
+            <div className="flex items-center gap-3 rounded-lg border border-primary/50 bg-primary/10 p-3">
+              <Trophy className="size-5 shrink-0 text-primary" aria-hidden="true" />
+              <p className="text-pretty text-sm">
+                {champion ? (
+                  <>
+                    <span className="text-muted-foreground">Champion: </span>
+                    <span className="font-semibold">{champion}</span>
+                  </>
+                ) : (
+                  "The server did not report a champion for this run."
+                )}
+              </p>
+            </div>
+          ) : null}
+        </div>
 
-        {awaiting ? (
-          <Alert>
-            <Hourglass aria-hidden="true" />
-            <AlertTitle>Awaiting: {awaiting}</AlertTitle>
-            <AlertDescription>The run is waiting on this step before it can continue.</AlertDescription>
-          </Alert>
-        ) : null}
+        <ol aria-label="Season stages" className="grid grid-cols-5 gap-1.5">
+          {PHASES.map((phase, index) => {
+            const done = phaseIndex > index
+            const current = phaseIndex === index
+            return (
+              <li
+                key={phase.id}
+                aria-current={current ? "step" : undefined}
+                className="flex min-w-0 flex-col gap-1.5"
+              >
+                <span
+                  aria-hidden="true"
+                  className={`h-1.5 rounded-full ${current ? "bg-primary" : done ? "bg-primary/50" : "bg-border"}`}
+                />
+                <span
+                  className={`flex items-center gap-1 text-[0.8125rem] leading-tight ${current ? "font-semibold text-foreground" : "text-muted-foreground"}`}
+                >
+                  {current ? <CircleDot className="size-3.5 shrink-0" aria-hidden="true" /> : null}
+                  <span className="min-w-0 text-pretty break-words">{phase.label}</span>
+                  <span className="sr-only">{current ? " (current)" : done ? " (done)" : " (upcoming)"}</span>
+                </span>
+              </li>
+            )
+          })}
+        </ol>
 
-        {progress.blocked_reason ? (
-          <Alert variant="destructive">
-            <AlertTriangle aria-hidden="true" />
-            <AlertTitle>Blocked</AlertTitle>
-            <AlertDescription>{progress.blocked_reason}</AlertDescription>
-          </Alert>
-        ) : null}
-
-        {progress.error_code || progress.error_message ? (
-          <Alert variant="destructive">
-            <AlertTriangle aria-hidden="true" />
-            <AlertTitle>Run error{progress.error_code ? ` (${progress.error_code})` : ""}</AlertTitle>
-            <AlertDescription>{progress.error_message ?? "No message provided."}</AlertDescription>
-          </Alert>
-        ) : null}
       </CardContent>
     </Card>
   )
