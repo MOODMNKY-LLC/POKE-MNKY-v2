@@ -105,8 +105,8 @@ export function MobileMusicPlayer() {
         className={cn(
           "fixed left-[calc(1rem+env(safe-area-inset-left))] z-[45] h-12 w-12 rounded-full shadow-lg bg-background xl:hidden",
           onDashboard
-            ? "bottom-[calc(var(--mobile-tab-bar-height)+1rem)] md:bottom-[calc(1.5rem+env(safe-area-inset-bottom))]"
-            : "bottom-[calc(1.5rem+env(safe-area-inset-bottom))]",
+            ? "bottom-[calc(var(--mobile-tab-bar-height)+var(--assistant-dock-bar)+0.5rem)] md:bottom-[calc(var(--assistant-dock-height)+0.5rem)]"
+            : "bottom-[calc(var(--assistant-dock-height)+0.5rem)]",
         )}
         onClick={() => setIsOpen(true)}
         title={tracks.length === 0 ? "Music Player (No tracks available)" : "Music Player"}

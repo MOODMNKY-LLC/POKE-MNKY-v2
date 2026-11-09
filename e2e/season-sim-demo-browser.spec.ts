@@ -152,6 +152,112 @@ test.describe("season-sim demo browser acceptance", () => {
   // Tests are independent (each signs in as needed). Do not use serial —
   // a champion-path failure must not skip deny/403/503 coverage.
 
+  test("assistant dock is reserved, theme-aware, and keyboard closable", async ({
+    page,
+  }, testInfo) => {
+    function contrast(a: number[], b: number[]) {
+      const channel = (v: number) => {
+        const s = v / 255
+        return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4
+      }
+      const lum = (rgb: number[]) => 0.2126 * channel(rgb[0]) + 0.7152 * channel(rgb[1]) + 0.0722 * channel(rgb[2])
+      const hi = Math.max(lum(a), lum(b))
+      const lo = Math.min(lum(a), lum(b))
+      return (hi + 0.05) / (lo + 0.05)
+    }
+    async function readTheme(label: string) {
+      const sample = await page.getByTestId("assistant-launcher").evaluate((el) => {
+        function toRgb(color: string) {
+          const canvas = document.createElement("canvas")
+          canvas.width = 1
+          canvas.height = 1
+          const ctx = canvas.getContext("2d")
+          if (!ctx) return [0, 0, 0]
+          ctx.fillStyle = "#000000"
+          ctx.fillStyle = color
+          ctx.fillRect(0, 0, 1, 1)
+          const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data
+          return [r, g, b]
+        }
+        const button = getComputedStyle(el)
+        const dock = getComputedStyle(el.closest("[data-testid='assistant-dock']") as HTMLElement)
+        return {
+          buttonBg: button.backgroundColor,
+          buttonFg: button.color,
+          buttonRgb: toRgb(button.backgroundColor),
+          textRgb: toRgb(button.color),
+          dockBg: dock.backgroundColor,
+          dockRgb: toRgb(dock.backgroundColor),
+          dockFg: dock.color,
+          dockBorder: dock.borderTopColor,
+        }
+      })
+      const ratio = contrast(sample.buttonRgb, sample.textRgb)
+      testInfo.annotations.push({
+        type: `assistant-theme-${label}`,
+        description: `${JSON.stringify(sample)} contrast=${ratio.toFixed(2)}`,
+      })
+      expect(ratio).toBeGreaterThanOrEqual(4.5)
+      expect(sample.buttonBg).not.toMatch(/255,\s*215,\s*0|212,\s*175,\s*55|179,\s*161,\s*37/)
+      return sample
+    }
+
+    await page.goto(`${APP}/demo/season-sim`)
+    await expect(page.getByTestId("assistant-dock")).toBeVisible()
+    await expect(page.getByRole("button", { name: "Open POKE MNKY" })).toHaveCount(0)
+    await shot(page, `${testInfo.project.name}-assistant-closed-light`)
+    const light = await readTheme("light")
+
+    await page.evaluate(() => document.documentElement.classList.add("dark"))
+    const dark = await readTheme("dark")
+    expect(dark.buttonBg).not.toBe(light.buttonBg)
+    expect(dark.dockBg).not.toBe(light.dockBg)
+    await shot(page, `${testInfo.project.name}-assistant-closed-dark`)
+    await page.evaluate(() => document.documentElement.classList.remove("dark"))
+
+    const launcher = page.getByTestId("assistant-launcher")
+    await launcher.click()
+    const dialog = page.getByRole("dialog")
+    await expect(dialog).toBeVisible()
+    await shot(page, `${testInfo.project.name}-assistant-open`)
+    await page.keyboard.press("Escape")
+    await expect(dialog).toBeHidden()
+    await expect(launcher).toBeFocused()
+
+    const details = page.getByRole("button", { name: "Technical details" })
+    const clear = await details.evaluate((el) => {
+      const scroller = document.scrollingElement || document.documentElement
+      scroller.scrollTo({ top: scroller.scrollHeight, behavior: "instant" })
+      const dock = document.querySelector("[data-testid='assistant-dock']")
+      if (!dock) return { ok: false, reason: "missing dock" }
+      const a = el.getBoundingClientRect()
+      const b = dock.getBoundingClientRect()
+      const intersects = a.bottom > b.top + 1 && a.top < b.bottom && a.right > b.left && a.left < b.right
+      return {
+        ok: !intersects,
+        detailsBottom: a.bottom,
+        dockTop: b.top,
+        paddingBottom: getComputedStyle(document.body).paddingBottom,
+      }
+    })
+    expect(clear.ok, JSON.stringify(clear)).toBe(true)
+
+    await page.setViewportSize({ width: 320, height: 700 })
+    await expect(page.getByTestId("assistant-dock")).toBeVisible()
+    const hit = await page.evaluate(() => {
+      const dock = document.querySelector("[data-testid='assistant-dock']")
+      if (!dock) return false
+      const rect = dock.getBoundingClientRect()
+      const el = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2)
+      return Boolean(el?.closest("[data-testid='assistant-dock']"))
+    })
+    expect(hit).toBe(true)
+
+    await page.goto(`${APP}/`)
+    await expect(page.getByTestId("assistant-launcher")).toBeVisible()
+    await shot(page, `${testInfo.project.name}-assistant-home`)
+  })
+
   test("anonymous is denied create / sees unauthorized path", async ({
     page,
   }, testInfo) => {
@@ -336,6 +442,22 @@ test.describe("season-sim demo browser acceptance", () => {
     await expect(page.getByText(/No champion yet/i)).toHaveCount(0)
     await expect(page.getByText(/Bot\s*\d|Synthetic/i).first()).toBeVisible()
     await shot(page, `${testInfo.project.name}-playoffs-champion`)
+    const clear = await page.getByRole("button", { name: "Technical details" }).evaluate((el) => {
+      const scroller = document.scrollingElement || document.documentElement
+      scroller.scrollTo({ top: scroller.scrollHeight, behavior: "instant" })
+      const dock = document.querySelector("[data-testid='assistant-dock']")
+      if (!dock) return { ok: false, reason: "missing dock" }
+      const a = el.getBoundingClientRect()
+      const b = dock.getBoundingClientRect()
+      const intersects = a.bottom > b.top + 1 && a.top < b.bottom && a.right > b.left && a.left < b.right
+      return {
+        ok: !intersects,
+        detailsBottom: a.bottom,
+        dockTop: b.top,
+        paddingBottom: getComputedStyle(document.body).paddingBottom,
+      }
+    })
+    expect(clear.ok, JSON.stringify(clear)).toBe(true)
 
     // Refresh reload recovery (localStorage last run id)
     const runIdMatch = await page.evaluate(() =>
@@ -432,7 +554,16 @@ test.describe("season-sim demo browser acceptance", () => {
     await page.goto(`${FLAGS_OFF_URL}/demo/season-sim`, { waitUntil: "domcontentloaded" })
     // A click before hydration submits the form as a navigation and never calls the API.
     await expect(page.locator("[data-hydrated=true]")).toBeVisible()
-    await page.getByRole("button", { name: "Start a practice season" }).click()
+    const start = page.getByRole("button", { name: "Start a practice season" })
+    await start.evaluate((el) => el.scrollIntoView({ block: "center", behavior: "instant" }))
+    const responsePromise = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/admin/simulation/runs") && response.request().method() === "POST",
+      { timeout: 30_000 },
+    )
+    await start.click()
+    const response = await responsePromise
+    expect(response.status()).toBe(503)
     await expect(
       page.getByText(/disabled|503|SIM_SANDBOX_V2/i).first(),
     ).toBeVisible({ timeout: 30_000 })

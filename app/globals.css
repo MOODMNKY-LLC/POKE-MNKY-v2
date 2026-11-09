@@ -173,6 +173,31 @@
 :root {
   /* 3.5rem tab row + 1px top border + home-indicator inset. Shared by the tab bar, shell padding and floating buttons. */
   --mobile-tab-bar-height: calc(3.5rem + 1px + env(safe-area-inset-bottom, 0px));
+  /* Reserved assistant dock. Content padding uses this so the closed launcher never covers tables. */
+  --assistant-dock-bar: 3rem;
+  --assistant-dock-height: calc(var(--assistant-dock-bar) + env(safe-area-inset-bottom, 0px));
+  --assistant-clearance: var(--assistant-dock-height);
+}
+
+html[data-assistant-open="true"] {
+  --assistant-clearance: 0px;
+}
+
+@media (max-width: 767px) {
+  html[data-assistant-route="dashboard"]:not([data-assistant-open="true"]) {
+    /* Dashboard content already pads for the tab bar plus this dock. */
+    --assistant-clearance: 0px;
+  }
+}
+
+body {
+  padding-bottom: var(--assistant-clearance);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-testid="assistant-dock"] {
+    transition: none;
+  }
 }
 
 /* Keep sonner toasts out of the notch / rounded corners. Sonner's own rules load later, so match with extra specificity. */

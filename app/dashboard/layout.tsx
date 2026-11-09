@@ -21,7 +21,7 @@ export default async function DashboardLayout({
       <AppSidebar nav={nav} user={user} team={team} />
       <SidebarInset className="min-w-0">
         <DashboardHeader />
-        <div className="flex flex-1 flex-col pb-(--mobile-tab-bar-height) md:pb-0">{children}</div>
+        <div className="flex flex-1 flex-col pb-[calc(var(--mobile-tab-bar-height)+var(--assistant-dock-bar))] md:pb-0">{children}</div>
       </SidebarInset>
       <MobileTabBar ctx={nav} />
       <TeraAssignmentModal />

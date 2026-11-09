@@ -15,6 +15,7 @@ import { FloatingAssistantButton } from "./floating-assistant-button"
 export function AssistantProvider() {
   const [mounted, setMounted] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [open, setOpen] = useState(false)
   const pathname = usePathname()
   const [context, setContext] = useState<{
     teamId?: string | null
@@ -80,18 +81,28 @@ export function AssistantProvider() {
      
   }, [pathname, mounted])
 
-  if (!mounted) return null
+  const aboveTabBar = pathname.startsWith("/dashboard")
 
-  // The dashboard shows a bottom tab bar below the md breakpoint; keep the FAB clear of it.
-  const clearOfTabBar = pathname.startsWith("/dashboard")
-    ? "bottom-[calc(var(--mobile-tab-bar-height)+1rem)] md:bottom-[calc(1.5rem+env(safe-area-inset-bottom))]"
-    : undefined
+  useEffect(() => {
+    if (!mounted) return
+    const root = document.documentElement
+    root.dataset.assistantRoute = aboveTabBar ? "dashboard" : "app"
+    root.dataset.assistantOpen = open ? "true" : "false"
+    return () => {
+      delete root.dataset.assistantRoute
+      delete root.dataset.assistantOpen
+    }
+  }, [aboveTabBar, mounted, open])
+
+  if (!mounted) return null
 
   return (
     <FloatingAssistantButton
       context={context}
       isAuthenticated={isAuthenticated}
-      className={clearOfTabBar}
+      open={open}
+      onOpenChange={setOpen}
+      aboveTabBar={aboveTabBar}
     />
   )
 }
