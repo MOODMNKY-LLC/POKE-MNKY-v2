@@ -146,7 +146,8 @@ jobs:
           # GOTRUE_JWT_EXP=3600 + browser Chromium; short-TTL expiry HTTP cases skipped.
 
   e2e:
-    runs-on: ubuntu-latest
+    # ubuntu-latest is 26.04, which Playwright 1.58 cannot install Chromium on.
+    runs-on: ubuntu-24.04
     needs: unit
     steps:
       - uses: actions/checkout@v4
