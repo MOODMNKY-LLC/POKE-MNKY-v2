@@ -107,7 +107,8 @@ jobs:
         run: pnpm test:season-sim-pg
 
   season-sim-real-server-auth:
-    runs-on: ubuntu-latest
+    # ubuntu-latest is 26.04, which Playwright 1.58 cannot install Chromium on.
+    runs-on: ubuntu-24.04
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
