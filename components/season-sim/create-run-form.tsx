@@ -16,11 +16,11 @@ const TOUCH = "h-11 sm:h-9"
 const SELECT_TOUCH = "h-11 w-full sm:h-9 data-[size=default]:h-11 sm:data-[size=default]:h-9"
 
 const NUMERIC_FIELDS = [
-  { key: "team_count", label: "Team count" },
-  { key: "total_rounds", label: "Draft rounds" },
-  { key: "budget_total", label: "Budget per team" },
-  { key: "schedule_weeks", label: "Schedule weeks" },
-  { key: "playoff_size", label: "Playoff size" },
+  { key: "team_count", label: "Team count", help: "How many practice teams. Example: 4 for a short test, 12 for a full league." },
+  { key: "total_rounds", label: "Draft rounds", help: "How many times each team drafts. Example: 2 is a short draft." },
+  { key: "budget_total", label: "Budget per team", help: "Points each practice team can spend. Example: 120." },
+  { key: "schedule_weeks", label: "Schedule weeks", help: "Weeks in the regular season. Example: 2 is a short season." },
+  { key: "playoff_size", label: "Playoff size", help: "How many teams reach the playoffs. Example: 2." },
 ] as const
 
 type NumericKey = (typeof NUMERIC_FIELDS)[number]["key"]
@@ -79,17 +79,17 @@ export function CreateRunForm({ sim }: { sim: SimConsoleState }) {
     <div className="grid gap-6 lg:grid-cols-5">
       <Card className="lg:col-span-3">
         <CardHeader>
-          <CardTitle className="text-xl">No run loaded</CardTitle>
+          <CardTitle className="text-xl">Start a practice season</CardTitle>
           <CardDescription className="text-pretty">
-            Start a sandbox run with the server defaults, or open Run options to set the seed and counts. Blank fields
-            use the server default.
+            This makes a practice league with made-up teams. It does not use the live season, and it does not change
+            the real draft or standings. Blank settings use the usual defaults.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={submitCreate} className="space-y-4" noValidate>
             <Button type="submit" className="h-12 w-full text-base sm:h-11" disabled={sim.busy}>
               {sim.busy ? <Loader2 className="animate-spin" aria-hidden="true" /> : <FlaskConical aria-hidden="true" />}
-              Create run
+              Start a practice season
             </Button>
 
             <div role="status" className="space-y-2 empty:hidden">
@@ -98,8 +98,9 @@ export function CreateRunForm({ sim }: { sim: SimConsoleState }) {
             {sim.createError ? (
               <Alert variant="destructive">
                 <AlertDescription>
-                  <span className="font-medium">Could not create run. </span>
-                  {sim.createError.error}
+                  <span className="font-medium">The practice season did not start. </span>
+                  Sign in if you are signed out, then try again.
+                  <span className="mt-1 block text-muted-foreground">Technical note: {sim.createError.error}</span>
                 </AlertDescription>
               </Alert>
             ) : null}
@@ -107,7 +108,7 @@ export function CreateRunForm({ sim }: { sim: SimConsoleState }) {
             <Collapsible>
               <CollapsibleTrigger asChild>
                 <Button type="button" variant="outline" className="group h-11 w-full justify-between sm:h-9">
-                  Run options
+                  Practice settings
                   <ChevronDown
                     className="transition-transform group-data-[state=open]:rotate-180"
                     aria-hidden="true"
@@ -116,19 +117,24 @@ export function CreateRunForm({ sim }: { sim: SimConsoleState }) {
               </CollapsibleTrigger>
               <CollapsibleContent className="space-y-4 pt-4">
                 <div className="space-y-1.5">
-                  <Label htmlFor="opt-seed">Master seed</Label>
+                  <Label htmlFor="opt-seed">Repeatable simulation number</Label>
                   <Input
                     id="opt-seed"
                     value={seed}
-                    placeholder="Server default"
+                    placeholder="Leave blank for a new number"
                     autoComplete="off"
+                    aria-describedby="opt-seed-help"
                     className={`${TOUCH} font-mono`}
                     onChange={(event) => setSeed(event.target.value)}
                   />
+                  <p id="opt-seed-help" className="text-sm text-muted-foreground">
+                    The same number produces the same practice results. Leave it blank to start a new one. This is not
+                    a game code.
+                  </p>
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
-                  {NUMERIC_FIELDS.map(({ key, label }) => (
+                  {NUMERIC_FIELDS.map(({ key, label, help }) => (
                     <div key={key} className="space-y-1.5">
                       <Label htmlFor={`opt-${key}`}>{label}</Label>
                       <Input
@@ -138,12 +144,15 @@ export function CreateRunForm({ sim }: { sim: SimConsoleState }) {
                         min={1}
                         step={1}
                         value={numbers[key]}
-                        placeholder="Server default"
+                        placeholder="Usual default"
                         className={TOUCH}
                         aria-invalid={Boolean(errors[key])}
-                        aria-describedby={errors[key] ? `opt-${key}-error` : undefined}
+                        aria-describedby={errors[key] ? `opt-${key}-help opt-${key}-error` : `opt-${key}-help`}
                         onChange={(event) => setNumbers((current) => ({ ...current, [key]: event.target.value }))}
                       />
+                      <p id={`opt-${key}-help`} className="text-sm text-muted-foreground">
+                        {help}
+                      </p>
                       {errors[key] ? (
                         <p id={`opt-${key}-error`} className="text-sm text-destructive">
                           {errors[key]}
@@ -153,15 +162,15 @@ export function CreateRunForm({ sim }: { sim: SimConsoleState }) {
                   ))}
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="opt-selector">Draft selector</Label>
+                    <Label htmlFor="opt-selector">How teams choose</Label>
                     <Select value={selector} onValueChange={setSelector}>
                       <SelectTrigger id="opt-selector" className={SELECT_TOUCH}>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="default">Server default</SelectItem>
-                        <SelectItem value="random">Random</SelectItem>
-                        <SelectItem value="heuristic">Heuristic</SelectItem>
+                        <SelectItem value="default">Usual choice</SelectItem>
+                        <SelectItem value="random">Random picks</SelectItem>
+                        <SelectItem value="heuristic">Best available pick</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -178,7 +187,7 @@ export function CreateRunForm({ sim }: { sim: SimConsoleState }) {
                     onCheckedChange={(checked) => setQueueImmediately(checked === true)}
                   />
                   <span className="text-pretty">
-                    Queue the first step immediately. It is still queued, not played, until you run it.
+                    Prepare the first pick as soon as the season starts. The pick is not made until you simulate it.
                   </span>
                 </Label>
               </CollapsibleContent>
@@ -189,13 +198,15 @@ export function CreateRunForm({ sim }: { sim: SimConsoleState }) {
 
       <Card className="self-start lg:col-span-2">
         <CardHeader>
-          <CardTitle className="text-xl">Open an existing run</CardTitle>
-          <CardDescription className="text-pretty">Paste a run id to load its current state.</CardDescription>
+          <CardTitle className="text-xl">Open a saved practice season</CardTitle>
+          <CardDescription className="text-pretty">
+            Paste the season code from a season you already started. Copy it from the line under the season name.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={submitLoad} className="space-y-3">
             <div className="space-y-1.5">
-              <Label htmlFor="load-run-id">Run id</Label>
+              <Label htmlFor="load-run-id">Season code</Label>
               <Input
                 id="load-run-id"
                 value={loadId}
@@ -206,7 +217,7 @@ export function CreateRunForm({ sim }: { sim: SimConsoleState }) {
               />
             </div>
             <Button type="submit" variant="secondary" className={`${TOUCH} w-full`} disabled={sim.busy || !loadId.trim()}>
-              Load run
+              Open saved simulation
             </Button>
             {sim.lastRunId ? (
               <Button
@@ -218,7 +229,7 @@ export function CreateRunForm({ sim }: { sim: SimConsoleState }) {
               >
                 <History aria-hidden="true" />
                 <span className="min-w-0 break-all">
-                  Resume last run · <span className="font-mono">{sim.lastRunId.slice(0, 8)}</span>
+                  Reopen last practice season · <span className="font-mono">{sim.lastRunId.slice(0, 8)}</span>
                 </span>
               </Button>
             ) : null}

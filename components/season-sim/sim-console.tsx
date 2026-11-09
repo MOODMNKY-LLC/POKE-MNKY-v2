@@ -13,6 +13,7 @@ import { EvidencePanel } from "./evidence-panel"
 import { PlayoffsTab } from "./playoffs-tab"
 import { ProvisionalBanner } from "./provisional-banner"
 import { SeasonTab } from "./season-tab"
+import { StageGuide } from "./stage-guide"
 import { StatusCard } from "./status-card"
 import { useSimConsole } from "./use-sim-console"
 
@@ -37,9 +38,22 @@ export function SimConsole() {
           Season Simulator
         </h1>
         <p className="max-w-prose text-pretty text-muted-foreground">
-          Queue one step at a time, run it, and read what the server reports. Nothing here is played until you run it.
+          Walk a practice season from the draft to a champion. Each step tells you where you are, what to press, and
+          how to tell it worked. Preparing a part does not play it.
         </p>
       </div>
+
+      <StageGuide
+        hasRun={hasRun}
+        phase={detail?.progress.phase ?? ""}
+        status={detail?.progress.status ?? ""}
+        draftComplete={
+          detail?.progress.cursor.draft_complete === true ||
+          detail?.progress.phase === "regular" ||
+          detail?.progress.phase === "playoffs" ||
+          detail?.progress.phase === "complete"
+        }
+      />
 
       <ProvisionalBanner disclaimer={detail?.season.disclaimer} />
 
@@ -71,7 +85,8 @@ export function SimConsole() {
           {sim.createInfo && hasRun ? (
             <Alert>
               <AlertDescription className="text-pretty">
-                Run created with {sim.createInfo.team_ids.length} synthetic teams.
+                Practice season started with {sim.createInfo.team_ids.length} made-up teams.
+                {(detail?.draft.pick_count ?? 0) === 0 ? " Nothing has been drafted yet." : ""}
               </AlertDescription>
             </Alert>
           ) : null}
@@ -79,8 +94,9 @@ export function SimConsole() {
           {loadError ? (
             <Alert variant="destructive">
               <AlertDescription>
-                <span className="font-medium">Could not load the run. </span>
-                {loadError.error}
+                <span className="font-medium">That saved season did not open. </span>
+                Check the season code and try again.
+                <span className="mt-1 block text-muted-foreground">Technical note: {loadError.error}</span>
               </AlertDescription>
             </Alert>
           ) : null}
@@ -88,7 +104,7 @@ export function SimConsole() {
           {busy && !hasRun ? (
             <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-              Working with the simulator server…
+              Checking the practice season…
             </p>
           ) : null}
 

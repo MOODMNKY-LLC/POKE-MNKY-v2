@@ -66,7 +66,7 @@ export function DraftTab({
 
       {teamIds.length === 0 ? (
         <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-          No picks yet. Advance the draft and run a worker step to see rosters.
+          No picks yet. Prepare a pick, then simulate it, and the rosters appear here.
         </p>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

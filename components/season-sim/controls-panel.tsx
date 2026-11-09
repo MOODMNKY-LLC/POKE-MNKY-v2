@@ -3,7 +3,6 @@
 import {
   Ban,
   ChevronDown,
-  FastForward,
   ListPlus,
   Loader2,
   Pause,
@@ -45,13 +44,52 @@ const PAUSEABLE: RunStatus[] = ["queued", "running"]
 const CANCELABLE: RunStatus[] = ["configured", "queued", "running", "paused", "blocked"]
 const AUTO_RUNNABLE: RunStatus[] = ["queued", "running", "paused"]
 
-const UNIT_LABEL: Record<string, string> = {
-  pick: "Pick",
-  round: "Draft round",
-  match: "Match",
-  week: "Week",
-  playoff_round: "Playoff round",
-  season: "Whole season",
+const UNIT_LABEL: Record<AdvanceUnit, string> = {
+  pick: "One draft pick",
+  round: "One draft round",
+  match: "One match",
+  week: "One week of matches",
+  playoff_round: "One playoff round",
+  season: "Rest of the season",
+}
+
+function queueCopy(unit: AdvanceUnit): { label: string; hint: string } {
+  switch (unit) {
+    case "pick":
+      return {
+        label: "Prepare the next pick",
+        hint: "This gets one draft pick ready. Nobody is drafted until you simulate it.",
+      }
+    case "round":
+      return {
+        label: "Prepare the next draft round",
+        hint: "This gets one full round ready. Picks are not made until you simulate them.",
+      }
+    case "match":
+      return {
+        label: "Prepare the next match",
+        hint: "This gets one match ready. The score does not change until you simulate it.",
+      }
+    case "week":
+      return {
+        label: "Prepare the next week",
+        hint: "This gets one week of matches ready. Scores do not change until you simulate them.",
+      }
+    case "playoff_round":
+      return {
+        label: "Prepare the next playoff round",
+        hint: "This gets one playoff round ready. Results do not change until you simulate it.",
+      }
+    case "season":
+      return {
+        label: "Prepare the rest of the season",
+        hint: "This gets the remaining schedule and playoffs ready. Standings do not change until you simulate them.",
+      }
+    default: {
+      const _exhaustive: never = unit
+      return _exhaustive
+    }
+  }
 }
 
 type PrimaryAction =
@@ -90,27 +128,38 @@ export function getPrimaryAction(progress: {
   if (status === "queued" || status === "running" || (status === "configured" && active_command_id)) {
     return {
       kind: "tick",
-      label: "Run queued step",
-      hint: "Plays the command that is already queued.",
+      label: "Simulate what's ready",
+      hint: "Ready to simulate. Results have not changed yet.",
     }
   }
   if (status === "paused") {
-    return { kind: "resume", label: "Resume run", hint: "The run is paused. Resume to continue." }
+    const draftDone = draftIsComplete(progress)
+    return {
+      kind: "resume",
+      label: "Continue this practice season",
+      hint: draftDone
+        ? "The draft is finished. Continuing lets you prepare the rest of the season. It does not play those games by itself."
+        : "The practice season is paused. Continuing lets you prepare the next part. It does not play results by itself.",
+    }
   }
   if (status === "configured") {
     const unit = defaultUnit(progress)
+    const copy = queueCopy(unit)
+    return { kind: "queue", unit, label: copy.label, hint: copy.hint }
+  }
+  if (status === "completed") {
     return {
-      kind: "queue",
-      unit,
-      label: `Queue next ${UNIT_LABEL[unit].toLowerCase()}`,
-      hint: `Queues 1 ${UNIT_LABEL[unit].toLowerCase()}. It is queued, not played, until you run it.`,
+      kind: "none",
+      hint: "This practice season is finished. The champion is on the Playoffs tab. The real league was not changed.",
     }
   }
-  if (status === "completed") return { kind: "none", hint: "This run is complete. No next step." }
   if (status === "blocked" || status === "failed" || status === "cancel_requested") {
-    return { kind: "none", hint: "The server reported a problem. Read the reason on the status card." }
+    return {
+      kind: "none",
+      hint: "This practice season needs attention. Read the reason on the status card, then try the next action again.",
+    }
   }
-  return { kind: "none", hint: "This run can no longer advance." }
+  return { kind: "none", hint: "This practice season can no longer move forward." }
 }
 
 export function ControlsPanel({ sim }: { sim: SimConsoleState }) {
@@ -131,8 +180,6 @@ export function ControlsPanel({ sim }: { sim: SimConsoleState }) {
   const countValid = Number.isInteger(countValue) && countValue >= 1 && countValue <= 1000
   const queued = progress.status === "queued" || progress.status === "running" || Boolean(progress.active_command_id)
   const shortId = shortRunId(progress.run_id)
-  const canQueueSeason =
-    progress.status === "configured" && draftIsComplete(progress) && !progress.active_command_id
 
   function runPrimary() {
     if (action.kind === "queue") void sim.advance(action.unit, 1)
@@ -153,9 +200,11 @@ export function ControlsPanel({ sim }: { sim: SimConsoleState }) {
   return (
     <Card className="lg:sticky lg:top-6">
       <CardHeader>
-        <CardTitle className="text-xl">Next step</CardTitle>
+        <CardTitle className="text-xl">What to do now</CardTitle>
         <CardDescription className="text-pretty">
-          {sim.autoRunning ? "Auto-run is looping in this tab. Stop it to take manual control." : action.hint}
+          {sim.autoRunning
+            ? "Simulating ahead in this tab. Stop it to choose the next part yourself."
+            : action.hint}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -167,7 +216,7 @@ export function ControlsPanel({ sim }: { sim: SimConsoleState }) {
             onClick={sim.stopAutoRun}
           >
             <Square aria-hidden="true" />
-            Stop auto-run
+            Stop simulating ahead
           </Button>
         ) : action.kind !== "none" ? (
           <Button
@@ -181,26 +230,16 @@ export function ControlsPanel({ sim }: { sim: SimConsoleState }) {
           </Button>
         ) : null}
 
-        {canQueueSeason && !sim.autoRunning ? (
-          <Button
-            type="button"
-            variant="outline"
-            className="h-11 w-full sm:h-9"
-            disabled={locked}
-            onClick={() => void sim.advance("season", 1)}
-          >
-            <FastForward aria-hidden="true" />
-            Queue whole season
-          </Button>
-        ) : null}
         {progress.status === "paused" && draftIsComplete(progress) ? (
-          <p className="text-sm text-muted-foreground">After you resume, you can queue the whole season.</p>
+          <p className="text-sm text-muted-foreground">
+            The draft is finished. Continue, then prepare the rest of the season and simulate it.
+          </p>
         ) : null}
 
         <Collapsible>
           <CollapsibleTrigger asChild>
             <Button type="button" variant="outline" className="group h-11 w-full justify-between sm:h-9">
-              Advanced controls
+              More controls
               <ChevronDown
                 className="transition-transform group-data-[state=open]:rotate-180"
                 aria-hidden="true"
@@ -210,11 +249,11 @@ export function ControlsPanel({ sim }: { sim: SimConsoleState }) {
           <CollapsibleContent className="space-y-6 pt-4">
             <section aria-labelledby="adv-queue" className="space-y-3">
               <h3 id="adv-queue" className="text-sm font-semibold">
-                Queue a command
+                Prepare a specific part
               </h3>
               <div className="grid grid-cols-[1fr_6rem] gap-3">
                 <div className="space-y-1.5">
-                  <Label htmlFor="adv-unit">Unit</Label>
+                  <Label htmlFor="adv-unit">What to prepare</Label>
                   <Select value={unit} onValueChange={(value) => setUnitChoice(value as AdvanceUnit)}>
                     <SelectTrigger id="sim-unit" className={SELECT_TOUCH}>
                       <SelectValue />
@@ -229,7 +268,7 @@ export function ControlsPanel({ sim }: { sim: SimConsoleState }) {
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="sim-n">Count</Label>
+                  <Label htmlFor="sim-n">How many</Label>
                   <Input
                     id="sim-n"
                     type="number"
@@ -247,7 +286,7 @@ export function ControlsPanel({ sim }: { sim: SimConsoleState }) {
               </div>
               <p id="adv-count-help" className={`text-sm ${countValid ? "text-muted-foreground" : "text-destructive"}`}>
                 {countValid
-                  ? "Count is 1 to 1000. Units not legal for this phase are disabled."
+                  ? "Use 1 for a single part, up to 1000. Parts that do not fit this stage are unavailable."
                   : "Enter a whole number from 1 to 1000."}
               </p>
               <Button
@@ -258,17 +297,21 @@ export function ControlsPanel({ sim }: { sim: SimConsoleState }) {
                 onClick={() => void sim.advance(unit, countValue)}
               >
                 <ListPlus aria-hidden="true" />
-                Advance
+                Prepare this amount
               </Button>
               <p className="text-sm text-muted-foreground">
-                Queue only adds the command. Nothing is played until Run worker step.
+                Preparing does not change picks or scores. Choose Simulate what&apos;s ready when you want those results.
               </p>
             </section>
 
             <section aria-labelledby="adv-state" className="space-y-3">
               <h3 id="adv-state" className="text-sm font-semibold">
-                Run state
+                Hold, continue, or stop
               </h3>
+              <p className="text-sm text-muted-foreground">
+                Pause holds the season where it is. Continue lets you prepare the next part. Stop this season ends it
+                after one more simulate. None of these change the real league.
+              </p>
               <div className="grid grid-cols-1 gap-2 min-[400px]:grid-cols-3">
                 <Button
                   type="button"
@@ -288,7 +331,7 @@ export function ControlsPanel({ sim }: { sim: SimConsoleState }) {
                   onClick={() => void sim.control("resume")}
                 >
                   <Play aria-hidden="true" />
-                  Resume
+                  Continue
                 </Button>
                 <Button
                   type="button"
@@ -298,14 +341,14 @@ export function ControlsPanel({ sim }: { sim: SimConsoleState }) {
                   onClick={() => void sim.control("cancel")}
                 >
                   <Ban aria-hidden="true" />
-                  Cancel
+                  Stop this season
                 </Button>
               </div>
             </section>
 
             <section aria-labelledby="adv-worker" className="space-y-3">
               <h3 id="adv-worker" className="text-sm font-semibold">
-                Worker
+                Play the prepared part
               </h3>
               <Button
                 type="button"
@@ -315,7 +358,7 @@ export function ControlsPanel({ sim }: { sim: SimConsoleState }) {
                 onClick={() => void sim.runWorkerStep()}
               >
                 <StepForward aria-hidden="true" />
-                Run worker step
+                Simulate the prepared part
               </Button>
               <div className="grid grid-cols-2 gap-2">
                 <Button
@@ -326,7 +369,7 @@ export function ControlsPanel({ sim }: { sim: SimConsoleState }) {
                   onClick={sim.startAutoRun}
                 >
                   <Repeat aria-hidden="true" />
-                  Auto-run
+                  Simulate ahead
                 </Button>
                 <Button
                   type="button"
@@ -336,20 +379,25 @@ export function ControlsPanel({ sim }: { sim: SimConsoleState }) {
                   onClick={sim.stopAutoRun}
                 >
                   <Square aria-hidden="true" />
-                  Stop
+                  Stop the automatic loop
                 </Button>
               </div>
               <p className="text-sm text-muted-foreground">
-                Auto-run is a browser loop: at most {AUTO_MAX_ITERATIONS} ticks, 750ms apart. Stop takes effect
-                between ticks.
-                {sim.autoRunning ? ` Tick ${sim.autoCount} of ${AUTO_MAX_ITERATIONS}.` : ""}
+                Simulate ahead keeps playing prepared work in this browser tab only, up to {AUTO_MAX_ITERATIONS} steps,
+                about three quarters of a second apart. Leave this tab open. It stops on its own after{" "}
+                {AUTO_MAX_ITERATIONS} steps. Stopping the loop is not a pause, and it does not erase the season.
+                {sim.autoRunning ? ` Step ${sim.autoCount} of ${AUTO_MAX_ITERATIONS}.` : ""}
               </p>
             </section>
 
             <section aria-labelledby="adv-reset" className="space-y-3 border-t border-border pt-4">
               <h3 id="adv-reset" className="text-sm font-semibold">
-                Danger zone
+                Replay from the start
               </h3>
+              <p className="text-sm text-muted-foreground">
+                Replay clears these practice results and runs the same season again from the same repeatable number.
+                The real league is not affected.
+              </p>
               <Dialog
                 open={resetOpen}
                 onOpenChange={(open) => {
@@ -365,20 +413,22 @@ export function ControlsPanel({ sim }: { sim: SimConsoleState }) {
                     disabled={sim.autoRunning}
                   >
                     <RotateCcw aria-hidden="true" />
-                    Reset
+                    Replay season
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
                   <form onSubmit={submitReset} className="space-y-4">
                     <DialogHeader>
-                      <DialogTitle>Reset run {shortId}?</DialogTitle>
+                      <DialogTitle>Replay practice season {shortId}?</DialogTitle>
                       <DialogDescription className="text-pretty">
-                        This resets the sandbox run and cannot be undone. Type the short run id{" "}
-                        <span className="font-mono font-semibold text-foreground">{shortId}</span> to confirm.
+                        This clears the practice picks and scores, then replays them from the same repeatable number.
+                        It cannot be undone. Type the short season code{" "}
+                        <span className="font-mono font-semibold text-foreground">{shortId}</span>, the first 8
+                        characters shown on the season card.
                       </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-1.5">
-                      <Label htmlFor="reset-confirm">Short run id</Label>
+                      <Label htmlFor="reset-confirm">Short season code</Label>
                       <Input
                         id="reset-confirm"
                         autoComplete="off"
@@ -392,7 +442,7 @@ export function ControlsPanel({ sim }: { sim: SimConsoleState }) {
                     <DialogFooter className="gap-2">
                       <DialogClose asChild>
                         <Button type="button" variant="outline" className={TOUCH}>
-                          Keep run
+                          Keep these results
                         </Button>
                       </DialogClose>
                       <Button
@@ -401,7 +451,7 @@ export function ControlsPanel({ sim }: { sim: SimConsoleState }) {
                         className={TOUCH}
                         disabled={confirmText.trim().toLowerCase() !== shortId.toLowerCase() || sim.busy}
                       >
-                        Reset run
+                        Replay this season
                       </Button>
                     </DialogFooter>
                   </form>

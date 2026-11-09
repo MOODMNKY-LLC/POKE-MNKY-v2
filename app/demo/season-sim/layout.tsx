@@ -5,7 +5,7 @@ import Link from "next/link"
 export const metadata: Metadata = {
   title: "Season Simulator | POKÉ MNKY",
   description:
-    "Operator console for the provisional statistical Season Simulator sandbox. Not Pokémon Showdown, not Season 7 or Season 8.",
+    "Practice season walkthrough. Statistical results only. Not Pokémon Showdown, and not the live Season 7 or Season 8.",
 }
 
 export default function DemoSeasonSimLayout({ children }: { children: ReactNode }) {
@@ -15,13 +15,13 @@ export default function DemoSeasonSimLayout({ children }: { children: ReactNode 
         href="#sim-main"
         className="sr-only rounded-md bg-primary px-4 py-3 text-primary-foreground focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50"
       >
-        Skip to simulator console
+        Skip to practice season
       </a>
       <header className="border-b border-border bg-card">
         <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-3 text-sm sm:px-6">
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
             <span className="font-semibold tracking-wide text-card-foreground">POKÉ MNKY</span>
-            <span className="text-pretty text-muted-foreground">Season Simulator · statistical sandbox</span>
+            <span className="text-pretty text-muted-foreground">Practice seasons · not the live league</span>
           </div>
           <Link
             href="/auth/login?next=/demo/season-sim"

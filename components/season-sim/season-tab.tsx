@@ -137,8 +137,8 @@ export function SeasonTab({ season }: { season: SeasonEvidence }) {
               </dd>
             </div>
             <div>
-              <dt className="text-xs text-muted-foreground">Fidelity</dt>
-              <dd>{season.fidelity ?? "n/a"}</dd>
+              <dt className="text-xs text-muted-foreground">Result type</dt>
+              <dd>Statistical, not a real battle</dd>
             </div>
           </dl>
         </CardContent>
@@ -147,7 +147,7 @@ export function SeasonTab({ season }: { season: SeasonEvidence }) {
       {season.seats && season.seats.length > 0 ? (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Synthetic seats</CardTitle>
+            <CardTitle className="text-base">Practice teams</CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="grid gap-1 text-sm sm:grid-cols-2">
@@ -166,7 +166,7 @@ export function SeasonTab({ season }: { season: SeasonEvidence }) {
 
       {standings.length === 0 ? (
         <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-          No standings yet.
+          No standings yet. Simulate the regular season and they will appear here.
         </p>
       ) : (
         <div className="overflow-x-auto rounded-lg border">

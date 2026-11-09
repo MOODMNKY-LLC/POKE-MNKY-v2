@@ -173,15 +173,18 @@ export function useSimConsole() {
       if (isStale(failure)) {
         setNotice({
           tone: "warn",
-          text: `The run changed since it was last loaded (${failure.code ?? "stale state"}). State was reloaded; review it and retry.`,
+          text: "This practice season changed since the page loaded. It was reloaded. Review it, then try that action again.",
         })
         await refresh(runId)
       } else if (failure.code === WORKER_TICK_DISABLED_CODE) {
-        setNotice({ tone: "warn", text: "Worker steps are disabled in this environment." })
+        setNotice({
+          tone: "warn",
+          text: "Simulating is turned off here. You can still review the practice season. The exact reason is in Technical details.",
+        })
       } else {
         setNotice({
           tone: "warn",
-          text: failure.error || "The server rejected that command. Review the run and retry.",
+          text: "That did not go through. Review the season and try again. The exact reason is in Technical details.",
         })
       }
     },
@@ -199,7 +202,7 @@ export function useSimConsole() {
         if (result.ok) {
           setNotice({
             tone: "info",
-            text: `Command ${result.data.replayed ? "replayed" : "queued"} (status: ${result.data.status}). Run a worker step to execute it.`,
+            text: "Ready to simulate. Results have not changed yet. Choose Simulate what's ready to play this part.",
           })
           await refresh(progress.run_id)
         } else {
@@ -221,10 +224,23 @@ export function useSimConsole() {
         const result = await controlRun(progress, action)
         track(action, result)
         if (result.ok) {
-          setNotice({
-            tone: "info",
-            text: `${action} accepted (status: ${result.data.status}). Run a worker step to apply it.`,
-          })
+          let text: string
+          switch (action) {
+            case "pause":
+              text = "Paused. Nothing else will be simulated until you continue."
+              break
+            case "resume":
+              text = "You can continue. Prepare the next part, then simulate it. Results have not changed yet."
+              break
+            case "cancel":
+              text = "This practice season is stopping. Simulate the prepared part once so it can finish stopping."
+              break
+            default: {
+              const _exhaustive: never = action
+              text = _exhaustive
+            }
+          }
+          setNotice({ tone: "info", text })
           await refresh(progress.run_id)
         } else {
           await handleCommandFailure(progress.run_id, result)
@@ -246,12 +262,15 @@ export function useSimConsole() {
       if (result.ok) {
         setNotice({
           tone: "info",
-          text: "Sandbox domain reset. The run will replay with the same seed.",
+          text: "Practice results were cleared. This season will replay from the same repeatable number.",
         })
         await refresh(runId)
         return true
       }
-      setNotice({ tone: "warn", text: `Reset denied: ${result.error}` })
+      setNotice({
+        tone: "warn",
+        text: "The replay did not start. Check the short season code and try again. The exact reason is in Technical details.",
+      })
       return false
     } finally {
       setPending(null)

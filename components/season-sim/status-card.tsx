@@ -20,11 +20,11 @@ import { teamLabel } from "@/lib/season-sim/client-api"
 import type { SimConsoleState } from "./sim-console"
 
 const PHASES = [
-  { id: "configured", label: "Configured" },
+  { id: "configured", label: "Setup" },
   { id: "draft", label: "Draft" },
   { id: "regular", label: "Regular season" },
   { id: "playoffs", label: "Playoffs" },
-  { id: "complete", label: "Complete" },
+  { id: "complete", label: "Champion" },
 ] as const
 
 type BadgeVariant = "default" | "secondary" | "destructive" | "outline"
@@ -33,15 +33,15 @@ const STATUS_META: Record<
   string,
   { label: string; variant: BadgeVariant; icon: ComponentType<{ className?: string; "aria-hidden"?: boolean | "true" }> }
 > = {
-  configured: { label: "Configured", variant: "outline", icon: Circle },
-  queued: { label: "Queued", variant: "default", icon: Clock },
-  running: { label: "Running", variant: "default", icon: Loader2 },
+  configured: { label: "Ready", variant: "outline", icon: Circle },
+  queued: { label: "Ready to simulate", variant: "default", icon: Clock },
+  running: { label: "Simulating", variant: "default", icon: Loader2 },
   paused: { label: "Paused", variant: "secondary", icon: Pause },
-  blocked: { label: "Blocked", variant: "destructive", icon: OctagonAlert },
-  cancel_requested: { label: "Cancel requested", variant: "destructive", icon: Ban },
+  blocked: { label: "Needs attention", variant: "destructive", icon: OctagonAlert },
+  cancel_requested: { label: "Cancelling", variant: "destructive", icon: Ban },
   cancelled: { label: "Cancelled", variant: "outline", icon: Ban },
-  failed: { label: "Failed", variant: "destructive", icon: OctagonAlert },
-  completed: { label: "Completed", variant: "secondary", icon: CheckCircle2 },
+  failed: { label: "Stopped", variant: "destructive", icon: OctagonAlert },
+  completed: { label: "Finished", variant: "secondary", icon: CheckCircle2 },
   archived: { label: "Archived", variant: "outline", icon: Circle },
 }
 
@@ -49,10 +49,6 @@ export const TERMINAL_STATUSES = ["completed", "cancelled", "archived"]
 
 export function shortRunId(runId: string): string {
   return runId.slice(0, 8)
-}
-
-function asRecord(value: unknown): Record<string, unknown> | null {
-  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : null
 }
 
 export function readChampion(detail: SimConsoleState["detail"]): string | null {
@@ -65,13 +61,26 @@ export function readChampion(detail: SimConsoleState["detail"]): string | null {
   return null
 }
 
-function cursorEntries(cursor: unknown): [string, string][] {
-  const record = asRecord(cursor)
-  if (!record) return []
-  return Object.entries(record)
-    .filter(([, value]) => ["string", "number", "boolean"].includes(typeof value))
-    .slice(0, 8)
-    .map(([key, value]) => [key, String(value)])
+function draftFinished(progress: { phase: string; cursor: Record<string, unknown> }) {
+  return (
+    progress.cursor.draft_complete === true ||
+    progress.phase === "regular" ||
+    progress.phase === "playoffs" ||
+    progress.phase === "complete"
+  )
+}
+
+function plainAwaiting(value: string): string | null {
+  switch (value) {
+    case "schedule":
+      return "The draft is finished."
+    case "regular":
+      return "The regular season is next."
+    case "playoffs":
+      return "The playoffs are next."
+    default:
+      return null
+  }
 }
 
 export function StatusCard({ sim }: { sim: SimConsoleState }) {
@@ -82,45 +91,47 @@ export function StatusCard({ sim }: { sim: SimConsoleState }) {
   const StatusIcon = meta.icon
   const phaseIndex = PHASES.findIndex((phase) => phase.id === progress.phase)
   const champion = progress.status === "completed" ? readChampion(sim.detail) : null
-  const awaiting = typeof progress.cursor.awaiting === "string" ? progress.cursor.awaiting : null
-  const hasCommand = Boolean(progress.active_command_id)
-  const serverReason =
-    progress.blocked_reason ?? progress.error_message ?? (progress.error_code ? `Error code ${progress.error_code}` : null)
-  const cursor = cursorEntries(progress.cursor)
+  const awaiting = typeof progress.cursor.awaiting === "string" ? plainAwaiting(progress.cursor.awaiting) : null
+  const hasPrepared = Boolean(progress.active_command_id)
+  const draftDone = draftFinished(progress)
+  const serverReason = progress.blocked_reason ?? progress.error_message ?? null
 
   let message: string
   switch (progress.status) {
     case "queued":
-      message = "A command is queued and has not been played. Run the queued step to play it."
+      message = "Ready to simulate. Results have not changed yet."
       break
     case "running":
-      message = "A command is running and has not finished. Run the queued step to keep it moving."
+      message = "Simulating the prepared part. Picks and scores update when it finishes."
       break
     case "paused":
-      message = "The run is paused. Resume it to continue."
+      message = draftDone
+        ? "The draft is finished. Continue, then simulate the rest of the season."
+        : "Paused. Continue this practice season when you want to prepare the next part."
       break
     case "configured":
-      message = hasCommand
-        ? "A command is queued and has not been played. Run the queued step to play it."
-        : "Nothing is queued. Queue the next step to continue."
+      message = hasPrepared
+        ? "Ready to simulate. Results have not changed yet."
+        : "Nothing is prepared yet. Prepare the next part, then simulate it."
       break
     case "completed":
-      message = "The run is complete."
+      message = "This practice season is finished. The real league was not changed."
       break
     case "blocked":
-      message = "The server blocked this run."
-      break
     case "failed":
-      message = "The run failed."
+      message = "This practice season stopped before it finished. The real league was not changed."
       break
     case "cancel_requested":
-      message = "A cancel was requested. The server has not confirmed it yet."
+      message = "Stopping this practice season. Simulate the prepared part once so it can finish stopping."
       break
     case "cancelled":
-      message = "The run was cancelled."
+      message = "This practice season was stopped. The real league was not changed."
+      break
+    case "archived":
+      message = "This practice season is archived."
       break
     default:
-      message = `Run status: ${meta.label}.`
+      message = `This practice season is ${meta.label.toLowerCase()}.`
   }
 
   return (
@@ -128,8 +139,11 @@ export function StatusCard({ sim }: { sim: SimConsoleState }) {
       <CardHeader className="gap-3">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 space-y-1">
-            <CardTitle className="text-xl">Run {shortRunId(progress.run_id)}</CardTitle>
-            <CardDescription className="break-all font-mono text-xs">{progress.run_id}</CardDescription>
+            <CardTitle className="text-xl">Practice season {shortRunId(progress.run_id)}</CardTitle>
+            <CardDescription className="text-pretty">
+              Season code, copy this to open the season later:{" "}
+              <span className="break-all font-mono text-xs">{progress.run_id}</span>
+            </CardDescription>
           </div>
           <Button
             type="button"
@@ -143,12 +157,17 @@ export function StatusCard({ sim }: { sim: SimConsoleState }) {
           </Button>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Badge data-testid="sim-run-status" variant={meta.variant} className="gap-1.5 px-2.5 py-1 text-sm">
+          <Badge
+            data-testid="sim-run-status"
+            data-prepared={hasPrepared ? "true" : "false"}
+            variant={meta.variant}
+            className="gap-1.5 px-2.5 py-1 text-sm"
+          >
             <StatusIcon className={progress.status === "running" ? "size-3.5 animate-spin" : "size-3.5"} aria-hidden="true" />
             {meta.label}
           </Badge>
           <Badge variant="outline" className="px-2.5 py-1 text-sm">
-            Phase: {phaseIndex >= 0 ? PHASES[phaseIndex].label : progress.phase}
+            Stage: {phaseIndex >= 0 ? PHASES[phaseIndex].label : progress.phase}
           </Badge>
         </div>
       </CardHeader>
@@ -156,22 +175,24 @@ export function StatusCard({ sim }: { sim: SimConsoleState }) {
       <CardContent className="space-y-6">
         <div role="status" className="space-y-3">
           <p className="text-pretty text-base font-medium">{message}</p>
+          <p className="text-sm text-muted-foreground">
+            {progress.status === "completed"
+              ? "You can tell it worked when the Playoffs tab names a champion."
+              : "You can tell it worked when the Draft tab gains picks, or the Season tab shows scores."}
+          </p>
           {sim.autoRunning ? (
             <p className="text-sm text-muted-foreground">
-              Auto-run is on in this browser tab. Stop applies between ticks.
+              Simulating ahead in this tab. Leave the tab open. Stop simulating ahead ends the loop between steps.
             </p>
           ) : null}
           {serverReason && ["blocked", "failed", "cancel_requested"].includes(progress.status) ? (
             <div className="rounded-lg border border-destructive/60 bg-destructive/10 p-3 text-sm">
-              <p className="font-medium text-foreground">Server reason</p>
+              <p className="font-medium text-foreground">What happened</p>
               <p className="text-pretty text-foreground">{serverReason}</p>
-              {progress.error_code ? (
-                <p className="mt-1 font-mono text-xs text-muted-foreground">{progress.error_code}</p>
-              ) : null}
             </div>
           ) : null}
-          {awaiting ? (
-            <p className="text-sm text-muted-foreground">Awaiting: {awaiting}</p>
+          {awaiting && !message.includes(awaiting) ? (
+            <p className="text-sm text-muted-foreground">{awaiting}</p>
           ) : null}
           {progress.status === "completed" ? (
             <div className="flex items-center gap-3 rounded-lg border border-primary/50 bg-primary/10 p-3">
@@ -190,7 +211,7 @@ export function StatusCard({ sim }: { sim: SimConsoleState }) {
           ) : null}
         </div>
 
-        <ol aria-label="Season phases" className="grid grid-cols-5 gap-1.5">
+        <ol aria-label="Season stages" className="grid grid-cols-5 gap-1.5">
           {PHASES.map((phase, index) => {
             const done = phaseIndex > index
             const current = phaseIndex === index
@@ -216,22 +237,6 @@ export function StatusCard({ sim }: { sim: SimConsoleState }) {
           })}
         </ol>
 
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-          <div>
-            <dt className="text-muted-foreground">Active command</dt>
-            <dd className="truncate font-mono font-medium">{progress.active_command_id ?? "none"}</dd>
-          </div>
-        </dl>
-        {cursor.length > 0 ? (
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-4">
-            {cursor.map(([key, value]) => (
-              <div key={key} className="min-w-0">
-                <dt className="truncate text-muted-foreground">{key.replace(/_/g, " ")}</dt>
-                <dd className="truncate font-mono font-medium">{value}</dd>
-              </div>
-            ))}
-          </dl>
-        ) : null}
       </CardContent>
     </Card>
   )

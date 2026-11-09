@@ -17,9 +17,13 @@ export function AccessNotice({
     return (
       <Alert>
         <Ban aria-hidden="true" />
-        <AlertTitle>Feature disabled in this environment</AlertTitle>
+        <AlertTitle>Practice seasons are turned off here</AlertTitle>
         <AlertDescription>
-          The Season Simulator v2 sandbox is turned off here (SIM_SANDBOX_V2_DISABLED). Nothing can be created or loaded until it is enabled for this deployment.
+          <p>
+            This site cannot start or open a practice season right now. Ask whoever manages the site to turn practice
+            seasons on, then try again.
+          </p>
+          <p className="mt-2 text-muted-foreground">Technical note: SIM_SANDBOX_V2_DISABLED</p>
         </AlertDescription>
       </Alert>
     )
@@ -27,13 +31,13 @@ export function AccessNotice({
   return (
     <Alert variant="destructive">
       <ShieldAlert aria-hidden="true" />
-      <AlertTitle>Cannot use the sandbox</AlertTitle>
+      <AlertTitle>You need access to practice seasons</AlertTitle>
       <AlertDescription>
         <p>
-          This browser has no session, or the signed-in account is not allowed to run the sandbox (HTTP 401/403).
-          Sign in with an allowed account and try again.
+          Sign in with a league account that is allowed to run practice seasons. Being signed in is not always enough.
+          This does not change your role.
         </p>
-        {detail ? <p className="mt-2 text-pretty">{detail}</p> : null}
+        {detail ? <p className="mt-2 text-pretty text-muted-foreground">Technical note: {detail}</p> : null}
         <Button asChild variant="outline" className="mt-2 h-11 sm:h-9">
           <Link href={SIGN_IN_HREF}>Sign in</Link>
         </Button>

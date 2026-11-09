@@ -58,7 +58,7 @@ async function signInNonadmin(page: Page) {
 async function openAdvanced(page: Page) {
   const unit = page.locator("#sim-unit")
   if (await unit.isVisible()) return
-  await page.getByRole("button", { name: "Advanced controls" }).click()
+  await page.getByRole("button", { name: "More controls" }).click()
   await expect(unit).toBeVisible()
 }
 
@@ -76,7 +76,7 @@ async function setCount(page: Page, n: number) {
 async function openRunOptions(page: Page) {
   const teamCount = page.getByLabel("Team count")
   if (await teamCount.isVisible()) return
-  await page.getByRole("button", { name: "Run options" }).click()
+  await page.getByRole("button", { name: "Practice settings" }).click()
   await expect(teamCount).toBeVisible()
 }
 
@@ -96,14 +96,19 @@ async function runStatusIs(page: Page, status: string): Promise<boolean> {
   const badge = page.getByTestId("sim-run-status")
   if ((await badge.count()) === 0) return false
   const text = (await badge.innerText()).trim().toLowerCase()
-  return text === status.toLowerCase()
+  const expected = status.toLowerCase() === "completed" ? "finished" : status.toLowerCase()
+  return text === expected
 }
 
 async function activeCommandId(page: Page): Promise<string | null> {
-  const row = page.locator("dt", { hasText: /^Active command$/ }).locator("..")
-  const value = (await row.locator("dd").innerText().catch(() => "")).trim()
-  if (!value || /^none$/i.test(value)) return null
-  return value
+  const prepared = await page.getByTestId("sim-run-status").getAttribute("data-prepared")
+  return prepared === "true" ? "prepared" : null
+}
+
+async function assertPlainLanguage(page: Page) {
+  const visible = await page.locator("#sim-main").innerText()
+  expect(visible).not.toMatch(/step_seq|event_seq|worker tick|active command|heuristic|lease|provisional_demo_v0/i)
+  await expect(page.getByTestId("sim-stage-guide")).toBeVisible()
 }
 
 /**
@@ -123,14 +128,14 @@ async function driveUntil(
   for (let i = 0; i < maxTicks; i++) {
     if (await opts.done()) return
     if (opts.ensureCommand) await opts.ensureCommand()
-    const tick = page.getByRole("button", { name: "Run worker step" })
+    const tick = page.getByRole("button", { name: "Simulate the prepared part" })
     if (await tick.isEnabled()) {
       await tick.click()
       await waitNotBusy(page)
     } else {
       // Resume if paused without goal met
-      const resume = page.getByRole("button", { name: "Resume", exact: true })
-      if (await resume.isEnabled()) {
+      const resume = page.getByRole("button", { name: "Continue this practice season" })
+      if ((await resume.count()) > 0 && (await resume.isEnabled())) {
         await resume.click()
         await waitNotBusy(page)
         continue
@@ -154,17 +159,21 @@ test.describe("season-sim demo browser acceptance", () => {
     await expect(page.getByRole("heading", { name: /Season Simulator/i })).toBeVisible()
     const banner = page.getByRole("note")
     await expect(banner).toHaveCount(1)
-    await expect(banner).toContainText(/Provisional and not league-approved/i)
+    await expect(banner).toContainText(/practice season/i)
+    await expect(banner).toContainText(/not league-approved/i)
+    await expect(page.getByTestId("sim-stage-guide")).toContainText("Start")
+    await expect(page.getByRole("button", { name: "Start a practice season" })).toBeVisible()
     await expect(banner).not.toContainText("provisional_demo_v0")
     await expect(page.getByText(/demo operator/i)).toHaveCount(0)
     await expect(page.getByRole("link", { name: "Sign in" }).first()).toHaveAttribute(
       "href",
       "/auth/login?next=/demo/season-sim",
     )
-    await page.getByRole("link", { name: "Skip to simulator console" }).focus()
+    await page.getByRole("link", { name: "Skip to practice season" }).focus()
     await page.keyboard.press("Enter")
-    await page.getByRole("button", { name: "Create run" }).focus()
-    await expect(page.getByRole("button", { name: "Create run" })).toBeFocused()
+    await assertPlainLanguage(page)
+    await page.getByRole("button", { name: "Start a practice season" }).focus()
+    await expect(page.getByRole("button", { name: "Start a practice season" })).toBeFocused()
     await page.evaluate(() => document.documentElement.classList.add("dark"))
     await expect(banner).toBeVisible()
     await page.evaluate(() => document.documentElement.classList.remove("dark"))
@@ -177,7 +186,7 @@ test.describe("season-sim demo browser acceptance", () => {
     await page.getByLabel("Schedule weeks").fill("2")
     await page.getByLabel("Playoff size").fill("2")
     await page.locator("#sim-queue").click()
-    await page.getByRole("button", { name: "Create run" }).click()
+    await page.getByRole("button", { name: "Start a practice season" }).click()
 
     await expect(
       page.getByText(/Could not create run|Unauthorized|not on SIM_DEMO|sign in|Forbidden/i).first(),
@@ -203,7 +212,7 @@ test.describe("season-sim demo browser acceptance", () => {
     await page.getByLabel("Schedule weeks").fill("2")
     await page.getByLabel("Playoff size").fill("2")
     await page.locator("#sim-queue").click()
-    await page.getByRole("button", { name: "Create run" }).click()
+    await page.getByRole("button", { name: "Start a practice season" }).click()
     await expect(
       page.getByText(/not on SIM_DEMO_OPERATOR_ALLOWLIST|Forbidden|Could not create run/i).first(),
     ).toBeVisible({ timeout: 30_000 })
@@ -229,38 +238,39 @@ test.describe("season-sim demo browser acceptance", () => {
     await page.getByLabel("Schedule weeks").fill("2")
     await page.getByLabel("Playoff size").fill("2")
     await page.locator("#sim-queue").click()
-    await page.getByRole("button", { name: "Create run" }).click()
+    await page.getByRole("button", { name: "Start a practice season" }).click()
 
-    await expect(page.getByText(/Run created with 4 synthetic teams/i)).toBeVisible({
+    await expect(page.getByText(/Practice season started with 4 made-up teams/i)).toBeVisible({
       timeout: 60_000,
     })
-    await expect(page.getByText(/queued|running|configured|paused/i).first()).toBeVisible()
+    await expect(page.getByTestId("sim-run-status")).toHaveText(/Ready to simulate|Simulating|Ready|Paused/i)
+    await assertPlainLanguage(page)
+    await expect(page.getByRole("button", { name: "Simulate what's ready" })).toBeVisible()
     await shot(page, `${testInfo.project.name}-created`)
 
-    const auto = page.getByRole("button", { name: "Auto-run", exact: true })
+    const auto = page.getByRole("button", { name: "Simulate ahead", exact: true })
     if (!(await auto.isVisible())) {
-      await page.getByRole("button", { name: "Advanced controls" }).click()
+      await page.getByRole("button", { name: "More controls" }).click()
     }
     if (await auto.isEnabled()) {
       await auto.click()
-      await page.getByRole("button", { name: "Stop auto-run" }).click()
+      await page.getByRole("button", { name: "Stop simulating ahead" }).click()
       await expect(auto).toBeEnabled({ timeout: 20_000 })
     }
 
     // Granular draft: 4 teams × 2 rounds = 8 picks
-    await selectUnit(page, "Pick")
+    await selectUnit(page, "One draft pick")
     await setCount(page, 8)
-    await page.getByRole("button", { name: "Advance", exact: true }).click()
+    await page.getByRole("button", { name: "Prepare this amount", exact: true }).click()
     await waitNotBusy(page)
-    await expect(page.getByText(/has not been played|has not finished/i)).toBeVisible()
+    await expect(page.getByText(/Ready to simulate|Results have not changed yet/i).first()).toBeVisible()
     await shot(page, `${testInfo.project.name}-run-active`)
 
     await driveUntil(page, {
       label: "draft complete → awaiting schedule",
       maxTicks: 40,
       done: async () =>
-        (await bodyHas(page, /Awaiting:\s*schedule/i)) ||
-        (await bodyHas(page, /Draft finished/i)),
+        (await bodyHas(page, /The draft is finished/i)),
     })
     await shot(page, `${testInfo.project.name}-draft-paused`)
 
@@ -271,15 +281,15 @@ test.describe("season-sim demo browser acceptance", () => {
     })
 
     // Resume → whole season → ticks to champion
-    const resume = page.getByRole("button", { name: "Resume", exact: true })
-    if (await resume.isEnabled()) {
+    const resume = page.getByRole("button", { name: "Continue this practice season" })
+    if (await resume.isVisible() && (await resume.isEnabled())) {
       await resume.click()
       await waitNotBusy(page)
     }
 
-    await selectUnit(page, "Whole season")
+    await selectUnit(page, "Rest of the season")
     await setCount(page, 1)
-    await page.getByRole("button", { name: "Advance", exact: true }).click()
+    await page.getByRole("button", { name: "Prepare this amount", exact: true }).click()
     await waitNotBusy(page)
 
     await driveUntil(page, {
@@ -291,25 +301,25 @@ test.describe("season-sim demo browser acceptance", () => {
         // Do not re-queue while a command is already active — just tick.
         if (await activeCommandId(page)) return
         if (await runStatusIs(page, "paused")) {
-          const r = page.getByRole("button", { name: "Resume", exact: true })
+          const r = page.getByRole("button", { name: "Continue this practice season" })
           if (await r.isEnabled()) {
             await r.click()
             await waitNotBusy(page)
           }
         }
-        const adv = page.getByRole("button", { name: "Advance", exact: true })
+        const adv = page.getByRole("button", { name: "Prepare this amount", exact: true })
         if (!(await adv.isEnabled())) return
         const unit = page.locator("#sim-unit")
         const label = await unit.innerText()
-        if (!/Whole season/i.test(label)) {
-          await selectUnit(page, "Whole season")
+        if (!/Rest of the season/i.test(label)) {
+          await selectUnit(page, "Rest of the season")
           await setCount(page, 1)
         }
         await adv.click()
         await waitNotBusy(page)
       },
     })
-    await expect(page.getByTestId("sim-run-status")).toHaveText(/completed/i)
+    await expect(page.getByTestId("sim-run-status")).toHaveText(/finished/i)
     await shot(page, `${testInfo.project.name}-season-complete`)
 
     // Season tab: matches + standings with readable names
@@ -335,8 +345,8 @@ test.describe("season-sim demo browser acceptance", () => {
     await page.reload()
     await expect(page.getByRole("heading", { name: /Season Simulator/i })).toBeVisible()
     // Prefer "Resume last run" after reload
-    await page.getByRole("button", { name: /Resume last run/i }).click()
-    await expect(page.getByTestId("sim-run-status")).toHaveText(/completed/i, {
+    await page.getByRole("button", { name: /Reopen last practice season/i }).click()
+    await expect(page.getByTestId("sim-run-status")).toHaveText(/finished/i, {
       timeout: 30_000,
     })
     await shot(page, `${testInfo.project.name}-reload-recovery`)
@@ -379,24 +389,24 @@ test.describe("season-sim demo browser acceptance", () => {
     expect(stale.status).toBe(409)
     await shot(page, `${testInfo.project.name}-stale-409`)
 
-    // Reset + replay. Reset lives in Advanced controls, which is closed after reload.
+    // Reset + replay. Reset lives in More controls, which is closed after reload.
     await openAdvanced(page)
-    await page.getByRole("button", { name: "Reset", exact: true }).click()
-    const confirm = page.getByLabel("Short run id")
+    await page.getByRole("button", { name: "Replay season", exact: true }).click()
+    const confirm = page.getByLabel("Short season code")
     const expected = runIdMatch!.slice(0, 8)
     await confirm.fill(expected)
-    await page.getByRole("button", { name: "Reset run" }).click()
-    await expect(page.getByText(/Sandbox domain reset|replay/i).first()).toBeVisible({
+    await page.getByRole("button", { name: "Replay this season" }).click()
+    await expect(page.getByText(/replay from the same repeatable number/i).first()).toBeVisible({
       timeout: 30_000,
     })
     await shot(page, `${testInfo.project.name}-reset`)
 
     // Replay: advance season path again briefly
-    await selectUnit(page, "Draft round")
+    await selectUnit(page, "One draft round")
     await setCount(page, 2)
-    await page.getByRole("button", { name: "Advance", exact: true }).click()
+    await page.getByRole("button", { name: "Prepare this amount", exact: true }).click()
     await waitNotBusy(page)
-    await page.getByRole("button", { name: "Run worker step" }).click()
+    await page.getByRole("button", { name: "Simulate the prepared part" }).click()
     await waitNotBusy(page)
     await shot(page, `${testInfo.project.name}-replay-tick`)
   })
@@ -422,7 +432,7 @@ test.describe("season-sim demo browser acceptance", () => {
     await page.goto(`${FLAGS_OFF_URL}/demo/season-sim`, { waitUntil: "domcontentloaded" })
     // A click before hydration submits the form as a navigation and never calls the API.
     await expect(page.locator("[data-hydrated=true]")).toBeVisible()
-    await page.getByRole("button", { name: "Create run" }).click()
+    await page.getByRole("button", { name: "Start a practice season" }).click()
     await expect(
       page.getByText(/disabled|503|SIM_SANDBOX_V2/i).first(),
     ).toBeVisible({ timeout: 30_000 })

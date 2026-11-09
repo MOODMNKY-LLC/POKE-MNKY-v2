@@ -1,7 +1,7 @@
 import { FlaskConical } from "lucide-react"
 
 const WARNING =
-  "Provisional and not league-approved. Results are statistical, not Pokémon Showdown battles, and the data is sandbox data, not live Season 7 or Season 8."
+  "This is a practice season. It is provisional and not league-approved. Results are statistical, not Pokémon Showdown battles, and this is not live Season 7 or Season 8. It does not change the real draft or standings."
 
 const WARNING_VOCABULARY =
   /\b(provisional|not|league|approved|statistical|sandbox|only|this|is|and|it|results?|data|simulation|pok[eé]mon|showdown|battles?|live|season|7|8|or|the|a|rules?|demo)\b/gi
