@@ -1,4 +1,11 @@
-import { applyDraftAvailableFilters, type DraftAvailableFilters, type DraftAvailableRow } from "@/lib/draft-available-enrich"
+import { applyDraftAvailableFilters, type DraftAvailableRow } from "@/lib/draft-available-enrich"
+
+type DraftAvailableFilters = {
+  minPoints?: number
+  maxPoints?: number
+  generation?: number
+  search?: string
+}
 
 export type DraftAvailableSource = "published_version" | "legacy"
 
@@ -50,6 +57,7 @@ export function buildPublishedAvailableRows(
           ? null
           : (generationByPokemonId.get(entry.pokemon_id) ?? null),
       pokemon_id: entry.pokemon_id,
+      status: entry.status,
       tera_captain_eligible: !entry.is_effective_tera_ban,
     }))
 

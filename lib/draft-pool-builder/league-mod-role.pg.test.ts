@@ -28,7 +28,7 @@ const namedMod = "10000000-0000-4000-8000-000000000002"
 const lowerNamedMod = "10000000-0000-4000-8000-000000000003"
 const noRoles = "10000000-0000-4000-8000-000000000004"
 
-async function useAuthenticated(userId: string) {
+async function setAuthenticatedRole(userId: string) {
   await client!.query("reset role")
   await client!.query(`select set_config('request.jwt.claim.sub', $1, false)`, [userId])
   await client!.query(`select set_config('request.jwt.claim.role', 'authenticated', false)`)
@@ -59,7 +59,7 @@ afterAll(async () => {
 describe.skipIf(!hasPgUrl)("is_league_mod role id hardening", () => {
   it("accepts only the canonical role id", async () => {
     for (const [userId, expected] of [[canonicalMod, true], [namedMod, false], [lowerNamedMod, false], [noRoles, false]] as const) {
-      await useAuthenticated(userId)
+      await setAuthenticatedRole(userId)
       const result = await client!.query<{ allowed: boolean }>("select public.is_league_mod() as allowed")
       expect(result.rows[0]?.allowed).toBe(expected)
     }
@@ -76,7 +76,7 @@ describe.skipIf(!hasPgUrl)("is_league_mod role id hardening", () => {
   it("prevents a name-only Mod from starting a revision", async () => {
     await client!.query("reset role")
     const season = await client!.query<{ id: string }>("insert into public.seasons (name) values ('role hardening') returning id")
-    await useAuthenticated(namedMod)
+    await setAuthenticatedRole(namedMod)
     await expect(
       client!.query("select public.rpc_draft_pool_start_revision($1, null)", [season.rows[0]!.id]),
     ).rejects.toMatchObject({ code: "42501" })

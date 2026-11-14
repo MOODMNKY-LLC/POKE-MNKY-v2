@@ -24,6 +24,7 @@ describe("draft available source", () => {
       point_value: 8,
       generation: 1,
       pokemon_id: 1,
+      status: "draftable",
       tera_captain_eligible: false,
     }])
   })
