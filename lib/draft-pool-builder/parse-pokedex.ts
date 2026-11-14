@@ -122,7 +122,7 @@ export function applyMattOverrides(
       continue
     }
     const pts = parsePoints(ov.points)
-    if (ov.pool_status === "included" || isDraftablePoints(pts) || pts === 99) {
+    if (ov.pool_status === "included" || isDraftablePoints(pts) || isBannedPoints(pts)) {
       const row: SheetPokedexRow = {
         slug,
         displayName: name,
