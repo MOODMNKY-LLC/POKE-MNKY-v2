@@ -44,6 +44,7 @@ const adminNavItems = [
       { title: "Coach applications", url: "/admin/coach-applications" },
       { title: "Trades", url: "/admin/trades" },
       { title: "Draft Pool & Rules", url: "/admin/draft-pool-rules" },
+      { title: "Draft Pool Editor", url: "/admin/draft-pool" },
       { title: "Draft Sessions", url: "/admin/draft/sessions" },
       { title: "Draft Board", url: "/admin/draft-board-management" },
       { title: "Playoffs", url: "/admin/playoffs" },

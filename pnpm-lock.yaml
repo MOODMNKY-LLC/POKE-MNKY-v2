@@ -315,6 +315,9 @@ importers:
       streamdown:
         specifier: ^2.0.1
         version: 2.0.1(@types/mdast@4.0.4)(micromark-util-types@2.0.2)(micromark@4.0.2)(react@19.3.1)
+      swr:
+        specifier: ^2.5.1
+        version: 2.5.1(react@19.3.1)
       tailwind-merge:
         specifier: ^3.3.1
         version: 3.3.1
@@ -375,7 +378,7 @@ importers:
         version: 7.10.1(typescript@5.9.3)
       orval:
         specifier: ^8.46.0
-        version: 8.46.0(@tanstack/react-query@5.67.0(react@19.3.1))(msw@2.12.7(@types/node@22.20.5)(typescript@5.9.3))(swr@2.3.8(react@19.3.1))(zod@4.6.7)
+        version: 8.46.0(@tanstack/react-query@5.67.0(react@19.3.1))(msw@2.12.7(@types/node@22.20.5)(typescript@5.9.3))(swr@2.5.1(react@19.3.1))(zod@4.6.7)
       postcss:
         specifier: ^8.5.32
         version: 8.5.32
@@ -7177,8 +7180,8 @@ packages:
     resolution: {integrity: sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w==}
     engines: {node: '>= 0.4'}
 
-  swr@2.3.8:
-    resolution: {integrity: sha512-gaCPRVoMq8WGDcWj9p4YWzCMPHzE0WNl6W8ADIx9c3JBEIdMkJGMzW+uzXvxHMltwcYACr9jP+32H8/hgwMR7w==}
+  swr@2.5.1:
+    resolution: {integrity: sha512-BRw55e8r0B7SpDN20CAzoQAHl7y1yP7/Zt7oqUjMv0vSt2u2Xnkm88Ws+VypbV9BXHQVuSuyVq7zMjO16wSExw==}
     peerDependencies:
       react: ^16.11.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
@@ -7785,7 +7788,7 @@ snapshots:
       '@ai-sdk/provider-utils': 4.0.8(zod@4.6.7)
       ai: 6.0.39(zod@4.6.7)
       react: 19.3.1
-      swr: 2.3.8(react@19.3.1)
+      swr: 2.5.1(react@19.3.1)
       throttleit: 2.1.0
     transitivePeerDependencies:
       - zod
@@ -9272,12 +9275,12 @@ snapshots:
       - '@faker-js/faker'
       - '@modelcontextprotocol/server'
 
-  '@orval/swr@8.46.0(swr@2.3.8(react@19.3.1))':
+  '@orval/swr@8.46.0(swr@2.5.1(react@19.3.1))':
     dependencies:
       '@orval/core': 8.46.0
       '@orval/fetch': 8.46.0
     optionalDependencies:
-      swr: 2.3.8(react@19.3.1)
+      swr: 2.5.1(react@19.3.1)
     transitivePeerDependencies:
       - '@faker-js/faker'
       - '@modelcontextprotocol/server'
@@ -14615,7 +14618,7 @@ snapshots:
       string-width: 7.2.0
       strip-ansi: 7.1.2
 
-  orval@8.46.0(@tanstack/react-query@5.67.0(react@19.3.1))(msw@2.12.7(@types/node@22.20.5)(typescript@5.9.3))(swr@2.3.8(react@19.3.1))(zod@4.6.7):
+  orval@8.46.0(@tanstack/react-query@5.67.0(react@19.3.1))(msw@2.12.7(@types/node@22.20.5)(typescript@5.9.3))(swr@2.5.1(react@19.3.1))(zod@4.6.7):
     dependencies:
       '@commander-js/extra-typings': 15.0.0(commander@15.0.0)
       '@orval/angular': 8.46.0
@@ -14629,7 +14632,7 @@ snapshots:
       '@orval/pinia-colada': 8.46.0
       '@orval/query': 8.46.0(@tanstack/react-query@5.67.0(react@19.3.1))
       '@orval/solid-start': 8.46.0
-      '@orval/swr': 8.46.0(swr@2.3.8(react@19.3.1))
+      '@orval/swr': 8.46.0(swr@2.5.1(react@19.3.1))
       '@orval/zod': 8.46.0(zod@4.6.7)
       '@scalar/json-magic': 0.16.1
       '@scalar/openapi-parser': 0.29.19
@@ -15683,7 +15686,7 @@ snapshots:
 
   supports-preserve-symlinks-flag@1.0.0: {}
 
-  swr@2.3.8(react@19.3.1):
+  swr@2.5.1(react@19.3.1):
     dependencies:
       dequal: 2.0.3
       react: 19.3.1
