@@ -1,7 +1,11 @@
 -- public free-agency projection
 -- purpose: let anonymous team pages read sheet free-agency moves
 -- affected: view public.v_public_free_agency
--- special: security invoker is off so the view owner can read transaction_audit.
+-- special: originally created with security_invoker=false so the view owner could
+--           read transaction_audit without granting anon table SELECT. Later
+--           20261114053802 flips the live view to security_invoker=true (caller
+--           privileges + RLS). Do not revert to definer if audit is tightened —
+--           use column grants on the public projection columns instead.
 --           the projection lists only public move columns. do not add actor identifiers.
 
 create or replace view public.v_public_free_agency
