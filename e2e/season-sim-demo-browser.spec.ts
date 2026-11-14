@@ -165,9 +165,12 @@ test.describe("season-sim demo browser acceptance", () => {
       const lo = Math.min(lum(a), lum(b))
       return (hi + 0.05) / (lo + 0.05)
     }
-    async function readTheme(label: string) {
-      const sample = await page.getByTestId("assistant-launcher").evaluate((el) => {
-        function toRgb(color: string) {
+    async function sampleTheme() {
+      return page.getByTestId("assistant-launcher").evaluate((el) => {
+        function parseRgb(color: string): number[] {
+          const m = color.match(/rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)/i)
+          if (m) return [Number(m[1]), Number(m[2]), Number(m[3])]
+          // Fallback for non-rgb computed values (should be rare after getComputedStyle).
           const canvas = document.createElement("canvas")
           canvas.width = 1
           canvas.height = 1
@@ -180,24 +183,40 @@ test.describe("season-sim demo browser acceptance", () => {
           return [r, g, b]
         }
         const button = getComputedStyle(el)
-        const dock = getComputedStyle(el.closest("[data-testid='assistant-dock']") as HTMLElement)
+        const dock = getComputedStyle(
+          el.closest("[data-testid='assistant-dock']") as HTMLElement,
+        )
         return {
           buttonBg: button.backgroundColor,
           buttonFg: button.color,
-          buttonRgb: toRgb(button.backgroundColor),
-          textRgb: toRgb(button.color),
+          buttonRgb: parseRgb(button.backgroundColor),
+          textRgb: parseRgb(button.color),
           dockBg: dock.backgroundColor,
-          dockRgb: toRgb(dock.backgroundColor),
+          dockRgb: parseRgb(dock.backgroundColor),
           dockFg: dock.color,
           dockBorder: dock.borderTopColor,
         }
       })
+    }
+
+    async function readTheme(label: string) {
+      // Poll: theme class toggles can lag one frame on narrow viewports before
+      // primary/primary-foreground both settle (canvas-oklch races read ~2.9).
+      let sample = await sampleTheme()
+      await expect
+        .poll(
+          async () => {
+            sample = await sampleTheme()
+            return contrast(sample.buttonRgb, sample.textRgb)
+          },
+          { timeout: 5_000, message: `assistant theme ${label} contrast` },
+        )
+        .toBeGreaterThanOrEqual(4.5)
       const ratio = contrast(sample.buttonRgb, sample.textRgb)
       testInfo.annotations.push({
         type: `assistant-theme-${label}`,
         description: `${JSON.stringify(sample)} contrast=${ratio.toFixed(2)}`,
       })
-      expect(ratio).toBeGreaterThanOrEqual(4.5)
       expect(sample.buttonBg).not.toMatch(/255,\s*215,\s*0|212,\s*175,\s*55|179,\s*161,\s*37/)
       return sample
     }
@@ -209,12 +228,15 @@ test.describe("season-sim demo browser acceptance", () => {
     const light = await readTheme("light")
 
     await page.evaluate(() => document.documentElement.classList.add("dark"))
+    await expect(page.locator("html.dark")).toHaveCount(1)
+    await expect
+      .poll(async () => (await sampleTheme()).buttonBg, { timeout: 5_000 })
+      .not.toBe(light.buttonBg)
     const dark = await readTheme("dark")
     expect(dark.buttonBg).not.toBe(light.buttonBg)
     expect(dark.dockBg).not.toBe(light.dockBg)
     await shot(page, `${testInfo.project.name}-assistant-closed-dark`)
     await page.evaluate(() => document.documentElement.classList.remove("dark"))
-
     const launcher = page.getByTestId("assistant-launcher")
     await launcher.click()
     const dialog = page.getByRole("dialog")
