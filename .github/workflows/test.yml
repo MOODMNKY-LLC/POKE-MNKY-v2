@@ -193,6 +193,11 @@ jobs:
           CI: true
           DRAFT_POOL_BUILDER_PG_URL: postgresql://postgres@localhost:5432/draft_pool_builder_test
         run: pnpm test:sync-jobs-attribution-pg
+      - name: Run draft pool phase-5 pick rules postgres evidence
+        env:
+          CI: true
+          DRAFT_POOL_BUILDER_PG_URL: postgresql://postgres@localhost:5432/draft_pool_builder_test
+        run: pnpm test:draft-pool-pick-rules-pg
 
   season-sim-real-server-auth:
     # ubuntu-latest is 26.04, which Playwright 1.58 cannot install Chromium on.
