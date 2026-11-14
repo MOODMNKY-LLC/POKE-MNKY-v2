@@ -1,0 +1,784 @@
+sheet_name,sheet_slug,sheet_points,draft_pool_name,draft_pool_points,catalog_id,catalog_name,catalog_slug,builder_name,builder_slug,match_kind,source
+Abomasnow,abomasnow,8,Abomasnow,8,09b005b8-99e2-4d9c-b075-96060d6379e7,Abomasnow,abomasnow-g9,Abomasnow,abomasnow-g9,exact_name,sheet
+Aipom,aipom,2,,,cfdf281c-67d4-46a5-af21-bacfff2d746f,Aipom,aipom-g9,Aipom,aipom-g9,alias,sheet
+Alcremie,alcremie,5,Alcremie,10,,,,,,exact_name,sheet
+Alomomola,alomomola,10,Alomomola,8,b3879313-e04c-432a-b7b4-b5ec14e804d5,Alomomola,alomomola-g9,Alomomola,alomomola-g9,exact_name,sheet
+Altaria,altaria,7,Altaria,10,53bb37c0-db1b-44a3-ae81-1bbba0771c48,Altaria,altaria-g9,Altaria,altaria-g9,exact_name,sheet
+Ambipom,ambipom,5,Ambipom,10,14f1d36a-5cdf-44c0-86f6-4d7973130ea6,Ambipom,ambipom-g9,Ambipom,ambipom-g9,exact_name,sheet
+Amoonguss,amoonguss,12,Amoonguss,10,b1bd1fc3-2dba-47a6-94ba-0d78f3470a8d,Amoonguss,amoonguss-g9,Amoonguss,amoonguss-g9,exact_name,sheet
+Ampharos,ampharos,8,,,5ee1b56f-e676-4c75-a174-e7260133dee8,Ampharos,ampharos-g9,Ampharos,ampharos-g9,alias,sheet
+Annihilape,annihilape,16,Annihilape,16,d87babee-6c08-490d-9817-5f1f40796758,Annihilape,annihilape-g9,Annihilape,annihilape-g9,exact_name,sheet
+Appletun,appletun,5,Appletun,10,,,,,,exact_name,sheet
+Applin,applin,1,Applin,5,,,,,,exact_name,sheet
+Araquanid,araquanid,6,Araquanid,10,,,,,,exact_name,sheet
+Arbok,arbok,2,Arbok,8,49c399b9-e4c3-4474-a436-c59f7bd23c6e,Arbok,arbok-g9,Arbok,arbok-g9,exact_name,sheet
+Arboliva,arboliva,7,Arboliva,7,b64ca70f-3962-4cec-b902-2a9adae974fb,Arboliva,arboliva-g9,Arboliva,arboliva-g9,exact_name,sheet
+Arcanine,arcanine,12,Arcanine,12,f52580c3-41c5-49ba-baa4-8a9673fddf8f,Arcanine,arcanine-g9,Arcanine,arcanine-g9,exact_name,sheet
+Arcanine Hisuian,arcanine-hisui,13,,,a3f66311-5ad1-414d-84dd-e8f33b561fff,Arcanine-Hisui,arcanine-hisui-g9,Arcanine-Hisui,arcanine-hisui-g9,alias,sheet
+Arceus,arceus,99,,,090ce7e3-93b8-43ab-876d-15166f1258f3,Arceus,arceus-g9,Arceus,arceus-g9,alias,sheet
+Archaludon,archaludon,19,Archaludon,19,78148012-685b-4680-8191-1ec38f309128,Archaludon,archaludon-g9,Archaludon,archaludon-g9,exact_name,sheet
+Arctibax,arctibax,3,Arctibax,8,6cb63f6f-86cf-4db4-82bd-0b1f58fa8076,Arctibax,arctibax-g9,Arctibax,arctibax-g9,exact_name,sheet
+Ariados,ariados,6,Ariados,8,c9910bf6-9e09-4601-9313-f8831a85c1c5,Ariados,ariados-g9,Ariados,ariados-g9,exact_name,sheet
+Armarouge,armarouge,12,Armarouge,12,195241ca-1247-4be7-babf-9ec5bc9a3bb5,Armarouge,armarouge-g9,Armarouge,armarouge-g9,exact_name,sheet
+Arrokuda,arrokuda,1,Arrokuda,5,,,,,,exact_name,sheet
+Articuno,articuno,12,Articuno,12,c29e9169-1a02-49dd-8d58-cc8847cbb1d4,Articuno,articuno-g9,Articuno,articuno-g9,exact_name,sheet
+Articuno Galarian,articuno-galar,15,,,71703f27-ff35-45de-9ae5-a47ed9b35e58,Articuno-Galar,articuno-galar-g9,Articuno-Galar,articuno-galar-g9,alias,sheet
+Avalugg,avalugg,5,Avalugg,5,1cbeb079-6ee6-4019-9e4b-40823b2f15aa,Avalugg,avalugg-g9,Avalugg,avalugg-g9,exact_name,sheet
+Avalugg Hisuian,avalugg-hisui,5,,,f730dff6-c287-483e-8b78-457be507dd25,Avalugg-Hisui,avalugg-hisui-g9,Avalugg-Hisui,avalugg-hisui-g9,alias,sheet
+Axew,axew,1,Axew,5,7a944e0e-27bd-4428-b00d-de969d2b216a,Axew,axew-g9,Axew,axew-g9,exact_name,sheet
+Azelf,azelf,13,Azelf,13,6302b890-d1eb-4e45-85c6-369c1123dbe0,Azelf,azelf-g9,Azelf,azelf-g9,exact_name,sheet
+Azumarill,azumarill,15,Azumarill,15,09356267-2458-48da-a3b2-f80823cb0d0b,Azumarill,azumarill-g9,Azumarill,azumarill-g9,exact_name,sheet
+Azurill,azurill,1,Azurill,5,e8baf1b9-f8e4-4b71-a5ce-703572e9ce54,Azurill,azurill-g9,Azurill,azurill-g9,exact_name,sheet
+Bagon,bagon,1,Bagon,5,33354f8f-5304-485c-8856-a5d3b77f4807,Bagon,bagon-g9,Bagon,bagon-g9,exact_name,sheet
+Banette,banette,5,Banette,10,23288adf-ad60-4f2d-8c8b-0261c5a0e809,Banette,banette-g9,Banette,banette-g9,exact_name,sheet
+Barboach,barboach,1,Barboach,5,8b7ca127-33ad-466d-9df0-5425e75c1b60,Barboach,barboach-g9,Barboach,barboach-g9,exact_name,sheet
+Barraskewda,barraskewda,11,Barraskewda,10,,,,,,exact_name,sheet
+Basculegion Male,basculegion,17,Basculegion Male,17,,,,,,exact_name,sheet
+Basculin Red Stripe,basculin,5,Basculin Red Striped,10,f054a668-7904-4ea1-b04d-10484a635915,Basculin,basculin-g9,Basculin,basculin-g9,alias,sheet
+Bastiodon,bastiodon,7,Bastiodon,10,8eabbf83-774e-4a00-b687-09cc1a4cdcc9,Bastiodon,bastiodon-g9,Bastiodon,bastiodon-g9,exact_name,sheet
+Baxcalibur,baxcalibur,16,Baxcalibur,16,f9d0ad37-53fa-4b0d-97fb-b1a8567a7a4b,Baxcalibur,baxcalibur-g9,Baxcalibur,baxcalibur-g9,exact_name,sheet
+Bayleef,bayleef,3,Bayleef,8,8310da6b-35b4-498b-953f-e843e64542d8,Bayleef,bayleef-g9,Bayleef,bayleef-g9,exact_name,sheet
+Beartic,beartic,6,Beartic,6,6b02fa2d-7645-4129-95aa-839f1ddfe77b,Beartic,beartic-g9,Beartic,beartic-g9,exact_name,sheet
+Beldum,beldum,1,Beldum,5,3c2bf4cf-c445-4a68-80d5-9fff8afbf4be,Beldum,beldum-g9,Beldum,beldum-g9,exact_name,sheet
+Bellibolt,bellibolt,8,Bellibolt,10,7d7e1a25-f719-4175-b95f-451ccf315918,Bellibolt,bellibolt-g9,Bellibolt,bellibolt-g9,exact_name,sheet
+Bellossom,bellossom,5,Bellossom,10,83a2006b-30f7-4842-b757-426b733e3155,Bellossom,bellossom-g9,Bellossom,bellossom-g9,exact_name,sheet
+Bellsprout,bellsprout,1,Bellsprout,5,0002fd82-ae16-46dc-a8dc-4401e4b6dcdf,Bellsprout,bellsprout-g9,Bellsprout,bellsprout-g9,exact_name,sheet
+Bergmite,bergmite,1,Bergmite,5,ce56b399-afdf-4769-83e4-6bcb018dec29,Bergmite,bergmite-g9,Bergmite,bergmite-g9,exact_name,sheet
+Bisharp,bisharp,9,Bisharp,10,eb21d3ae-5dc5-4368-a75e-0b38954e0d05,Bisharp,bisharp-g9,Bisharp,bisharp-g9,exact_name,sheet
+Blastoise,blastoise,5,Blastoise,5,be146e64-305f-42df-bb1f-5138b7964f6a,Blastoise,blastoise-g9,Blastoise,blastoise-g9,exact_name,sheet
+Blaziken,blaziken,11,Blaziken,11,8007c216-eac3-40d4-be17-74623b7bf2cd,Blaziken,blaziken-g9,Blaziken,blaziken-g9,exact_name,sheet
+Blissey,blissey,8,Blissey,8,162d05ae-c3e5-4dce-b218-4106127d7fc5,Blissey,blissey-g9,Blissey,blissey-g9,exact_name,sheet
+Blitzle,blitzle,1,Blitzle,5,103983e3-71a6-4b66-9c16-7c3ff908daeb,Blitzle,blitzle-g9,Blitzle,blitzle-g9,exact_name,sheet
+Bombirdier,bombirdier,6,Bombirdier,10,23fb8ae6-1daa-4164-95ac-0544fbb79c04,Bombirdier,bombirdier-g9,Bombirdier,bombirdier-g9,exact_name,sheet
+Bonsly,bonsly,1,Bonsly,5,a9a032b6-9430-41ed-8288-db2edfdad78a,Bonsly,bonsly-g9,Bonsly,bonsly-g9,exact_name,sheet
+Bounsweet,bounsweet,1,Bounsweet,5,,,,,,exact_name,sheet
+Braixen,braixen,3,Braixen,8,42ee4f18-2589-47cd-9bdc-b771c812990b,Braixen,braixen-g9,Braixen,braixen-g9,exact_name,sheet
+Brambleghast,brambleghast,7,Brambleghast,10,1caf7aa9-63a8-4a04-9e60-f004c9bc94b0,Brambleghast,brambleghast-g9,Brambleghast,brambleghast-g9,exact_name,sheet
+Bramblin,bramblin,5,Bramblin,5,05e71a47-5ff1-4c4f-b483-9f26bb4d4d47,Bramblin,bramblin-g9,Bramblin,bramblin-g9,exact_name,sheet
+Braviary,braviary,6,Braviary,6,6018c69e-dfc2-4b63-9ba2-444f14d1c32e,Braviary,braviary-g9,Braviary,braviary-g9,exact_name,sheet
+Braviary Hisuian,braviary-hisui,8,,,7b77c528-26f9-479b-9d1a-2ae443a3e43e,Braviary-Hisui,braviary-hisui-g9,Braviary-Hisui,braviary-hisui-g9,alias,sheet
+Breloom,breloom,11,Breloom,10,a8452521-dc2c-4107-859a-9b1b054ae5c1,Breloom,breloom-g9,Breloom,breloom-g9,exact_name,sheet
+Brionne,brionne,3,Brionne,8,8e816915-453c-45b3-8b40-c4015de9c838,Brionne,brionne-g9,Brionne,brionne-g9,exact_name,sheet
+Bronzong,bronzong,9,Bronzong,9,801b7d66-149d-4456-ae08-998a08c14970,Bronzong,bronzong-g9,Bronzong,bronzong-g9,exact_name,sheet
+Bronzor,bronzor,1,Bronzor,5,93b75a24-3d4f-41af-8baf-5bc9bfeaadb8,Bronzor,bronzor-g9,Bronzor,bronzor-g9,exact_name,sheet
+Brute Bonnet,brute-bonnet,11,Brute Bonnet,11,d13fb8b2-fddb-4899-9300-ef0333c93cad,Brute Bonnet,brute-bonnet-g9,Brute Bonnet,brute-bonnet-g9,exact_name,sheet
+Bruxish,bruxish,4,Bruxish,10,,,,,,exact_name,sheet
+Buizel,buizel,1,Buizel,5,debdc3df-96d8-4839-87fb-4c2e4051d8d8,Buizel,buizel-g9,Buizel,buizel-g9,exact_name,sheet
+Bulbasaur,bulbasaur,1,Bulbasaur,5,fc5b6df3-1d7a-479b-b302-7efaab8f8c2d,Bulbasaur,bulbasaur-g9,Bulbasaur,bulbasaur-g9,exact_name,sheet
+Cacnea,cacnea,1,Cacnea,5,17063726-735c-40f2-b5a2-e2deb0fca987,Cacnea,cacnea-g9,Cacnea,cacnea-g9,exact_name,sheet
+Cacturne,cacturne,5,Cacturne,10,fb9428d2-f287-4c2b-901b-5b40dc878940,Cacturne,cacturne-g9,Cacturne,cacturne-g9,exact_name,sheet
+Camerupt,camerupt,6,Camerupt,10,ccc084a0-90ed-4f5b-8e74-579cac5a963a,Camerupt,camerupt-g9,Camerupt,camerupt-g9,exact_name,sheet
+Capsakid,capsakid,1,Capsakid,5,e9a6c88b-4876-4731-ac80-b6c0ed193eed,Capsakid,capsakid-g9,Capsakid,capsakid-g9,exact_name,sheet
+Carbink,carbink,2,,,fc0ca210-e1e1-45b4-9ca5-27591f7df6c0,Carbink,carbink-g9,Carbink,carbink-g9,alias,sheet
+Carkol,carkol,1,Carkol,8,,,,,,exact_name,sheet
+Ceruledge,ceruledge,13,Ceruledge,13,d687df11-8169-4324-9460-7d4abefcea94,Ceruledge,ceruledge-g9,Ceruledge,ceruledge-g9,exact_name,sheet
+Cetitan,cetitan,8,Cetitan,8,6adc4981-562b-4c3a-aea7-d19a6edc847d,Cetitan,cetitan-g9,Cetitan,cetitan-g9,exact_name,sheet
+Cetoddle,cetoddle,2,Cetoddle,5,dba2bfb4-3d46-42fa-9511-d42ee4c20261,Cetoddle,cetoddle-g9,Cetoddle,cetoddle-g9,exact_name,sheet
+Chandelure,chandelure,9,Chandelure,12,ae562264-5e15-411b-9b8e-dee33ea3a1c1,Chandelure,chandelure-g9,Chandelure,chandelure-g9,exact_name,sheet
+Chansey,chansey,7,Chansey,10,ad94d198-8451-4690-af78-10eb30c0f1b1,Chansey,chansey-g9,Chansey,chansey-g9,exact_name,sheet
+Charcadet,charcadet,1,Charcadet,5,4e8043b2-761c-4bd2-9228-613b6766be0d,Charcadet,charcadet-g9,Charcadet,charcadet-g9,exact_name,sheet
+Charizard,charizard,8,Charizard,12,ccc33d45-5cdb-427b-a096-5cab00d10e1f,Charizard,charizard-g9,Charizard,charizard-g9,exact_name,sheet
+Charjabug,charjabug,1,Charjabug,8,,,,,,exact_name,sheet
+Charmander,charmander,1,Charmander,5,72fd8223-12e8-48b5-8a74-41b40ef018ec,Charmander,charmander-g9,Charmander,charmander-g9,exact_name,sheet
+Charmeleon,charmeleon,3,Charmeleon,8,36f329c3-6812-41f9-a4c6-52c27bc076f4,Charmeleon,charmeleon-g9,Charmeleon,charmeleon-g9,exact_name,sheet
+Chesnaught,chesnaught,8,Chesnaught,12,d301ec4b-feb9-4894-ada6-1eb3729cf86b,Chesnaught,chesnaught-g9,Chesnaught,chesnaught-g9,exact_name,sheet
+Chespin,chespin,1,Chespin,5,65da9a52-9711-4f02-856f-afac6e65353e,Chespin,chespin-g9,Chespin,chespin-g9,exact_name,sheet
+Chewtle,chewtle,1,Chewtle,5,,,,,,exact_name,sheet
+Chi-Yu,chi-yu,19,Chi Yu,19,ed11d070-af87-42de-aa88-886be7fa8e87,Chi-Yu,chi-yu-g9,Chi-Yu,chi-yu-g9,alias,sheet
+Chien-Pao,chien-pao,19,Chien Pao,19,a6630af7-bdb2-4b71-aaba-b4454a613303,Chien-Pao,chien-pao-g9,Chien-Pao,chien-pao-g9,alias,sheet
+Chikorita,chikorita,1,Chikorita,5,2e59553f-1e66-4ba6-948b-14849974f870,Chikorita,chikorita-g9,Chikorita,chikorita-g9,exact_name,sheet
+Chimchar,chimchar,1,Chimchar,5,f09ced9a-25fa-4841-a99e-e25b2aab10fd,Chimchar,chimchar-g9,Chimchar,chimchar-g9,exact_name,sheet
+Chimecho,chimecho,1,Chimecho,10,4b976577-37ac-410b-a8ac-c3d73381eb39,Chimecho,chimecho-g9,Chimecho,chimecho-g9,exact_name,sheet
+Chinchou,chinchou,1,Chinchou,5,b64fa047-be6e-4b70-abf9-b2985ecf5adf,Chinchou,chinchou-g9,Chinchou,chinchou-g9,exact_name,sheet
+Chingling,chingling,1,Chingling,5,b2e801dd-b5f9-49c2-bfbc-e9dcc3d3afc5,Chingling,chingling-g9,Chingling,chingling-g9,exact_name,sheet
+Cinccino,cinccino,8,Cinccino,10,36ccd7ec-8100-4ba7-9dc3-6d829be4523e,Cinccino,cinccino-g9,Cinccino,cinccino-g9,exact_name,sheet
+Cinderace,cinderace,17,Cinderace,17,,,,,,exact_name,sheet
+Clauncher,clauncher,1,Clauncher,5,6fc1fd74-ae9b-41b9-9af3-aba238c7c489,Clauncher,clauncher-g9,Clauncher,clauncher-g9,exact_name,sheet
+Clawitzer,clawitzer,7,Clawitzer,12,e47d5e77-1846-48f4-8dc8-88c7d2b7e860,Clawitzer,clawitzer-g9,Clawitzer,clawitzer-g9,exact_name,sheet
+Clefable,clefable,15,Clefable,15,5da8c07e-16a3-4ea4-bb71-c645c04cf65e,Clefable,clefable-g9,Clefable,clefable-g9,exact_name,sheet
+Clefairy,clefairy,4,Clefairy,4,7fb4c31c-3325-4e8c-b36d-cb4accdc3e37,Clefairy,clefairy-g9,Clefairy,clefairy-g9,exact_name,sheet
+Cleffa,cleffa,1,Cleffa,5,9cecdd41-956b-4916-a09d-388c775319d1,Cleffa,cleffa-g9,Cleffa,cleffa-g9,exact_name,sheet
+Clodsire,clodsire,13,Clodsire,13,449ea53d-1945-4e1c-ae8a-8c1266a94735,Clodsire,clodsire-g9,Clodsire,clodsire-g9,exact_name,sheet
+Cloyster,cloyster,13,Cloyster,13,58c86065-38f1-4537-94bd-d8138b42c4b9,Cloyster,cloyster-g9,Cloyster,cloyster-g9,exact_name,sheet
+Coalossal,coalossal,6,Coalossal,12,,,,,,exact_name,sheet
+Cobalion,cobalion,12,Cobalion,12,e2cc3f08-6cd2-4d24-a1f4-2149749182b3,Cobalion,cobalion-g9,Cobalion,cobalion-g9,exact_name,sheet
+Combee,combee,1,Combee,5,35de9265-08ad-4571-944d-c26977c906f3,Combee,combee-g9,Combee,combee-g9,exact_name,sheet
+Combusken,combusken,4,Combusken,8,c3cb9117-0d7b-4aea-87d5-24d00c2ab2bd,Combusken,combusken-g9,Combusken,combusken-g9,exact_name,sheet
+Comfey,comfey,8,Comfey,10,,,,,,exact_name,sheet
+Conkeldurr,conkeldurr,12,Conkeldurr,12,0e1e0fc9-64e2-4a30-8a83-7ff430e15e2c,Conkeldurr,conkeldurr-g9,Conkeldurr,conkeldurr-g9,exact_name,sheet
+Copperajah,copperajah,8,Copperajah,8,,,,,,exact_name,sheet
+Corphish,corphish,1,Corphish,5,036fda05-c987-4e3d-a688-09095e4e8efc,Corphish,corphish-g9,Corphish,corphish-g9,exact_name,sheet
+Corviknight,corviknight,14,Corviknight,14,,,,,,exact_name,sheet
+Corvisquire,corvisquire,3,Corvisquire,5,,,,,,exact_name,sheet
+Cosmoem,cosmoem,99,Cosmoem,8,,,,,,exact_name,sheet
+Cosmog,cosmog,99,Cosmog,5,,,,,,exact_name,sheet
+Cottonee,cottonee,4,Cottonee,5,57a54ba0-7e9c-4551-aa83-7f2299293f29,Cottonee,cottonee-g9,Cottonee,cottonee-g9,exact_name,sheet
+Crabominable,crabominable,5,Crabominable,10,,,,,,exact_name,sheet
+Crabrawler,crabrawler,1,Crabrawler,5,,,,,,exact_name,sheet
+Cramorant,cramorant,4,Cramorant,10,,,,,,exact_name,sheet
+Crawdaunt,crawdaunt,13,Crawdaunt,13,be8b8605-d784-4bb0-a007-eb0954be84ef,Crawdaunt,crawdaunt-g9,Crawdaunt,crawdaunt-g9,exact_name,sheet
+Cresselia,cresselia,12,Cresselia,12,1fcd4b5e-1e77-4f31-b3ba-6f9fd73e9048,Cresselia,cresselia-g9,Cresselia,cresselia-g9,exact_name,sheet
+Croagunk,croagunk,1,Croagunk,5,f2466a7b-8707-4d13-aa5b-37532b2f1bd6,Croagunk,croagunk-g9,Croagunk,croagunk-g9,exact_name,sheet
+Crocalor,crocalor,3,Crocalor,8,03b3c5a0-b85c-4b5a-ad2e-6fde94d54ec7,Crocalor,crocalor-g9,Crocalor,crocalor-g9,exact_name,sheet
+Croconaw,croconaw,3,Croconaw,8,28deee41-8e3c-4d20-9b64-1b7b97827151,Croconaw,croconaw-g9,Croconaw,croconaw-g9,exact_name,sheet
+Cryogonal,cryogonal,4,Cryogonal,12,21d446db-9732-40c0-a571-8e8e592e9981,Cryogonal,cryogonal-g9,Cryogonal,cryogonal-g9,exact_name,sheet
+Cubchoo,cubchoo,1,Cubchoo,5,49935e22-8d00-4703-9740-130c7d7c0edb,Cubchoo,cubchoo-g9,Cubchoo,cubchoo-g9,exact_name,sheet
+Cufant,cufant,1,Cufant,5,,,,,,exact_name,sheet
+Cutiefly,cutiefly,1,Cutiefly,5,,,,,,exact_name,sheet
+Cyclizar,cyclizar,9,Cyclizar,9,dff1dec7-17af-4186-a4fd-44c7d09defab,Cyclizar,cyclizar-g9,Cyclizar,cyclizar-g9,exact_name,sheet
+Cyndaquil,cyndaquil,1,Cyndaquil,5,6e0ae1a0-15a4-4a0e-bd0e-01f0f01a2bac,Cyndaquil,cyndaquil-g9,Cyndaquil,cyndaquil-g9,exact_name,sheet
+Dachsbun,dachsbun,5,Dachsbun,10,323c2097-9f93-4fd7-973f-4224926270f5,Dachsbun,dachsbun-g9,Dachsbun,dachsbun-g9,exact_name,sheet
+Darkrai,darkrai,17,Darkrai,17,81548882-823f-4387-86f5-56a76b4480b4,Darkrai,darkrai-g9,Darkrai,darkrai-g9,exact_name,sheet
+Dartrix,dartrix,3,Dartrix,8,4638a84b-524b-48bb-8f66-a843f27bd0af,Dartrix,dartrix-g9,Dartrix,dartrix-g9,exact_name,sheet
+Decidueye,decidueye,10,Decidueye,12,514faa47-4adf-4cf9-861c-99cc3a89daab,Decidueye,decidueye-g9,Decidueye,decidueye-g9,exact_name,sheet
+Decidueye Hisuian,decidueye-hisui,6,,,ce4e44bb-beaf-4e17-a013-eb2c18facb1a,Decidueye-Hisui,decidueye-hisui-g9,Decidueye-Hisui,decidueye-hisui-g9,alias,sheet
+Dedenne,dedenne,5,Dedenne,8,d5fa9f0b-10fd-4d84-a7e6-dfe1767f786d,Dedenne,dedenne-g9,Dedenne,dedenne-g9,exact_name,sheet
+Deerling,deerling,1,Deerling,5,98911bbd-cba3-4c9c-8686-6a8c45135ed1,Deerling,deerling-g9,Deerling,deerling-g9,exact_name,sheet
+Deino,deino,1,Deino,5,08dec8ec-8da9-40be-a3bc-506dea861f17,Deino,deino-g9,Deino,deino-g9,exact_name,sheet
+Delibird,delibird,2,Delibird,5,f3918361-be03-452a-89b2-71750e9120d0,Delibird,delibird-g9,Delibird,delibird-g9,exact_name,sheet
+Delphox,delphox,10,Delphox,12,19e9535c-cf02-4d83-a725-04a0f2cc6eab,Delphox,delphox-g9,Delphox,delphox-g9,exact_name,sheet
+Deoxys,deoxys,18,Deoxys,18,dbd34234-8562-43f5-9613-e82264693ccb,Deoxys,deoxys-g9,Deoxys,deoxys-g9,exact_name,sheet
+Deoxys Attack,deoxys-attack,19,,,ffad744a-f5ce-4966-b22d-7a6dacdade22,Deoxys-Attack,deoxys-attack-g9,Deoxys-Attack,deoxys-attack-g9,alias,sheet
+Deoxys Defense,deoxys-defense,18,,,891894a1-bc15-4162-a0ec-0e754e882c61,Deoxys-Defense,deoxys-defense-g9,Deoxys-Defense,deoxys-defense-g9,alias,sheet
+Deoxys Speed,deoxys-speed,16,,,d99ab6c6-8b66-4f25-bbc5-617ef9d97edc,Deoxys-Speed,deoxys-speed-g9,Deoxys-Speed,deoxys-speed-g9,alias,sheet
+Dewgong,dewgong,5,Dewgong,10,79d25287-8dd1-49d6-9818-10bddf995b50,Dewgong,dewgong-g9,Dewgong,dewgong-g9,exact_name,sheet
+Dewott,dewott,3,Dewott,8,05512041-e4ad-4ec7-8bc8-147a3a6b2efb,Dewott,dewott-g9,Dewott,dewott-g9,exact_name,sheet
+Dewpider,dewpider,1,Dewpider,5,,,,,,exact_name,sheet
+Dialga,dialga,99,,,3afde091-506d-4ba6-9e69-db7b0df1019a,Dialga,dialga-g9,Dialga,dialga-g9,alias,sheet
+Dialga Origin,dialga-origin,99,,,d6b6969a-cdf2-4cb9-93da-1e70f97541ab,Dialga-Origin,dialga-origin-g9,Dialga-Origin,dialga-origin-g9,alias,sheet
+Diancie,diancie,14,Diancie,14,ada6c4f3-37fe-4545-9490-7254588fe49a,Diancie,diancie-g9,Diancie,diancie-g9,exact_name,sheet
+Diglett,diglett,1,Diglett,5,f7bb267c-5d75-4177-a1e2-1b0ed2c2b303,Diglett,diglett-g9,Diglett,diglett-g9,exact_name,sheet
+Diglett Alolan,diglett-alola,1,,,9e4a78c6-dad3-4700-a313-dd7db5c1e533,Diglett-Alola,diglett-alola-g9,Diglett-Alola,diglett-alola-g9,alias,sheet
+Dipplin,dipplin,3,Dipplin,10,7fdfc7c5-e374-4d07-9144-58d13b2d29c2,Dipplin,dipplin-g9,Dipplin,dipplin-g9,exact_name,sheet
+Ditto,ditto,7,Ditto,5,4bc4cd4d-3ab1-4a72-a8fc-49a8a333a04e,Ditto,ditto-g9,Ditto,ditto-g9,exact_name,sheet
+Dodrio,dodrio,5,Dodrio,10,3e3894e7-430b-48d4-b950-2bf3e43ce9f0,Dodrio,dodrio-g9,Dodrio,dodrio-g9,exact_name,sheet
+Doduo,doduo,1,Doduo,5,1bd29c97-179e-4252-a941-558bc7b1c0c8,Doduo,doduo-g9,Doduo,doduo-g9,exact_name,sheet
+Dolliv,dolliv,3,Dolliv,5,baf68412-b02a-497c-94cf-79e764bc7592,Dolliv,dolliv-g9,Dolliv,dolliv-g9,exact_name,sheet
+Dondozo,dondozo,11,Dondozo,11,7dbd894f-38ca-4e39-9276-f6587b8ade9f,Dondozo,dondozo-g9,Dondozo,dondozo-g9,exact_name,sheet
+Donphan,donphan,11,Donphan,12,8560cd28-0d5f-4f3e-99e2-fe9a5d0cdf3a,Donphan,donphan-g9,Donphan,donphan-g9,exact_name,sheet
+Dragalge,dragalge,9,Dragalge,10,6e05ff80-90b0-4870-a9a4-0e1516b07169,Dragalge,dragalge-g9,Dragalge,dragalge-g9,exact_name,sheet
+Dragapult,dragapult,19,Dragapult,19,,,,,,exact_name,sheet
+Dragonair,dragonair,5,Dragonair,8,eeab7378-519d-4611-b8a8-eb77971d0fef,Dragonair,dragonair-g9,Dragonair,dragonair-g9,exact_name,sheet
+Dragonite,dragonite,17,Dragonite,17,6fa9389f-07c4-419a-9234-64cc44aeb57b,Dragonite,dragonite-g9,Dragonite,dragonite-g9,exact_name,sheet
+Drakloak,drakloak,4,Drakloak,8,,,,,,exact_name,sheet
+Dratini,dratini,1,Dratini,5,1e545829-46fd-4882-8b63-7d3c900dc981,Dratini,dratini-g9,Dratini,dratini-g9,exact_name,sheet
+Drednaw,drednaw,9,Drednaw,10,,,,,,exact_name,sheet
+Dreepy,dreepy,1,Dreepy,5,,,,,,exact_name,sheet
+Drifblim,drifblim,6,Drifblim,10,18c81b44-0e82-476b-8d52-59ffb482a17a,Drifblim,drifblim-g9,Drifblim,drifblim-g9,exact_name,sheet
+Drifloon,drifloon,1,Drifloon,5,b731b013-76cf-48fc-a729-d0583ce9aa1f,Drifloon,drifloon-g9,Drifloon,drifloon-g9,exact_name,sheet
+Drilbur,drilbur,1,Drilbur,5,6c788956-fa9c-449d-81ab-c7396661c953,Drilbur,drilbur-g9,Drilbur,drilbur-g9,exact_name,sheet
+Drizzile,drizzile,3,Drizzile,8,,,,,,exact_name,sheet
+Drowzee,drowzee,1,Drowzee,5,b24b8796-c603-4a18-81da-504ca53128d0,Drowzee,drowzee-g9,Drowzee,drowzee-g9,exact_name,sheet
+Ducklett,ducklett,1,Ducklett,5,b9f9da46-054b-49e4-9eeb-962e4a247b93,Ducklett,ducklett-g9,Ducklett,ducklett-g9,exact_name,sheet
+Dudunsparce,dudunsparce,11,Dudunsparce Two Segment,11,,,,,,alias,sheet
+Dugtrio,dugtrio,10,Dugtrio,8,1f3939f9-0f1b-4161-b78b-05bf4fb87fd3,Dugtrio,dugtrio-g9,Dugtrio,dugtrio-g9,exact_name,sheet
+Dugtrio Alolan,dugtrio-alola,6,,,821ff470-0db2-44b5-90f7-4d2e9b743a5f,Dugtrio-Alola,dugtrio-alola-g9,Dugtrio-Alola,dugtrio-alola-g9,alias,sheet
+Dunsparce,dunsparce,4,Dunsparce,8,4a5dcb97-99cf-43fe-863b-110e52b927b8,Dunsparce,dunsparce-g9,Dunsparce,dunsparce-g9,exact_name,sheet
+Duosion,duosion,3,Duosion,5,d4ad404e-b990-403b-babe-21334e3f4ee6,Duosion,duosion-g9,Duosion,duosion-g9,exact_name,sheet
+Duraludon,duraludon,11,Duraludon,11,,,,,,exact_name,sheet
+Dusclops,dusclops,9,Dusclops,10,f3a6c933-70bc-4dfa-a63c-38d49c1ba698,Dusclops,dusclops-g9,Dusclops,dusclops-g9,exact_name,sheet
+Dusknoir,dusknoir,4,Dusknoir,12,0255cec4-4d1c-4209-acd0-f550f37407cd,Dusknoir,dusknoir-g9,Dusknoir,dusknoir-g9,exact_name,sheet
+Duskull,duskull,1,Duskull,5,bf583f9a-3466-4277-8aa6-239ec9c3c4df,Duskull,duskull-g9,Duskull,duskull-g9,exact_name,sheet
+Eelektrik,eelektrik,3,Eelektrik,8,908464e1-02f3-459d-b436-7854a6e40881,Eelektrik,eelektrik-g9,Eelektrik,eelektrik-g9,exact_name,sheet
+Eelektross,eelektross,8,Eelektross,12,2902fb33-6c7a-40da-9b84-70ec69a669d9,Eelektross,eelektross-g9,Eelektross,eelektross-g9,exact_name,sheet
+Eevee,eevee,2,Eevee,5,6983a250-5e5a-43d8-ba31-819439efd8f1,Eevee,eevee-g9,Eevee,eevee-g9,exact_name,sheet
+Eiscue,eiscue,6,Eiscue Ice,10,,,,,,alias,sheet
+Ekans,ekans,1,Ekans,5,564b09b2-7eb9-4710-a08d-a046d57ebaa1,Ekans,ekans-g9,Ekans,ekans-g9,exact_name,sheet
+Electabuzz,electabuzz,5,Electabuzz,10,49d4bf0b-ec43-4d4c-b562-674479dde703,Electabuzz,electabuzz-g9,Electabuzz,electabuzz-g9,exact_name,sheet
+Electivire,electivire,8,Electivire,8,e0a18f16-e624-490e-928d-487dbc22ce59,Electivire,electivire-g9,Electivire,electivire-g9,exact_name,sheet
+Electrode,electrode,6,Electrode,10,14e38c9a-494b-46b8-980c-89bf9a27aaa5,Electrode,electrode-g9,Electrode,electrode-g9,exact_name,sheet
+Electrode Hisuian,electrode-hisui,8,,,9fed111c-82fa-4cc8-a24e-421d01441d58,Electrode-Hisui,electrode-hisui-g9,Electrode-Hisui,electrode-hisui-g9,alias,sheet
+Elekid,elekid,1,Elekid,5,7bf777c9-1e27-41cc-a1ca-9f02d12b18f4,Elekid,elekid-g9,Elekid,elekid-g9,exact_name,sheet
+Emboar,emboar,8,Emboar,12,a493167e-9119-4823-a192-beccfdb1c5c3,Emboar,emboar-g9,Emboar,emboar-g9,exact_name,sheet
+Empoleon,empoleon,11,Empoleon,12,be42bcf0-aacd-47f8-b7f0-962610362561,Empoleon,empoleon-g9,Empoleon,empoleon-g9,exact_name,sheet
+Enamorus Incarnate,enamorus,18,Enamorus Incarnate,18,,,,,,exact_name,sheet
+Entei,entei,15,Entei,15,d9af232b-52bc-46bf-85e1-9bd4bea511ec,Entei,entei-g9,Entei,entei-g9,exact_name,sheet
+Espathra,espathra,12,Espathra,10,f412a59f-ae56-4fab-9f06-89b7f388424b,Espathra,espathra-g9,Espathra,espathra-g9,exact_name,sheet
+Espeon,espeon,10,Espeon,12,2cc7a4aa-3259-4223-9b86-c6a8ac30b3e9,Espeon,espeon-g9,Espeon,espeon-g9,exact_name,sheet
+Excadrill,excadrill,10,Excadrill,12,4c256bbb-e087-4348-b084-b8bc154bace8,Excadrill,excadrill-g9,Excadrill,excadrill-g9,exact_name,sheet
+Exeggcute,exeggcute,1,Exeggcute,5,d5241c21-4c9d-4de5-949e-b910a9c371b6,Exeggcute,exeggcute-g9,Exeggcute,exeggcute-g9,exact_name,sheet
+Exeggutor,exeggutor,5,Exeggutor,12,8fbff044-2684-4c1a-a4e6-4e9baa53d3e6,Exeggutor,exeggutor-g9,Exeggutor,exeggutor-g9,exact_name,sheet
+Exeggutor Alolan,exeggutor-alola,13,,,1025eb29-6ff4-48b3-b8e3-28e0431664f3,Exeggutor-Alola,exeggutor-alola-g9,Exeggutor-Alola,exeggutor-alola-g9,alias,sheet
+Falinks,falinks,4,Falinks,10,,,,,,exact_name,sheet
+Farigiraf,farigiraf,8,Farigiraf,8,6aff3c0b-5617-4f4e-8a9b-7efa715756ea,Farigiraf,farigiraf-g9,Farigiraf,farigiraf-g9,exact_name,sheet
+Feebas,feebas,1,Feebas,5,12ba2363-9746-42ca-a7b7-cd4860aa9d13,Feebas,feebas-g9,Feebas,feebas-g9,exact_name,sheet
+Fennekin,fennekin,1,Fennekin,5,841887f5-e905-411a-a333-880896238aa7,Fennekin,fennekin-g9,Fennekin,fennekin-g9,exact_name,sheet
+Feraligatr,feraligatr,6,Feraligatr,12,51bc466c-4b3e-486d-9d54-0c78f5f8d142,Feraligatr,feraligatr-g9,Feraligatr,feraligatr-g9,exact_name,sheet
+Fezandipiti,fezandipiti,12,Fezandipiti,12,c33c69ff-9b02-487c-a551-642aefc399a7,Fezandipiti,fezandipiti-g9,Fezandipiti,fezandipiti-g9,exact_name,sheet
+Fidough,fidough,1,Fidough,5,b8eef6c6-4aa0-4c93-80bd-e87a3eaa6f25,Fidough,fidough-g9,Fidough,fidough-g9,exact_name,sheet
+Finizen,finizen,1,Finizen,5,0cca1827-d6ec-4a0e-9824-cb2ecf666301,Finizen,finizen-g9,Finizen,finizen-g9,exact_name,sheet
+Finneon,finneon,1,Finneon,5,be92d549-abbb-47f7-a34b-1bca1c2f417e,Finneon,finneon-g9,Finneon,finneon-g9,exact_name,sheet
+Flaaffy,flaaffy,3,Flaaffy,5,f56ae6a2-c2ca-48ca-bdc9-152e416ae8e5,Flaaffy,flaaffy-g9,Flaaffy,flaaffy-g9,exact_name,sheet
+Flabébé,flabebe,1,Flabebe,5,1580d4bb-5f86-4c8b-a450-5032e9455667,Flabébé,flabe-be-g9,Flabébé,flabe-be-g9,alias,sheet
+Flamigo,flamigo,9,Flamigo,9,7a71e14f-3cde-4cf9-961c-8344a6b98d27,Flamigo,flamigo-g9,Flamigo,flamigo-g9,exact_name,sheet
+Flapple,flapple,9,Flapple,10,,,,,,exact_name,sheet
+Flareon,flareon,7,Flareon,12,7bfcf27a-4935-4fc3-9fcd-9156b9f015e8,Flareon,flareon-g9,Flareon,flareon-g9,exact_name,sheet
+Fletchinder,fletchinder,3,Fletchinder,5,1fdd35bc-e679-48b5-84ff-bcfdebce3f69,Fletchinder,fletchinder-g9,Fletchinder,fletchinder-g9,exact_name,sheet
+Fletchling,fletchling,1,Fletchling,5,7b03024c-f9ae-44fb-8d1f-554f973dfdc8,Fletchling,fletchling-g9,Fletchling,fletchling-g9,exact_name,sheet
+Flittle,flittle,1,Flittle,5,ae1b0cc2-06f9-4513-ac6d-b5d8dab63fd6,Flittle,flittle-g9,Flittle,flittle-g9,exact_name,sheet
+Floatzel,floatzel,7,Floatzel,10,cbe295e7-5906-4b25-9af3-fb4814f0fb94,Floatzel,floatzel-g9,Floatzel,floatzel-g9,exact_name,sheet
+Floette,floette,1,Floette,5,81e3e160-bc21-41fa-b2eb-3f7247dbf888,Floette,floette-g9,Floette,floette-g9,exact_name,sheet
+Floragato,floragato,4,Floragato,8,0790b156-d169-4996-b7c6-c9c6aeecbe7c,Floragato,floragato-g9,Floragato,floragato-g9,exact_name,sheet
+Florges,florges,11,Florges,11,45a57f4e-ad45-4ee5-a337-1ce3b1f84c5d,Florges,florges-g9,Florges,florges-g9,exact_name,sheet
+Flutter Mane,flutter-mane,20,Flutter Mane,20,ece69f45-78b1-4904-b21e-08bfd93b61e6,Flutter Mane,flutter-mane-g9,Flutter Mane,flutter-mane-g9,exact_name,sheet
+Flygon,flygon,12,Flygon,12,5188f119-ec35-4a00-9c75-d47c1329dbeb,Flygon,flygon-g9,Flygon,flygon-g9,exact_name,sheet
+Fomantis,fomantis,1,Fomantis,5,,,,,,exact_name,sheet
+Foongus,foongus,1,Foongus,5,bc45648d-7ccb-47f3-b188-40301dccd4fc,Foongus,foongus-g9,Foongus,foongus-g9,exact_name,sheet
+Forretress,forretress,7,Forretress,10,e82c1331-c830-4548-b2cb-e796235e439c,Forretress,forretress-g9,Forretress,forretress-g9,exact_name,sheet
+Fraxure,fraxure,4,Fraxure,8,fa389570-7277-4ac0-8451-263f33957d7f,Fraxure,fraxure-g9,Fraxure,fraxure-g9,exact_name,sheet
+Frigibax,frigibax,1,Frigibax,5,dfe41072-a61f-4e69-9ea9-365a4cde6230,Frigibax,frigibax-g9,Frigibax,frigibax-g9,exact_name,sheet
+Froakie,froakie,1,Froakie,5,8da35769-37ec-483c-929b-d4ac3c588222,Froakie,froakie-g9,Froakie,froakie-g9,exact_name,sheet
+Frogadier,frogadier,4,Frogadier,8,ca52b84a-56cc-4015-8b14-2d4297c4265d,Frogadier,frogadier-g9,Frogadier,frogadier-g9,exact_name,sheet
+Froslass,froslass,6,Froslass,10,7aa2841e-ab4d-4d11-a99f-26a4be23faa8,Froslass,froslass-g9,Froslass,froslass-g9,exact_name,sheet
+Frosmoth,frosmoth,6,Frosmoth,10,,,,,,exact_name,sheet
+Fuecoco,fuecoco,1,Fuecoco,5,bc8812fa-977f-4535-b94e-ddfb4caea086,Fuecoco,fuecoco-g9,Fuecoco,fuecoco-g9,exact_name,sheet
+Furret,furret,2,Furret,8,e9d1a776-7acc-4bf8-9935-c70e0e100ab4,Furret,furret-g9,Furret,furret-g9,exact_name,sheet
+Gabite,gabite,4,Gabite,8,c5fac387-011c-41fb-bbf2-642a2ffaaff5,Gabite,gabite-g9,Gabite,gabite-g9,exact_name,sheet
+Gallade,gallade,11,Gallade,12,ecc55e2e-2b17-4d05-89e2-504f112e210d,Gallade,gallade-g9,Gallade,gallade-g9,exact_name,sheet
+Galvantula,galvantula,7,Galvantula,10,bbf3e3b6-ff83-44b4-818a-4415fe585521,Galvantula,galvantula-g9,Galvantula,galvantula-g9,exact_name,sheet
+Garchomp,garchomp,17,Garchomp,17,7c322d79-8332-4bb8-9328-90b2607f395a,Garchomp,garchomp-g9,Garchomp,garchomp-g9,exact_name,sheet
+Gardevoir,gardevoir,11,Gardevoir,12,df47a11c-dfe3-404a-b0b9-47c12ac03d3b,Gardevoir,gardevoir-g9,Gardevoir,gardevoir-g9,exact_name,sheet
+Garganacl,garganacl,17,Garganacl,17,402ce10d-2a32-4d38-bd41-9c9b47b88c8c,Garganacl,garganacl-g9,Garganacl,garganacl-g9,exact_name,sheet
+Gastly,gastly,1,Gastly,5,466e02e2-0d72-4d0d-88f0-7769006306e5,Gastly,gastly-g9,Gastly,gastly-g9,exact_name,sheet
+Gastrodon,gastrodon,10,Gastrodon,10,f0d70806-95cd-4ee3-a7e0-70b9c69330a8,Gastrodon,gastrodon-g9,Gastrodon,gastrodon-g9,exact_name,sheet
+Gengar,gengar,12,Gengar,12,ce8c7372-4e80-43c4-995a-e051eed4073a,Gengar,gengar-g9,Gengar,gengar-g9,exact_name,sheet
+Geodude,geodude,1,Geodude,5,92a747ea-d5b6-48c0-802c-232d4c73af30,Geodude,geodude-g9,Geodude,geodude-g9,exact_name,sheet
+Geodude Alolan,geodude-alola,1,,,e67a846c-700e-4fc3-8d3f-32c96199d5eb,Geodude-Alola,geodude-alola-g9,Geodude-Alola,geodude-alola-g9,alias,sheet
+Gholdengo,gholdengo,17,Gholdengo,17,f94e3b3c-92ef-4703-81db-3bfaa8aa8537,Gholdengo,gholdengo-g9,Gholdengo,gholdengo-g9,exact_name,sheet
+Gible,gible,1,Gible,5,e6f5049c-d1c0-4dd7-8ba5-0c510c533067,Gible,gible-g9,Gible,gible-g9,exact_name,sheet
+Gimmighoul,gimmighoul,1,Gimmighoul,5,500a3a5c-1a01-4aff-9fa9-9a84d692a041,Gimmighoul,gimmighoul-g9,Gimmighoul,gimmighoul-g9,exact_name,sheet
+Girafarig,girafarig,4,Girafarig,10,9ee2e3aa-1162-41a1-bd53-c70799c202a8,Girafarig,girafarig-g9,Girafarig,girafarig-g9,exact_name,sheet
+Giratina,giratina,99,,,0ced92b3-b4e9-407c-ad94-d2b377b22038,Giratina,giratina-g9,Giratina,giratina-g9,alias,sheet
+Giratina Origin,giratina-origin,99,,,34262b21-5b19-48b4-836f-4747a7435040,Giratina-Origin,giratina-origin-g9,Giratina-Origin,giratina-origin-g9,alias,sheet
+Glaceon,glaceon,5,Glaceon,12,7edf9eea-e5ac-47d0-97e7-b363b994c714,Glaceon,glaceon-g9,Glaceon,glaceon-g9,exact_name,sheet
+Glalie,glalie,6,Glalie,10,63537448-edfb-4901-8f80-046c276b67ee,Glalie,glalie-g9,Glalie,glalie-g9,exact_name,sheet
+Glastrier,glastrier,13,Glastrier,13,,,,,,exact_name,sheet
+Gligar,gligar,7,Gligar,8,32c63b1f-5a6f-4ece-8207-5830318ce785,Gligar,gligar-g9,Gligar,gligar-g9,exact_name,sheet
+Glimmet,glimmet,2,Glimmet,5,f046b9a7-b2f7-46b0-8e9e-84ed648e1211,Glimmet,glimmet-g9,Glimmet,glimmet-g9,exact_name,sheet
+Glimmora,glimmora,12,Glimmora,12,f26c8386-8d24-45c8-be43-b6f1c3462d81,Glimmora,glimmora-g9,Glimmora,glimmora-g9,exact_name,sheet
+Gliscor,gliscor,15,Gliscor,15,35a83c53-802b-4c52-8068-7e0afd507a81,Gliscor,gliscor-g9,Gliscor,gliscor-g9,exact_name,sheet
+Gloom,gloom,3,Gloom,5,4ca93c46-5964-4787-b484-0e9b18c61f4f,Gloom,gloom-g9,Gloom,gloom-g9,exact_name,sheet
+Gogoat,gogoat,8,Gogoat,12,3177a1e6-82a9-424d-b037-3b1f0ea77b16,Gogoat,gogoat-g9,Gogoat,gogoat-g9,exact_name,sheet
+Golduck,golduck,4,Golduck,12,57f05665-5e6f-4cfa-b2f3-d08019b90a69,Golduck,golduck-g9,Golduck,golduck-g9,exact_name,sheet
+Golem,golem,5,Golem,10,5394c167-0f07-425e-8e22-fc3ba3cfb529,Golem,golem-g9,Golem,golem-g9,exact_name,sheet
+Golem Alolan,golem-alola,6,,,da2409aa-1a53-4d44-9d7a-62698b5b3cd5,Golem-Alola,golem-alola-g9,Golem-Alola,golem-alola-g9,alias,sheet
+Golett,golett,1,Golett,5,9ce9124d-462d-41ce-9d04-ea5499ab78ef,Golett,golett-g9,Golett,golett-g9,exact_name,sheet
+Golurk,golurk,5,Golurk,10,6c9396c8-d914-4f45-ae40-a546d059470d,Golurk,golurk-g9,Golurk,golurk-g9,exact_name,sheet
+Goodra,goodra,10,Goodra,10,e1b5f9fd-9a45-4609-9abf-250879b71fdc,Goodra,goodra-g9,Goodra,goodra-g9,exact_name,sheet
+Goodra Hisuian,goodra-hisui,14,,,68bdffde-99d7-4d12-9b32-eb835c4d5335,Goodra-Hisui,goodra-hisui-g9,Goodra-Hisui,goodra-hisui-g9,alias,sheet
+Goomy,goomy,1,Goomy,5,9af29464-222b-4ac7-8753-10ee1a3388c8,Goomy,goomy-g9,Goomy,goomy-g9,exact_name,sheet
+Gothita,gothita,1,Gothita,5,feed559b-d029-40ee-9767-01a3b4695fe9,Gothita,gothita-g9,Gothita,gothita-g9,exact_name,sheet
+Gothitelle,gothitelle,13,Gothitelle,13,9db49f10-9f33-455f-8bf9-14604c112cf1,Gothitelle,gothitelle-g9,Gothitelle,gothitelle-g9,exact_name,sheet
+Gothorita,gothorita,5,Gothorita,5,2e6965d4-7b71-47d6-a2a4-ec5dc3120a2e,Gothorita,gothorita-g9,Gothorita,gothorita-g9,exact_name,sheet
+Gouging Fire,gouging-fire,20,Gouging Fire,20,5946a730-ccb9-4194-ab93-a4538915db2f,Gouging Fire,gouging-fire-g9,Gouging Fire,gouging-fire-g9,exact_name,sheet
+Grafaiai,grafaiai,6,Grafaiai,10,53690b70-055a-403d-ab42-ed5eded60f6c,Grafaiai,grafaiai-g9,Grafaiai,grafaiai-g9,exact_name,sheet
+Granbull,granbull,8,Granbull,10,c1fdb96c-8fcc-42f7-bf02-d8b4d267a516,Granbull,granbull-g9,Granbull,granbull-g9,exact_name,sheet
+Graveler,graveler,3,Graveler,5,3532aceb-f90d-4537-9af1-485a0287fa64,Graveler,graveler-g9,Graveler,graveler-g9,exact_name,sheet
+Graveler Alolan,graveler-alola,2,,,89bf0dda-dcfd-431a-bab8-4c6261101a88,Graveler-Alola,graveler-alola-g9,Graveler-Alola,graveler-alola-g9,alias,sheet
+Great Tusk,great-tusk,19,Great Tusk,19,e121151c-da68-4fdb-a994-8b4a30fe96c6,Great Tusk,great-tusk-g9,Great Tusk,great-tusk-g9,exact_name,sheet
+Greavard,greavard,1,Greavard,5,29f9046d-2fe8-4b71-a19b-cb3fd107c181,Greavard,greavard-g9,Greavard,greavard-g9,exact_name,sheet
+Greedent,greedent,5,Greedent,10,,,,,,exact_name,sheet
+Greninja,greninja,15,Greninja,15,101e67fc-33cf-403f-990e-70654201e966,Greninja,greninja-g9,Greninja,greninja-g9,exact_name,sheet
+Grimer,grimer,1,Grimer,5,521b65bb-6b6a-461e-9fc7-9a175640872e,Grimer,grimer-g9,Grimer,grimer-g9,exact_name,sheet
+Grimer Alolan,grimer-alola,1,,,f9c9da36-7c82-4398-b1a0-6760f2c5e1d2,Grimer-Alola,grimer-alola-g9,Grimer-Alola,grimer-alola-g9,alias,sheet
+Grimmsnarl,grimmsnarl,12,Grimmsnarl,12,,,,,,exact_name,sheet
+Grookey,grookey,1,Grookey,5,,,,,,exact_name,sheet
+Grotle,grotle,3,Grotle,8,010166cf-7541-4551-bd3b-e731d85b17fe,Grotle,grotle-g9,Grotle,grotle-g9,exact_name,sheet
+Groudon,groudon,99,,,5b372f8d-5ab3-45b0-ba48-88700233b2fb,Groudon,groudon-g9,Groudon,groudon-g9,alias,sheet
+Grovyle,grovyle,3,Grovyle,8,cbb29d7a-09aa-4d47-bd88-c3eeaf995ea3,Grovyle,grovyle-g9,Grovyle,grovyle-g9,exact_name,sheet
+Growlithe,growlithe,1,Growlithe,5,8e4864f8-cb21-4f8d-ab03-6fd0f96af2fa,Growlithe,growlithe-g9,Growlithe,growlithe-g9,exact_name,sheet
+Growlithe Hisuian,growlithe-hisui,1,,,844d47b7-7086-4ed6-9c13-92d5fcf8e203,Growlithe-Hisui,growlithe-hisui-g9,Growlithe-Hisui,growlithe-hisui-g9,alias,sheet
+Grubbin,grubbin,1,Grubbin,5,,,,,,exact_name,sheet
+Grumpig,grumpig,5,Grumpig,10,98546c19-b607-463e-87f7-72fdf53b22ee,Grumpig,grumpig-g9,Grumpig,grumpig-g9,exact_name,sheet
+Gulpin,gulpin,1,Gulpin,5,42a2a86e-1fd3-4965-8076-d064f1438f3a,Gulpin,gulpin-g9,Gulpin,gulpin-g9,exact_name,sheet
+Gumshoos,gumshoos,5,Gumshoos,8,,,,,,exact_name,sheet
+Gurdurr,gurdurr,5,Gurdurr,8,266fde1d-a335-41c3-a1f7-9ee74443bf63,Gurdurr,gurdurr-g9,Gurdurr,gurdurr-g9,exact_name,sheet
+Gyarados,gyarados,12,Gyarados,12,d83a643a-361b-4a39-af76-ba079f60327c,Gyarados,gyarados-g9,Gyarados,gyarados-g9,exact_name,sheet
+Hakamo-o,hakamo-o,5,Hakamo O,8,,,,,,alias,sheet
+Happiny,happiny,1,Happiny,5,e2c88b74-7647-4cc3-b6e0-22a50c163a0d,Happiny,happiny-g9,Happiny,happiny-g9,exact_name,sheet
+Hariyama,hariyama,8,Hariyama,10,c75101d7-0f79-4cb4-bab3-78b569c1c371,Hariyama,hariyama-g9,Hariyama,hariyama-g9,exact_name,sheet
+Hatenna,hatenna,1,Hatenna,5,,,,,,exact_name,sheet
+Hatterene,hatterene,11,Hatterene,12,,,,,,exact_name,sheet
+Hattrem,hattrem,3,Hattrem,5,,,,,,exact_name,sheet
+Haunter,haunter,4,Haunter,8,dc6ce99b-afb0-4c5f-b96d-f6c639b5bb22,Haunter,haunter-g9,Haunter,haunter-g9,exact_name,sheet
+Hawlucha,hawlucha,13,Hawlucha,13,9abff211-a801-4225-973f-23d68bdd72db,Hawlucha,hawlucha-g9,Hawlucha,hawlucha-g9,exact_name,sheet
+Haxorus,haxorus,15,Haxorus,15,d8ff0c41-d93c-4c6b-904c-2f517e271be5,Haxorus,haxorus-g9,Haxorus,haxorus-g9,exact_name,sheet
+Heatran,heatran,16,Heatran,16,3c8e13bb-9975-4805-b168-22e0d83b160d,Heatran,heatran-g9,Heatran,heatran-g9,exact_name,sheet
+Heracross,heracross,10,Heracross,12,30d9bcaa-7eb7-482a-a09e-bb080a4892e6,Heracross,heracross-g9,Heracross,heracross-g9,exact_name,sheet
+Hippopotas,hippopotas,1,Hippopotas,5,d391effa-d210-4a23-ae3c-3ad942ba06a1,Hippopotas,hippopotas-g9,Hippopotas,hippopotas-g9,exact_name,sheet
+Hippowdon,hippowdon,12,Hippowdon,12,afb2f683-41b9-48a1-b6fb-f839f76284a0,Hippowdon,hippowdon-g9,Hippowdon,hippowdon-g9,exact_name,sheet
+Hitmonchan,hitmonchan,8,Hitmonchan,10,0581e57a-de14-448d-8b1a-c145d95e2534,Hitmonchan,hitmonchan-g9,Hitmonchan,hitmonchan-g9,exact_name,sheet
+Hitmonlee,hitmonlee,10,Hitmonlee,10,d488ba0c-ba5f-4ced-8d72-8c9c049f6569,Hitmonlee,hitmonlee-g9,Hitmonlee,hitmonlee-g9,exact_name,sheet
+Hitmontop,hitmontop,9,Hitmontop,10,e55c08aa-845d-46e6-bd81-60cde9f0ed9f,Hitmontop,hitmontop-g9,Hitmontop,hitmontop-g9,exact_name,sheet
+Ho-Oh,ho-oh,99,,,4e35d70d-7a38-406f-be96-7401619a612d,Ho-Oh,ho-oh-g9,Ho-Oh,ho-oh-g9,alias,sheet
+Honchkrow,honchkrow,9,Honchkrow,12,aca44391-a4d3-455f-8804-e0f545b26073,Honchkrow,honchkrow-g9,Honchkrow,honchkrow-g9,exact_name,sheet
+Hoopa,hoopa,11,Hoopa,11,89b87751-bfc4-4710-816f-cf35b71e770f,Hoopa,hoopa-g9,Hoopa,hoopa-g9,exact_name,sheet
+Hoopa Unbound,hoopa-unbound,99,,,01a0aa34-44b1-4b14-ba08-42ba4540f8c4,Hoopa-Unbound,hoopa-unbound-g9,Hoopa-Unbound,hoopa-unbound-g9,alias,sheet
+Hoothoot,hoothoot,1,Hoothoot,5,64623434-a40e-4583-bdce-3c82b8f6e2f4,Hoothoot,hoothoot-g9,Hoothoot,hoothoot-g9,exact_name,sheet
+Hoppip,hoppip,1,Hoppip,5,a4b0a6fb-3125-47d8-8d3d-cc4fdb477167,Hoppip,hoppip-g9,Hoppip,hoppip-g9,exact_name,sheet
+Horsea,horsea,1,Horsea,5,9041688f-7d86-498a-8433-dafd2860c9f4,Horsea,horsea-g9,Horsea,horsea-g9,exact_name,sheet
+Houndoom,houndoom,6,Houndoom,12,80759696-03fc-4dad-a162-c07711273193,Houndoom,houndoom-g9,Houndoom,houndoom-g9,exact_name,sheet
+Houndour,houndour,1,Houndour,5,ff2a3dbc-f3ab-48de-861d-619f1137289e,Houndour,houndour-g9,Houndour,houndour-g9,exact_name,sheet
+Houndstone,houndstone,9,Houndstone,10,b2f3ee29-dc16-46d6-ba83-c83d3d2270c0,Houndstone,houndstone-g9,Houndstone,houndstone-g9,exact_name,sheet
+Hydrapple,hydrapple,11,Hydrapple,11,9783bc3b-8fd1-499c-8e10-74a8fc64b4f0,Hydrapple,hydrapple-g9,Hydrapple,hydrapple-g9,exact_name,sheet
+Hydreigon,hydreigon,16,Hydreigon,16,8b7c2c02-e224-4d98-bf6e-db93006cd627,Hydreigon,hydreigon-g9,Hydreigon,hydreigon-g9,exact_name,sheet
+Hypno,hypno,6,Hypno,10,2ec976b5-b2b9-4abc-9769-5d22deddfc66,Hypno,hypno-g9,Hypno,hypno-g9,exact_name,sheet
+Igglybuff,igglybuff,1,Igglybuff,5,e6794431-f008-466b-983b-f6482f357196,Igglybuff,igglybuff-g9,Igglybuff,igglybuff-g9,exact_name,sheet
+Illumise,illumise,8,Illumise,8,0957efb6-8640-45d7-ad75-7ad9e7629665,Illumise,illumise-g9,Illumise,illumise-g9,exact_name,sheet
+Impidimp,impidimp,2,Impidimp,5,,,,,,exact_name,sheet
+Incineroar,incineroar,11,Incineroar,12,8057cb27-c83d-4f77-9f7c-a9dcfb606d53,Incineroar,incineroar-g9,Incineroar,incineroar-g9,exact_name,sheet
+Indeedee Male,indeedee,9,Indeedee Male,10,,,,,,exact_name,sheet
+Infernape,infernape,17,Infernape,17,609c46ea-351f-435b-a65b-0fc87949dc51,Infernape,infernape-g9,Infernape,infernape-g9,exact_name,sheet
+Inkay,inkay,1,Inkay,5,d127c87b-8cab-4802-b5d2-f518e6228fec,Inkay,inkay-g9,Inkay,inkay-g9,exact_name,sheet
+Inteleon,inteleon,11,Inteleon,12,,,,,,exact_name,sheet
+Iron Boulder,iron-boulder,16,Iron Boulder,16,1f265d81-bc20-42cc-b016-1f624afb4e47,Iron Boulder,iron-boulder-g9,Iron Boulder,iron-boulder-g9,exact_name,sheet
+Iron Bundle,iron-bundle,19,Iron Bundle,19,613d6194-49a6-417e-bd65-559d7554b2b5,Iron Bundle,iron-bundle-g9,Iron Bundle,iron-bundle-g9,exact_name,sheet
+Iron Crown,iron-crown,15,Iron Crown,15,6cdede58-6ce2-4bba-b3b2-ca5020eb878f,Iron Crown,iron-crown-g9,Iron Crown,iron-crown-g9,exact_name,sheet
+Iron Hands,iron-hands,14,Iron Hands,14,44c4da58-c1d6-4411-b3e2-b8a2ffcbc965,Iron Hands,iron-hands-g9,Iron Hands,iron-hands-g9,exact_name,sheet
+Iron Jugulis,iron-jugulis,13,Iron Jugulis,13,88253eab-22ac-4422-a2b2-363b91d327f2,Iron Jugulis,iron-jugulis-g9,Iron Jugulis,iron-jugulis-g9,exact_name,sheet
+Iron Leaves,iron-leaves,13,Iron Leaves,13,a3822e29-6c4b-4eac-8366-9b8f732cd003,Iron Leaves,iron-leaves-g9,Iron Leaves,iron-leaves-g9,exact_name,sheet
+Iron Moth,iron-moth,15,Iron Moth,15,0f7cc5e0-07e1-48a5-90c7-140bfeeeac99,Iron Moth,iron-moth-g9,Iron Moth,iron-moth-g9,exact_name,sheet
+Iron Thorns,iron-thorns,11,Iron Thorns,11,1399c394-4359-4638-98df-69e9bb472de7,Iron Thorns,iron-thorns-g9,Iron Thorns,iron-thorns-g9,exact_name,sheet
+Iron Treads,iron-treads,18,Iron Treads,18,2cb4efde-c4f0-4b03-95ea-7b5fb1a9c7e0,Iron Treads,iron-treads-g9,Iron Treads,iron-treads-g9,exact_name,sheet
+Iron Valiant,iron-valiant,19,Iron Valiant,19,21d71c33-0234-4828-9264-931e33e6795e,Iron Valiant,iron-valiant-g9,Iron Valiant,iron-valiant-g9,exact_name,sheet
+Ivysaur,ivysaur,3,Ivysaur,8,e829a3e2-c3b1-4d80-8570-6d317815ad6b,Ivysaur,ivysaur-g9,Ivysaur,ivysaur-g9,exact_name,sheet
+Jangmo-o,jangmo-o,1,Jangmo O,5,,,,,,alias,sheet
+Jigglypuff,jigglypuff,1,Jigglypuff,5,eee91226-8b66-4bd5-9a06-069336a6a404,Jigglypuff,jigglypuff-g9,Jigglypuff,jigglypuff-g9,exact_name,sheet
+Jirachi,jirachi,15,Jirachi,15,59b810cd-d4bb-40aa-97e4-06ead7a02540,Jirachi,jirachi-g9,Jirachi,jirachi-g9,exact_name,sheet
+Jolteon,jolteon,10,Jolteon,12,9cac947b-c965-40d1-8c4b-aef3ab15388b,Jolteon,jolteon-g9,Jolteon,jolteon-g9,exact_name,sheet
+Joltik,joltik,1,Joltik,5,c7718520-1491-4f7e-8525-974d6bed4c0a,Joltik,joltik-g9,Joltik,joltik-g9,exact_name,sheet
+Jumpluff,jumpluff,6,Jumpluff,10,da273391-2c76-41f9-a554-26a36120042e,Jumpluff,jumpluff-g9,Jumpluff,jumpluff-g9,exact_name,sheet
+Keldeo,keldeo,16,Keldeo,16,224cde12-08d9-4ed6-91b2-8f9eae662274,Keldeo,keldeo-g9,Keldeo,keldeo-g9,exact_name,sheet
+Kilowattrel,kilowattrel,10,Kilowattrel,10,d23c8318-39e7-45d1-919e-97760f665c63,Kilowattrel,kilowattrel-g9,Kilowattrel,kilowattrel-g9,exact_name,sheet
+Kingambit,kingambit,17,Kingambit,17,e3770e24-a72c-432d-8bac-80c4332e8fe9,Kingambit,kingambit-g9,Kingambit,kingambit-g9,exact_name,sheet
+Kingdra,kingdra,9,Kingdra,9,93435e07-d421-47e7-af94-6e667b0023e4,Kingdra,kingdra-g9,Kingdra,kingdra-g9,exact_name,sheet
+Kirlia,kirlia,3,Kirlia,5,2fd525f0-9c1f-4f36-bd91-874631d5aeaa,Kirlia,kirlia-g9,Kirlia,kirlia-g9,exact_name,sheet
+Klawf,klawf,4,Klawf,10,603b7950-58f0-42b7-84ba-816782bcf2fa,Klawf,klawf-g9,Klawf,klawf-g9,exact_name,sheet
+Kleavor,kleavor,13,Kleavor,13,,,,,,exact_name,sheet
+Klefki,klefki,10,Klefki,10,6638e468-74d8-4219-8740-684856d85b55,Klefki,klefki-g9,Klefki,klefki-g9,exact_name,sheet
+Koffing,koffing,1,Koffing,5,1e8447b2-d03f-4961-bd4c-16368b06d4a6,Koffing,koffing-g9,Koffing,koffing-g9,exact_name,sheet
+Komala,komala,4,Komala,10,,,,,,exact_name,sheet
+Kommo-o,kommo-o,18,Kommo O,18,,,,,,alias,sheet
+Koraidon,koraidon,99,Koraidon,10,9b533b85-eb08-457d-9b14-a573d35a04b9,Koraidon,koraidon-g9,Koraidon,koraidon-g9,exact_name,sheet
+Kricketot,kricketot,1,Kricketot,5,e55d0cd1-e660-4bd7-a8c1-18e63840aa77,Kricketot,kricketot-g9,Kricketot,kricketot-g9,exact_name,sheet
+Kricketune,kricketune,6,Kricketune,5,cd58f7bd-e83f-4815-a2d1-e1e941caa5c1,Kricketune,kricketune-g9,Kricketune,kricketune-g9,exact_name,sheet
+Krokorok,krokorok,3,Krokorok,5,8c5c8cca-59e2-49df-8f36-77af137150f1,Krokorok,krokorok-g9,Krokorok,krokorok-g9,exact_name,sheet
+Krookodile,krookodile,14,Krookodile,14,de10cd05-24e5-4a74-9722-b760ec67dfd2,Krookodile,krookodile-g9,Krookodile,krookodile-g9,exact_name,sheet
+Kubfu,kubfu,1,Kubfu,5,,,,,,exact_name,sheet
+Kyogre,kyogre,99,,,0c39c7e6-18c9-49b4-b43d-b1e769936d1e,Kyogre,kyogre-g9,Kyogre,kyogre-g9,alias,sheet
+Kyurem,kyurem,99,,,9c0b399e-a228-4920-9372-f32c5aaf173c,Kyurem,kyurem-g9,Kyurem,kyurem-g9,alias,sheet
+Kyurem Black,kyurem-black,99,,,0071409b-39e1-428d-8031-a709b9d4323d,Kyurem-Black,kyurem-black-g9,Kyurem-Black,kyurem-black-g9,alias,sheet
+Kyurem White,kyurem-white,99,,,42cf7985-31ca-4ca8-9ffd-af2791fd2aaf,Kyurem-White,kyurem-white-g9,Kyurem-White,kyurem-white-g9,alias,sheet
+Lampent,lampent,3,Lampent,5,418a4d79-c050-4e72-985c-27889f42b8fe,Lampent,lampent-g9,Lampent,lampent-g9,exact_name,sheet
+Landorus Incarnate,landorus,99,,,366a7a31-6b68-45a0-9b72-0fd9309c4a33,Landorus,landorus-g9,Landorus,landorus-g9,alias,sheet
+Landorus Therian,landorus-therian,18,,,14dacc83-ff0e-4b1a-b4a5-4d49e21726ea,Landorus-Therian,landorus-therian-g9,Landorus-Therian,landorus-therian-g9,alias,sheet
+Lanturn,lanturn,7,Lanturn,10,53c5b22a-7060-4b2e-b77c-15e4f595d311,Lanturn,lanturn-g9,Lanturn,lanturn-g9,exact_name,sheet
+Lapras,lapras,7,Lapras,12,ddd4c86c-fd36-4bac-9701-3b0905198b74,Lapras,lapras-g9,Lapras,lapras-g9,exact_name,sheet
+Larvesta,larvesta,1,Larvesta,5,44fed0f9-1c1a-4149-8f71-060e1d17f645,Larvesta,larvesta-g9,Larvesta,larvesta-g9,exact_name,sheet
+Larvitar,larvitar,1,Larvitar,5,2f7f7e8f-e26f-415b-990b-181466f6fbb8,Larvitar,larvitar-g9,Larvitar,larvitar-g9,exact_name,sheet
+Latias,latias,15,Latias,15,6de8a656-1f38-424d-89b4-0f280cac8270,Latias,latias-g9,Latias,latias-g9,exact_name,sheet
+Latios,latios,15,Latios,15,f3eecf8e-f901-4220-ae73-f1178b7c9e22,Latios,latios-g9,Latios,latios-g9,exact_name,sheet
+Leafeon,leafeon,6,Leafeon,12,6130b0d3-c155-4053-8c33-8d411d06c2a0,Leafeon,leafeon-g9,Leafeon,leafeon-g9,exact_name,sheet
+Leavanny,leavanny,4,Leavanny,12,06e22c50-018b-43d9-ac64-190fc4fb0d8a,Leavanny,leavanny-g9,Leavanny,leavanny-g9,exact_name,sheet
+Lechonk,lechonk,1,Lechonk,5,fd0d0752-cb41-4e4d-825a-7d95041b5cbf,Lechonk,lechonk-g9,Lechonk,lechonk-g9,exact_name,sheet
+Lilligant,lilligant,6,Lilligant,10,25ce7804-3c21-4906-8925-9c63269f585a,Lilligant,lilligant-g9,Lilligant,lilligant-g9,exact_name,sheet
+Lilligant Hisuian,lilligant-hisui,15,,,f57c5b49-7c85-4d39-9a5a-f9d43910f6b1,Lilligant-Hisui,lilligant-hisui-g9,Lilligant-Hisui,lilligant-hisui-g9,alias,sheet
+Litleo,litleo,1,Litleo,5,5af5fa58-efbd-4601-8cb0-9b11935b9f11,Litleo,litleo-g9,Litleo,litleo-g9,exact_name,sheet
+Litten,litten,1,Litten,5,421a4bce-02fa-49c6-8931-f6f33a7f302c,Litten,litten-g9,Litten,litten-g9,exact_name,sheet
+Litwick,litwick,1,Litwick,5,8a41a3d4-ccc7-4046-9c97-10d85f912cca,Litwick,litwick-g9,Litwick,litwick-g9,exact_name,sheet
+Lokix,lokix,13,Lokix,13,20599235-4b42-413d-823e-58c64ef7a32f,Lokix,lokix-g9,Lokix,lokix-g9,exact_name,sheet
+Lombre,lombre,3,Lombre,5,151a24fe-bed2-42c1-a38a-0984bc4701c4,Lombre,lombre-g9,Lombre,lombre-g9,exact_name,sheet
+Lotad,lotad,1,Lotad,5,c710ded6-d6db-4a31-9b59-23ed3f6bbd34,Lotad,lotad-g9,Lotad,lotad-g9,exact_name,sheet
+Lucario,lucario,14,Lucario,14,7322ac39-153c-4d37-91f9-41995ca0899e,Lucario,lucario-g9,Lucario,lucario-g9,exact_name,sheet
+Ludicolo,ludicolo,6,Ludicolo,10,2069a516-4f95-4dca-8aa0-979f1de5ae9a,Ludicolo,ludicolo-g9,Ludicolo,ludicolo-g9,exact_name,sheet
+Lugia,lugia,99,,,a965d53a-4791-4ef5-a2f6-fd97ed6023db,Lugia,lugia-g9,Lugia,lugia-g9,alias,sheet
+Lumineon,lumineon,4,Lumineon,10,e78cb348-d762-421c-8f5d-d2426a407d73,Lumineon,lumineon-g9,Lumineon,lumineon-g9,exact_name,sheet
+Lurantis,lurantis,5,Lurantis,10,,,,,,exact_name,sheet
+Luvdisc,luvdisc,1,Luvdisc,5,af284b4c-5410-41f2-89c3-8fc71adb36f2,Luvdisc,luvdisc-g9,Luvdisc,luvdisc-g9,exact_name,sheet
+Luxio,luxio,3,Luxio,5,19220eb2-df8e-4f82-a8f1-bc2c5d721e27,Luxio,luxio-g9,Luxio,luxio-g9,exact_name,sheet
+Luxray,luxray,6,Luxray,12,8cda813d-f78a-4cbf-83a6-61e701702ad5,Luxray,luxray-g9,Luxray,luxray-g9,exact_name,sheet
+Lycanroc,lycanroc,8,Lycanroc,8,,,,,,exact_name,sheet
+Mabosstiff,mabosstiff,4,Mabosstiff,4,8f421b38-f8c5-4d90-9680-54f5420d2ecf,Mabosstiff,mabosstiff-g9,Mabosstiff,mabosstiff-g9,exact_name,sheet
+Magby,magby,1,Magby,5,777adee9-c61b-43c1-b279-15fbc6be044e,Magby,magby-g9,Magby,magby-g9,exact_name,sheet
+Magcargo,magcargo,5,Magcargo,8,670e2d63-b7d4-43f3-9825-e7074964a1fa,Magcargo,magcargo-g9,Magcargo,magcargo-g9,exact_name,sheet
+Magikarp,magikarp,1,Magikarp,5,17d29b5e-d997-49dc-a112-3d9e889fce5e,Magikarp,magikarp-g9,Magikarp,magikarp-g9,exact_name,sheet
+Magmar,magmar,5,Magmar,10,0b9aefca-157a-4a78-999a-2bb21836db7b,Magmar,magmar-g9,Magmar,magmar-g9,exact_name,sheet
+Magmortar,magmortar,8,Magmortar,8,41b0f42c-72ff-4ee6-ad02-29cf9ca1a098,Magmortar,magmortar-g9,Magmortar,magmortar-g9,exact_name,sheet
+Magnemite,magnemite,1,Magnemite,5,9cd3fdbe-1581-4caa-9023-45dfb434a559,Magnemite,magnemite-g9,Magnemite,magnemite-g9,exact_name,sheet
+Magneton,magneton,6,Magneton,10,c40980c8-9a6b-44a1-ac1c-077031d3a150,Magneton,magneton-g9,Magneton,magneton-g9,exact_name,sheet
+Magnezone,magnezone,10,Magnezone,12,fc9a2dbd-622b-47dd-b159-8e39eb05c28d,Magnezone,magnezone-g9,Magnezone,magnezone-g9,exact_name,sheet
+Makuhita,makuhita,1,Makuhita,5,cdf9414a-8116-43fb-91ff-13a9e236379e,Makuhita,makuhita-g9,Makuhita,makuhita-g9,exact_name,sheet
+Malamar,malamar,6,Malamar,10,83370b7e-7da3-4639-bc97-a6b98fcd14ac,Malamar,malamar-g9,Malamar,malamar-g9,exact_name,sheet
+Mamoswine,mamoswine,16,Mamoswine,16,6bbec7f3-d64e-4912-819a-80617c3bc26b,Mamoswine,mamoswine-g9,Mamoswine,mamoswine-g9,exact_name,sheet
+Manaphy,manaphy,14,Manaphy,14,1f4ba3e5-0d37-427d-acab-c515415a6a52,Manaphy,manaphy-g9,Manaphy,manaphy-g9,exact_name,sheet
+Mandibuzz,mandibuzz,15,Mandibuzz,15,d496cd83-8e53-486e-aafe-e91b07fb7976,Mandibuzz,mandibuzz-g9,Mandibuzz,mandibuzz-g9,exact_name,sheet
+Mankey,mankey,1,Mankey,5,34bc9a75-8a90-47da-910d-97a679b7447c,Mankey,mankey-g9,Mankey,mankey-g9,exact_name,sheet
+Mareanie,mareanie,2,Mareanie,5,,,,,,exact_name,sheet
+Mareep,mareep,1,Mareep,5,fc668beb-ebfa-43cc-a1ce-b65d5caed63b,Mareep,mareep-g9,Mareep,mareep-g9,exact_name,sheet
+Marill,marill,3,Marill,5,cbb2944d-1f21-4bd0-9a11-0bc14cd3dcc1,Marill,marill-g9,Marill,marill-g9,exact_name,sheet
+Marshtomp,marshtomp,3,Marshtomp,8,b3321853-7257-43a7-a4a2-b743e6820789,Marshtomp,marshtomp-g9,Marshtomp,marshtomp-g9,exact_name,sheet
+Maschiff,maschiff,1,Maschiff,5,1eb576e9-867b-40d5-8b49-2bff96a76500,Maschiff,maschiff-g9,Maschiff,maschiff-g9,exact_name,sheet
+Masquerain,masquerain,5,Masquerain,10,681a8b43-dfc0-4e6c-b5a5-d1fe38938e6a,Masquerain,masquerain-g9,Masquerain,masquerain-g9,exact_name,sheet
+Maushold,maushold,11,Maushold Family Of Four,10,,,,,,alias,sheet
+Medicham,medicham,7,Medicham,8,5ae0ffcc-9456-4222-a864-81dcd21f1465,Medicham,medicham-g9,Medicham,medicham-g9,exact_name,sheet
+Meditite,meditite,1,Meditite,5,dc2575c2-b941-4045-9716-49ea9ded3291,Meditite,meditite-g9,Meditite,meditite-g9,exact_name,sheet
+Meganium,meganium,6,Meganium,12,7980080f-9911-4a39-bab3-6526dad69ef9,Meganium,meganium-g9,Meganium,meganium-g9,exact_name,sheet
+Meloetta,meloetta,15,Meloetta,15,e8c0d649-3252-4929-8257-674b2f654c4c,Meloetta,meloetta-g9,Meloetta,meloetta-g9,exact_name,sheet
+Meltan,meltan,99,Meltan,5,,,,,,exact_name,sheet
+Meowscarada,meowscarada,17,Meowscarada,17,ed6d768b-7082-40f0-834f-32ae952f6504,Meowscarada,meowscarada-g9,Meowscarada,meowscarada-g9,exact_name,sheet
+Meowstic Male,meowstic,11,Meowstic Male,10,1c01b2a0-fe87-463c-ab71-ea3c14e35ebc,Meowstic,meowstic-g9,Meowstic,meowstic-g9,exact_name,sheet
+Meowth,meowth,1,Meowth,5,183ac262-2925-453a-ac39-7485901928f8,Meowth,meowth-g9,Meowth,meowth-g9,exact_name,sheet
+Meowth Alolan,meowth-alola,1,,,4b52758d-76ca-42ee-9589-894bbdcafc24,Meowth-Alola,meowth-alola-g9,Meowth-Alola,meowth-alola-g9,alias,sheet
+Meowth Galarian,meowth-galar,1,,,2c56a142-43bc-4643-af57-b0743980cfbf,Meowth-Galar,meowth-galar-g9,Meowth-Galar,meowth-galar-g9,alias,sheet
+Mesprit,mesprit,12,Mesprit,12,63ee9e17-4e9a-41cd-b014-191b1649a299,Mesprit,mesprit-g9,Mesprit,mesprit-g9,exact_name,sheet
+Metagross,metagross,15,Metagross,15,1a222ea0-08c2-405b-8c24-537f9ecef9da,Metagross,metagross-g9,Metagross,metagross-g9,exact_name,sheet
+Metang,metang,5,Metang,8,b1504b5a-a54e-4d37-87ec-bcfff1c323c4,Metang,metang-g9,Metang,metang-g9,exact_name,sheet
+Mew,mew,16,Mew,16,a97e993b-279e-4a11-ac81-78ab4e8feabd,Mew,mew-g9,Mew,mew-g9,exact_name,sheet
+Mewtwo,mewtwo,99,,,2d5caa02-27ba-41ed-817e-e965a269220f,Mewtwo,mewtwo-g9,Mewtwo,mewtwo-g9,alias,sheet
+Mienfoo,mienfoo,1,Mienfoo,5,191ffcb5-213a-46e3-a88c-e76ac4cb09bc,Mienfoo,mienfoo-g9,Mienfoo,mienfoo-g9,exact_name,sheet
+Mienshao,mienshao,13,Mienshao,13,26e0b6a8-6e2c-402c-b021-cdf404619826,Mienshao,mienshao-g9,Mienshao,mienshao-g9,exact_name,sheet
+Mightyena,mightyena,4,Mightyena,8,41c9c107-df0e-439f-8898-6bfc78cbadf5,Mightyena,mightyena-g9,Mightyena,mightyena-g9,exact_name,sheet
+Milotic,milotic,11,Milotic,11,8761d6e4-3195-488a-9d17-3d54ac136ea9,Milotic,milotic-g9,Milotic,milotic-g9,exact_name,sheet
+Mimikyu,mimikyu,10,Mimikyu Disguised,10,,,,,,alias,sheet
+Minccino,minccino,1,Minccino,5,883930fa-d115-43b1-99cb-380198ee2856,Minccino,minccino-g9,Minccino,minccino-g9,exact_name,sheet
+Minior,minior,7,Minior Red Meteor,8,,,,,,alias,sheet
+Minun,minun,2,Minun,8,75883282-d235-43b5-912e-c3f3ad20eb15,Minun,minun-g9,Minun,minun-g9,exact_name,sheet
+Miraidon,miraidon,99,Miraidon,10,0373c7e6-d557-4c3f-9852-12ed33779d15,Miraidon,miraidon-g9,Miraidon,miraidon-g9,exact_name,sheet
+Misdreavus,misdreavus,4,Misdreavus,8,4b9db0c4-085d-4bdd-91fa-2817ab3fd759,Misdreavus,misdreavus-g9,Misdreavus,misdreavus-g9,exact_name,sheet
+Mismagius,mismagius,9,Mismagius,10,12068180-a173-42c5-84b8-ff6c092c0ed4,Mismagius,mismagius-g9,Mismagius,mismagius-g9,exact_name,sheet
+Moltres,moltres,14,Moltres,14,21866356-a753-43b6-8676-2aa31f190440,Moltres,moltres-g9,Moltres,moltres-g9,exact_name,sheet
+Moltres Galarian,moltres-galar,13,,,e2ca3b81-b292-423b-aeac-4ccb791e3392,Moltres-Galar,moltres-galar-g9,Moltres-Galar,moltres-galar-g9,alias,sheet
+Monferno,monferno,3,Monferno,8,8305b16f-7e41-4cb1-8254-4c3805934db1,Monferno,monferno-g9,Monferno,monferno-g9,exact_name,sheet
+Morgrem,morgrem,4,Morgrem,5,,,,,,exact_name,sheet
+Morpeko,morpeko,6,Morpeko Full Belly,8,,,,,,alias,sheet
+Mudbray,mudbray,1,Mudbray,5,,,,,,exact_name,sheet
+Mudkip,mudkip,1,Mudkip,5,53f5e75d-1693-4b91-ab44-1cec801b62db,Mudkip,mudkip-g9,Mudkip,mudkip-g9,exact_name,sheet
+Mudsdale,mudsdale,6,Mudsdale,12,,,,,,exact_name,sheet
+Muk,muk,5,Muk,12,09efd6b8-1060-40d1-ad2c-8db55a6adfb1,Muk,muk-g9,Muk,muk-g9,exact_name,sheet
+Muk Alolan,muk-alola,10,,,68b53025-77fe-4128-b23f-4f6b706c4d58,Muk-Alola,muk-alola-g9,Muk-Alola,muk-alola-g9,alias,sheet
+Munchlax,munchlax,2,Munchlax,5,c10c9b2e-1298-4898-9cc7-d715b80f51bd,Munchlax,munchlax-g9,Munchlax,munchlax-g9,exact_name,sheet
+Munkidori,munkidori,15,Munkidori,15,71af64d3-7d7d-407f-9075-ea619b2eba2e,Munkidori,munkidori-g9,Munkidori,munkidori-g9,exact_name,sheet
+Murkrow,murkrow,8,Murkrow,8,79f7c238-0d21-4450-bc20-4acad835f468,Murkrow,murkrow-g9,Murkrow,murkrow-g9,exact_name,sheet
+Nacli,nacli,1,Nacli,5,5322355e-a71b-4abc-b2c6-4968f91fe639,Nacli,nacli-g9,Nacli,nacli-g9,exact_name,sheet
+Naclstack,naclstack,6,Naclstack,5,38f0d261-588d-489d-a608-5ced06dc8d28,Naclstack,naclstack-g9,Naclstack,naclstack-g9,exact_name,sheet
+Ninetales,ninetales,10,Ninetales,12,2509038d-747f-4a08-a346-414c5695a5b9,Ninetales,ninetales-g9,Ninetales,ninetales-g9,exact_name,sheet
+Ninetales Alolan,ninetales-alola,14,,,b89b84d0-72e6-4f37-9d36-4ceaa7436e19,Ninetales-Alola,ninetales-alola-g9,Ninetales-Alola,ninetales-alola-g9,alias,sheet
+Noctowl,noctowl,4,Noctowl,10,e4089677-220a-4b35-81a2-d62d33f8b052,Noctowl,noctowl-g9,Noctowl,noctowl-g9,exact_name,sheet
+Noibat,noibat,1,Noibat,5,95c6dbcc-bd85-499c-877a-e5fabcced686,Noibat,noibat-g9,Noibat,noibat-g9,exact_name,sheet
+Noivern,noivern,10,Noivern,12,3d59bcd5-161e-4dbc-88fc-bd3f684f9747,Noivern,noivern-g9,Noivern,noivern-g9,exact_name,sheet
+Nosepass,nosepass,1,Nosepass,5,94906a38-336c-4ebc-b672-81d8359246eb,Nosepass,nosepass-g9,Nosepass,nosepass-g9,exact_name,sheet
+Numel,numel,1,Numel,5,b1ff023c-bc54-43cf-a7fe-def484985287,Numel,numel-g9,Numel,numel-g9,exact_name,sheet
+Nuzleaf,nuzleaf,3,Nuzleaf,5,90bace3f-6389-4f3d-a499-a4ca5d37f4ac,Nuzleaf,nuzleaf-g9,Nuzleaf,nuzleaf-g9,exact_name,sheet
+Nymble,nymble,1,Nymble,5,12d518c8-c059-43bc-bada-a738d15a421f,Nymble,nymble-g9,Nymble,nymble-g9,exact_name,sheet
+Oddish,oddish,1,Oddish,5,28ab6c85-c59d-4775-91dd-7dd744815aa0,Oddish,oddish-g9,Oddish,oddish-g9,exact_name,sheet
+Ogerpon,ogerpon,16,Ogerpon,15,22ed058c-9e6e-4b9d-a05c-2e5dedd1eff1,Ogerpon,ogerpon-g9,Ogerpon,ogerpon-g9,exact_name,sheet
+Oinkologne,oinkologne,5,Oinkologne Male,10,,,,,,alias,sheet
+Okidogi,okidogi,14,Okidogi,14,6f79ed47-f8c8-473c-ba0a-6c8734b49731,Okidogi,okidogi-g9,Okidogi,okidogi-g9,exact_name,sheet
+Oranguru,oranguru,5,Oranguru,10,,,,,,exact_name,sheet
+Oricorio,oricorio,6,Oricorio Baile,10,,,,,,alias,sheet
+Orthworm,orthworm,8,Orthworm,10,2878ae41-014d-4ac6-afc2-d4b777bb5cb1,Orthworm,orthworm-g9,Orthworm,orthworm-g9,exact_name,sheet
+Oshawott,oshawott,1,Oshawott,5,9a3b466b-5aa4-4ac4-aff1-d3e20a2014fd,Oshawott,oshawott-g9,Oshawott,oshawott-g9,exact_name,sheet
+Overqwil,overqwil,12,Overqwil,12,,,,,,exact_name,sheet
+Pachirisu,pachirisu,4,Pachirisu,8,b19c74a4-7141-475d-826f-67c12b733987,Pachirisu,pachirisu-g9,Pachirisu,pachirisu-g9,exact_name,sheet
+Palafin,palafin,99,Palafin Zero,10,,,,,,alias,sheet
+Palkia,palkia,99,,,1266fec5-2af7-42d9-8f63-55cb70f07b53,Palkia,palkia-g9,Palkia,palkia-g9,alias,sheet
+Palkia Origin,palkia-origin,99,,,f870ea47-fe33-432e-8254-3da5f281df4c,Palkia-Origin,palkia-origin-g9,Palkia-Origin,palkia-origin-g9,alias,sheet
+Palossand,palossand,6,Palossand,10,,,,,,exact_name,sheet
+Passimian,passimian,7,Passimian,10,,,,,,exact_name,sheet
+Pawmi,pawmi,1,Pawmi,5,f88d2260-275b-44a6-9ccf-3382c985ee09,Pawmi,pawmi-g9,Pawmi,pawmi-g9,exact_name,sheet
+Pawmo,pawmo,4,Pawmo,5,23aba3c0-9ca3-44d9-9e69-a914a8134514,Pawmo,pawmo-g9,Pawmo,pawmo-g9,exact_name,sheet
+Pawmot,pawmot,11,Pawmot,10,eeca2e64-eff7-4a54-869d-20c057d09f8b,Pawmot,pawmot-g9,Pawmot,pawmot-g9,exact_name,sheet
+Pawniard,pawniard,1,Pawniard,5,5d24a037-d3de-444d-b235-3c621974e13b,Pawniard,pawniard-g9,Pawniard,pawniard-g9,exact_name,sheet
+Pecharunt,pecharunt,19,Pecharunt,19,c774b880-323b-4709-9ef3-b0f19b3f64f7,Pecharunt,pecharunt-g9,Pecharunt,pecharunt-g9,exact_name,sheet
+Pelipper,pelipper,11,Pelipper,8,73980cb1-f0e6-43c7-b725-b91f3d267fc1,Pelipper,pelipper-g9,Pelipper,pelipper-g9,exact_name,sheet
+Perrserker,perrserker,7,Perrserker,8,,,,,,exact_name,sheet
+Persian,persian,5,Persian,8,588d3b7b-242d-405c-a5d6-e63f74fb06ca,Persian,persian-g9,Persian,persian-g9,exact_name,sheet
+Persian Alolan,persian-alola,6,,,72489954-3985-4f76-954e-3865b24b04cc,Persian-Alola,persian-alola-g9,Persian-Alola,persian-alola-g9,alias,sheet
+Petilil,petilil,1,Petilil,5,0ebe7d53-25a4-41b5-ae02-f47d9f483f64,Petilil,petilil-g9,Petilil,petilil-g9,exact_name,sheet
+Phanpy,phanpy,1,Phanpy,5,41fd6d93-ea34-438e-9e15-0aa44977d4ad,Phanpy,phanpy-g9,Phanpy,phanpy-g9,exact_name,sheet
+Phantump,phantump,1,Phantump,5,a5b9d573-f750-4aef-a3a1-6708365d4409,Phantump,phantump-g9,Phantump,phantump-g9,exact_name,sheet
+Phione,phione,12,Phione,10,05519805-002c-4aff-9a9c-b4a23512c7b0,Phione,phione-g9,Phione,phione-g9,exact_name,sheet
+Pichu,pichu,1,Pichu,5,f00fc636-fca5-4e2f-a275-1dc04b283945,Pichu,pichu-g9,Pichu,pichu-g9,exact_name,sheet
+Pignite,pignite,3,Pignite,8,04ce01d3-c6c3-446e-9f89-ea04917f868d,Pignite,pignite-g9,Pignite,pignite-g9,exact_name,sheet
+Pikachu,pikachu,4,Pikachu,5,a7f2e172-4388-4fdf-a089-2c2e56de4ccc,Pikachu,pikachu-g9,Pikachu,pikachu-g9,exact_name,sheet
+Pikipek,pikipek,1,Pikipek,5,7d28739b-7dce-478e-9949-fb318d516bc4,Pikipek,pikipek-g9,Pikipek,pikipek-g9,exact_name,sheet
+Piloswine,piloswine,8,Piloswine,10,47e42cf0-2ee0-44d6-8bb7-d759d891fba6,Piloswine,piloswine-g9,Piloswine,piloswine-g9,exact_name,sheet
+Pincurchin,pincurchin,6,Pincurchin,8,,,,,,exact_name,sheet
+Pineco,pineco,1,Pineco,5,ba167757-00df-4b6e-a866-48fdf6ea020b,Pineco,pineco-g9,Pineco,pineco-g9,exact_name,sheet
+Piplup,piplup,1,Piplup,5,bc55d99b-65cc-43b2-aa64-4d7a8970e029,Piplup,piplup-g9,Piplup,piplup-g9,exact_name,sheet
+Plusle,plusle,2,Plusle,8,fe97a029-eb93-4dcb-84ec-a3300a2a9f76,Plusle,plusle-g9,Plusle,plusle-g9,exact_name,sheet
+Politoed,politoed,10,Politoed,12,cbfe1870-6ad7-4926-b01e-f79dd41212dc,Politoed,politoed-g9,Politoed,politoed-g9,exact_name,sheet
+Poliwag,poliwag,1,Poliwag,5,0392c1c4-8e72-4305-af6c-322340469e53,Poliwag,poliwag-g9,Poliwag,poliwag-g9,exact_name,sheet
+Poliwhirl,poliwhirl,3,Poliwhirl,5,3f873f97-3f8c-41b6-b7c9-7b281dee14d6,Poliwhirl,poliwhirl-g9,Poliwhirl,poliwhirl-g9,exact_name,sheet
+Poliwrath,poliwrath,7,Poliwrath,12,ff58945f-2ea3-4470-be33-3d544ec3b2c8,Poliwrath,poliwrath-g9,Poliwrath,poliwrath-g9,exact_name,sheet
+Poltchageist,poltchageist,1,Poltchageist,5,7ecb9ea2-65f6-4db2-a40c-9c4e550e6cc5,Poltchageist,poltchageist-g9,Poltchageist,poltchageist-g9,exact_name,sheet
+Polteageist,polteageist,8,Polteageist,12,,,,,,exact_name,sheet
+Poochyena,poochyena,1,Poochyena,5,4ddefd91-34c1-4d56-b05a-cc80e30308ba,Poochyena,poochyena-g9,Poochyena,poochyena-g9,exact_name,sheet
+Popplio,popplio,1,Popplio,5,08cad274-fa58-4d3d-b712-4ee331750ff8,Popplio,popplio-g9,Popplio,popplio-g9,exact_name,sheet
+Porygon,porygon,5,Porygon,5,256963f0-ff5f-4e11-a784-58fcdd4f674d,Porygon,porygon-g9,Porygon,porygon-g9,exact_name,sheet
+Porygon-Z,porygon-z,12,Porygon Z,12,e5c96ac5-2d93-4613-b1d1-c93f14a8cf57,Porygon-Z,porygon-z-g9,Porygon-Z,porygon-z-g9,alias,sheet
+Porygon2,porygon2,13,Porygon2,13,394e56bd-6fce-4e9c-989c-9ce95d63bb2d,Porygon2,porygon2-g9,Porygon2,porygon2-g9,exact_name,sheet
+Primarina,primarina,13,Primarina,13,b810b6cb-8854-46db-9508-cbf80bc96179,Primarina,primarina-g9,Primarina,primarina-g9,exact_name,sheet
+Primeape,primeape,9,Primeape,10,f1c1f4f7-ee57-4dae-8d85-cabd7085aa82,Primeape,primeape-g9,Primeape,primeape-g9,exact_name,sheet
+Prinplup,prinplup,3,Prinplup,8,a75dbaf3-a4b4-44ac-bfcf-4ff52129d3bf,Prinplup,prinplup-g9,Prinplup,prinplup-g9,exact_name,sheet
+Probopass,probopass,7,Probopass,12,086373b7-c35d-4ed1-983c-75f2dd8e5cc4,Probopass,probopass-g9,Probopass,probopass-g9,exact_name,sheet
+Psyduck,psyduck,1,Psyduck,5,a34f56f8-8ff8-45b6-b0f3-762b62831108,Psyduck,psyduck-g9,Psyduck,psyduck-g9,exact_name,sheet
+Pupitar,pupitar,4,Pupitar,8,c1f03d12-72a9-408e-bcd5-bc7e3dd18cf1,Pupitar,pupitar-g9,Pupitar,pupitar-g9,exact_name,sheet
+Pyroar,pyroar,6,Pyroar,12,9f8fbd6a-dea4-4a02-a36b-765e1327349c,Pyroar,pyroar-g9,Pyroar,pyroar-g9,exact_name,sheet
+Quagsire,quagsire,5,Quagsire,8,eb50c3fa-38ae-439e-b172-0acdf0017a41,Quagsire,quagsire-g9,Quagsire,quagsire-g9,exact_name,sheet
+Quaquaval,quaquaval,15,Quaquaval,15,7c2f838a-c20e-48dc-aa57-f8939b7960cf,Quaquaval,quaquaval-g9,Quaquaval,quaquaval-g9,exact_name,sheet
+Quaxly,quaxly,1,Quaxly,5,fe274ada-0649-4075-9deb-549134915cc2,Quaxly,quaxly-g9,Quaxly,quaxly-g9,exact_name,sheet
+Quaxwell,quaxwell,4,Quaxwell,8,ccfcf051-ccec-414c-b296-780722749762,Quaxwell,quaxwell-g9,Quaxwell,quaxwell-g9,exact_name,sheet
+Quilava,quilava,3,Quilava,8,d07a35dc-eef9-496a-9028-fb919007a4a8,Quilava,quilava-g9,Quilava,quilava-g9,exact_name,sheet
+Quilladin,quilladin,3,Quilladin,8,78d591cc-303c-449c-8878-248c8f7b2418,Quilladin,quilladin-g9,Quilladin,quilladin-g9,exact_name,sheet
+Qwilfish,qwilfish,6,Qwilfish,8,f8565d24-e6d5-4037-91a7-487f08e1fa90,Qwilfish,qwilfish-g9,Qwilfish,qwilfish-g9,exact_name,sheet
+Qwilfish Hisuian,qwilfish-hisui,7,,,96e1b5fb-e86f-4ac4-af7e-8c895e137539,Qwilfish-Hisui,qwilfish-hisui-g9,Qwilfish-Hisui,qwilfish-hisui-g9,alias,sheet
+Raboot,raboot,3,Raboot,8,,,,,,exact_name,sheet
+Rabsca,rabsca,5,Rabsca,10,8603bc8c-61c0-45e3-9d75-65348327d359,Rabsca,rabsca-g9,Rabsca,rabsca-g9,exact_name,sheet
+Raging Bolt,raging-bolt,20,Raging Bolt,20,d3e4a6bd-0fbd-4f9f-87e8-b9fc9c0d7f0e,Raging Bolt,raging-bolt-g9,Raging Bolt,raging-bolt-g9,exact_name,sheet
+Raichu,raichu,6,Raichu,10,0e174fdc-a238-43d1-8c05-c27d9bd2afa0,Raichu,raichu-g9,Raichu,raichu-g9,exact_name,sheet
+Raichu Alolan,raichu-alola,7,,,f2cd396b-c2ee-4010-b169-9818e4eb85fd,Raichu-Alola,raichu-alola-g9,Raichu-Alola,raichu-alola-g9,alias,sheet
+Raikou,raikou,15,Raikou,15,c657a0f5-bf57-4bda-b258-451da88fad53,Raikou,raikou-g9,Raikou,raikou-g9,exact_name,sheet
+Ralts,ralts,1,Ralts,5,fd84d014-cc28-47dd-ba08-c1065b0cc185,Ralts,ralts-g9,Ralts,ralts-g9,exact_name,sheet
+Rampardos,rampardos,7,Rampardos,10,529f9b12-2290-4696-a22d-5d35682f44e1,Rampardos,rampardos-g9,Rampardos,rampardos-g9,exact_name,sheet
+Rayquaza,rayquaza,99,,,f9188a4f-58c3-40da-9002-984d4d2e5a33,Rayquaza,rayquaza-g9,Rayquaza,rayquaza-g9,alias,sheet
+Regice,regice,15,Regice,15,0ce192ca-dbe2-4f0a-bdd2-18d61b9ab99d,Regice,regice-g9,Regice,regice-g9,exact_name,sheet
+Regidrago,regidrago,14,Regidrago,14,,,,,,exact_name,sheet
+Regieleki,regieleki,14,Regieleki,14,,,,,,exact_name,sheet
+Regigigas,regigigas,99,,,649fcf07-c1f1-4011-8f89-6ac6d01896a1,Regigigas,regigigas-g9,Regigigas,regigigas-g9,alias,sheet
+Regirock,regirock,15,Regirock,15,0ab844a2-9127-4eed-ab04-2a9b708eb0df,Regirock,regirock-g9,Regirock,regirock-g9,exact_name,sheet
+Registeel,registeel,15,Registeel,15,bf6c3595-cca0-446a-8dee-1283ea3a256a,Registeel,registeel-g9,Registeel,registeel-g9,exact_name,sheet
+Rellor,rellor,1,Rellor,5,86a8ad67-dd70-47c6-a607-d91230d1081c,Rellor,rellor-g9,Rellor,rellor-g9,exact_name,sheet
+Reshiram,reshiram,99,,,96c49832-591f-4a6d-9012-79a8c7dd4060,Reshiram,reshiram-g9,Reshiram,reshiram-g9,alias,sheet
+Reuniclus,reuniclus,8,Reuniclus,10,67f042e4-24e9-4711-a938-1daf70a7cff3,Reuniclus,reuniclus-g9,Reuniclus,reuniclus-g9,exact_name,sheet
+Revavroom,revavroom,9,Revavroom,9,90235764-2dce-47d2-a6bd-2a51ed2c3879,Revavroom,revavroom-g9,Revavroom,revavroom-g9,exact_name,sheet
+Rhydon,rhydon,11,Rhydon,10,b71fa2a2-d49e-471e-8ba8-5453fb1adfb4,Rhydon,rhydon-g9,Rhydon,rhydon-g9,exact_name,sheet
+Rhyhorn,rhyhorn,3,Rhyhorn,5,b4372b6b-abd0-4f40-8c8c-93c96692277d,Rhyhorn,rhyhorn-g9,Rhyhorn,rhyhorn-g9,exact_name,sheet
+Rhyperior,rhyperior,9,Rhyperior,12,75f825bc-f7ab-4fbf-a4ce-413f4033dafe,Rhyperior,rhyperior-g9,Rhyperior,rhyperior-g9,exact_name,sheet
+Ribombee,ribombee,12,Ribombee,10,,,,,,exact_name,sheet
+Rillaboom,rillaboom,13,Rillaboom,13,,,,,,exact_name,sheet
+Riolu,riolu,2,Riolu,5,6a07fe8f-c11c-4b17-b46b-99bd9aedddd7,Riolu,riolu-g9,Riolu,riolu-g9,exact_name,sheet
+Roaring Moon,roaring-moon,20,Roaring Moon,20,d491a62f-8ac6-46a0-bdb0-e6bd9e17f893,Roaring Moon,roaring-moon-g9,Roaring Moon,roaring-moon-g9,exact_name,sheet
+Rockruff,rockruff,1,Rockruff,5,,,,,,exact_name,sheet
+Rolycoly,rolycoly,1,Rolycoly,5,,,,,,exact_name,sheet
+Rookidee,rookidee,1,Rookidee,5,,,,,,exact_name,sheet
+Rotom,rotom,6,Rotom,6,f9c3e997-1fda-417e-981e-6df90bf85cb3,Rotom,rotom-g9,Rotom,rotom-g9,exact_name,sheet
+Rotom Fan,rotom-fan,7,,,681b424c-a2e2-4aed-bcf7-039a10718382,Rotom-Fan,rotom-fan-g9,Rotom-Fan,rotom-fan-g9,alias,sheet
+Rotom Frost,rotom-frost,7,,,7ed3cd8a-22f3-440a-ae47-f5a44f7fe38d,Rotom-Frost,rotom-frost-g9,Rotom-Frost,rotom-frost-g9,alias,sheet
+Rotom Heat,rotom-heat,14,,,50715264-f4e6-4a3e-a19e-729e05641e90,Rotom-Heat,rotom-heat-g9,Rotom-Heat,rotom-heat-g9,alias,sheet
+Rotom Mow,rotom-mow,10,,,717c9c70-d8f3-4746-8929-437342fc47a8,Rotom-Mow,rotom-mow-g9,Rotom-Mow,rotom-mow-g9,alias,sheet
+Rotom Wash,rotom-wash,17,,,72724c61-9d6d-4fcf-a8bc-1cee07f472a1,Rotom-Wash,rotom-wash-g9,Rotom-Wash,rotom-wash-g9,alias,sheet
+Rowlet,rowlet,1,Rowlet,5,cbad778e-ea84-4678-bb62-cc7aeb8dedc3,Rowlet,rowlet-g9,Rowlet,rowlet-g9,exact_name,sheet
+Rufflet,rufflet,1,Rufflet,5,3479cd2f-313f-4d39-9c1a-4bebf0dbf30c,Rufflet,rufflet-g9,Rufflet,rufflet-g9,exact_name,sheet
+Sableye,sableye,8,Sableye,5,03200617-a4fa-424c-9ac3-26b1aab59892,Sableye,sableye-g9,Sableye,sableye-g9,exact_name,sheet
+Salamence,salamence,16,Salamence,16,337b52a2-05ec-42e9-b79d-c7e781b194bd,Salamence,salamence-g9,Salamence,salamence-g9,exact_name,sheet
+Salandit,salandit,1,Salandit,5,,,,,,exact_name,sheet
+Salazzle,salazzle,10,Salazzle,10,,,,,,exact_name,sheet
+Samurott,samurott,6,Samurott,12,f979cb4d-a52a-43fe-a0e9-91b4e1c39126,Samurott,samurott-g9,Samurott,samurott-g9,exact_name,sheet
+Samurott Hisuian,samurott-hisui,16,,,5420ddb3-06eb-4d13-aa5e-0281cb632808,Samurott-Hisui,samurott-hisui-g9,Samurott-Hisui,samurott-hisui-g9,alias,sheet
+Sandaconda,sandaconda,7,Sandaconda,12,,,,,,exact_name,sheet
+Sandile,sandile,1,Sandile,5,6ee6a672-a27c-4735-bb46-737b837e8900,Sandile,sandile-g9,Sandile,sandile-g9,exact_name,sheet
+Sandshrew,sandshrew,1,Sandshrew,5,5698a53e-8ce9-44d3-83ef-7eed9c46eee4,Sandshrew,sandshrew-g9,Sandshrew,sandshrew-g9,exact_name,sheet
+Sandshrew Alolan,sandshrew-alola,1,,,cacc854c-2727-4057-b074-f0bfcf431694,Sandshrew-Alola,sandshrew-alola-g9,Sandshrew-Alola,sandshrew-alola-g9,alias,sheet
+Sandslash,sandslash,5,Sandslash,10,ab1b6bd9-73a0-46bb-aa78-530bc52e8421,Sandslash,sandslash-g9,Sandslash,sandslash-g9,exact_name,sheet
+Sandslash Alolan,sandslash-alola,7,,,cfdd27e7-7bc3-466b-99ad-6964e256e1f7,Sandslash-Alola,sandslash-alola-g9,Sandslash-Alola,sandslash-alola-g9,alias,sheet
+Sandy Shocks,sandy-shocks,12,Sandy Shocks,12,aee99c61-c32a-41e5-8ec8-e533478d2ca2,Sandy Shocks,sandy-shocks-g9,Sandy Shocks,sandy-shocks-g9,exact_name,sheet
+Sandygast,sandygast,1,Sandygast,5,,,,,,exact_name,sheet
+Sawsbuck,sawsbuck,5,Sawsbuck,10,dfe3c5a3-eed3-47e6-a3b9-27a73ed3a87f,Sawsbuck,sawsbuck-g9,Sawsbuck,sawsbuck-g9,exact_name,sheet
+Scatterbug,scatterbug,1,Scatterbug,5,3f864612-9ec2-4cbd-993f-8c6545a18e7f,Scatterbug,scatterbug-g9,Scatterbug,scatterbug-g9,exact_name,sheet
+Sceptile,sceptile,7,Sceptile,12,a5db3749-95e1-4f54-92ad-ce3753b44597,Sceptile,sceptile-g9,Sceptile,sceptile-g9,exact_name,sheet
+Scizor,scizor,14,Scizor,14,38e7a2bc-d288-48ce-afe5-b14fc08ea9a9,Scizor,scizor-g9,Scizor,scizor-g9,exact_name,sheet
+Scorbunny,scorbunny,1,Scorbunny,5,,,,,,exact_name,sheet
+Scovillain,scovillain,7,Scovillain,10,6b211f76-367c-4957-9da1-3093dd1a30f6,Scovillain,scovillain-g9,Scovillain,scovillain-g9,exact_name,sheet
+Scrafty,scrafty,9,Scrafty,10,65668723-5b75-4511-a114-1715efb4e909,Scrafty,scrafty-g9,Scrafty,scrafty-g9,exact_name,sheet
+Scraggy,scraggy,1,Scraggy,5,0361ca6d-96f8-4b9b-a465-f1a148155347,Scraggy,scraggy-g9,Scraggy,scraggy-g9,exact_name,sheet
+Scream Tail,scream-tail,13,Scream Tail,13,d157864a-3fb3-43aa-a1fe-28cc55ef36b4,Scream Tail,scream-tail-g9,Scream Tail,scream-tail-g9,exact_name,sheet
+Scyther,scyther,6,Scyther,12,4c65f51b-358e-492d-b03c-710ecf9dc84e,Scyther,scyther-g9,Scyther,scyther-g9,exact_name,sheet
+Seadra,seadra,5,Seadra,8,52bc0e31-75b1-423d-84e6-b0bf246445aa,Seadra,seadra-g9,Seadra,seadra-g9,exact_name,sheet
+Seedot,seedot,1,Seedot,5,580b5915-27a7-47f3-b612-2ee96d037d1a,Seedot,seedot-g9,Seedot,seedot-g9,exact_name,sheet
+Seel,seel,1,Seel,5,e02c7cf3-9c55-4b0f-8046-371eb20cbcd4,Seel,seel-g9,Seel,seel-g9,exact_name,sheet
+Sentret,sentret,1,Sentret,5,3b4cc5d0-e48e-41e7-af93-981a80ac9b78,Sentret,sentret-g9,Sentret,sentret-g9,exact_name,sheet
+Serperior,serperior,9,Serperior,12,586ff176-e3bb-40ab-8393-65d87ef3f821,Serperior,serperior-g9,Serperior,serperior-g9,exact_name,sheet
+Servine,servine,3,Servine,8,e2fc60cf-eb37-4dd4-a671-972b5fe6f615,Servine,servine-g9,Servine,servine-g9,exact_name,sheet
+Seviper,seviper,5,Seviper,10,b1f2d792-318b-4d0d-a809-9c5661538063,Seviper,seviper-g9,Seviper,seviper-g9,exact_name,sheet
+Sewaddle,sewaddle,1,Sewaddle,5,7a0a9e82-b575-4666-b158-f4119f247aca,Sewaddle,sewaddle-g9,Sewaddle,sewaddle-g9,exact_name,sheet
+Shaymin,shaymin,12,Shaymin Land,12,7f4592e5-0488-4f91-a788-667b2e71a3f1,Shaymin,shaymin-g9,Shaymin,shaymin-g9,alias,sheet
+Shaymin Sky,shaymin-sky,99,,,67bed787-6fef-46ae-b088-428be48cb3a9,Shaymin-Sky,shaymin-sky-g9,Shaymin-Sky,shaymin-sky-g9,alias,sheet
+Shelgon,shelgon,5,Shelgon,8,958bdda5-89a4-485c-9002-eb673f86d1dd,Shelgon,shelgon-g9,Shelgon,shelgon-g9,exact_name,sheet
+Shellder,shellder,1,Shellder,5,9d60c8ac-8579-4cfd-aa31-3a8585fe116f,Shellder,shellder-g9,Shellder,shellder-g9,exact_name,sheet
+Shellos,shellos,1,Shellos,5,44b99d93-4751-4256-a00b-c118e94dc10f,Shellos,shellos-g9,Shellos,shellos-g9,exact_name,sheet
+Shieldon,shieldon,1,Shieldon,5,7fbdec23-4de5-466e-a7af-c13ccb7002de,Shieldon,shieldon-g9,Shieldon,shieldon-g9,exact_name,sheet
+Shiftry,shiftry,6,Shiftry,10,936cf224-e67a-4fda-aaa3-5f75c1446a67,Shiftry,shiftry-g9,Shiftry,shiftry-g9,exact_name,sheet
+Shinx,shinx,1,Shinx,5,1810ea60-2c68-4bff-9ba1-78eb5dd88cb5,Shinx,shinx-g9,Shinx,shinx-g9,exact_name,sheet
+Shroodle,shroodle,2,Shroodle,5,536ef51c-ae5b-4969-bcc1-89b3b674cd28,Shroodle,shroodle-g9,Shroodle,shroodle-g9,exact_name,sheet
+Shroomish,shroomish,1,Shroomish,5,343fcf6c-a98d-4dd3-9361-4e19309878c4,Shroomish,shroomish-g9,Shroomish,shroomish-g9,exact_name,sheet
+Shuppet,shuppet,1,Shuppet,5,303f9627-d7ef-4f1b-8aa4-b3836d33e109,Shuppet,shuppet-g9,Shuppet,shuppet-g9,exact_name,sheet
+Silicobra,silicobra,1,Silicobra,5,,,,,,exact_name,sheet
+Sinistcha,sinistcha,11,Sinistcha,11,6a20e405-6c63-450c-8206-f3d0f5cda468,Sinistcha,sinistcha-g9,Sinistcha,sinistcha-g9,exact_name,sheet
+Sinistea,sinistea,1,Sinistea,5,,,,,,exact_name,sheet
+Skarmory,skarmory,9,Skarmory,10,ce079648-2a63-4b75-9e24-f0c366a41e7d,Skarmory,skarmory-g9,Skarmory,skarmory-g9,exact_name,sheet
+Skeledirge,skeledirge,15,Skeledirge,15,7444cfb5-b06a-43fc-b985-606ad440f0e5,Skeledirge,skeledirge-g9,Skeledirge,skeledirge-g9,exact_name,sheet
+Skiddo,skiddo,1,Skiddo,5,ef86b137-b0a7-4f31-9434-e64145d9b8b5,Skiddo,skiddo-g9,Skiddo,skiddo-g9,exact_name,sheet
+Skiploom,skiploom,4,Skiploom,5,d642a9c4-3179-45a7-8c66-bb38a6ffcb66,Skiploom,skiploom-g9,Skiploom,skiploom-g9,exact_name,sheet
+Skrelp,skrelp,1,Skrelp,5,2c751f48-9272-4d09-a2f0-a73ccf3e72ce,Skrelp,skrelp-g9,Skrelp,skrelp-g9,exact_name,sheet
+Skuntank,skuntank,5,Skuntank,10,dd9e0c0f-5d86-4b46-ada7-92e1affd9817,Skuntank,skuntank-g9,Skuntank,skuntank-g9,exact_name,sheet
+Skwovet,skwovet,1,Skwovet,5,,,,,,exact_name,sheet
+Slaking,slaking,99,,,883af1e1-e719-47e7-8c0a-03fd19bc35ab,Slaking,slaking-g9,Slaking,slaking-g9,alias,sheet
+Slakoth,slakoth,1,Slakoth,5,04b7f1f0-7359-4c37-8722-771d6626fa84,Slakoth,slakoth-g9,Slakoth,slakoth-g9,exact_name,sheet
+Sliggoo,sliggoo,3,Sliggoo,10,fd5aee59-4bbc-4dc9-81e9-347f2be0d354,Sliggoo,sliggoo-g9,Sliggoo,sliggoo-g9,exact_name,sheet
+Sliggoo Hisuian,sliggoo-hisui,4,,,caba2559-8f5b-4619-b413-8ff2588b9c53,Sliggoo-Hisui,sliggoo-hisui-g9,Sliggoo-Hisui,sliggoo-hisui-g9,alias,sheet
+Slither Wing,slither-wing,13,Slither Wing,13,6f656bd7-d62d-45ee-a29a-62f006ec29f5,Slither Wing,slither-wing-g9,Slither Wing,slither-wing-g9,exact_name,sheet
+Slowbro,slowbro,14,Slowbro,14,0ac15e2d-2145-4efa-be11-10c180c3f7f5,Slowbro,slowbro-g9,Slowbro,slowbro-g9,exact_name,sheet
+Slowbro Galarian,slowbro-galar,11,,,2df81a1b-8d76-4ea6-be06-12ee4b4c2fca,Slowbro-Galar,slowbro-galar-g9,Slowbro-Galar,slowbro-galar-g9,alias,sheet
+Slowking,slowking,15,Slowking,15,0dd39708-c31e-454b-8d09-2503a719c43f,Slowking,slowking-g9,Slowking,slowking-g9,exact_name,sheet
+Slowking Galarian,slowking-galar,16,,,e0f53000-c0d7-4d4b-8cf9-3867b600bdab,Slowking-Galar,slowking-galar-g9,Slowking-Galar,slowking-galar-g9,alias,sheet
+Slowpoke,slowpoke,1,Slowpoke,5,accf8b7b-d8f2-4814-a2af-52e547de5932,Slowpoke,slowpoke-g9,Slowpoke,slowpoke-g9,exact_name,sheet
+Slowpoke Galarian,slowpoke-galar,1,,,2ea58f10-50e9-4a6e-ba33-928733c559c2,Slowpoke-Galar,slowpoke-galar-g9,Slowpoke-Galar,slowpoke-galar-g9,alias,sheet
+Slugma,slugma,1,Slugma,5,19ffe255-d351-480b-b7e8-9afba946e25b,Slugma,slugma-g9,Slugma,slugma-g9,exact_name,sheet
+Smeargle,smeargle,5,Smeargle,5,dd88d9fd-915c-4370-96a8-8b337db2e2ed,Smeargle,smeargle-g9,Smeargle,smeargle-g9,exact_name,sheet
+Smoliv,smoliv,1,Smoliv,5,9ea776d1-9cd9-4c2f-9349-302dcf93d885,Smoliv,smoliv-g9,Smoliv,smoliv-g9,exact_name,sheet
+Sneasel,sneasel,6,Sneasel,8,77095547-29db-4d11-b9e4-b307f7e37409,Sneasel,sneasel-g9,Sneasel,sneasel-g9,exact_name,sheet
+Sneasel Hisuian,sneasel-hisui,5,,,2eb9e588-accd-4f9b-be1a-f7acb3af0f41,Sneasel-Hisui,sneasel-hisui-g9,Sneasel-Hisui,sneasel-hisui-g9,alias,sheet
+Sneasler,sneasler,17,Sneasler,17,,,,,,exact_name,sheet
+Snivy,snivy,1,Snivy,5,c7cacc1a-8daf-4696-b7cb-633e7d5b2dd8,Snivy,snivy-g9,Snivy,snivy-g9,exact_name,sheet
+Snom,snom,1,Snom,5,,,,,,exact_name,sheet
+Snorlax,snorlax,12,Snorlax,12,1ed3fc9c-1469-4b93-8ab5-dc72daa00b3c,Snorlax,snorlax-g9,Snorlax,snorlax-g9,exact_name,sheet
+Snorunt,snorunt,1,Snorunt,5,7e736bf3-9431-427f-adc5-043313e20209,Snorunt,snorunt-g9,Snorunt,snorunt-g9,exact_name,sheet
+Snover,snover,1,Snover,5,d5e3b9c8-7d03-4125-bd52-514190242534,Snover,snover-g9,Snover,snover-g9,exact_name,sheet
+Snubbull,snubbull,3,Snubbull,5,d1ed6f4c-236f-420c-a4d0-0e4597a4ecb7,Snubbull,snubbull-g9,Snubbull,snubbull-g9,exact_name,sheet
+Sobble,sobble,1,Sobble,5,,,,,,exact_name,sheet
+Solosis,solosis,1,Solosis,5,f2b70be8-23a4-4226-8f37-09e0479c17b2,Solosis,solosis-g9,Solosis,solosis-g9,exact_name,sheet
+Spewpa,spewpa,1,Spewpa,5,2ca94083-58a5-4be9-9b9f-73a6c044900f,Spewpa,spewpa-g9,Spewpa,spewpa-g9,exact_name,sheet
+Spidops,spidops,6,Spidops,8,664b64c7-3b36-499b-b721-c93759274828,Spidops,spidops-g9,Spidops,spidops-g9,exact_name,sheet
+Spinarak,spinarak,1,Spinarak,5,080ccd9a-0374-452a-a586-feae99a2ad06,Spinarak,spinarak-g9,Spinarak,spinarak-g9,exact_name,sheet
+Spiritomb,spiritomb,5,Spiritomb,10,81db1a59-7dbb-44aa-97e7-007fb51f0e0d,Spiritomb,spiritomb-g9,Spiritomb,spiritomb-g9,exact_name,sheet
+Spoink,spoink,1,Spoink,5,31c02f23-9ec6-4d00-8a71-5cefd7e50014,Spoink,spoink-g9,Spoink,spoink-g9,exact_name,sheet
+Sprigatito,sprigatito,1,Sprigatito,5,6a25efda-c1bf-4523-8304-c5173e5d4de2,Sprigatito,sprigatito-g9,Sprigatito,sprigatito-g9,exact_name,sheet
+Squawkabilly,squawkabilly,4,Squawkabilly Green Plumage,8,,,,,,alias,sheet
+Squirtle,squirtle,1,Squirtle,5,cb9d23f3-8bc9-4b84-aa38-6e89aac6725c,Squirtle,squirtle-g9,Squirtle,squirtle-g9,exact_name,sheet
+Stantler,stantler,2,Stantler,10,9b62860c-c3d3-4380-ae9b-b999695eaf64,Stantler,stantler-g9,Stantler,stantler-g9,exact_name,sheet
+Staraptor,staraptor,10,Staraptor,10,5adc54bb-9d6e-4ad7-823e-c27e8c6a1892,Staraptor,staraptor-g9,Staraptor,staraptor-g9,exact_name,sheet
+Staravia,staravia,3,Staravia,5,e6e4890b-c23f-41d7-a046-681b8b90a9fe,Staravia,staravia-g9,Staravia,staravia-g9,exact_name,sheet
+Starly,starly,1,Starly,5,1ad136f1-aa7b-40d4-a1f3-675fce6a2c91,Starly,starly-g9,Starly,starly-g9,exact_name,sheet
+Steenee,steenee,2,Steenee,5,,,,,,exact_name,sheet
+Stonjourner,stonjourner,4,Stonjourner,10,,,,,,exact_name,sheet
+Stunky,stunky,1,Stunky,5,4dd5d930-5bae-4ae9-9b92-0e045a034961,Stunky,stunky-g9,Stunky,stunky-g9,exact_name,sheet
+Sudowoodo,sudowoodo,4,Sudowoodo,8,cea975da-dc9b-4476-9856-cd81a624e4e3,Sudowoodo,sudowoodo-g9,Sudowoodo,sudowoodo-g9,exact_name,sheet
+Suicune,suicune,15,Suicune,15,854b984d-29c7-4ffc-be77-23d463d03247,Suicune,suicune-g9,Suicune,suicune-g9,exact_name,sheet
+Sunflora,sunflora,4,Sunflora,8,0da6174c-8cfc-4250-b9de-87762749f414,Sunflora,sunflora-g9,Sunflora,sunflora-g9,exact_name,sheet
+Sunkern,sunkern,1,Sunkern,5,85ecd9c5-4029-4909-a742-3d9499314d15,Sunkern,sunkern-g9,Sunkern,sunkern-g9,exact_name,sheet
+Surskit,surskit,1,Surskit,5,88989fb5-feef-4dd3-aa22-75c1b4e6f4a9,Surskit,surskit-g9,Surskit,surskit-g9,exact_name,sheet
+Swablu,swablu,1,Swablu,5,88523a78-a2fb-4b0b-a941-41bbb3e836ad,Swablu,swablu-g9,Swablu,swablu-g9,exact_name,sheet
+Swadloon,swadloon,3,Swadloon,5,ff571193-d318-490f-b317-a70adb1e958e,Swadloon,swadloon-g9,Swadloon,swadloon-g9,exact_name,sheet
+Swalot,swalot,5,Swalot,10,4c607197-fde5-40a8-afbc-334926286d37,Swalot,swalot-g9,Swalot,swalot-g9,exact_name,sheet
+Swampert,swampert,9,Swampert,12,49e9a49b-eaa8-44dd-955f-06b6db7c0d82,Swampert,swampert-g9,Swampert,swampert-g9,exact_name,sheet
+Swanna,swanna,5,Swanna,10,9aede769-0379-4c01-b478-333bd7ff683f,Swanna,swanna-g9,Swanna,swanna-g9,exact_name,sheet
+Swinub,swinub,1,Swinub,5,eeabc150-3b10-4734-8dba-947dd0b6a269,Swinub,swinub-g9,Swinub,swinub-g9,exact_name,sheet
+Sylveon,sylveon,12,Sylveon,12,ffcf81d2-26a0-4b46-909f-aa92d71fcb0e,Sylveon,sylveon-g9,Sylveon,sylveon-g9,exact_name,sheet
+Tadbulb,tadbulb,1,Tadbulb,5,e2854722-37f5-4147-8a09-0c1b96cfc7e8,Tadbulb,tadbulb-g9,Tadbulb,tadbulb-g9,exact_name,sheet
+Talonflame,talonflame,10,Talonflame,10,cee4cc4e-d2c5-49b0-a502-06ef110a0a0a,Talonflame,talonflame-g9,Talonflame,talonflame-g9,exact_name,sheet
+Tandemaus,tandemaus,1,Tandemaus,5,d7641361-676d-43aa-84b3-5f04a3e8f745,Tandemaus,tandemaus-g9,Tandemaus,tandemaus-g9,exact_name,sheet
+Tarountula,tarountula,1,Tarountula,5,7b3cc535-7ab2-4e11-b9be-6649acfca020,Tarountula,tarountula-g9,Tarountula,tarountula-g9,exact_name,sheet
+Tatsugiri,tatsugiri,4,Tatsugiri Curly,10,,,,,,alias,sheet
+Tauros,tauros,8,Tauros,10,5371bdea-2f8d-43be-9801-4d81ad7dda94,Tauros,tauros-g9,Tauros,tauros-g9,exact_name,sheet
+Tauros Paldean,tauros-paldea,6,,,f4805546-8389-4b1d-9104-5b9f95fdff41,Tauros-Paldea-Combat,tauros-paldea-combat-g9,Tauros-Paldea-Combat,tauros-paldea-combat-g9,alias,sheet
+Tauros Paldean Aqua,tauros-paldea-water,8,,,33e18aae-be1a-4c4d-9842-7b75d6089f9d,Tauros-Paldea-Aqua,tauros-paldea-aqua-g9,Tauros-Paldea-Aqua,tauros-paldea-aqua-g9,alias,sheet
+Tauros Paldean Blaze,tauros-paldea-fire,8,,,1d577f6e-c6cd-4304-8470-2a6fdc9b04b9,Tauros-Paldea-Blaze,tauros-paldea-blaze-g9,Tauros-Paldea-Blaze,tauros-paldea-blaze-g9,alias,sheet
+Teddiursa,teddiursa,1,Teddiursa,1,02cf01c0-a134-45c6-9aad-fe9c72b95877,Teddiursa,teddiursa-g9,Teddiursa,teddiursa-g9,exact_name,sheet
+Tentacool,tentacool,1,Tentacool,5,f9125ff7-335b-48e4-9ae2-782a048a7e58,Tentacool,tentacool-g9,Tentacool,tentacool-g9,exact_name,sheet
+Tentacruel,tentacruel,7,Tentacruel,12,fdff53fe-4756-4b84-a6b0-e9b52d15f0bf,Tentacruel,tentacruel-g9,Tentacruel,tentacruel-g9,exact_name,sheet
+Tepig,tepig,1,Tepig,5,58bad7cb-0a9f-4174-b092-f7551e9a91c0,Tepig,tepig-g9,Tepig,tepig-g9,exact_name,sheet
+Terapagos,terapagos,15,Terapagos,15,86af974a-d416-4820-a88c-caeaa850e5f4,Terapagos,terapagos-g9,Terapagos,terapagos-g9,exact_name,sheet
+Terrakion,terrakion,14,Terrakion,14,97052113-18bb-4ef8-b5ae-57917185fcc3,Terrakion,terrakion-g9,Terrakion,terrakion-g9,exact_name,sheet
+Thundurus Incarnate,thundurus,15,Thundurus Incarnate,15,8ee44d61-7cb1-4662-acfc-56187b12f41b,Thundurus,thundurus-g9,Thundurus,thundurus-g9,exact_name,sheet
+Thundurus Therian,thundurus-therian,15,,,48ea7c40-4dfc-43bc-980f-8181ed9cb04d,Thundurus-Therian,thundurus-therian-g9,Thundurus-Therian,thundurus-therian-g9,alias,sheet
+Thwackey,thwackey,4,Thwackey,8,,,,,,exact_name,sheet
+Timburr,timburr,1,Timburr,5,9f1190a6-7cfb-4f0b-9103-2c9c94ced9d9,Timburr,timburr-g9,Timburr,timburr-g9,exact_name,sheet
+Ting-Lu,ting-lu,18,Ting Lu,18,a3f2ecdd-822e-4647-a39a-3945fb5672b8,Ting-Lu,ting-lu-g9,Ting-Lu,ting-lu-g9,alias,sheet
+Tinkatink,tinkatink,1,Tinkatink,5,f91afd99-90ce-41a3-8ef7-7a4687cdeecc,Tinkatink,tinkatink-g9,Tinkatink,tinkatink-g9,exact_name,sheet
+Tinkaton,tinkaton,10,Tinkaton,10,682792ad-ef13-4a77-a200-90997d5c1879,Tinkaton,tinkaton-g9,Tinkaton,tinkaton-g9,exact_name,sheet
+Tinkatuff,tinkatuff,3,Tinkatuff,5,548cee61-bdba-4e5b-8716-60fb0f112c10,Tinkatuff,tinkatuff-g9,Tinkatuff,tinkatuff-g9,exact_name,sheet
+Toedscool,toedscool,4,Toedscool,5,c199ba5e-9216-4a42-94ae-6c3ddce45393,Toedscool,toedscool-g9,Toedscool,toedscool-g9,exact_name,sheet
+Toedscruel,toedscruel,8,Toedscruel,8,108b18de-f2d1-4a02-be42-f523585b6067,Toedscruel,toedscruel-g9,Toedscruel,toedscruel-g9,exact_name,sheet
+Torchic,torchic,1,Torchic,5,9066816c-d588-41a6-859e-d4b769082836,Torchic,torchic-g9,Torchic,torchic-g9,exact_name,sheet
+Torkoal,torkoal,11,Torkoal,10,158f8bac-1d72-4d03-98fb-d8369f8bb030,Torkoal,torkoal-g9,Torkoal,torkoal-g9,exact_name,sheet
+Tornadus Incarnate,tornadus,13,Tornadus Incarnate,13,8b51d0b2-d3e9-4972-832a-3f6a7d1a76ec,Tornadus,tornadus-g9,Tornadus,tornadus-g9,exact_name,sheet
+Tornadus Therian,tornadus-therian,16,,,e9628462-b546-4639-824a-5a65d580e138,Tornadus-Therian,tornadus-therian-g9,Tornadus-Therian,tornadus-therian-g9,alias,sheet
+Torracat,torracat,3,Torracat,8,be4cb56a-e4e5-4c08-8fe5-e4c59313a497,Torracat,torracat-g9,Torracat,torracat-g9,exact_name,sheet
+Torterra,torterra,9,Torterra,12,7331844e-a560-4a8b-a801-8d97b9fae5cc,Torterra,torterra-g9,Torterra,torterra-g9,exact_name,sheet
+Totodile,totodile,1,Totodile,5,a57bbe47-2db2-4a25-97b1-542a0171f7f0,Totodile,totodile-g9,Totodile,totodile-g9,exact_name,sheet
+Toucannon,toucannon,11,Toucannon,10,fdc0ea16-94a5-4635-9982-5c256aecb75b,Toucannon,toucannon-g9,Toucannon,toucannon-g9,exact_name,sheet
+Toxapex,toxapex,14,Toxapex,14,,,,,,exact_name,sheet
+Toxel,toxel,1,Toxel,5,,,,,,exact_name,sheet
+Toxicroak,toxicroak,7,Toxicroak,10,c150b51c-4aa1-46a9-9a37-3bd48a22b5d3,Toxicroak,toxicroak-g9,Toxicroak,toxicroak-g9,exact_name,sheet
+Toxtricity Amped,toxtricity,11,Toxtricity Amped,12,,,,,,exact_name,sheet
+Trapinch,trapinch,1,Trapinch,5,56eb3d08-33a5-4479-bffa-782f202670ba,Trapinch,trapinch-g9,Trapinch,trapinch-g9,exact_name,sheet
+Treecko,treecko,1,Treecko,5,786eb1e3-8941-49b2-aee2-ad232930b8e9,Treecko,treecko-g9,Treecko,treecko-g9,exact_name,sheet
+Trevenant,trevenant,5,Trevenant,10,0270c260-d238-496b-a44b-f72ab30fd85a,Trevenant,trevenant-g9,Trevenant,trevenant-g9,exact_name,sheet
+Tropius,tropius,4,Tropius,10,9d0e7dea-1e4a-4598-a7d1-9571f04a7ad3,Tropius,tropius-g9,Tropius,tropius-g9,exact_name,sheet
+Trumbeak,trumbeak,6,Trumbeak,5,d984e175-f139-4966-aed0-984b6ea0895a,Trumbeak,trumbeak-g9,Trumbeak,trumbeak-g9,exact_name,sheet
+Tsareena,tsareena,8,Tsareena,12,,,,,,exact_name,sheet
+Turtwig,turtwig,1,Turtwig,5,c95087e7-57f0-4e0b-9c2b-3c984f006aa9,Turtwig,turtwig-g9,Turtwig,turtwig-g9,exact_name,sheet
+Tynamo,tynamo,1,Tynamo,5,6b27c57e-e596-42f9-aa0c-2d5ee278b203,Tynamo,tynamo-g9,Tynamo,tynamo-g9,exact_name,sheet
+Typhlosion,typhlosion,6,Typhlosion,12,78885768-484c-4389-9245-6f283615075e,Typhlosion,typhlosion-g9,Typhlosion,typhlosion-g9,exact_name,sheet
+Typhlosion Hisuian,typhlosion-hisui,9,,,7a0519b3-46e1-488f-ad90-e507efa7457e,Typhlosion-Hisui,typhlosion-hisui-g9,Typhlosion-Hisui,typhlosion-hisui-g9,alias,sheet
+Tyranitar,tyranitar,16,Tyranitar,16,e43caa54-e1b4-4ca0-9550-bf75c7ba87c3,Tyranitar,tyranitar-g9,Tyranitar,tyranitar-g9,exact_name,sheet
+Tyrogue,tyrogue,1,Tyrogue,5,db242aaf-c504-466c-99dc-e75d1975cd99,Tyrogue,tyrogue-g9,Tyrogue,tyrogue-g9,exact_name,sheet
+Umbreon,umbreon,8,Umbreon,12,10bfd133-0067-4702-93b0-ab45d50ea775,Umbreon,umbreon-g9,Umbreon,umbreon-g9,exact_name,sheet
+Ursaluna,ursaluna,16,Ursaluna,16,,,,,,exact_name,sheet
+Ursaring,ursaring,7,Ursaring,7,8466cb1e-ec92-4396-9937-f4e0dce9733d,Ursaring,ursaring-g9,Ursaring,ursaring-g9,exact_name,sheet
+Urshifu Single Strike,urshifu,20,Urshifu Single Strike,20,,,,,,exact_name,sheet
+Uxie,uxie,12,Uxie,13,a39d131e-28d6-4828-b9fa-12861f370058,Uxie,uxie-g9,Uxie,uxie-g9,exact_name,sheet
+Vaporeon,vaporeon,10,Vaporeon,12,3271646a-6de0-45e7-8fea-2f4bed2b352e,Vaporeon,vaporeon-g9,Vaporeon,vaporeon-g9,exact_name,sheet
+Varoom,varoom,1,Varoom,5,0511b7b9-60bf-4794-8de9-4b239d40a41e,Varoom,varoom-g9,Varoom,varoom-g9,exact_name,sheet
+Veluza,veluza,6,Veluza,10,308e7960-4748-4792-b7fc-54367e000b7a,Veluza,veluza-g9,Veluza,veluza-g9,exact_name,sheet
+Venomoth,venomoth,8,Venomoth,10,246757eb-66b1-442b-b552-c837b3f93364,Venomoth,venomoth-g9,Venomoth,venomoth-g9,exact_name,sheet
+Venonat,venonat,1,Venonat,5,b4ad1e6a-55ee-4b05-8bf0-a2d726a5abec,Venonat,venonat-g9,Venonat,venonat-g9,exact_name,sheet
+Venusaur,venusaur,11,Venusaur,12,269c1a3e-4d59-40cd-b723-4097631f22ea,Venusaur,venusaur-g9,Venusaur,venusaur-g9,exact_name,sheet
+Vespiquen,vespiquen,6,Vespiquen,10,1151a28d-57d0-4391-a345-14d0b40bdd24,Vespiquen,vespiquen-g9,Vespiquen,vespiquen-g9,exact_name,sheet
+Vibrava,vibrava,5,Vibrava,5,39336d53-a4a8-4792-a335-f1eafdccff34,Vibrava,vibrava-g9,Vibrava,vibrava-g9,exact_name,sheet
+Victreebel,victreebel,5,Victreebel,10,f8fcfce0-7a5e-4143-858c-2fe0b9812e48,Victreebel,victreebel-g9,Victreebel,victreebel-g9,exact_name,sheet
+Vigoroth,vigoroth,7,Vigoroth,8,45840501-c5b8-48ce-b543-18f090b3db4f,Vigoroth,vigoroth-g9,Vigoroth,vigoroth-g9,exact_name,sheet
+Vikavolt,vikavolt,8,Vikavolt,12,,,,,,exact_name,sheet
+Vileplume,vileplume,6,Vileplume,10,0cf3b86e-d68a-4010-8f92-ae58506695b8,Vileplume,vileplume-g9,Vileplume,vileplume-g9,exact_name,sheet
+Virizion,virizion,12,Virizion,12,34256c4d-868f-490b-85bc-bcc9d944a1e3,Virizion,virizion-g9,Virizion,virizion-g9,exact_name,sheet
+Vivillon,vivillon,8,Vivillon,8,98eb07e0-8744-4dad-ba5a-24b9a9f84bde,Vivillon,vivillon-g9,Vivillon,vivillon-g9,exact_name,sheet
+Volbeat,volbeat,8,Volbeat,8,41877b63-e2bf-40d1-a3c6-88558b562d1a,Volbeat,volbeat-g9,Volbeat,volbeat-g9,exact_name,sheet
+Volcanion,volcanion,16,Volcanion,16,e182bb6c-8519-4bff-94e9-5abaee2f9d0e,Volcanion,volcanion-g9,Volcanion,volcanion-g9,exact_name,sheet
+Volcarona,volcarona,15,Volcarona,15,82edfb18-7bc4-4771-93eb-1fa15f83b7e6,Volcarona,volcarona-g9,Volcarona,volcarona-g9,exact_name,sheet
+Voltorb,voltorb,1,Voltorb,5,1e44b745-38d7-488e-bac5-d1d273d0dc09,Voltorb,voltorb-g9,Voltorb,voltorb-g9,exact_name,sheet
+Voltorb Hisuian,voltorb-hisui,2,,,1ef9dc03-fee4-4507-9b5b-ce0851fdca1b,Voltorb-Hisui,voltorb-hisui-g9,Voltorb-Hisui,voltorb-hisui-g9,alias,sheet
+Vullaby,vullaby,3,Vullaby,5,b0118b7d-f805-4810-a0d1-e13edd3f14f7,Vullaby,vullaby-g9,Vullaby,vullaby-g9,exact_name,sheet
+Vulpix,vulpix,1,Vulpix,5,7ed5bad5-cc0b-4889-9989-f3a0921ceea3,Vulpix,vulpix-g9,Vulpix,vulpix-g9,exact_name,sheet
+Vulpix Alolan,vulpix-alola,1,,,d4ad3710-8659-4b09-bd56-63c322165e97,Vulpix-Alola,vulpix-alola-g9,Vulpix-Alola,vulpix-alola-g9,alias,sheet
+Walking Wake,walking-wake,18,Walking Wake,18,dbe189e7-5022-4767-859f-6edd2e477e66,Walking Wake,walking-wake-g9,Walking Wake,walking-wake-g9,exact_name,sheet
+Wartortle,wartortle,3,Wartortle,8,a7e2b2f1-25cc-43da-b954-9bda391d18d0,Wartortle,wartortle-g9,Wartortle,wartortle-g9,exact_name,sheet
+Wattrel,wattrel,1,Wattrel,5,7707abf0-4276-4e1e-8453-79cb72a0eb3d,Wattrel,wattrel-g9,Wattrel,wattrel-g9,exact_name,sheet
+Weavile,weavile,16,Weavile,12,a0caab93-3d0c-44e1-892d-bf368d4917be,Weavile,weavile-g9,Weavile,weavile-g9,exact_name,sheet
+Weepinbell,weepinbell,3,Weepinbell,5,9b110fa4-7bbf-429b-8fb8-b1699feb92a6,Weepinbell,weepinbell-g9,Weepinbell,weepinbell-g9,exact_name,sheet
+Weezing,weezing,7,Weezing,10,828d98e1-f476-44ce-a1b9-b596cd75e252,Weezing,weezing-g9,Weezing,weezing-g9,exact_name,sheet
+Weezing Galarian,weezing-galar,11,,,3576c9de-9c14-40d5-9f08-569c3ece7cf7,Weezing-Galar,weezing-galar-g9,Weezing-Galar,weezing-galar-g9,alias,sheet
+Whimsicott,whimsicott,12,Whimsicott,10,e4d30f88-5167-4bee-ab38-116593f83c18,Whimsicott,whimsicott-g9,Whimsicott,whimsicott-g9,exact_name,sheet
+Whiscash,whiscash,6,Whiscash,10,2abeb662-28b3-44a4-994b-4fdb784972a6,Whiscash,whiscash-g9,Whiscash,whiscash-g9,exact_name,sheet
+Wigglytuff,wigglytuff,7,Wigglytuff,8,5602ff22-eb28-482e-b67f-4b9a25b16c62,Wigglytuff,wigglytuff-g9,Wigglytuff,wigglytuff-g9,exact_name,sheet
+Wiglett,wiglett,1,Wiglett,5,d7b7b51b-c880-483d-88fa-e1b835d347e4,Wiglett,wiglett-g9,Wiglett,wiglett-g9,exact_name,sheet
+Wingull,wingull,1,Wingull,5,256d7cec-3571-4df2-a475-5d4b14f9ae3e,Wingull,wingull-g9,Wingull,wingull-g9,exact_name,sheet
+Wo-Chien,wo-chien,18,Wo Chien,18,fe8231c3-eb9b-467b-8dcf-b5d29bd27536,Wo-Chien,wo-chien-g9,Wo-Chien,wo-chien-g9,alias,sheet
+Wooper,wooper,1,Wooper,5,cbcf5aec-01d1-4df9-b552-f9d383c402c8,Wooper,wooper-g9,Wooper,wooper-g9,exact_name,sheet
+Wooper Paldean,wooper-paldea,1,,,19691397-5196-4bbb-9c97-5e730f09c8df,Wooper-Paldea,wooper-paldea-g9,Wooper-Paldea,wooper-paldea-g9,alias,sheet
+Wugtrio,wugtrio,6,Wugtrio,8,92859c09-30ff-4fd3-b1cc-cea9da33eb03,Wugtrio,wugtrio-g9,Wugtrio,wugtrio-g9,exact_name,sheet
+Wyrdeer,wyrdeer,8,Wyrdeer,12,,,,,,exact_name,sheet
+Yanma,yanma,2,,,fcecb476-780c-4c8a-8410-fd5383dc417b,Yanma,yanma-g9,Yanma,yanma-g9,alias,sheet
+Yanmega,yanmega,10,,,42efee75-a297-49e6-8123-4fa289bbe299,Yanmega,yanmega-g9,Yanmega,yanmega-g9,alias,sheet
+Yungoos,yungoos,1,Yungoos,5,ca26b0d4-b84b-40f4-9968-4bac66e0653c,Yungoos,yungoos-g9,Yungoos,yungoos-g9,exact_name,sheet
+Zangoose,zangoose,5,Zangoose,10,644bc271-b519-4f86-a5bc-c650585beb2e,Zangoose,zangoose-g9,Zangoose,zangoose-g9,exact_name,sheet
+Zapdos,zapdos,15,Zapdos,15,0c5c619b-88cd-40ee-8100-760f49c3e7ce,Zapdos,zapdos-g9,Zapdos,zapdos-g9,exact_name,sheet
+Zapdos Galarian,zapdos-galar,15,,,81c46f91-6da2-4ab2-9292-c16cbb93eb47,Zapdos-Galar,zapdos-galar-g9,Zapdos-Galar,zapdos-galar-g9,alias,sheet
+Zarude,zarude,15,Zarude,15,,,,,,exact_name,sheet
+Zebstrika,zebstrika,6,Zebstrika,10,61b7352b-98d0-4188-bf5a-11035cd40898,Zebstrika,zebstrika-g9,Zebstrika,zebstrika-g9,exact_name,sheet
+Zekrom,zekrom,99,,,1ed217bb-0506-46ce-b2bb-ecba8f53eb2f,Zekrom,zekrom-g9,Zekrom,zekrom-g9,alias,sheet
+Zoroark,zoroark,10,Zoroark,10,b644649a-11ae-4b55-bbed-5b2de2754487,Zoroark,zoroark-g9,Zoroark,zoroark-g9,exact_name,sheet
+Zoroark Hisuian,zoroark-hisui,12,,,3170715c-d2b4-4f22-9f68-09b3ce93842e,Zoroark-Hisui,zoroark-hisui-g9,Zoroark-Hisui,zoroark-hisui-g9,alias,sheet
+Zorua,zorua,1,Zorua,5,3f19d8a4-16fe-42f2-9803-c9cf4879eec6,Zorua,zorua-g9,Zorua,zorua-g9,exact_name,sheet
+Zorua Hisuian,zorua-hisui,1,,,bf5787f4-ec79-4260-90ee-67e15e95d775,Zorua-Hisui,zorua-hisui-g9,Zorua-Hisui,zorua-hisui-g9,alias,sheet
+Zweilous,zweilous,5,Zweilous,8,df201213-e454-4d04-ac64-83d5b74bbae6,Zweilous,zweilous-g9,Zweilous,zweilous-g9,exact_name,sheet

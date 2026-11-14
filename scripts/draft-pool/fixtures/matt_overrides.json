@@ -1,0 +1,29 @@
+{
+  "notes": "Matt follow-up answers, Nov 14, 2026 ET. Not on the Season 7 sheet unless noted.",
+  "entries": [
+    {
+      "display_name": "Basculin White-Striped",
+      "slug": "basculin-white-striped",
+      "points": 5,
+      "pool_status": "included",
+      "source": "matt_2026-11-14",
+      "note": "Same points as Basculin Red Stripe and Basculin Blue Stripe (both 5 on the sheet). No sheet row."
+    },
+    {
+      "display_name": "Oinkologne",
+      "slug": "oinkologne",
+      "points": 5,
+      "pool_status": "included",
+      "source": "sheet+matt_2026-11-14",
+      "note": "Stays a separate entry from Oinkologne Female, at the sheet value."
+    },
+    {
+      "display_name": "Oinkologne Female",
+      "slug": "oinkologne-f",
+      "points": 4,
+      "pool_status": "included",
+      "source": "sheet+matt_2026-11-14",
+      "note": "Stays a separate entry from Oinkologne, at the sheet value."
+    }
+  ]
+}
