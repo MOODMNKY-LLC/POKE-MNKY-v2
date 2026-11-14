@@ -136,6 +136,12 @@ jobs:
           CI: true
           SEASON_SIM_PG_URL: postgresql://postgres@localhost:5432/security_helpers_test
         run: pnpm test:security-pg
+      - name: Run draft-pool versions ACL harden postgres evidence
+        env:
+          CI: true
+          # Same service Postgres; suite drops/recreates public for isolation.
+          SEASON_SIM_PG_URL: postgresql://postgres@localhost:5432/security_helpers_test
+        run: pnpm test:security-draft-pool-acl-pg
 
   draft-pool-builder-pg:
     runs-on: ubuntu-latest

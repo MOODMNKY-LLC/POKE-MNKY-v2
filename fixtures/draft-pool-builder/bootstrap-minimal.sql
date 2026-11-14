@@ -19,7 +19,22 @@ language sql
 stable
 as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
 
+create or replace function auth.role()
+returns text
+language sql
+stable
+as $$
+  select coalesce(
+    nullif(current_setting('request.jwt.claim.role', true), ''),
+    case
+      when nullif(current_setting('request.jwt.claims', true), '') is null then null
+      else (current_setting('request.jwt.claims', true)::jsonb ->> 'role')
+    end
+  )
+$$;
+
 grant execute on function auth.uid() to anon, authenticated, service_role;
+grant execute on function auth.role() to anon, authenticated, service_role;
 
 create table public.admin_users (
   user_id uuid primary key references auth.users(id) on delete cascade
