@@ -12,6 +12,7 @@ import {
   LayoutGrid,
   Library,
   ListChecks,
+  ListFilter,
   MessageCircle,
   Rocket,
   Shield,
@@ -272,6 +273,13 @@ export const COACH_NAV_GROUPS: CoachNavGroup[] = [
         href: "/dashboard/draft/board",
         icon: LayoutGrid,
         keywords: ["draft board", "picks"],
+      },
+      {
+        id: "draft-pool",
+        title: "Draft pool",
+        href: "/draft/pool",
+        icon: ListFilter,
+        keywords: ["published draft pool", "points", "restrictions"],
       },
       {
         id: "draft-roster",

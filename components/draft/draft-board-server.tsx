@@ -1,4 +1,5 @@
 import { DraftSystem } from "@/lib/draft-system"
+import { loadBoardPool } from "@/lib/draft-pool-builder/board-pool-source"
 import { createServiceRoleClient } from "@/lib/supabase/service"
 import { DraftBoardClient } from "./draft-board-client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -44,23 +45,26 @@ export async function DraftBoardServer({
   const draftSystem = new DraftSystem()
   const supabase = createServiceRoleClient()
 
-  // Fetch available Pokemon server-side
-  const pokemon = (await draftSystem.getAvailablePokemon(seasonId, {})).map((p) => ({
+  // Published draft pool version when present, otherwise the legacy draft_pool results.
+  const board = await loadBoardPool({
+    supabase,
+    seasonId,
+    loadLegacyPokemon: () => draftSystem.getAvailablePokemon(seasonId, {}),
+    loadLegacyDrafted: async () => {
+      if (!seasonId) return []
+      const { data: draftedData } = await supabase
+        .from("draft_pool")
+        .select("pokemon_name")
+        .eq("season_id", seasonId)
+        .eq("status", "drafted")
+      return draftedData?.map((p) => p.pokemon_name.toLowerCase()) || []
+    },
+  })
+  const pokemon = board.pokemon.map((p) => ({
     ...p,
     status: toPoolStatus(p.status),
   }))
-
-  // Fetch drafted Pokemon server-side
-  let draftedPokemon: string[] = []
-  if (seasonId) {
-    const { data: draftedData } = await supabase
-      .from("draft_pool")
-      .select("pokemon_name")
-      .eq("season_id", seasonId)
-      .eq("status", "drafted")
-
-    draftedPokemon = draftedData?.map(p => p.pokemon_name.toLowerCase()) || []
-  }
+  const draftedPokemon = board.draftedPokemon
 
   // Fetch budget server-side
   let budget: { total: number; spent: number; remaining: number } | null = null

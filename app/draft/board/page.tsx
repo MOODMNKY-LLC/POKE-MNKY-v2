@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { DraftSystem } from "@/lib/draft-system"
+import { loadBoardPool } from "@/lib/draft-pool-builder/board-pool-source"
 import { createServiceRoleClient } from "@/lib/supabase/service"
 import { DraftBoardPageClient } from "@/components/draft/draft-board-page-client"
 import { resolveCoachTeamForSeason } from "@/lib/coach-team-context"
@@ -48,15 +49,19 @@ export default async function DraftBoardPage() {
   }
 
   // Fetch draft pool data for the current season only (no fallback to other seasons)
-  const pokemon = await draftSystem.getAvailablePokemon(seasonId, {})
-
-  const { data: draftedData } = await serviceSupabase
-    .from("draft_pool")
-    .select("pokemon_name")
-    .eq("season_id", seasonId)
-    .eq("status", "drafted")
-
-  const draftedPokemon = draftedData?.map(p => p.pokemon_name.toLowerCase()) || []
+  const { pokemon, draftedPokemon } = await loadBoardPool({
+    supabase: serviceSupabase,
+    seasonId,
+    loadLegacyPokemon: () => draftSystem.getAvailablePokemon(seasonId, {}),
+    loadLegacyDrafted: async () => {
+      const { data: draftedData } = await serviceSupabase
+        .from("draft_pool")
+        .select("pokemon_name")
+        .eq("season_id", seasonId)
+        .eq("status", "drafted")
+      return draftedData?.map((p) => p.pokemon_name.toLowerCase()) || []
+    },
+  })
 
   let budget: { total: number; spent: number; remaining: number } | null = null
   if (currentTeam) {

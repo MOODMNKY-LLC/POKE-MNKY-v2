@@ -15,6 +15,16 @@ import {
   paginateDraftAvailableRows,
   type DraftAvailableEnrichInput,
 } from "@/lib/draft-available-enrich"
+import {
+  buildPublishedAvailableRows,
+  type DraftAvailableSource,
+} from "@/lib/draft-pool-builder/available-source"
+import {
+  fetchGenerationByPokemonId,
+  fetchPublishedEntries,
+  fetchPublishedVersionId,
+  fetchRosteredNames,
+} from "@/lib/draft-pool-builder/published-pool-data"
 import { createServiceRoleClient } from "@/lib/supabase/service"
 import { NextResponse } from "next/server"
 
@@ -27,6 +37,7 @@ type AvailablePayload = {
   total: number
   limit: number
   offset: number
+  source: DraftAvailableSource
   timing_ms?: number
 }
 
@@ -46,6 +57,7 @@ function setDraftAvailableCache(key: string, data: AvailablePayload): void {
 
 function getDraftAvailableCacheKey(
   seasonId: string,
+  sourceKey: string,
   minPoints: number | undefined,
   maxPoints: number | undefined,
   generation: number | undefined,
@@ -53,7 +65,7 @@ function getDraftAvailableCacheKey(
   limit: number,
   offset: number,
 ): string {
-  return `${seasonId}:${minPoints ?? "n"}:${maxPoints ?? "n"}:${generation ?? "n"}:${search ?? ""}:${limit}:${offset}`
+  return `${sourceKey}:${seasonId}:${minPoints ?? "n"}:${maxPoints ?? "n"}:${generation ?? "n"}:${search ?? ""}:${limit}:${offset}`
 }
 
 async function attachPageMeta(
@@ -89,6 +101,24 @@ async function attachPageMeta(
           : p.tera_captain_eligible,
     }
   })
+}
+
+async function loadPublishedAvailableRows(
+  supabase: ReturnType<typeof createServiceRoleClient>,
+  versionId: string,
+  seasonId: string,
+  filters: {
+    minPoints?: number
+    maxPoints?: number
+    generation?: number
+    search?: string
+  },
+): Promise<DraftAvailableEnrichInput[]> {
+  const entries = await fetchPublishedEntries(supabase, versionId)
+  const rosteredNames = await fetchRosteredNames(supabase, seasonId)
+  const generationByPokemonId = await fetchGenerationByPokemonId(supabase, entries)
+
+  return buildPublishedAvailableRows(entries, rosteredNames, generationByPokemonId, filters)
 }
 
 async function loadAvailableRows(
@@ -196,8 +226,13 @@ export async function GET(request: Request) {
       seasonId = season.id
     }
 
+    const publishedVersionId = await fetchPublishedVersionId(supabase, seasonId)
+
+    const source: DraftAvailableSource = publishedVersionId ? "published_version" : "legacy"
+    const sourceKey = publishedVersionId ? `${source}:${publishedVersionId}` : source
     const cacheKey = getDraftAvailableCacheKey(
       seasonId,
+      sourceKey,
       minPoints,
       maxPoints,
       generation,
@@ -215,9 +250,13 @@ export async function GET(request: Request) {
     }
 
     const filters = { minPoints, maxPoints, generation, search }
-    const allRows = await loadAvailableRows(supabase, seasonId, filters)
+    const allRows = publishedVersionId
+      ? await loadPublishedAvailableRows(supabase, publishedVersionId, seasonId, filters)
+      : await loadAvailableRows(supabase, seasonId, filters)
     const { page, total } = paginateDraftAvailableRows(allRows, offset, limit)
-    const pageWithMeta = await attachPageMeta(supabase, seasonId, page)
+    const pageWithMeta = publishedVersionId
+      ? page
+      : await attachPageMeta(supabase, seasonId, page)
     const pokemon = await enrichDraftAvailablePage(supabase, pageWithMeta)
 
     const timing_ms = Date.now() - started
@@ -227,12 +266,13 @@ export async function GET(request: Request) {
       total,
       limit,
       offset,
+      source,
       timing_ms,
     }
     setDraftAvailableCache(cacheKey, payload)
 
     console.log(
-      `[API /draft/available] season=${seasonId} total=${total} page=${pokemon.length} limit=${limit} offset=${offset} timing_ms=${timing_ms}`,
+      `[API /draft/available] season=${seasonId} source=${source} total=${total} page=${pokemon.length} limit=${limit} offset=${offset} timing_ms=${timing_ms}`,
     )
 
     return NextResponse.json(payload)
