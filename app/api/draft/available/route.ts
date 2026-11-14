@@ -15,6 +15,11 @@ import {
   paginateDraftAvailableRows,
   type DraftAvailableEnrichInput,
 } from "@/lib/draft-available-enrich"
+import {
+  buildPublishedAvailableRows,
+  type DraftAvailableSource,
+  type PublishedAvailableEntry,
+} from "@/lib/draft-pool-builder/available-source"
 import { createServiceRoleClient } from "@/lib/supabase/service"
 import { NextResponse } from "next/server"
 
@@ -27,6 +32,7 @@ type AvailablePayload = {
   total: number
   limit: number
   offset: number
+  source: DraftAvailableSource
   timing_ms?: number
 }
 
@@ -46,6 +52,7 @@ function setDraftAvailableCache(key: string, data: AvailablePayload): void {
 
 function getDraftAvailableCacheKey(
   seasonId: string,
+  sourceKey: string,
   minPoints: number | undefined,
   maxPoints: number | undefined,
   generation: number | undefined,
@@ -53,7 +60,7 @@ function getDraftAvailableCacheKey(
   limit: number,
   offset: number,
 ): string {
-  return `${seasonId}:${minPoints ?? "n"}:${maxPoints ?? "n"}:${generation ?? "n"}:${search ?? ""}:${limit}:${offset}`
+  return `${sourceKey}:${seasonId}:${minPoints ?? "n"}:${maxPoints ?? "n"}:${generation ?? "n"}:${search ?? ""}:${limit}:${offset}`
 }
 
 async function attachPageMeta(
@@ -89,6 +96,68 @@ async function attachPageMeta(
           : p.tera_captain_eligible,
     }
   })
+}
+
+async function loadPublishedAvailableRows(
+  supabase: ReturnType<typeof createServiceRoleClient>,
+  versionId: string,
+  seasonId: string,
+  filters: {
+    minPoints?: number
+    maxPoints?: number
+    generation?: number
+    search?: string
+  },
+): Promise<DraftAvailableEnrichInput[]> {
+  const entries: PublishedAvailableEntry[] = []
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await supabase
+      .from("draft_pool_version_entries")
+      .select("pokemon_id, sheet_name, points, status, is_effective_tera_ban")
+      .eq("version_id", versionId)
+      .eq("status", "draftable")
+      .range(from, from + 999)
+    if (error) throw new Error(`Failed to fetch published draft pool: ${error.message}`)
+    entries.push(...((data ?? []) as PublishedAvailableEntry[]))
+    if ((data?.length ?? 0) < 1000) break
+  }
+
+  const { data: teams, error: teamsError } = await supabase
+    .from("teams")
+    .select("id")
+    .eq("season_id", seasonId)
+  if (teamsError) throw new Error(`Failed to fetch season teams: ${teamsError.message}`)
+
+  const rosteredNames = new Set<string>()
+  const teamIds = (teams ?? []).map((team) => team.id)
+  if (teamIds.length > 0) {
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await supabase
+        .from("team_rosters")
+        .select("pokemon:pokemon_id(name)")
+        .in("team_id", teamIds)
+        .range(from, from + 999)
+      if (error) throw new Error(`Failed to fetch drafted Pokémon: ${error.message}`)
+      for (const row of data ?? []) {
+        const pokemon = row.pokemon as unknown as { name?: string } | null
+        if (pokemon?.name) rosteredNames.add(pokemon.name)
+      }
+      if ((data?.length ?? 0) < 1000) break
+    }
+  }
+
+  const pokemonIds = [...new Set(entries.flatMap((entry) => entry.pokemon_id === null ? [] : [entry.pokemon_id]))]
+  const generationByPokemonId = new Map<number, number | null>()
+  for (let index = 0; index < pokemonIds.length; index += 500) {
+    const { data, error } = await supabase
+      .from("pokepedia_pokemon")
+      .select("id, generation")
+      .in("id", pokemonIds.slice(index, index + 500))
+    if (error) throw new Error(`Failed to fetch published pool generations: ${error.message}`)
+    for (const pokemon of data ?? []) generationByPokemonId.set(pokemon.id, pokemon.generation ?? null)
+  }
+
+  return buildPublishedAvailableRows(entries, rosteredNames, generationByPokemonId, filters)
 }
 
 async function loadAvailableRows(
@@ -196,8 +265,21 @@ export async function GET(request: Request) {
       seasonId = season.id
     }
 
+    const { data: publishedVersion, error: publishedVersionError } = await supabase
+      .from("draft_pool_versions")
+      .select("id")
+      .eq("season_id", seasonId)
+      .eq("status", "published")
+      .maybeSingle()
+    if (publishedVersionError) {
+      throw new Error(`Failed to resolve published draft pool: ${publishedVersionError.message}`)
+    }
+
+    const source: DraftAvailableSource = publishedVersion ? "published_version" : "legacy"
+    const sourceKey = publishedVersion ? `${source}:${publishedVersion.id}` : source
     const cacheKey = getDraftAvailableCacheKey(
       seasonId,
+      sourceKey,
       minPoints,
       maxPoints,
       generation,
@@ -215,9 +297,13 @@ export async function GET(request: Request) {
     }
 
     const filters = { minPoints, maxPoints, generation, search }
-    const allRows = await loadAvailableRows(supabase, seasonId, filters)
+    const allRows = publishedVersion
+      ? await loadPublishedAvailableRows(supabase, publishedVersion.id, seasonId, filters)
+      : await loadAvailableRows(supabase, seasonId, filters)
     const { page, total } = paginateDraftAvailableRows(allRows, offset, limit)
-    const pageWithMeta = await attachPageMeta(supabase, seasonId, page)
+    const pageWithMeta = publishedVersion
+      ? page
+      : await attachPageMeta(supabase, seasonId, page)
     const pokemon = await enrichDraftAvailablePage(supabase, pageWithMeta)
 
     const timing_ms = Date.now() - started
@@ -227,12 +313,13 @@ export async function GET(request: Request) {
       total,
       limit,
       offset,
+      source,
       timing_ms,
     }
     setDraftAvailableCache(cacheKey, payload)
 
     console.log(
-      `[API /draft/available] season=${seasonId} total=${total} page=${pokemon.length} limit=${limit} offset=${offset} timing_ms=${timing_ms}`,
+      `[API /draft/available] season=${seasonId} source=${source} total=${total} page=${pokemon.length} limit=${limit} offset=${offset} timing_ms=${timing_ms}`,
     )
 
     return NextResponse.json(payload)
