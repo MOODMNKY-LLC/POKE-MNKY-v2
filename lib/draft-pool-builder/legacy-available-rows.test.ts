@@ -12,14 +12,21 @@ const MAX_ROWS = 1000
 type Row = Record<string, unknown>
 
 /** Query builder that mimics PostgREST: ranges are honoured but capped at max-rows. */
-function queryBuilder(rows: Row[], result?: { error: { message: string } }) {
+function queryBuilder(
+  rows: Row[],
+  result?: { error: { message: string } },
+  orders: Array<[string, unknown]> = [],
+) {
   let range: [number, number] | null = null
   const builder: Record<string, unknown> = {
     select: () => builder,
     eq: () => builder,
     or: () => builder,
     in: () => builder,
-    order: () => builder,
+    order: (column: string, options?: unknown) => {
+      orders.push([column, options])
+      return builder
+    },
     range: (from: number, to: number) => {
       range = [from, to]
       return builder
@@ -74,6 +81,32 @@ describe("loadAvailableRows (draft/available selection)", () => {
     expect(page[0].pokemon_name).toBe("mon-1100")
     expect(page[34].pokemon_name).toBe("mon-1134")
     expect(page.every((p) => p.status === "available")).toBe(true)
+  })
+
+  it("applies a total order (with pokemon_id and generation tiebreakers) on every RPC page", async () => {
+    const orders: Array<[string, unknown]> = []
+    const supabase = makeClient({ rpc: () => queryBuilder(makeRpcRows(1135), undefined, orders) })
+    await loadAvailableRows(supabase, "season-8", filters)
+
+    const perPage = [
+      ["point_value", { ascending: false }],
+      ["pokemon_name", { ascending: true }],
+      ["pokemon_id", { ascending: true, nullsFirst: false }],
+      ["generation", { ascending: true, nullsFirst: false }],
+    ]
+    expect(orders).toEqual([...perPage, ...perPage])
+  })
+
+  it("orders the draft_pool fallback by id as the final tiebreaker", async () => {
+    const orders: Array<[string, unknown]> = []
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+    const supabase = makeClient({
+      rpc: () => queryBuilder([], { error: { message: "rpc down" } }),
+      from: () => queryBuilder(makeRpcRows(10), undefined, orders),
+    })
+    await loadAvailableRows(supabase, "season-8", filters)
+    expect(orders.map(([column]) => column)).toEqual(["point_value", "pokemon_name", "id"])
+    warn.mockRestore()
   })
 
   it("keeps the default limit of 100 and max of 500", () => {

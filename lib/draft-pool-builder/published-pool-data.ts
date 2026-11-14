@@ -34,6 +34,7 @@ export async function fetchPublishedEntries(
         .eq("version_id", versionId)
         .eq("status", "draftable")
         .order("sort_order")
+        .order("id")
         .range(from, to),
     )
   } catch (error) {
@@ -65,6 +66,7 @@ export async function fetchRosteredNames(
         .from("team_rosters")
         .select("pokemon:pokemon_id(name)")
         .in("team_id", teamIds)
+        .order("id")
         .range(from, to),
     )
   } catch (error) {

@@ -52,6 +52,8 @@ export async function loadAvailableRows(
         })
         .order("point_value", { ascending: false })
         .order("pokemon_name", { ascending: true })
+        .order("pokemon_id", { ascending: true, nullsFirst: false })
+        .order("generation", { ascending: true, nullsFirst: false })
         .range(from, to),
     )
   } catch (rpcError) {
@@ -81,6 +83,7 @@ export async function loadAvailableRows(
         .or("status.eq.available,status.is.null")
         .order("point_value", { ascending: false })
         .order("pokemon_name", { ascending: true })
+        .order("id", { ascending: true })
         .range(from, to),
     )
   } catch (error) {
@@ -127,6 +130,7 @@ export async function attachPageMeta(
         .eq("season_id", seasonId)
         .in("pokemon_name", names)
         .order("pokemon_name", { ascending: true })
+        .order("id", { ascending: true })
         .range(from, to),
     )
   } catch {
