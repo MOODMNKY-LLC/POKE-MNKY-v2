@@ -6,8 +6,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js"
 import type { PublishedAvailableEntry } from "@/lib/draft-pool-builder/available-source"
-
-const PAGE = 1000
+import { fetchAllPages } from "@/lib/supabase/fetch-all-pages"
 
 export async function fetchPublishedVersionId(
   supabase: SupabaseClient,
@@ -27,18 +26,20 @@ export async function fetchPublishedEntries(
   supabase: SupabaseClient,
   versionId: string,
 ): Promise<PublishedAvailableEntry[]> {
-  const entries: PublishedAvailableEntry[] = []
-  for (let from = 0; ; from += PAGE) {
-    const { data, error } = await supabase
-      .from("draft_pool_version_entries")
-      .select("pokemon_id, sheet_name, points, status, is_effective_tera_ban")
-      .eq("version_id", versionId)
-      .eq("status", "draftable")
-      .order("sort_order")
-      .range(from, from + PAGE - 1)
-    if (error) throw new Error(`Failed to fetch published draft pool: ${error.message}`)
-    entries.push(...((data ?? []) as PublishedAvailableEntry[]))
-    if ((data?.length ?? 0) < PAGE) return entries
+  try {
+    return await fetchAllPages<PublishedAvailableEntry>((from, to) =>
+      supabase
+        .from("draft_pool_version_entries")
+        .select("pokemon_id, sheet_name, points, status, is_effective_tera_ban")
+        .eq("version_id", versionId)
+        .eq("status", "draftable")
+        .order("sort_order")
+        .range(from, to),
+    )
+  } catch (error) {
+    throw new Error(
+      `Failed to fetch published draft pool: ${error instanceof Error ? error.message : String(error)}`,
+    )
   }
 }
 
@@ -57,19 +58,25 @@ export async function fetchRosteredNames(
   const names: string[] = []
   if (teamIds.length === 0) return names
 
-  for (let from = 0; ; from += PAGE) {
-    const { data, error } = await supabase
-      .from("team_rosters")
-      .select("pokemon:pokemon_id(name)")
-      .in("team_id", teamIds)
-      .range(from, from + PAGE - 1)
-    if (error) throw new Error(`Failed to fetch drafted Pokémon: ${error.message}`)
-    for (const row of data ?? []) {
-      const pokemon = (row as { pokemon?: unknown }).pokemon as { name?: string } | null
-      if (pokemon?.name) names.push(pokemon.name)
-    }
-    if ((data?.length ?? 0) < PAGE) return names
+  let rows: unknown[]
+  try {
+    rows = await fetchAllPages<unknown>((from, to) =>
+      supabase
+        .from("team_rosters")
+        .select("pokemon:pokemon_id(name)")
+        .in("team_id", teamIds)
+        .range(from, to),
+    )
+  } catch (error) {
+    throw new Error(
+      `Failed to fetch drafted Pokémon: ${error instanceof Error ? error.message : String(error)}`,
+    )
   }
+  for (const row of rows) {
+    const pokemon = (row as { pokemon?: unknown }).pokemon as { name?: string } | null
+    if (pokemon?.name) names.push(pokemon.name)
+  }
+  return names
 }
 
 export async function fetchGenerationByPokemonId(
