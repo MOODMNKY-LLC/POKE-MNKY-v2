@@ -49,13 +49,18 @@ beforeAll(async () => {
     grant all on schema public to current_user;
   `)
   for (const statement of migrationSql) await client.query(statement)
+  await client.query(`insert into auth.users (id) values ($1::uuid), ($2::uuid), ($3::uuid), ($4::uuid)`, [
+    canonicalMod,
+    namedMod,
+    lowerNamedMod,
+    noRoles,
+  ])
   await client.query(
-    `insert into auth.users (id) values ($1), ($2), ($3), ($4);
-     insert into public.profiles (id, discord_roles) values
-       ($1, '[{"id":"1190663258676396075","name":"anything"}]'::jsonb),
-       ($2, '[{"id":"999","name":"Mod"}]'::jsonb),
-       ($3, '[{"id":"999","name":"mod"}]'::jsonb),
-       ($4, '[]'::jsonb);`,
+    `insert into public.profiles (id, discord_roles) values
+       ($1::uuid, '[{"id":"1190663258676396075","name":"anything"}]'::jsonb),
+       ($2::uuid, '[{"id":"999","name":"Mod"}]'::jsonb),
+       ($3::uuid, '[{"id":"999","name":"mod"}]'::jsonb),
+       ($4::uuid, '[]'::jsonb)`,
     [canonicalMod, namedMod, lowerNamedMod, noRoles],
   )
 })
