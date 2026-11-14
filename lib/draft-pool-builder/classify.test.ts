@@ -5,12 +5,16 @@ import {
   applyMattOverrides,
   buildImportPlan,
   formatDryRunSummary,
+  indexAliasMap,
+  indexCatalog,
   parseAliasMapJson,
   parseMattOverridesJson,
   parsePokedexCsv,
   parsePokemonMasterCsv,
+  parsePokepediaCatalogRows,
   parsePoints,
   parseTeraList,
+  resolveCatalogId,
 } from "@/lib/draft-pool-builder"
 import { isOricorioStyleSlug, norm } from "@/lib/draft-pool-builder/normalize"
 
@@ -141,10 +145,56 @@ describe("fixture dry-run buckets", () => {
       aliasEntries: aliases,
       catalogRows: parsePokemonMasterCsv(load("pokemon_master.csv")),
     })
-    // Unresolved stay null — never guessed
+    // pokemon_master national_dex is species-level — never promoted to pokemonId
+    expect(plan.entries.every((e) => e.pokemonId == null)).toBe(true)
     for (const u of plan.unresolved) {
       const entry = plan.entries.find((e) => e.displayName === u.displayName)
       expect(entry?.pokemonId).toBeNull()
     }
+  })
+
+  it("does not collapse form-specific catalog ids onto species national dex", () => {
+    const catalog = parsePokepediaCatalogRows([
+      { id: 479, name: "rotom" },
+      { id: 10008, name: "rotom-fan" },
+      { id: 26, name: "raichu" },
+      { id: 10100, name: "raichu-alola" },
+      { id: 386, name: "deoxys-normal" },
+      { id: 10001, name: "deoxys-attack" },
+    ])
+    const aliasIdx = indexAliasMap([])
+    const catalogIdx = indexCatalog(catalog)
+
+    expect(
+      resolveCatalogId("Rotom Fan", "rotom-fan", aliasIdx, catalogIdx).pokemonId,
+    ).toBe(10008)
+    expect(
+      resolveCatalogId("Rotom", "rotom", aliasIdx, catalogIdx).pokemonId,
+    ).toBe(479)
+    expect(
+      resolveCatalogId("Raichu Alolan", "raichu-alola", aliasIdx, catalogIdx)
+        .pokemonId,
+    ).toBe(10100)
+    expect(
+      resolveCatalogId("Deoxys Attack", "deoxys-attack", aliasIdx, catalogIdx)
+        .pokemonId,
+    ).toBe(10001)
+
+    // Species national_dex must never be used as a stand-in for missing forms
+    const masterOnly = parsePokemonMasterCsv(load("pokemon_master.csv"))
+    const masterPlan = buildImportPlan({
+      sheetRows: applyMattOverrides(
+        parsePokedexCsv(load("pokedex_L_P.csv")),
+        parseMattOverridesJson(load("matt_overrides.json")),
+      ),
+      teraNames: parseTeraList(load("tera_list.txt")),
+      aliasEntries: parseAliasMapJson(load("alias_map.json")),
+      catalogRows: masterOnly,
+    })
+    const rotomForms = masterPlan.entries.filter((e) =>
+      /^rotom/i.test(e.displayName),
+    )
+    expect(rotomForms.length).toBeGreaterThan(1)
+    expect(rotomForms.every((e) => e.pokemonId == null)).toBe(true)
   })
 })

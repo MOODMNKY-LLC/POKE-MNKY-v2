@@ -39,7 +39,9 @@ Env for `--apply`: `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_URL`, `SUPABASE_SERVIC
 
 ## Expected dry-run buckets (fixture)
 
-Roughly: **770** draftable, **78** banned, **~412** excluded, **15** catalog-only regionals, plus unresolved catalog ids for forms not in the `pokemon_master` snapshot (logged, `pokemon_id` left null — never guessed).
+Roughly: **770** draftable, **78** banned, **~412** excluded, **15** catalog-only regionals.
+
+Fixture dry-run uses `pokemon_master.csv` for name/slug aliasing only. That file’s `national_dex` is the **species** id (shared by Rotom forms, Alolan Raichu, etc.) and is **never** written as `pokemon_id`. So fixture dry-run leaves `pokemon_id` null for all rows (logged as unresolved). `--apply` loads form-specific ids from live `pokepedia_pokemon` before resolving.
 
 ## Mod role
 

@@ -208,6 +208,113 @@ describe.skipIf(!hasPgUrl)("draft_pool_versions phase-1 constraints + RLS", () =
     expect(high.rows[0]?.is_effective_tera_ban).toBe(false)
   })
 
+  it("rpc_apply_draft_pool_pending_import is atomic on failure", async () => {
+    const c = client!
+    await resetRole(c)
+
+    // Replace whatever pending the earlier tests left with a known row
+    await c.query(
+      `delete from public.draft_pool_versions
+       where season_id = $1 and status = 'pending'`,
+      [seasonId],
+    )
+    const kept = await c.query<{ id: string }>(
+      `insert into public.draft_pool_versions (season_id, status, notes)
+       values ($1, 'pending', 'keep-me') returning id`,
+      [seasonId],
+    )
+    const keptId = kept.rows[0]!.id
+
+    // Bad status/points should abort the whole transaction (pending preserved)
+    await expect(
+      c.query(
+        `select public.rpc_apply_draft_pool_pending_import(
+           $1,
+           $2::jsonb,
+           '[]'::jsonb,
+           '[]'::jsonb,
+           '[]'::jsonb,
+           null,
+           'should-fail'
+         )`,
+        [
+          seasonId,
+          JSON.stringify([
+            {
+              pokemon_id: pokeId,
+              sheet_name: "Bad",
+              points: 8,
+              status: "banned", // mismatches points → constraint
+              tera_banned: false,
+              sort_order: 0,
+            },
+          ]),
+        ],
+      ),
+    ).rejects.toThrow()
+
+    const still = await c.query<{ id: string; notes: string | null; status: string }>(
+      `select id, notes, status from public.draft_pool_versions
+       where season_id = $1 and status = 'pending'`,
+      [seasonId],
+    )
+    expect(still.rows.length).toBe(1)
+    expect(still.rows[0]?.id).toBe(keptId)
+    expect(still.rows[0]?.notes).toBe("keep-me")
+
+    // Successful atomic replace
+    const ok = await c.query<{
+      result: { version_id: string; entries_inserted: number }
+    }>(
+      `select public.rpc_apply_draft_pool_pending_import(
+         $1,
+         $2::jsonb,
+         $3::jsonb,
+         '[]'::jsonb,
+         '[]'::jsonb,
+         null,
+         'ok-import'
+       ) as result`,
+      [
+        seasonId,
+        JSON.stringify([
+          {
+            pokemon_id: pokeId,
+            sheet_name: "Pikachu",
+            points: 8,
+            status: "draftable",
+            tera_banned: false,
+            sort_order: 0,
+          },
+        ]),
+        JSON.stringify([
+          {
+            pokemon_id: null,
+            sheet_name: null,
+            kind: "combo",
+            name: "Substitute into Baton Pass",
+            note: "global",
+          },
+        ]),
+      ],
+    )
+    expect(ok.rows[0]?.result.entries_inserted).toBe(1)
+    const pending = await c.query<{ id: string; notes: string | null }>(
+      `select id, notes from public.draft_pool_versions
+       where season_id = $1 and status = 'pending'`,
+      [seasonId],
+    )
+    expect(pending.rows.length).toBe(1)
+    expect(pending.rows[0]?.id).not.toBe(keptId)
+    expect(pending.rows[0]?.notes).toBe("ok-import")
+    const archived = await c.query(
+      `select 1 from public.draft_pool_versions
+       where id = $1 and status = 'archived'`,
+      [keptId],
+    )
+    expect(archived.rows.length).toBe(1)
+  })
+
   it("RLS: coaches read published only; mods/admins write pending; anon denied", async () => {
     const c = client!
     await resetRole(c)

@@ -26,7 +26,9 @@ import {
   parsePokedexCsv,
   parsePokedexGridLp,
   parsePokemonMasterCsv,
+  parsePokepediaCatalogRows,
   parseTeraList,
+  type CatalogRow,
 } from "@/lib/draft-pool-builder"
 import { DEFAULT_TERA_BAN_NAMES } from "@/lib/draft-pool-builder/restrictions"
 import { getGoogleServiceAccountCredentials } from "@/lib/utils/google-sheets"
@@ -92,7 +94,11 @@ async function main(): Promise<void> {
 
   const overrides = parseMattOverridesJson(loadFixtureText("matt_overrides.json"))
   const aliasEntries = parseAliasMapJson(loadFixtureText("alias_map.json"))
-  const catalogRows = parsePokemonMasterCsv(loadFixtureText("pokemon_master.csv"))
+  // Fixture master CSV is name/slug only — national_dex is species-level and must
+  // never be used as pokepedia form ids (see Codex review on Rotom/Raichu/Deoxys).
+  let catalogRows: CatalogRow[] = parsePokemonMasterCsv(
+    loadFixtureText("pokemon_master.csv"),
+  )
 
   let teraNames = parseTeraList(loadFixtureText("tera_list.txt"))
   if (teraNames.length === 0) {
@@ -121,23 +127,19 @@ async function main(): Promise<void> {
     process.exit(1)
   }
 
-  const plan = buildImportPlan({
-    sheetRows,
-    teraNames,
-    aliasEntries,
-    catalogRows,
-  })
-
-  console.log(`Source: ${sourceLabel}`)
-  console.log(formatDryRunSummary(plan))
-  console.log("")
-  console.log(
-    apply
-      ? `Mode: APPLY → pending revision for season ${seasonId}`
-      : "Mode: dry-run (pass --apply --season-id <uuid> to write; do not use against production)",
-  )
-
   if (!apply) {
+    const plan = buildImportPlan({
+      sheetRows,
+      teraNames,
+      aliasEntries,
+      catalogRows,
+    })
+    console.log(`Source: ${sourceLabel}`)
+    console.log(formatDryRunSummary(plan))
+    console.log("")
+    console.log(
+      "Mode: dry-run (pass --apply --season-id <uuid> to write; do not use against production)",
+    )
     process.exit(0)
   }
 
@@ -163,6 +165,30 @@ async function main(): Promise<void> {
   const supabase = createClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },
   })
+
+  // Resolve form-specific ids from live pokepedia_pokemon (resource id, not species dex).
+  const { data: pokeRows, error: pokeErr } = await supabase
+    .from("pokepedia_pokemon")
+    .select("id, name")
+  if (pokeErr) throw pokeErr
+  catalogRows = parsePokepediaCatalogRows(
+    (pokeRows ?? []).map((r) => ({
+      id: r.id as number,
+      name: String(r.name),
+    })),
+  )
+
+  const plan = buildImportPlan({
+    sheetRows,
+    teraNames,
+    aliasEntries,
+    catalogRows,
+  })
+
+  console.log(`Source: ${sourceLabel}`)
+  console.log(formatDryRunSummary(plan))
+  console.log("")
+  console.log(`Mode: APPLY → pending revision for season ${seasonId}`)
 
   const result = await applyPendingRevision({
     supabase,
