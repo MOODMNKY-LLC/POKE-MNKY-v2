@@ -2,8 +2,11 @@
 --          set v_pokemon_catalog to security_invoker = true (advisor fix).
 -- affected: draft_sessions.current_pick_deadline_at, supabase_realtime publication,
 --           v_pokemon_catalog
--- special: additive only. v_public_free_agency stays security_invoker=false so anon
---          can read FA moves without SELECT on transaction_audit.
+-- special: additive only. Historical note: this migration left
+--          v_public_free_agency at security_invoker=false so anon could read FA
+--          moves without SELECT on transaction_audit. 20261114053802 later sets
+--          that view to security_invoker=true; if audit is tightened further,
+--          prefer column grants — do not revert the view to definer.
 
 alter table public.draft_sessions
   add column if not exists current_pick_deadline_at timestamptz;
