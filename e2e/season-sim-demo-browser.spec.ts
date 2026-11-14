@@ -578,10 +578,10 @@ test.describe("season-sim demo browser acceptance", () => {
     await expect(page.locator("[data-hydrated=true]")).toBeVisible({ timeout: 30_000 })
     const start = page.getByRole("button", { name: "Start a practice season" })
     await expect(start).toBeVisible({ timeout: 30_000 })
-    // Playwright scroll — page.evaluate(scrollIntoView) races with client
-    // remount/navigation ("Execution context was destroyed") on the flags-off Next.
-    await start.scrollIntoViewIfNeeded()
     await expect(start).toBeEnabled()
+    // Do not call scrollIntoViewIfNeeded here: flags-off Next remounts the
+    // form and detaches the node (flake on desktop-chromium). Playwright's
+    // click() auto-scrolls a fresh locator resolution.
     const responsePromise = page.waitForResponse(
       (response) =>
         response.url().includes("/api/admin/simulation/runs") && response.request().method() === "POST",

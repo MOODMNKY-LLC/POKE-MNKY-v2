@@ -31,21 +31,30 @@ const migrationSql = readFileSync(
   ),
   "utf8",
 )
+const aclHardenSql = readFileSync(
+  join(
+    root,
+    "supabase/migrations/20261114180000_draft_pool_versions_acl_harden.sql",
+  ),
+  "utf8",
+)
 
-async function asJwtUser(client: Client, userId: string | null) {
-  if (userId) {
-    await client.query(
-      `select set_config('request.jwt.claim.sub', $1, false)`,
-      [userId],
-    )
-  } else {
-    await client.query(`select set_config('request.jwt.claim.sub', '', false)`)
-  }
+async function asJwtUser(
+  client: Client,
+  userId: string | null,
+  role: string | null = null,
+) {
+  await client.query(`select set_config('request.jwt.claim.sub', $1, false)`, [
+    userId ?? "",
+  ])
+  await client.query(`select set_config('request.jwt.claim.role', $1, false)`, [
+    role ?? "",
+  ])
 }
 
 async function resetRole(client: Client) {
   await client.query("reset role")
-  await client.query(`select set_config('request.jwt.claim.sub', '', false)`)
+  await asJwtUser(client, null, null)
 }
 
 describe.skipIf(!hasPgUrl)("draft_pool_versions phase-1 constraints + RLS", () => {
@@ -61,6 +70,7 @@ describe.skipIf(!hasPgUrl)("draft_pool_versions phase-1 constraints + RLS", () =
     client = c
     await c.query(bootstrapSql)
     await c.query(migrationSql)
+    await c.query(aclHardenSql)
 
     const admin = await c.query<{ id: string }>(
       `insert into auth.users default values returning id`,
@@ -211,6 +221,8 @@ describe.skipIf(!hasPgUrl)("draft_pool_versions phase-1 constraints + RLS", () =
   it("rpc_apply_draft_pool_pending_import is atomic on failure", async () => {
     const c = client!
     await resetRole(c)
+    // Harden migration requires service_role JWT (or draft-pool editor).
+    await asJwtUser(c, adminId, "service_role")
 
     // Replace whatever pending the earlier tests left with a known row
     await c.query(
