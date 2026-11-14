@@ -38,6 +38,16 @@ async function setAuthenticatedRole(userId: string) {
 beforeAll(async () => {
   if (!hasPgUrl) return
   client = await connectDisposableHarnessClient(pgUrl)
+  await client.query(`
+    do $$ begin create role anon nologin; exception when duplicate_object then null; end $$;
+    do $$ begin create role authenticated nologin; exception when duplicate_object then null; end $$;
+    do $$ begin create role service_role nologin bypassrls; exception when duplicate_object then null; end $$;
+    drop schema if exists auth cascade;
+    drop schema if exists public cascade;
+    create schema public;
+    grant usage on schema public to anon, authenticated, service_role;
+    grant all on schema public to current_user;
+  `)
   for (const statement of migrationSql) await client.query(statement)
   await client.query(
     `insert into auth.users (id) values ($1), ($2), ($3), ($4);

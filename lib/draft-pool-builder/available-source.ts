@@ -26,14 +26,22 @@ export function selectPublishedVersion(versions: VersionCandidate[]) {
   return versions.find((version) => version.status === "published") ?? null
 }
 
-export function parseDraftAvailablePagination(searchParams: URLSearchParams) {
-  const rawLimit = Number.parseInt(searchParams.get("limit") ?? "100", 10)
-  const rawOffset = Number.parseInt(searchParams.get("offset") ?? "0", 10)
-
-  return {
-    limit: Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 500) : 100,
-    offset: Number.isFinite(rawOffset) ? Math.max(rawOffset, 0) : 0,
-  }
+/**
+ * Normalized comparison key for Pokémon names: strips accents, then drops every
+ * non-alphanumeric character (spaces, hyphens, apostrophes, periods, colons).
+ * "Rotom Wash" and "rotom-wash" -> "rotomwash"; "Farfetch'd" -> "farfetchd".
+ *
+ * Roster exclusion is name-only on purpose: team_rosters.pokemon_id is a UUID into
+ * public.pokemon, while published entries carry integer pokepedia_pokemon ids, so the
+ * two id spaces cannot be compared. This mirrors the legacy RPC, which also matches
+ * rostered Pokémon by normalized name.
+ */
+export function normalizePokemonNameKey(name: string): string {
+  return name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "")
 }
 
 export function buildPublishedAvailableRows(
@@ -42,13 +50,13 @@ export function buildPublishedAvailableRows(
   generationByPokemonId: ReadonlyMap<number, number | null>,
   filters: DraftAvailableFilters,
 ): DraftAvailableRow[] {
-  const rosteredNames = new Set(
-    [...rosteredPokemonNames].map((name) => name.trim().toLocaleLowerCase()),
+  const rosteredKeys = new Set(
+    [...rosteredPokemonNames].map(normalizePokemonNameKey).filter((key) => key.length > 0),
   )
 
   const rows = entries
     .filter((entry) => entry.status === "draftable")
-    .filter((entry) => !rosteredNames.has(entry.sheet_name.trim().toLocaleLowerCase()))
+    .filter((entry) => !rosteredKeys.has(normalizePokemonNameKey(entry.sheet_name)))
     .map((entry) => ({
       pokemon_name: entry.sheet_name,
       point_value: entry.points,

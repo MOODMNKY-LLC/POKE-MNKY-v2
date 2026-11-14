@@ -14,13 +14,29 @@ export const metadata = {
 
 const PAGE_SIZE = 1000
 
-type PublishedVersion = { id: string; season_id: string; version_number: number; published_at: string | null }
+type PublishedVersion = { id: string; season_id: string; published_at: string | null; approved_at: string | null }
 type Season = { id: string; name: string }
+
+function PoolErrorCard() {
+  return (
+    <main className="mx-auto flex min-h-[60dvh] max-w-3xl items-center px-4 py-10">
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle>We couldn&apos;t load the draft pool right now</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <p className="text-sm leading-relaxed text-muted-foreground">Something went wrong while loading the published pool. Please refresh in a moment. Drafting on the board is not affected.</p>
+          <Button asChild variant="outline" className="w-fit"><Link href="/draft/board">Open the draft board</Link></Button>
+        </CardContent>
+      </Card>
+    </main>
+  )
+}
 
 async function fetchPublishedVersions(supabase: Awaited<ReturnType<typeof createClient>>) {
   const rows: PublishedVersion[] = []
   for (let from = 0; ; from += PAGE_SIZE) {
-    const { data, error } = await supabase.from("draft_pool_versions").select("id, season_id, version_number, published_at").eq("status", "published").order("published_at", { ascending: false }).range(from, from + PAGE_SIZE - 1)
+    const { data, error } = await supabase.from("draft_pool_versions").select("id, season_id, published_at, approved_at").eq("status", "published").order("published_at", { ascending: false }).range(from, from + PAGE_SIZE - 1)
     if (error) throw error
     rows.push(...((data ?? []) as PublishedVersion[]))
     if ((data?.length ?? 0) < PAGE_SIZE) return rows
@@ -52,11 +68,23 @@ export default async function DraftPoolPage({ searchParams }: { searchParams: Pr
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect("/auth/login?next=/draft/pool")
 
-  const [{ data: currentSeason }, publishedVersions, requested] = await Promise.all([
-    supabase.from("seasons").select("id, name").eq("is_current", true).maybeSingle(),
-    fetchPublishedVersions(supabase),
-    searchParams,
-  ])
+  let currentSeason: Season | null = null
+  let publishedVersions: PublishedVersion[] = []
+  let requested: { season?: string } = {}
+  try {
+    const [seasonResult, versions, params] = await Promise.all([
+      supabase.from("seasons").select("id, name").eq("is_current", true).maybeSingle(),
+      fetchPublishedVersions(supabase),
+      searchParams,
+    ])
+    if (seasonResult.error) throw seasonResult.error
+    currentSeason = (seasonResult.data as Season | null) ?? null
+    publishedVersions = versions
+    requested = params
+  } catch (error) {
+    console.error("[draft/pool] Failed to load published versions:", error)
+    return <PoolErrorCard />
+  }
 
   const publishedSeasonIds = [...new Set(publishedVersions.map((version) => version.season_id))]
   const seasonIds = [...new Set([...(currentSeason ? [currentSeason.id] : []), ...publishedSeasonIds])]
@@ -75,8 +103,19 @@ export default async function DraftPoolPage({ searchParams }: { searchParams: Pr
     return <main className="mx-auto flex min-h-[60dvh] max-w-3xl items-center px-4 py-10"><Card className="w-full"><CardHeader><CardTitle>{`The ${selectedSeason.name} draft pool hasn't been published in the app yet`}</CardTitle></CardHeader><CardContent><Button asChild variant="outline"><Link href="/draft/board">Open the draft board</Link></Button></CardContent></Card></main>
   }
 
-  const [entries, restrictions] = await Promise.all([fetchVersionEntries(supabase, version.id), fetchRestrictions(supabase, version.id)])
+  let entries: CoachPoolEntry[]
+  let restrictions: CoachPoolRestriction[]
+  try {
+    ;[entries, restrictions] = await Promise.all([fetchVersionEntries(supabase, version.id), fetchRestrictions(supabase, version.id)])
+  } catch (error) {
+    console.error("[draft/pool] Failed to load published pool entries:", error)
+    return <PoolErrorCard />
+  }
+  const publishedAt = version.published_at ?? version.approved_at
+  const publishedLabel = publishedAt
+    ? new Date(publishedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/Chicago" })
+    : null
   const publishedSeasons = publishedSeasonIds.map((id) => seasonById.get(id)).filter((season): season is Season => Boolean(season)).sort((a, b) => a.name.localeCompare(b.name))
 
-  return <main className="mx-auto w-full max-w-7xl px-4 py-6 md:py-10"><div className="mb-6 flex flex-col gap-3"><Button asChild variant="ghost" className="w-fit"><Link href="/draft/board"><ArrowLeftIcon data-icon="inline-start" />Draft board</Link></Button><div><p className="text-sm font-medium text-primary">Published league pool</p><h1 className="text-3xl font-bold text-balance md:text-4xl">{selectedSeason.name} draft pool</h1><p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground md:text-base">Browse official points, Tera eligibility, and team-sheet restrictions before you draft.</p></div></div><CoachPoolClient entries={entries} restrictions={restrictions} season={selectedSeason} publishedSeasons={publishedSeasons} /></main>
+  return <main className="mx-auto w-full max-w-7xl px-4 py-6 md:py-10"><div className="mb-6 flex flex-col gap-3"><Button asChild variant="ghost" className="w-fit"><Link href="/draft/board"><ArrowLeftIcon data-icon="inline-start" />Draft board</Link></Button><div><p className="text-sm font-medium text-primary">{publishedLabel ? `Published league pool · ${publishedLabel}` : "Published league pool"}</p><h1 className="text-3xl font-bold text-balance md:text-4xl">{selectedSeason.name} draft pool</h1><p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground md:text-base">Browse official points, Tera eligibility, and team-sheet restrictions before you draft.</p></div></div><CoachPoolClient entries={entries} restrictions={restrictions} season={selectedSeason} publishedSeasons={publishedSeasons} /></main>
 }
