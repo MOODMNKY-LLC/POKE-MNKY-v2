@@ -553,9 +553,13 @@ test.describe("season-sim demo browser acceptance", () => {
     await signInNonadmin(page)
     await page.goto(`${FLAGS_OFF_URL}/demo/season-sim`, { waitUntil: "domcontentloaded" })
     // A click before hydration submits the form as a navigation and never calls the API.
-    await expect(page.locator("[data-hydrated=true]")).toBeVisible()
+    await expect(page.locator("[data-hydrated=true]")).toBeVisible({ timeout: 30_000 })
     const start = page.getByRole("button", { name: "Start a practice season" })
-    await start.evaluate((el) => el.scrollIntoView({ block: "center", behavior: "instant" }))
+    await expect(start).toBeVisible({ timeout: 30_000 })
+    // Playwright scroll — page.evaluate(scrollIntoView) races with client
+    // remount/navigation ("Execution context was destroyed") on the flags-off Next.
+    await start.scrollIntoViewIfNeeded()
+    await expect(start).toBeEnabled()
     const responsePromise = page.waitForResponse(
       (response) =>
         response.url().includes("/api/admin/simulation/runs") && response.request().method() === "POST",
