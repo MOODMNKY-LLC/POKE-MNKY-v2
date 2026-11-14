@@ -420,8 +420,9 @@ declare
   v_actor uuid := auth.uid();
   v_version public.draft_pool_versions%rowtype;
 begin
-  if v_actor is null then
-    raise exception 'permission denied: authentication is required' using errcode = '42501';
+  if v_actor is null or not coalesce((select public.is_draft_pool_editor()), false) then
+    raise exception 'permission denied: draft-pool editor access is required'
+      using errcode = '42501';
   end if;
 
   select * into v_version
@@ -472,8 +473,9 @@ declare
   v_is_admin boolean;
   v_is_mod boolean;
 begin
-  if v_actor is null then
-    raise exception 'permission denied: authentication is required' using errcode = '42501';
+  if v_actor is null or not coalesce((select public.is_draft_pool_editor()), false) then
+    raise exception 'permission denied: draft-pool editor access is required'
+      using errcode = '42501';
   end if;
 
   select * into v_version
@@ -518,6 +520,16 @@ begin
     end if;
   end if;
 
+  perform e.id
+  from public.draft_pool_version_entries e
+  where e.version_id = p_version_id
+  order by e.id
+  for update;
+  if not found then
+    raise exception 'cannot publish an empty draft-pool revision'
+      using errcode = 'P0001';
+  end if;
+
   select id into v_archived_id
   from public.draft_pool_versions
   where season_id = v_version.season_id
@@ -560,8 +572,9 @@ declare
   v_actor uuid := auth.uid();
   v_version public.draft_pool_versions%rowtype;
 begin
-  if v_actor is null then
-    raise exception 'permission denied: authentication is required' using errcode = '42501';
+  if v_actor is null or not coalesce((select public.is_draft_pool_editor()), false) then
+    raise exception 'permission denied: draft-pool editor access is required'
+      using errcode = '42501';
   end if;
 
   select * into v_version

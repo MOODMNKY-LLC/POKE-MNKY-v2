@@ -49,6 +49,15 @@ const AUTHENTICATED_FUNCTIONS = [
   "public.rpc_draft_pool_discard_revision(uuid)",
 ] as const
 
+const MOD_ROLE_JSON = JSON.stringify([
+  {
+    id: "1190663258676396075",
+    name: "Mod",
+    color: "#000000",
+    position: 1,
+  },
+])
+
 async function asJwtUser(client: Client, userId: string | null) {
   await client.query(`select set_config('request.jwt.claim.sub', $1, false)`, [
     userId ?? "",
@@ -151,21 +160,13 @@ describe.skipIf(!hasPgUrl)("draft-pool phase-2 editor workflow", () => {
     await c.query(`insert into public.admin_users (user_id) values ($1)`, [
       adminA,
     ])
-    const modRoles = JSON.stringify([
-      {
-        id: "1190663258676396075",
-        name: "Mod",
-        color: "#000000",
-        position: 1,
-      },
-    ])
     await c.query(
       `insert into public.profiles (id, role, discord_roles) values
         ($1, 'admin', '[]'::jsonb),
         ($2, 'coach', $3::jsonb),
         ($4, 'coach', $3::jsonb),
         ($5, 'coach', '[]'::jsonb)`,
-      [adminA, modA, modRoles, modB, coach],
+      [adminA, modA, MOD_ROLE_JSON, modB, coach],
     )
     await c.query(
       `insert into public.pokepedia_pokemon (id, name) values
@@ -240,9 +241,15 @@ describe.skipIf(!hasPgUrl)("draft-pool phase-2 editor workflow", () => {
       ]),
     ).rejects.toMatchObject({ code: "42501" })
     await expect(
+      c.query(`select public.rpc_draft_pool_withdraw_revision($1)`, [pendingId]),
+    ).rejects.toMatchObject({ code: "42501" })
+    await expect(
       c.query(`select public.rpc_draft_pool_publish_revision($1, null)`, [
         pendingId,
       ]),
+    ).rejects.toMatchObject({ code: "42501" })
+    await expect(
+      c.query(`select public.rpc_draft_pool_discard_revision($1)`, [pendingId]),
     ).rejects.toMatchObject({ code: "42501" })
 
     const versions = await c.query<{ id: string; status: string }>(
@@ -361,6 +368,16 @@ describe.skipIf(!hasPgUrl)("draft-pool phase-2 editor workflow", () => {
     await c.query(`select public.rpc_draft_pool_submit_revision($1, null)`, [
       secondPendingId,
     ])
+    const freshReview = await c.query<{
+      submitted_by: string
+      contributor_ids: string[]
+    }>(
+      `select submitted_by, contributor_ids
+       from public.draft_pool_versions where id = $1`,
+      [secondPendingId],
+    )
+    expect(freshReview.rows[0]?.submitted_by).toBe(modA)
+    expect(freshReview.rows[0]?.contributor_ids).not.toContain(modB)
 
     await useAuthenticated(c, modB)
     const published = await c.query<{
@@ -438,6 +455,82 @@ describe.skipIf(!hasPgUrl)("draft-pool phase-2 editor workflow", () => {
       submitted_at: null,
       approved_by: adminA,
     })
+  })
+
+  it("rejects former mods before withdraw or discard state checks", async () => {
+    const c = requireClient()
+    const fixture = await createPublishedFixture(c, "workflow former mod")
+
+    await useAuthenticated(c, modA)
+    const started = await c.query<{ id: string }>(
+      `select public.rpc_draft_pool_start_revision($1, null) as id`,
+      [fixture.seasonId],
+    )
+    const pendingId = started.rows[0]!.id
+    await c.query(`select public.rpc_draft_pool_submit_revision($1, null)`, [
+      pendingId,
+    ])
+
+    await resetRole(c)
+    await c.query(
+      `update public.profiles set discord_roles = '[]'::jsonb where id = $1`,
+      [modA],
+    )
+
+    try {
+      await useAuthenticated(c, modA)
+      await expect(
+        c.query(`select public.rpc_draft_pool_withdraw_revision($1)`, [
+          pendingId,
+        ]),
+      ).rejects.toMatchObject({ code: "42501" })
+      await expect(
+        c.query(`select public.rpc_draft_pool_discard_revision($1)`, [pendingId]),
+      ).rejects.toMatchObject({ code: "42501" })
+    } finally {
+      await resetRole(c)
+      await c.query(
+        `update public.profiles set discord_roles = $2::jsonb where id = $1`,
+        [modA, MOD_ROLE_JSON],
+      )
+    }
+
+    await useAuthenticated(c, modA)
+    await c.query(`select public.rpc_draft_pool_discard_revision($1)`, [
+      pendingId,
+    ])
+  })
+
+  it("refuses to publish an empty pending revision", async () => {
+    const c = requireClient()
+    await resetRole(c)
+    const season = await c.query<{ id: string }>(
+      `insert into public.seasons (name) values ('workflow empty pool') returning id`,
+    )
+
+    await useAuthenticated(c, adminA)
+    const started = await c.query<{ id: string }>(
+      `select public.rpc_draft_pool_start_revision($1, null) as id`,
+      [season.rows[0]!.id],
+    )
+    const pendingId = started.rows[0]!.id
+
+    await expect(
+      c.query(`select public.rpc_draft_pool_publish_revision($1, null)`, [
+        pendingId,
+      ]),
+    ).rejects.toMatchObject({
+      code: "P0001",
+      message: expect.stringContaining("empty"),
+    })
+    const pending = await c.query<{ status: string }>(
+      `select status from public.draft_pool_versions where id = $1`,
+      [pendingId],
+    )
+    expect(pending.rows[0]?.status).toBe("pending")
+    await c.query(`select public.rpc_draft_pool_discard_revision($1)`, [
+      pendingId,
+    ])
   })
 
   it("withdraws back to a draft and discards without touching published", async () => {

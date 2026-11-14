@@ -89,6 +89,60 @@ export async function listDraftPoolSeasons(
   return (data ?? []) as DraftPoolSeason[]
 }
 
+const SNAPSHOT_PAGE_SIZE = 1_000
+
+async function fetchVersionEntries(
+  client: SupabaseClient,
+  versionId: string,
+): Promise<DraftPoolEntrySnapshot[]> {
+  const entries: DraftPoolEntrySnapshot[] = []
+
+  for (let from = 0; ; from += SNAPSHOT_PAGE_SIZE) {
+    const { data, error } = await client
+      .from("draft_pool_version_entries")
+      .select(
+        "id, version_id, pokemon_id, sheet_name, points, status, tera_banned, is_effective_tera_ban, sort_order",
+      )
+      .eq("version_id", versionId)
+      .order("sort_order")
+      .order("sheet_name")
+      .order("id")
+      .range(from, from + SNAPSHOT_PAGE_SIZE - 1)
+    throwIfError(error)
+
+    const page = (data ?? []) as DraftPoolEntrySnapshot[]
+    entries.push(...page)
+    if (page.length < SNAPSHOT_PAGE_SIZE) break
+  }
+
+  return entries
+}
+
+async function fetchVersionRestrictions(
+  client: SupabaseClient,
+  versionId: string,
+): Promise<DraftPoolRestrictionSnapshot[]> {
+  const restrictions: DraftPoolRestrictionSnapshot[] = []
+
+  for (let from = 0; ; from += SNAPSHOT_PAGE_SIZE) {
+    const { data, error } = await client
+      .from("season_pokemon_restrictions")
+      .select("id, version_id, pokemon_id, sheet_name, kind, name, note")
+      .eq("version_id", versionId)
+      .order("kind")
+      .order("name")
+      .order("id")
+      .range(from, from + SNAPSHOT_PAGE_SIZE - 1)
+    throwIfError(error)
+
+    const page = (data ?? []) as DraftPoolRestrictionSnapshot[]
+    restrictions.push(...page)
+    if (page.length < SNAPSHOT_PAGE_SIZE) break
+  }
+
+  return restrictions
+}
+
 export async function loadDraftPoolEditorSnapshot(
   seasonId: string,
   client: SupabaseClient = browserClient(),
@@ -105,60 +159,34 @@ export async function loadDraftPoolEditorSnapshot(
   const versions = (versionsResult.data ?? []) as DraftPoolVersion[]
   const published = versions.find((version) => version.status === "published") ?? null
   const pending = versions.find((version) => version.status === "pending") ?? null
-  const versionIds = [published?.id, pending?.id].filter(
-    (id): id is string => Boolean(id),
-  )
-  if (versionIds.length === 0) {
-    return {
-      published,
-      pending,
-      publishedEntries: [],
-      pendingEntries: [],
-      publishedRestrictions: [],
-      pendingRestrictions: [],
-    }
-  }
 
-  const [entriesResult, restrictionsResult] = await Promise.all([
-    client
-      .from("draft_pool_version_entries")
-      .select(
-        "id, version_id, pokemon_id, sheet_name, points, status, tera_banned, is_effective_tera_ban, sort_order",
-      )
-      .in("version_id", versionIds)
-      .order("sort_order")
-      .order("sheet_name"),
-    client
-      .from("season_pokemon_restrictions")
-      .select("id, version_id, pokemon_id, sheet_name, kind, name, note")
-      .in("version_id", versionIds)
-      .order("kind")
-      .order("name"),
+  const [
+    publishedEntries,
+    pendingEntries,
+    publishedRestrictions,
+    pendingRestrictions,
+  ] = await Promise.all([
+    published
+      ? fetchVersionEntries(client, published.id)
+      : Promise.resolve([] as DraftPoolEntrySnapshot[]),
+    pending
+      ? fetchVersionEntries(client, pending.id)
+      : Promise.resolve([] as DraftPoolEntrySnapshot[]),
+    published
+      ? fetchVersionRestrictions(client, published.id)
+      : Promise.resolve([] as DraftPoolRestrictionSnapshot[]),
+    pending
+      ? fetchVersionRestrictions(client, pending.id)
+      : Promise.resolve([] as DraftPoolRestrictionSnapshot[]),
   ])
-  throwIfError(entriesResult.error)
-  throwIfError(restrictionsResult.error)
-  const entries = (entriesResult.data ?? []) as DraftPoolEntrySnapshot[]
-  const restrictions = (restrictionsResult.data ?? []) as DraftPoolRestrictionSnapshot[]
 
   return {
     published,
     pending,
-    publishedEntries: published
-      ? entries.filter((entry) => entry.version_id === published.id)
-      : [],
-    pendingEntries: pending
-      ? entries.filter((entry) => entry.version_id === pending.id)
-      : [],
-    publishedRestrictions: published
-      ? restrictions.filter(
-          (restriction) => restriction.version_id === published.id,
-        )
-      : [],
-    pendingRestrictions: pending
-      ? restrictions.filter(
-          (restriction) => restriction.version_id === pending.id,
-        )
-      : [],
+    publishedEntries,
+    pendingEntries,
+    publishedRestrictions,
+    pendingRestrictions,
   }
 }
 
