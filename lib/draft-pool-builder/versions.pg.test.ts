@@ -54,7 +54,7 @@ describe.skipIf(!hasPgUrl)("draft_pool_versions phase-1 constraints + RLS", () =
   let adminId = ""
   let modId = ""
   let coachId = ""
-  let pokeId = 25
+  const pokeId = 25
 
   beforeAll(async () => {
     const c = await connectDisposableHarnessClient(pgUrl)
