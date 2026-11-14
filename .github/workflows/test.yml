@@ -137,6 +137,37 @@ jobs:
           SEASON_SIM_PG_URL: postgresql://postgres@localhost:5432/security_helpers_test
         run: pnpm test:security-pg
 
+  draft-pool-builder-pg:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: draft_pool_builder_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - name: Run draft pool versions phase-1 postgres evidence
+        env:
+          CI: true
+          DRAFT_POOL_BUILDER_PG_URL: postgresql://postgres@localhost:5432/draft_pool_builder_test
+        run: pnpm test:draft-pool-builder-pg
+
   season-sim-real-server-auth:
     # ubuntu-latest is 26.04, which Playwright 1.58 cannot install Chromium on.
     runs-on: ubuntu-24.04
