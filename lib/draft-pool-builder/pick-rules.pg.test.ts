@@ -647,6 +647,39 @@ describe.skipIf(!hasPgUrl)("draft pool phase 5 pick rules", () => {
     expect(byName.rows[0]).toEqual({ w: 10273, a: 10252 })
   })
 
+  it("migration applies on an empty catalog (clean replay) and leaves alias ids null", async () => {
+    const targetIds = [487, 493, 649, 668, 10250, 10251, 10252, 10273, 10274, 10275]
+    await db().query("begin")
+    try {
+      await db().query(`delete from public.draft_pool_sheet_aliases where pokemon_id = any($1::int[])`, [targetIds])
+      await db().query(`delete from public.pokepedia_pokemon where id = any($1::int[])`, [targetIds])
+      await db().query(
+        `insert into public.draft_pool_sheet_aliases (sheet_name, sheet_slug, pokemon_id)
+         values ('Ogerpon Hearthflame', 'ogerpon-hearthflame', null),
+                ('Arceus Water', 'arceus-water', null)
+         on conflict (sheet_name) do update set pokemon_id = null`,
+      )
+
+      await db().query(familiesSql)
+
+      const aliases = await db().query<{ sheet_name: string; pokemon_id: number | null }>(
+        `select sheet_name, pokemon_id from public.draft_pool_sheet_aliases
+         where sheet_name in ('Ogerpon Hearthflame', 'Arceus Water') order by sheet_name`,
+      )
+      expect(aliases.rows).toEqual([
+        { sheet_name: "Arceus Water", pokemon_id: null },
+        { sheet_name: "Ogerpon Hearthflame", pokemon_id: null },
+      ])
+      const mapped = await db().query<{ n: number }>(
+        `select count(*)::int as n from public.draft_pool_sheet_aliases where pokemon_id = any($1::int[])`,
+        [targetIds],
+      )
+      expect(mapped.rows[0]!.n).toBe(0)
+    } finally {
+      await db().query("rollback")
+    }
+  })
+
   it("families table is service_role only (RLS on, no policies)", async () => {
     const r = await db().query(
       `select
