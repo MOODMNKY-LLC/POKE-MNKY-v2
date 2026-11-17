@@ -11,7 +11,11 @@ config({ path: ".env.local" })
 
 const N8N_WEBHOOK_URL = "https://aab-n8n.moodmnky.com/webhook/notion-draft-board"
 const API_WEBHOOK_URL = "https://poke-mnky.moodmnky.com/api/webhooks/notion"
-const WEBHOOK_SECRET = process.env.NOTION_WEBHOOK_SECRET || "8f660810604bf980c0c316de01260db37e813ff1795edc6d4bf2ca0ca8296093"
+const WEBHOOK_SECRET = process.env.NOTION_WEBHOOK_SECRET
+if (!WEBHOOK_SECRET) {
+  console.error("NOTION_WEBHOOK_SECRET is required (set it in .env.local). Refusing to run without it.")
+  process.exit(1)
+}
 
 // Create a proper Notion webhook payload
 const mockNotionWebhook = {

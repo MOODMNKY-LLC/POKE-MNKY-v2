@@ -130,9 +130,10 @@ If webhook subscriptions are not available, use Notion's built-in database autom
 3. **HTTP Request Node**:
    - Method: POST
    - URL: `{{ $env.NEXT_PUBLIC_APP_URL }}/api/sync/notion/pull`
-   - Authentication: Header Auth
-     - Name: `Authorization`
-     - Value: `Bearer {{ $env.NOTION_SYNC_SECRET }}`
+   - Authentication: Generic Credential Type → Header Auth
+     - Credential: "POKE MNKY Notion Sync Bearer" (create it manually in the n8n UI:
+       header name `Authorization`, value `Bearer <NOTION_SYNC_SECRET from Vercel>`).
+       Do not put the secret in the workflow JSON or in an expression.
    - Body: JSON
      ```json
      {
@@ -192,16 +193,8 @@ If webhook subscriptions are not available, use Notion's built-in database autom
       "parameters": {
         "method": "POST",
         "url": "={{ $env.NEXT_PUBLIC_APP_URL }}/api/sync/notion/pull",
-        "authentication": "headerAuth",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Authorization",
-              "value": "=Bearer {{ $env.NOTION_SYNC_SECRET }}"
-            }
-          ]
-        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "bodyParameters": {
           "parameters": []

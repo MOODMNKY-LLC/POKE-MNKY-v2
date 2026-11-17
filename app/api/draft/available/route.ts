@@ -8,7 +8,6 @@
  */
 
 import {
-  applyDraftAvailableFilters,
   clampDraftAvailableLimit,
   clampDraftAvailableOffset,
   enrichDraftAvailablePage,
@@ -25,6 +24,10 @@ import {
   fetchPublishedVersionId,
   fetchRosteredNames,
 } from "@/lib/draft-pool-builder/published-pool-data"
+import {
+  attachPageMeta,
+  loadAvailableRows,
+} from "@/lib/draft-pool-builder/legacy-available-rows"
 import { createServiceRoleClient } from "@/lib/supabase/service"
 import { NextResponse } from "next/server"
 
@@ -68,41 +71,6 @@ function getDraftAvailableCacheKey(
   return `${sourceKey}:${seasonId}:${minPoints ?? "n"}:${maxPoints ?? "n"}:${generation ?? "n"}:${search ?? ""}:${limit}:${offset}`
 }
 
-async function attachPageMeta(
-  supabase: ReturnType<typeof createServiceRoleClient>,
-  seasonId: string,
-  page: DraftAvailableEnrichInput[],
-): Promise<DraftAvailableEnrichInput[]> {
-  if (page.length === 0) return page
-  const names = page.map((p) => p.pokemon_name)
-  const metaByName = new Map<
-    string,
-    { status: string | null; tera_captain_eligible?: boolean | null }
-  >()
-  const { data: metaRows } = await supabase
-    .from("draft_pool")
-    .select("pokemon_name, status, tera_captain_eligible")
-    .eq("season_id", seasonId)
-    .in("pokemon_name", names)
-  for (const row of metaRows ?? []) {
-    metaByName.set(String(row.pokemon_name).toLowerCase(), {
-      status: row.status ?? null,
-      tera_captain_eligible: row.tera_captain_eligible,
-    })
-  }
-  return page.map((p) => {
-    const meta = metaByName.get(p.pokemon_name.toLowerCase())
-    return {
-      ...p,
-      status: meta?.status || p.status || "available",
-      tera_captain_eligible:
-        meta?.tera_captain_eligible !== undefined
-          ? meta.tera_captain_eligible
-          : p.tera_captain_eligible,
-    }
-  })
-}
-
 async function loadPublishedAvailableRows(
   supabase: ReturnType<typeof createServiceRoleClient>,
   versionId: string,
@@ -119,73 +87,6 @@ async function loadPublishedAvailableRows(
   const generationByPokemonId = await fetchGenerationByPokemonId(supabase, entries)
 
   return buildPublishedAvailableRows(entries, rosteredNames, generationByPokemonId, filters)
-}
-
-async function loadAvailableRows(
-  supabase: ReturnType<typeof createServiceRoleClient>,
-  seasonId: string,
-  filters: {
-    minPoints?: number
-    maxPoints?: number
-    generation?: number
-    search?: string
-  },
-): Promise<DraftAvailableEnrichInput[]> {
-  const { data: rpcData, error: rpcError } = await supabase.rpc(
-    "get_available_pokemon_for_free_agency",
-    {
-      p_season_id: seasonId,
-      p_min_points: filters.minPoints ?? null,
-      p_max_points: filters.maxPoints ?? null,
-      p_generation: filters.generation ?? null,
-      p_search: filters.search ?? null,
-    },
-  )
-
-  if (!rpcError && rpcData?.length) {
-    return rpcData.map(
-      (p: {
-        pokemon_name: string
-        point_value: number
-        pokemon_id: number | null
-        generation: number | null
-      }) => ({
-        pokemon_name: p.pokemon_name,
-        point_value: p.point_value,
-        pokemon_id: p.pokemon_id ?? null,
-        generation: p.generation ?? null,
-        status: "available",
-      }),
-    )
-  }
-
-  if (rpcError) {
-    console.warn(`[API /draft/available] RPC error, falling back to draft_pool:`, rpcError.message)
-  }
-
-  const { data, error } = await supabase
-    .from("draft_pool")
-    .select("pokemon_name, point_value, pokemon_id, status, tera_captain_eligible, generation")
-    .eq("season_id", seasonId)
-    .or("status.eq.available,status.is.null")
-    .order("point_value", { ascending: false })
-    .order("pokemon_name", { ascending: true })
-    .limit(2000)
-
-  if (error) {
-    throw new Error(`Failed to fetch Pokemon: ${error.message}`)
-  }
-
-  const mapped: DraftAvailableEnrichInput[] = (data ?? []).map((p) => ({
-    pokemon_name: p.pokemon_name,
-    point_value: p.point_value,
-    pokemon_id: p.pokemon_id ?? null,
-    generation: p.generation ?? null,
-    status: p.status || "available",
-    tera_captain_eligible: p.tera_captain_eligible,
-  }))
-
-  return applyDraftAvailableFilters(mapped, filters)
 }
 
 export async function GET(request: Request) {

@@ -192,9 +192,10 @@ curl -X POST https://poke-mnky.moodmnky.com/api/admin/n8n/create-workflow \
    - Type: `HTTP Request`
    - Method: `POST`
    - URL: `{{ $env.NEXT_PUBLIC_APP_URL }}/api/sync/notion/pull`
-   - Authentication: Header Auth
-     - Name: `Authorization`
-     - Value: `Bearer {{ $env.NOTION_SYNC_SECRET }}`
+   - Authentication: Generic Credential Type -> Header Auth
+     - Credential: "POKE MNKY Notion Sync Bearer" (created manually in the n8n UI with
+       header `Authorization` and value `Bearer <NOTION_SYNC_SECRET from Vercel>`;
+       never put the secret in the workflow JSON or an expression)
    - Body: JSON
      ```json
      {

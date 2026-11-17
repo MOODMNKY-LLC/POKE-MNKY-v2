@@ -140,7 +140,7 @@ When asking for help, provide:
 1. ✅ **Webhook Registration Fixed**: n8n webhook endpoint is now registered and responding
 2. ⚠️  **Set Environment Variable in Vercel**:
    - Go to: https://vercel.com/dashboard → Select project → Settings → Environment Variables
-   - Add: `NOTION_WEBHOOK_SECRET` = `8f660810604bf980c0c316de01260db37e813ff1795edc6d4bf2ca0ca8296093`
+   - Add: `NOTION_WEBHOOK_SECRET` = `<your-NOTION_WEBHOOK_SECRET>`
    - Apply to: Production, Preview, Development
    - Redeploy the latest deployment (or wait for next push)
 3. ✅ **Make a test change** in Notion Draft Board after Vercel redeploys
