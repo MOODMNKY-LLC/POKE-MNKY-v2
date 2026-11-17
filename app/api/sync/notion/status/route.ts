@@ -10,8 +10,10 @@
 
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { isNotionPullSyncEnabled } from "@/lib/sync/notion-pull-sync-gate"
 
 export async function GET(request: NextRequest) {
+  const pull_sync_enabled = isNotionPullSyncEnabled()
   try {
     const { searchParams } = new URL(request.url)
     const jobId = searchParams.get("job_id")
@@ -52,7 +54,7 @@ export async function GET(request: NextRequest) {
         )
       }
 
-      return NextResponse.json({ job })
+      return NextResponse.json({ job, pull_sync_enabled })
     } else {
       // Get recent jobs
       const { data: jobs, error } = await supabase
@@ -68,7 +70,7 @@ export async function GET(request: NextRequest) {
         )
       }
 
-      return NextResponse.json({ jobs: jobs || [] })
+      return NextResponse.json({ jobs: jobs || [], pull_sync_enabled })
     }
   } catch (error: any) {
     console.error("Notion sync status error:", error)

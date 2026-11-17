@@ -14,64 +14,27 @@
  */
 
 import { NextRequest, NextResponse, after } from "next/server"
-import crypto from "crypto"
 import { createClient } from "@supabase/supabase-js"
 import { syncNotionToSupabase } from "@/lib/sync/notion-sync-worker"
 import { unauthorized, badRequest, internalError } from "@/lib/api-error"
 import { notionWebhookPayloadSchema } from "@/lib/validation/notion-webhook"
 import { logger } from "@/lib/logger"
+import { notionPullSyncDeniedResponse } from "@/lib/sync/notion-pull-sync-gate"
+import {
+  parseNotionVerificationToken,
+  verifyNotionWebhookSignature,
+} from "@/lib/notion/verify-webhook-signature"
 
 const DRAFT_BOARD_DATABASE_ID = "5e58ccd73ceb44ed83de826b51cf5c36"
 
 // Allow webhook-triggered sync to complete
 export const maxDuration = 120
 
-/**
- * Verify Notion webhook signature
- *
- * Notion sends signatures in format: "sha256=<hash>"
- * The hash is HMAC-SHA256 of the request body using the verification_token
- */
-function verifyNotionSignature(
-  body: string,
-  signature: string | null,
-  secret: string
-): boolean {
-  if (!signature) {
-    // Handle verification token request (initial setup)
-    try {
-      const payload = JSON.parse(body)
-      if (payload.verification_token) {
-        // Store verification token for future use
-        // For now, we'll use NOTION_WEBHOOK_SECRET as the verification token
-        return true // Accept verification requests
-      }
-    } catch {
-      // Not a verification request
-    }
-    return false
-  }
-
-  try {
-    // Extract hash from "sha256=<hash>" format
-    const signatureHash = signature.replace("sha256=", "")
-    
-    // Compute expected signature
-    const hmac = crypto.createHmac("sha256", secret)
-    hmac.update(body)
-    const expectedSignature = hmac.digest("hex")
-    
-    return crypto.timingSafeEqual(
-      Buffer.from(signatureHash),
-      Buffer.from(expectedSignature)
-    )
-  } catch (error) {
-    logger.error("Notion webhook signature verification error", { route: "webhooks/notion", error: String(error) })
-    return false
-  }
-}
-
 export async function POST(request: NextRequest) {
+  // (a) Flag off: fail closed before reading the body, auth, or any DB work.
+  const pullDenied = notionPullSyncDeniedResponse()
+  if (pullDenied) return pullDenied
+
   const requestId = `req_${Date.now()}_${Math.random().toString(36).substring(7)}`
   logger.debug("Notion webhook received", { requestId, route: "webhooks/notion" })
 
@@ -83,30 +46,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, message: "Empty body acknowledged" }, { status: 200 })
     }
 
-    try {
-      const verificationPayload = JSON.parse(body)
-      if (verificationPayload.verification_token) {
+    const signature = request.headers.get("x-notion-signature")
+
+    // (b) Notion's one-time subscription verification payload is unsigned. Echo the
+    // token (as before) but never trigger a sync from it.
+    if (!signature) {
+      const verificationToken = parseNotionVerificationToken(body)
+      if (verificationToken !== null) {
         logger.debug("Notion webhook verification token received", { requestId })
-        return NextResponse.json({
-          verification_token: verificationPayload.verification_token,
-        }, { status: 200 })
+        return NextResponse.json({ verification_token: verificationToken }, { status: 200 })
       }
-    } catch {
-      // Not a verification request, continue with normal webhook processing
     }
 
-    // Get webhook secret/verification token from environment
+    // (c) Everything else must carry a valid signature.
     const webhookSecret = process.env.NOTION_WEBHOOK_SECRET
     if (!webhookSecret) {
       return internalError("Webhook secret not configured")
     }
 
-    // Get signature from headers
-    const signature = request.headers.get("x-notion-signature") || null
-
-    // Verify signature (skip for verification requests, already handled above)
-    if (signature && !verifyNotionSignature(body, signature, webhookSecret)) {
-      return unauthorized("Invalid signature")
+    if (!verifyNotionWebhookSignature(body, signature, webhookSecret)) {
+      return unauthorized("Invalid or missing signature")
     }
 
     // Parse and validate webhook payload

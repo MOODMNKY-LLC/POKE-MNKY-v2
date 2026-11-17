@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useToast } from "@/hooks/use-toast"
 import { Workflow, CheckCircle2, XCircle, ExternalLink, Loader2, Play } from "lucide-react"
+import { usePullSyncEnabled } from "./use-pull-sync-enabled"
 
 interface N8nWorkflow {
   id: string
@@ -27,6 +28,7 @@ export function N8nStatus() {
   const [executions, setExecutions] = useState<N8nExecution[]>([])
   const [loading, setLoading] = useState(true)
   const { toast } = useToast()
+  const pullSyncEnabled = usePullSyncEnabled()
 
   useEffect(() => {
     loadWorkflows()
@@ -125,16 +127,24 @@ export function N8nStatus() {
               </div>
             )}
 
+            {!pullSyncEnabled && (
+              <p className="text-xs text-muted-foreground">
+                Notion → app sync is disabled (NOTION_PULL_SYNC_ENABLED)
+              </p>
+            )}
+
             <div className="flex gap-2">
-              <Button
-                onClick={createWorkflow}
-                variant="outline"
-                size="sm"
-                className="flex-1"
-              >
-                <Play className="mr-2 h-4 w-4" />
-                Create Workflow
-              </Button>
+              {pullSyncEnabled && (
+                <Button
+                  onClick={createWorkflow}
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                >
+                  <Play className="mr-2 h-4 w-4" />
+                  Create Workflow
+                </Button>
+              )}
               <Button
                 onClick={loadWorkflows}
                 variant="ghost"

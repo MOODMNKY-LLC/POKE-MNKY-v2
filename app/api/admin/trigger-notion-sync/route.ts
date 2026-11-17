@@ -10,8 +10,12 @@
 import { leagueAdminDeniedResponse } from "@/lib/admin-api-auth"
 import { NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase/server"
+import { notionPullSyncDeniedResponse } from "@/lib/sync/notion-pull-sync-gate"
 
 export async function POST(request: NextRequest) {
+  const pullDenied = notionPullSyncDeniedResponse()
+  if (pullDenied) return pullDenied
+
   try {
     // Verify admin authentication
     const supabase = await createServerClient()

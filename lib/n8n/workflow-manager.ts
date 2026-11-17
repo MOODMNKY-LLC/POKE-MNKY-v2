@@ -6,6 +6,7 @@
  */
 
 import axios, { AxiosInstance } from "axios"
+import { assertNotionPullSyncAllowed } from "@/lib/sync/notion-pull-sync-gate"
 
 export interface N8nWorkflow {
   id?: string
@@ -191,6 +192,7 @@ export async function createNotionSyncWorkflow(
   syncApiUrl: string,
   discordWebhookUrl?: string
 ): Promise<{ workflowId: string; webhookUrl: string }> {
+  assertNotionPullSyncAllowed()
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://poke-mnky.moodmnky.com"
   const syncSecret = process.env.NOTION_SYNC_SECRET
 

@@ -17,8 +17,12 @@
 
 import { NextRequest, NextResponse } from "next/server"
 import { POST as pullPost } from "../route"
+import { notionPullSyncDeniedResponse } from "@/lib/sync/notion-pull-sync-gate"
 
 export async function POST(request: NextRequest) {
+  const pullDenied = notionPullSyncDeniedResponse()
+  if (pullDenied) return pullDenied
+
   try {
     const body = await request.json()
     const { since } = body

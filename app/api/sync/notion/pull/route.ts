@@ -23,8 +23,12 @@ import { createClient } from "@supabase/supabase-js"
 export const maxDuration = 120
 import { syncNotionToSupabase } from "@/lib/sync/notion-sync-worker"
 import { notifyDraftBoardSync, notifyDraftBoardError } from "@/lib/discord-notifications"
+import { notionPullSyncDeniedResponse } from "@/lib/sync/notion-pull-sync-gate"
 
 export async function POST(request: NextRequest) {
+  const pullDenied = notionPullSyncDeniedResponse()
+  if (pullDenied) return pullDenied
+
   try {
     // Authenticate request
     const authHeader = request.headers.get("authorization")

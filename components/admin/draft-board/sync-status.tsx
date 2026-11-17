@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useToast } from "@/hooks/use-toast"
 import { RefreshCw, CheckCircle2, XCircle, Loader2 } from "lucide-react"
 import Link from "next/link"
+import { usePullSyncEnabled } from "./use-pull-sync-enabled"
 
 interface SyncJob {
   job_id: string
@@ -60,6 +61,7 @@ export function SyncStatus() {
   const [supabase, setSupabase] = useState<ReturnType<typeof createBrowserClient> | null>(null)
   const syncJobsRef = useRef<SyncJob[]>([])
   const { toast } = useToast()
+  const pullSyncEnabled = usePullSyncEnabled()
 
   syncJobsRef.current = syncJobs
 
@@ -287,7 +289,12 @@ export function SyncStatus() {
               </div>
             )}
 
-            {/* Sync Buttons */}
+            {/* Sync Buttons: fail closed, only shown once the server confirms pull sync is on */}
+            {!pullSyncEnabled ? (
+              <p className="text-xs text-muted-foreground">
+                Notion → app sync is disabled (NOTION_PULL_SYNC_ENABLED)
+              </p>
+            ) : (
             <div className="flex flex-col gap-2">
               <div className="flex gap-2">
                 <Button
@@ -322,6 +329,7 @@ export function SyncStatus() {
                 Incremental: quick updates. Full: also removes Pokémon unchecked in Notion.
               </p>
             </div>
+            )}
 
             {/* Recent Jobs */}
             {syncJobs.length > 1 && (

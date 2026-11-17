@@ -16,6 +16,7 @@ import {
   extractPropertyValue,
   NotionPage,
 } from "../notion/client"
+import { assertNotionPullSyncAllowed } from "./notion-pull-sync-gate"
 
 interface SyncOptions {
   scope?: Array<"pokemon" | "role_tags" | "moves" | "coaches" | "teams" | "draft_board">
@@ -968,6 +969,7 @@ export async function syncNotionToSupabase(
   serviceRoleKey: string,
   options: SyncOptions = {}
 ): Promise<SyncResult> {
+  assertNotionPullSyncAllowed()
   const startTime = Date.now()
   const result: SyncResult = {
     success: false,
