@@ -53,13 +53,40 @@ function browserClient() {
   return createClient() as SupabaseClient
 }
 
+function isFunction(value: unknown): value is (...args: unknown[]) => unknown {
+  return typeof value === "function"
+}
+
+function looksLikeSupabaseClient(value: unknown): value is SupabaseClient {
+  if (typeof value !== "object" || value === null) return false
+  const candidate = value as { auth?: unknown; rpc?: unknown; from?: unknown }
+  const auth = candidate.auth as { getUser?: unknown } | null | undefined
+  return (
+    typeof auth === "object" &&
+    auth !== null &&
+    isFunction(auth.getUser) &&
+    isFunction(candidate.rpc) &&
+    isFunction(candidate.from)
+  )
+}
+
+/**
+ * SWR calls fetchers with the cache key as the first argument, so a loader
+ * passed straight to useSWR receives a string where it expects a client.
+ * Only trust the argument when it actually looks like a Supabase client.
+ */
+export function resolveClient(client?: unknown): SupabaseClient {
+  return looksLikeSupabaseClient(client) ? client : browserClient()
+}
+
 function throwIfError(error: { message: string } | null) {
   if (error) throw new Error(error.message)
 }
 
 export async function getDraftPoolEditorAccess(
-  client: SupabaseClient = browserClient(),
+  clientArg?: unknown,
 ): Promise<DraftPoolEditorAccess | null> {
+  const client = resolveClient(clientArg)
   const { data: auth, error: authError } = await client.auth.getUser()
   throwIfError(authError)
   if (!auth.user) return null
@@ -78,8 +105,9 @@ export async function getDraftPoolEditorAccess(
 }
 
 export async function listDraftPoolSeasons(
-  client: SupabaseClient = browserClient(),
+  clientArg?: unknown,
 ): Promise<DraftPoolSeason[]> {
+  const client = resolveClient(clientArg)
   const { data, error } = await client
     .from("seasons")
     .select("id, name, is_current")
@@ -145,8 +173,9 @@ async function fetchVersionRestrictions(
 
 export async function loadDraftPoolEditorSnapshot(
   seasonId: string,
-  client: SupabaseClient = browserClient(),
+  clientArg?: unknown,
 ): Promise<DraftPoolEditorSnapshot> {
+  const client = resolveClient(clientArg)
   const versionsResult = await client
     .from("draft_pool_versions")
     .select(
@@ -192,8 +221,9 @@ export async function loadDraftPoolEditorSnapshot(
 
 export async function searchPokemonCatalog(
   query: string,
-  client: SupabaseClient = browserClient(),
+  clientArg?: unknown,
 ): Promise<PokemonLookup[]> {
+  const client = resolveClient(clientArg)
   const term = query.trim()
   if (term.length < 2) return []
   const { data, error } = await client
@@ -209,8 +239,9 @@ export async function searchPokemonCatalog(
 export async function startDraftPoolRevision(
   seasonId: string,
   notes?: string,
-  client: SupabaseClient = browserClient(),
+  clientArg?: unknown,
 ) {
+  const client = resolveClient(clientArg)
   const { data, error } = await client.rpc("rpc_draft_pool_start_revision", {
     p_season_id: seasonId,
     p_notes: notes?.trim() || null,
@@ -221,8 +252,9 @@ export async function startDraftPoolRevision(
 
 export async function submitDraftPoolRevision(
   versionId: string,
-  client: SupabaseClient = browserClient(),
+  clientArg?: unknown,
 ) {
+  const client = resolveClient(clientArg)
   const { error } = await client.rpc("rpc_draft_pool_submit_revision", {
     p_version_id: versionId,
     p_notes: null,
@@ -232,8 +264,9 @@ export async function submitDraftPoolRevision(
 
 export async function withdrawDraftPoolRevision(
   versionId: string,
-  client: SupabaseClient = browserClient(),
+  clientArg?: unknown,
 ) {
+  const client = resolveClient(clientArg)
   const { error } = await client.rpc("rpc_draft_pool_withdraw_revision", {
     p_version_id: versionId,
   })
@@ -242,8 +275,9 @@ export async function withdrawDraftPoolRevision(
 
 export async function publishDraftPoolRevision(
   versionId: string,
-  client: SupabaseClient = browserClient(),
+  clientArg?: unknown,
 ) {
+  const client = resolveClient(clientArg)
   const { data, error } = await client.rpc("rpc_draft_pool_publish_revision", {
     p_version_id: versionId,
     p_notes: null,
@@ -257,8 +291,9 @@ export async function publishDraftPoolRevision(
 
 export async function discardDraftPoolRevision(
   versionId: string,
-  client: SupabaseClient = browserClient(),
+  clientArg?: unknown,
 ) {
+  const client = resolveClient(clientArg)
   const { error } = await client.rpc("rpc_draft_pool_discard_revision", {
     p_version_id: versionId,
   })
@@ -268,8 +303,9 @@ export async function discardDraftPoolRevision(
 export async function updateDraftPoolEntry(
   id: string,
   values: Pick<DraftPoolEntrySnapshot, "points" | "status" | "tera_banned">,
-  client: SupabaseClient = browserClient(),
+  clientArg?: unknown,
 ) {
+  const client = resolveClient(clientArg)
   const { error } = await client
     .from("draft_pool_version_entries")
     .update(values)
@@ -282,8 +318,9 @@ export async function addDraftPoolEntry(
     DraftPoolEntrySnapshot,
     "id" | "is_effective_tera_ban" | "sort_order"
   >,
-  client: SupabaseClient = browserClient(),
+  clientArg?: unknown,
 ) {
+  const client = resolveClient(clientArg)
   const { error } = await client.from("draft_pool_version_entries").insert({
     ...values,
     sort_order: 0,
@@ -293,8 +330,9 @@ export async function addDraftPoolEntry(
 
 export async function removeDraftPoolEntry(
   id: string,
-  client: SupabaseClient = browserClient(),
+  clientArg?: unknown,
 ) {
+  const client = resolveClient(clientArg)
   const { error } = await client
     .from("draft_pool_version_entries")
     .delete()
@@ -304,8 +342,9 @@ export async function removeDraftPoolEntry(
 
 export async function addDraftPoolRestriction(
   values: Omit<DraftPoolRestrictionSnapshot, "id">,
-  client: SupabaseClient = browserClient(),
+  clientArg?: unknown,
 ) {
+  const client = resolveClient(clientArg)
   const { error } = await client
     .from("season_pokemon_restrictions")
     .insert(values)
@@ -314,11 +353,21 @@ export async function addDraftPoolRestriction(
 
 export async function removeDraftPoolRestriction(
   id: string,
-  client: SupabaseClient = browserClient(),
+  clientArg?: unknown,
 ) {
+  const client = resolveClient(clientArg)
   const { error } = await client
     .from("season_pokemon_restrictions")
     .delete()
     .eq("id", id)
   throwIfError(error)
 }
+
+export const DRAFT_POOL_EDITOR_ACCESS_KEY = "draft-pool-editor-access"
+export const DRAFT_POOL_EDITOR_SEASONS_KEY = "draft-pool-editor-seasons"
+
+/** SWR-safe: ignores the key SWR passes as the first argument. */
+export const draftPoolEditorAccessFetcher = () => getDraftPoolEditorAccess()
+
+/** SWR-safe: ignores the key SWR passes as the first argument. */
+export const draftPoolSeasonsFetcher = () => listDraftPoolSeasons()
