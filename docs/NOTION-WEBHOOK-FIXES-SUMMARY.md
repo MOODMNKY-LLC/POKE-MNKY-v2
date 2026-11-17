@@ -38,7 +38,7 @@
 
 ### ⚠️ Needs Vercel Configuration
 - `NOTION_WEBHOOK_SECRET` environment variable must be set in Vercel
-- Value: `8f660810604bf980c0c316de01260db37e813ff1795edc6d4bf2ca0ca8296093`
+- Value: `<your-NOTION_WEBHOOK_SECRET>`
 
 ## Next Steps
 
@@ -56,7 +56,7 @@ git push
 3. Navigate to: **Settings** → **Environment Variables**
 4. Add:
    - **Name**: `NOTION_WEBHOOK_SECRET`
-   - **Value**: `8f660810604bf980c0c316de01260db37e813ff1795edc6d4bf2ca0ca8296093`
+   - **Value**: `<your-NOTION_WEBHOOK_SECRET>`
    - **Apply to**: Production, Preview, Development
 5. **Redeploy** the latest deployment (or wait for next push)
 

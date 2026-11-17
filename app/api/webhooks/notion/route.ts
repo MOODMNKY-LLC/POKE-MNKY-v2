@@ -1,284 +1,158 @@
 /**
  * Notion Webhook Receiver
  *
- * Receives webhooks from Notion when Draft Board database changes.
- * Verifies webhook signature and triggers incremental sync to Supabase.
- *
  * POST /api/webhooks/notion
  *
- * Authentication: Notion webhook signature verification
+ * Order of checks:
+ *  1. NOTION_PULL_SYNC_ENABLED off -> 410 (nothing else runs)
+ *  2. NOTION_WEBHOOK_SETUP_MODE on and body is { verification_token } -> 200 { ok: true }, never syncs
+ *  3. x-notion-signature (sha256=<64 hex>, HMAC-SHA256 of the RAW body) is ALWAYS required.
+ *     Missing / malformed / invalid / NOTION_WEBHOOK_SECRET unset -> 401
+ *  4. Replay window: `timestamp` missing or more than 5 minutes old/in the future -> 401
+ *  5. Source allowlist (Draft Board database / data source) -> 200 { ignored: "source" }
+ *  6. Event allowlist -> 200 { ignored: "event" }
+ *  7. Dedupe on event id (sync_jobs.notion_event_id) -> 200 { duplicate: true }
+ *  8. A draft_board sync is already running for the season -> 409
  *
- * Webhook Events:
- * - database.content_updated - When pages in Draft Board database change
- * - page.properties_updated - When specific properties change
+ * The sync is always incremental over the draft_board scope; body-supplied options are ignored.
  */
 
-import { NextRequest, NextResponse, after } from "next/server"
-import crypto from "crypto"
-import { createClient } from "@supabase/supabase-js"
-import { syncNotionToSupabase } from "@/lib/sync/notion-sync-worker"
+import { NextRequest, NextResponse } from "next/server"
 import { unauthorized, badRequest, internalError } from "@/lib/api-error"
 import { notionWebhookPayloadSchema } from "@/lib/validation/notion-webhook"
 import { logger } from "@/lib/logger"
-
-const DRAFT_BOARD_DATABASE_ID = "5e58ccd73ceb44ed83de826b51cf5c36"
+import {
+  isNotionWebhookSetupMode,
+  notionPullSyncDeniedResponse,
+} from "@/lib/sync/notion-pull-sync-gate"
+import {
+  parseNotionVerificationToken,
+  verifyNotionWebhookSignature,
+} from "@/lib/notion/verify-webhook-signature"
+import {
+  checkWebhookTimestamp,
+  isAllowedNotionEventType,
+  isAllowedNotionSource,
+  resolveNotionEventSourceId,
+} from "@/lib/notion/webhook-event"
+import { startNotionSyncJob } from "@/lib/sync/notion-sync-job"
+import { getRequestIp } from "@/lib/sync/request-ip"
 
 // Allow webhook-triggered sync to complete
 export const maxDuration = 120
 
-/**
- * Verify Notion webhook signature
- *
- * Notion sends signatures in format: "sha256=<hash>"
- * The hash is HMAC-SHA256 of the request body using the verification_token
- */
-function verifyNotionSignature(
-  body: string,
-  signature: string | null,
-  secret: string
-): boolean {
-  if (!signature) {
-    // Handle verification token request (initial setup)
-    try {
-      const payload = JSON.parse(body)
-      if (payload.verification_token) {
-        // Store verification token for future use
-        // For now, we'll use NOTION_WEBHOOK_SECRET as the verification token
-        return true // Accept verification requests
-      }
-    } catch {
-      // Not a verification request
-    }
-    return false
-  }
-
-  try {
-    // Extract hash from "sha256=<hash>" format
-    const signatureHash = signature.replace("sha256=", "")
-    
-    // Compute expected signature
-    const hmac = crypto.createHmac("sha256", secret)
-    hmac.update(body)
-    const expectedSignature = hmac.digest("hex")
-    
-    return crypto.timingSafeEqual(
-      Buffer.from(signatureHash),
-      Buffer.from(expectedSignature)
-    )
-  } catch (error) {
-    logger.error("Notion webhook signature verification error", { route: "webhooks/notion", error: String(error) })
-    return false
-  }
-}
+const INCREMENTAL_WINDOW_MS = 5 * 60 * 1000
 
 export async function POST(request: NextRequest) {
+  // 1. Flag off: fail closed before reading the body, auth, or any DB work.
+  const pullDenied = notionPullSyncDeniedResponse()
+  if (pullDenied) return pullDenied
+
   const requestId = `req_${Date.now()}_${Math.random().toString(36).substring(7)}`
-  logger.debug("Notion webhook received", { requestId, route: "webhooks/notion" })
 
   try {
-    const body = await request.text()
-    logger.debug("Notion webhook body length", { requestId, bodyLength: body.length })
+    const rawBody = await request.text()
 
-    if (!body || body.length === 0) {
-      return NextResponse.json({ success: true, message: "Empty body acknowledged" }, { status: 200 })
+    // 2. One-time subscription handshake, only while setup mode is on. Never logs or echoes the token.
+    if (isNotionWebhookSetupMode() && parseNotionVerificationToken(rawBody) !== null) {
+      logger.info("Notion webhook verification token received (setup mode)", { requestId })
+      return NextResponse.json({ ok: true }, { status: 200 })
     }
 
-    try {
-      const verificationPayload = JSON.parse(body)
-      if (verificationPayload.verification_token) {
-        logger.debug("Notion webhook verification token received", { requestId })
-        return NextResponse.json({
-          verification_token: verificationPayload.verification_token,
-        }, { status: 200 })
-      }
-    } catch {
-      // Not a verification request, continue with normal webhook processing
-    }
-
-    // Get webhook secret/verification token from environment
+    // 3. Signature is always required.
     const webhookSecret = process.env.NOTION_WEBHOOK_SECRET
     if (!webhookSecret) {
-      return internalError("Webhook secret not configured")
+      logger.error("Notion webhook rejected: NOTION_WEBHOOK_SECRET not configured", { requestId })
+      return unauthorized("Invalid or missing signature")
+    }
+    if (!verifyNotionWebhookSignature(rawBody, request.headers.get("x-notion-signature"), webhookSecret)) {
+      return unauthorized("Invalid or missing signature")
     }
 
-    // Get signature from headers
-    const signature = request.headers.get("x-notion-signature") || null
-
-    // Verify signature (skip for verification requests, already handled above)
-    if (signature && !verifyNotionSignature(body, signature, webhookSecret)) {
-      return unauthorized("Invalid signature")
-    }
-
-    // Parse and validate webhook payload
-    let payload: { type?: string; data?: { database_id?: string }; database_id?: string }
+    let rawJson: unknown
     try {
-      const raw = JSON.parse(body)
-      const parsed = notionWebhookPayloadSchema.safeParse(raw)
-      if (!parsed.success) {
-        return badRequest("Invalid webhook payload structure", parsed.error.issues)
-      }
-      payload = parsed.data
+      rawJson = JSON.parse(rawBody)
     } catch {
       return badRequest("Invalid JSON payload")
     }
+    const parsed = notionWebhookPayloadSchema.safeParse(rawJson)
+    if (!parsed.success) {
+      return badRequest("Invalid webhook payload structure", parsed.error.issues)
+    }
+    const payload = parsed.data
 
-    // Extract event type and database ID
-    const eventType = payload.type
-    const databaseId = payload.data?.database_id || payload.database_id
-
-    if (databaseId !== DRAFT_BOARD_DATABASE_ID) {
-      logger.debug("Notion webhook ignored: wrong database", { requestId, databaseId })
-      return NextResponse.json({ success: true, message: "Ignored" })
+    // 4. Replay protection (401: the request is not a fresh, authentic Notion delivery).
+    const timestampCheck = checkWebhookTimestamp(payload.timestamp)
+    if (!timestampCheck.ok) {
+      logger.warn("Notion webhook rejected: timestamp", { requestId, reason: timestampCheck.reason })
+      return unauthorized(`Webhook timestamp rejected (${timestampCheck.reason})`)
     }
 
-    const relevantEvents = [
-      "database.content_updated",
-      "page.properties_updated",
-      "page.created",
-    ]
-
-    if (typeof eventType !== "string" || !relevantEvents.includes(eventType)) {
-      logger.debug("Notion webhook ignored: event type", { requestId, eventType })
-      return NextResponse.json({ success: true, message: "Event type ignored" })
+    // 5. Source allowlist
+    const sourceId = resolveNotionEventSourceId(payload)
+    if (!isAllowedNotionSource(sourceId)) {
+      logger.debug("Notion webhook ignored: source", { requestId })
+      return NextResponse.json({ ignored: "source" }, { status: 200 })
     }
 
-    logger.info("Notion webhook processing", { requestId, eventType, route: "webhooks/notion" })
+    // 6. Event allowlist
+    if (!isAllowedNotionEventType(payload.type)) {
+      logger.debug("Notion webhook ignored: event type", { requestId, eventType: payload.type })
+      return NextResponse.json({ ignored: "event" }, { status: 200 })
+    }
 
-    // Trigger incremental sync
+    const eventId = payload.id?.trim()
+    if (!eventId) {
+      return badRequest("Webhook event id is required")
+    }
+
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
     if (!supabaseUrl || !serviceRoleKey) {
       return internalError("Supabase configuration missing")
     }
 
-    // Create sync job record
-    const supabase = createClient(supabaseUrl, serviceRoleKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
+    // 7/8. Forced incremental draft_board sync; no body-supplied overrides are read.
+    const result = await startNotionSyncJob({
+      supabaseUrl,
+      serviceRoleKey,
+      source: "webhook",
+      triggeredBy: "notion_webhook",
+      requestIp: getRequestIp(request.headers),
+      notionEventId: eventId,
+      options: {
+        scope: ["draft_board"],
+        incremental: true,
+        since: new Date(Date.now() - INCREMENTAL_WINDOW_MS),
+        dryRun: false,
+        allowLargePrune: false,
       },
+      extraConfig: { event_type: payload.type, source_id: sourceId },
     })
 
-    // Try to create sync job, but don't fail if constraint issue
-    // (migration may not be applied yet)
-    let job: any = null
-    const { data: jobData, error: jobError } = await supabase
-      .from("sync_jobs")
-      .insert({
-        job_type: "incremental",
-        status: "running",
-        triggered_by: "notion_webhook", // Will fail if migration not applied
-        config: {
-          scope: ["draft_board"],
-          event_type: eventType,
-          database_id: databaseId,
-          webhook_payload: payload,
-        },
-      })
-      .select()
-      .single()
-
-    if (jobError) {
-      // If constraint error, try with 'manual' as fallback
-      if (jobError.message.includes("sync_jobs_triggered_by_check")) {
-        logger.warn("Notion webhook constraint error, using manual fallback", { requestId })
-        const { data: fallbackJob, error: fallbackError } = await supabase
-          .from("sync_jobs")
-          .insert({
-            job_type: "incremental",
-            status: "running",
-            triggered_by: "manual", // Fallback if migration not applied
-            config: {
-              scope: ["draft_board"],
-              event_type: eventType,
-              database_id: databaseId,
-              webhook_payload: payload,
-              note: "Triggered by Notion webhook (migration pending)",
-            },
-          })
-          .select()
-          .single()
-        
-        if (fallbackError) {
-          console.error("[Notion Webhook] Failed to create sync job (fallback):", fallbackError)
-          // Continue anyway - don't block webhook response
-        } else {
-          job = fallbackJob
-        }
-      } else {
-        logger.error("Notion webhook failed to create sync job", { requestId, error: String(jobError) })
-        // Continue anyway - don't block webhook response
-      }
-    } else {
-      job = jobData
+    switch (result.kind) {
+      case "duplicate":
+        return NextResponse.json({ duplicate: true }, { status: 200 })
+      case "busy":
+        return NextResponse.json(
+          { error: "A draft_board sync is already running for this season", code: "SYNC_ALREADY_RUNNING" },
+          { status: 409 },
+        )
+      case "error":
+        logger.error("Notion webhook failed to start sync", { requestId, message: result.message })
+        return internalError("Failed to start sync")
+      case "started":
+        logger.info("Notion webhook sync started", { requestId, eventType: payload.type })
+        return NextResponse.json({ success: true }, { status: 200 })
     }
-
-    // Execute sync via after() so completion callback runs even after response is sent.
-    // Without this, serverless functions terminate and the job status never updates.
-    const syncOptions = {
-      scope: ["draft_board"] as Array<
-        "pokemon" | "role_tags" | "moves" | "coaches" | "teams" | "draft_board"
-      >,
-      incremental: true,
-      since: new Date(Date.now() - 5 * 60 * 1000), // Last 5 minutes
-    }
-    after(async () => {
-      try {
-        const result = await syncNotionToSupabase(supabaseUrl, serviceRoleKey, syncOptions)
-        if (job) {
-          await supabase
-            .from("sync_jobs")
-            .update({
-              status: result.success ? "completed" : "failed",
-              completed_at: new Date().toISOString(),
-              pokemon_synced: result.stats.draft_board?.synced || 0,
-              pokemon_failed: result.stats.draft_board?.failed || 0,
-              config: {
-                scope: ["draft_board"],
-                incremental: true,
-                result,
-              },
-            })
-            .eq("job_id", job.job_id)
-
-          logger.info("Notion webhook sync completed", {
-            requestId,
-            synced: result.stats.draft_board?.synced ?? 0,
-            failed: result.stats.draft_board?.failed ?? 0,
-          })
-        }
-      } catch (error) {
-        logger.error("Notion webhook sync job error", { requestId, error: String(error) })
-        if (job) {
-          await supabase
-            .from("sync_jobs")
-            .update({
-              status: "failed",
-              completed_at: new Date().toISOString(),
-              error_log: { error: String(error), stack: error instanceof Error ? error.stack : undefined },
-            })
-            .eq("job_id", job.job_id)
-        }
-      }
-    })
-
-    // Return immediately (sync runs via after())
-    // Notion expects a simple 200 OK response - keep it simple
-    logger.debug("Notion webhook returning success", { requestId })
-    return NextResponse.json({
-      success: true,
-    }, { status: 200 })
   } catch (err) {
     const error = err instanceof Error ? err : new Error(String(err))
     logger.error("Notion webhook error", { requestId, message: error.message })
-    return internalError(error.message, process.env.NODE_ENV === "development" ? err : undefined)
+    return internalError("Internal server error")
   }
 }
 
-// Handle GET for webhook verification (if Notion requires it)
-// Also handle verification_token from initial subscription setup
-export async function GET(request: NextRequest) {
+export async function GET() {
   return NextResponse.json({
     message: "Notion webhook endpoint",
     status: "active",

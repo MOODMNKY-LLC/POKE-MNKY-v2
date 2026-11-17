@@ -10,8 +10,13 @@ import { leagueAdminDeniedResponse } from "@/lib/admin-api-auth"
 import { NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase/server"
 import { createNotionSyncWorkflow } from "@/lib/n8n/workflow-manager"
+import { notionPullSyncDeniedResponse } from "@/lib/sync/notion-pull-sync-gate"
 
 export async function POST(request: NextRequest) {
+  // The workflow it creates calls /api/sync/notion/pull, so creating it is a pull-sync action.
+  const pullDenied = notionPullSyncDeniedResponse()
+  if (pullDenied) return pullDenied
+
   try {
     // Verify admin authentication
     const supabase = await createServerClient()

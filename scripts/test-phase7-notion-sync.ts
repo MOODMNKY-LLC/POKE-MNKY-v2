@@ -47,7 +47,8 @@ async function testNotionSyncEndpoints() {
     body: JSON.stringify({ scope: ["pokemon"] }),
   })
   const data1 = await result1.json().catch(() => ({ error: result1.statusText }))
-  logTest("POST /api/sync/notion/pull (no auth)", result1.status === 401, data1.error)
+  // The gate runs before auth, so a disabled deployment answers 410 instead of 401
+  logTest("POST /api/sync/notion/pull (no auth)", result1.status === 401 || result1.status === 410, data1.error)
 
   // Test with auth
   const result2 = await fetch(`${APP_URL}/api/sync/notion/pull`, {
@@ -59,7 +60,8 @@ async function testNotionSyncEndpoints() {
     body: JSON.stringify({ scope: ["pokemon"], dryRun: true }),
   })
   const data2 = await result2.json().catch(() => ({ error: result2.statusText }))
-  logTest("POST /api/sync/notion/pull (with auth, dry-run)", result2.ok || result2.status === 200, data2.error, {
+  // 410 NOTION_PULL_SYNC_DISABLED is the expected default (pull sync is off unless NOTION_PULL_SYNC_ENABLED is set)
+  logTest("POST /api/sync/notion/pull (with auth, dry-run)", result2.ok || result2.status === 410, data2.error, {
     status: result2.status,
   })
 
@@ -73,7 +75,7 @@ async function testNotionSyncEndpoints() {
     body: JSON.stringify({ scope: ["pokemon"], since: new Date().toISOString(), dryRun: true }),
   })
   const data3 = await result3.json().catch(() => ({ error: result3.statusText }))
-  logTest("POST /api/sync/notion/pull/incremental (with auth, dry-run)", result3.ok || result3.status === 200, data3.error, {
+  logTest("POST /api/sync/notion/pull/incremental (with auth, dry-run)", result3.ok || result3.status === 410, data3.error, {
     status: result3.status,
   })
 

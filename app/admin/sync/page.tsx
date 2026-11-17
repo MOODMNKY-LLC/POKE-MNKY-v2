@@ -45,13 +45,11 @@ export default function AdminSyncPage() {
 
   useEffect(() => {
     if (!user) return
-    const supabase = createBrowserClient()
-    supabase
-      .from("sync_jobs")
-      .select("job_id, sync_type, status, triggered_by, pokemon_synced, pokemon_failed, started_at, completed_at, progress_percent")
-      .order("started_at", { ascending: false })
-      .limit(20)
-      .then(({ data }: { data: SyncJob[] | null }) => setSyncJobs(data ?? []))
+    // sync_jobs is not readable from the browser; read it through the sanitized server route.
+    fetch("/api/sync/notion/status?limit=20", { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : { jobs: [] }))
+      .then((body: { jobs?: SyncJob[] }) => setSyncJobs(body.jobs ?? []))
+      .catch(() => setSyncJobs([]))
   }, [user])
 
   if (!user) {
