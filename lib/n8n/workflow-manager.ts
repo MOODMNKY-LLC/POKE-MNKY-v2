@@ -24,6 +24,31 @@ export interface N8nNode {
   typeVersion: number
   position: [number, number]
   parameters: Record<string, any>
+  credentials?: Record<string, { id: string; name: string }>
+}
+
+export interface N8nCredentialRef {
+  id: string
+  name: string
+}
+
+export const DEFAULT_NOTION_SYNC_CREDENTIAL_NAME = "POKE MNKY Notion Sync Bearer"
+
+/**
+ * Resolve the n8n "Header Auth" credential that holds the Notion sync bearer.
+ * Only the credential reference is stored in the workflow; the secret lives in n8n.
+ */
+export function resolveNotionSyncCredential(override?: Partial<N8nCredentialRef>): N8nCredentialRef {
+  const id = (override?.id ?? process.env.N8N_NOTION_SYNC_CREDENTIAL_ID ?? "").trim()
+  if (!id) {
+    throw new Error(
+      "N8N_NOTION_SYNC_CREDENTIAL_ID is required: create an n8n Header Auth credential for the Notion sync bearer and set its id"
+    )
+  }
+  const name =
+    (override?.name ?? process.env.N8N_NOTION_SYNC_CREDENTIAL_NAME ?? "").trim() ||
+    DEFAULT_NOTION_SYNC_CREDENTIAL_NAME
+  return { id, name }
 }
 
 export interface N8nWorkflowExecution {
@@ -190,15 +215,12 @@ export async function getN8nWorkflowExecutions(
 export async function createNotionSyncWorkflow(
   webhookUrl: string,
   syncApiUrl: string,
-  discordWebhookUrl?: string
+  discordWebhookUrl?: string,
+  credential?: Partial<N8nCredentialRef>
 ): Promise<{ workflowId: string; webhookUrl: string }> {
   assertNotionPullSyncAllowed()
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://poke-mnky.moodmnky.com"
-  const syncSecret = process.env.NOTION_SYNC_SECRET
-
-  if (!syncSecret) {
-    throw new Error("NOTION_SYNC_SECRET environment variable is required")
-  }
+  const syncCredential = resolveNotionSyncCredential(credential)
 
   // Build workflow nodes
   const nodes: N8nNode[] = [
@@ -245,14 +267,11 @@ export async function createNotionSyncWorkflow(
       parameters: {
         method: "POST",
         url: syncApiUrl || `${appUrl}/api/sync/notion/pull`,
-        authentication: "headerAuth",
+        authentication: "genericCredentialType",
+        genericAuthType: "httpHeaderAuth",
         sendHeaders: true,
         headerParameters: {
           parameters: [
-            {
-              name: "Authorization",
-              value: `Bearer ${syncSecret}`,
-            },
             {
               name: "x-sync-source",
               value: "n8n",
@@ -267,6 +286,9 @@ export async function createNotionSyncWorkflow(
           since: "={{ $now.minus({ minutes: 5 }).toISO() }}",
         }),
         options: {},
+      },
+      credentials: {
+        httpHeaderAuth: { id: syncCredential.id, name: syncCredential.name },
       },
     },
   ]
@@ -331,9 +353,10 @@ export async function createNotionSyncWorkflow(
  *
  * Creates a workflow that:
  * 1. Triggers on HTTP request (manual or cron)
- * 2. Calls POST /api/admin/simulation/full-run with SIMULATION_API_KEY
+ * 2. Calls POST /api/admin/simulation/full-run using an n8n Header Auth credential
+ *    (header X-Simulation-API-Key; value entered manually in the n8n UI)
  *
- * Requires: SIMULATION_API_KEY, N8N_API_URL, N8N_API_KEY
+ * Requires: N8N_SIMULATION_CREDENTIAL_ID, N8N_API_URL, N8N_API_KEY
  * Document in LEAGUE-SIMULATION-AND-TESTING-GUIDE.md
  */
 export async function createSimulationTriggerWorkflow(): Promise<{
@@ -341,10 +364,14 @@ export async function createSimulationTriggerWorkflow(): Promise<{
   webhookPath: string
 }> {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_BASE_URL || "https://poke-mnky.moodmnky.com"
-  const simKey = process.env.SIMULATION_API_KEY
+  const simCredentialId = (process.env.N8N_SIMULATION_CREDENTIAL_ID ?? "").trim()
+  const simCredentialName =
+    (process.env.N8N_SIMULATION_CREDENTIAL_NAME ?? "").trim() || "POKE MNKY Simulation API Key"
 
-  if (!simKey) {
-    throw new Error("SIMULATION_API_KEY environment variable is required for simulation workflow")
+  if (!simCredentialId) {
+    throw new Error(
+      "N8N_SIMULATION_CREDENTIAL_ID is required: create an n8n Header Auth credential (header X-Simulation-API-Key) and set its id"
+    )
   }
 
   const nodes: N8nNode[] = [
@@ -370,17 +397,19 @@ export async function createSimulationTriggerWorkflow(): Promise<{
       parameters: {
         method: "POST",
         url: `${appUrl.replace(/\/$/, "")}/api/admin/simulation/full-run`,
+        authentication: "genericCredentialType",
+        genericAuthType: "httpHeaderAuth",
         sendHeaders: true,
         headerParameters: {
-          parameters: [
-            { name: "X-Simulation-API-Key", value: simKey },
-            { name: "Content-Type", value: "application/json" },
-          ],
+          parameters: [{ name: "Content-Type", value: "application/json" }],
         },
         sendBody: true,
         specifyBody: "json",
         jsonBody: JSON.stringify({ weeks: 10, top_n: 4, result_strategy: "random" }),
         options: {},
+      },
+      credentials: {
+        httpHeaderAuth: { id: simCredentialId, name: simCredentialName },
       },
     },
   ]

@@ -12,10 +12,13 @@ config({ path: ".env.local" })
 
 const DRAFT_BOARD_DATABASE_ID = "5e58ccd73ceb44ed83de826b51cf5c36"
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://poke-mnky.moodmnky.com"
-const NOTION_SYNC_SECRET = process.env.NOTION_SYNC_SECRET
+const CREDENTIAL_ID = (process.env.N8N_NOTION_SYNC_CREDENTIAL_ID ?? "").trim()
+const CREDENTIAL_NAME =
+  (process.env.N8N_NOTION_SYNC_CREDENTIAL_NAME ?? "").trim() || "POKE MNKY Notion Sync Bearer"
 
-if (!NOTION_SYNC_SECRET) {
-  console.error("❌ NOTION_SYNC_SECRET not found in .env.local")
+if (!CREDENTIAL_ID) {
+  console.error("❌ N8N_NOTION_SYNC_CREDENTIAL_ID not set (id of the n8n Header Auth credential)")
+  console.error(`   Create a Header Auth credential named "${CREDENTIAL_NAME}" in n8n first.`)
   process.exit(1)
 }
 
@@ -53,23 +56,21 @@ async function main() {
         position: [450, 300],
         parameters: {
           method: "POST",
-          url: `${APP_URL}/api/webhooks/notion`,
+          url: `${APP_URL}/api/sync/notion/pull`,
+          authentication: "genericCredentialType",
+          genericAuthType: "httpHeaderAuth",
           sendHeaders: true,
           headerParameters: {
             parameters: [
               {
-                name: "Content-Type",
-                value: "application/json",
-              },
-              {
-                name: "x-notion-signature",
-                value: "={{ $json.id }}", // Use page ID as identifier
+                name: "x-sync-source",
+                value: "n8n",
               },
             ],
           },
           sendBody: true,
-          specifyBody: "raw",
-          rawBody: "={{ JSON.stringify({ type: 'page.properties_updated', data: { database_id: '" + DRAFT_BOARD_DATABASE_ID + "', page_id: $json.id, properties: $json.properties } }) }}",
+          specifyBody: "json",
+          jsonBody: JSON.stringify({ scope: ["draft_board"], incremental: true }),
           options: {
             timeout: 10000,
             response: {
@@ -80,6 +81,9 @@ async function main() {
               },
             },
           },
+        },
+        credentials: {
+          httpHeaderAuth: { id: CREDENTIAL_ID, name: CREDENTIAL_NAME },
         },
       },
       // No response node needed - Notion Trigger doesn't require response
@@ -130,6 +134,13 @@ async function main() {
     console.log("   d. Enter your Notion API Token:")
     console.log(`      ${process.env.NOTION_API_KEY?.substring(0, 20)}...`)
     console.log("   e. Save credentials")
+    console.log("\n3b. Create the sync bearer credential (n8n UI, entered manually):")
+    console.log("   a. Credentials → Create → 'Header Auth'")
+    console.log(`   b. Name: ${CREDENTIAL_NAME}`)
+    console.log("   c. Header name: Authorization")
+    console.log("   d. Header value: Bearer <NOTION_SYNC_SECRET from Vercel>")
+    console.log("   e. Save, then confirm the 'Trigger Sync' node uses this credential")
+    console.log("   Note: pull sync must be enabled (NOTION_PULL_SYNC_ENABLED) or the app returns 410.")
     console.log("\n4. Configure Trigger Node:")
     console.log("   - Database ID: " + DRAFT_BOARD_DATABASE_ID)
     console.log("   - Event: Page Updated")
