@@ -18,10 +18,15 @@
 import { NextRequest, NextResponse } from "next/server"
 import { POST as pullPost } from "../route"
 import { notionPullSyncDeniedResponse } from "@/lib/sync/notion-pull-sync-gate"
+import { verifyBearerSecret } from "@/lib/sync/bearer-auth"
 
 export async function POST(request: NextRequest) {
   const pullDenied = notionPullSyncDeniedResponse()
   if (pullDenied) return pullDenied
+
+  if (!verifyBearerSecret(request.headers.get("authorization"), process.env.NOTION_SYNC_SECRET)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
 
   try {
     const body = await request.json()

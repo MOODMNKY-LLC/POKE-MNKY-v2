@@ -12,14 +12,23 @@ import { NextResponse } from "next/server"
 
 type EnvLike = Record<string, string | undefined>
 
-function truthy(raw: string | undefined): boolean {
+/** Shared truthy parser: true/1/yes/on (trimmed, case-insensitive). Anything else is false. */
+export function isTruthyFlag(raw: string | undefined): boolean {
   const v = raw?.trim().toLowerCase()
   return v === "true" || v === "1" || v === "yes" || v === "on"
 }
 
 /** Re-enables Notion -> Supabase pull sync. Default off - fail closed. */
 export function isNotionPullSyncEnabled(env: EnvLike = process.env): boolean {
-  return truthy(env.NOTION_PULL_SYNC_ENABLED)
+  return isTruthyFlag(env.NOTION_PULL_SYNC_ENABLED)
+}
+
+/**
+ * One-time Notion webhook subscription handshake. Only while this is truthy does the
+ * webhook accept an unsigned `{ verification_token }` body. Default off.
+ */
+export function isNotionWebhookSetupMode(env: EnvLike = process.env): boolean {
+  return isTruthyFlag(env.NOTION_WEBHOOK_SETUP_MODE)
 }
 
 export const NOTION_PULL_SYNC_DISABLED_CODE = "NOTION_PULL_SYNC_DISABLED" as const

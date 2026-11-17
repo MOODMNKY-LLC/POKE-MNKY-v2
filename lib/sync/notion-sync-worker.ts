@@ -17,15 +17,25 @@ import {
   NotionPage,
 } from "../notion/client"
 import { assertNotionPullSyncAllowed } from "./notion-pull-sync-gate"
+import {
+  indexExistingByName,
+  normalizePoolName,
+  planDraftBoardPrune,
+  resolveDraftedState,
+  toPruneReport,
+  type DraftBoardPruneReport,
+} from "./draft-board-prune"
 
-interface SyncOptions {
+export interface SyncOptions {
   scope?: Array<"pokemon" | "role_tags" | "moves" | "coaches" | "teams" | "draft_board">
   incremental?: boolean
   since?: Date
   dryRun?: boolean
+  /** Lets a full draft_board sync delete a large set of rows. Only the admin trigger (confirm: "full") may set it. */
+  allowLargePrune?: boolean
 }
 
-interface SyncResult {
+export interface SyncResult {
   success: boolean
   stats: {
     pokemon: { created: number; updated: number; failed: number }
@@ -37,6 +47,7 @@ interface SyncResult {
       skipped: number
       failed: number
       errors?: Array<{ entity: string; error: string }>
+      prune?: DraftBoardPruneReport
     }
   }
   errors: Array<{ entity: string; error: string }>
@@ -525,8 +536,13 @@ async function syncDraftBoard(
   supabase: SupabaseClient,
   notionDatabaseId: string,
   options: SyncOptions
-): Promise<{ synced: number; skipped: number; failed: number; errors: any[] }> {
-  const stats = { synced: 0, skipped: 0, failed: 0, errors: [] as any[] }
+): Promise<{ synced: number; skipped: number; failed: number; errors: any[]; prune?: DraftBoardPruneReport }> {
+  const stats: { synced: number; skipped: number; failed: number; errors: any[]; prune?: DraftBoardPruneReport } = {
+    synced: 0,
+    skipped: 0,
+    failed: 0,
+    errors: [],
+  }
   const notionClient = createNotionClient()
 
   // Resolve current season (default target for draft board)
@@ -576,10 +592,8 @@ async function syncDraftBoard(
     return stats
   }
 
-  const existingByKey = new Map<string, (typeof existingRows)[0]>()
-  existingRows?.forEach((row) => {
-    existingByKey.set(`${row.pokemon_name}:${row.point_value}`, row)
-  })
+  // Keyed by name only: a point change in Notion must not drop drafted state.
+  const existingByName = indexExistingByName(existingRows ?? [])
 
   // Resolve pokemon_id from pokemon_cache by name (only for names we need).
   // We only use ids that exist in pokemon_cache to avoid draft_pool_pokemon_id_fkey violations.
@@ -633,8 +647,7 @@ async function syncDraftBoard(
       const notesProp = page.properties["Notes / Banned Reason"] ?? page.properties["Notes"]
       const bannedReason = notesProp ? extractPropertyValue(notesProp, "rich_text") : null
 
-      const key = `${name.trim()}:${pointValue}`
-      const existing = existingByKey.get(key)
+      const draftedState = resolveDraftedState(existingByName, name)
 
       // Resolve pokemon_id only from pokemon_cache by name to avoid draft_pool_pokemon_id_fkey violations.
       const normalizedName = name.toLowerCase().trim()
@@ -644,11 +657,11 @@ async function syncDraftBoard(
       let draftedByTeamId: string | null = null
       let draftedAt: string | null = null
 
-      if (existing?.status === "drafted") {
+      if (draftedState) {
         // Supabase wins: preserve draft state
         finalStatus = "drafted"
-        draftedByTeamId = existing.drafted_by_team_id ?? null
-        draftedAt = existing.drafted_at ?? null
+        draftedByTeamId = draftedState.drafted_by_team_id
+        draftedAt = draftedState.drafted_at
         stats.skipped++
       }
 
@@ -675,18 +688,35 @@ async function syncDraftBoard(
     }
   }
 
+  // DB has unique(season_id, pokemon_name) so only one row per name per season; dedupe by name (keep last)
+  const byName = new Map<string, (typeof toUpsert)[0]>()
+  for (const row of toUpsert) {
+    const k = `${row.season_id}:${normalizePoolName(row.pokemon_name)}`
+    byName.set(k, row)
+  }
+  const deduped = [...byName.values()]
+
+  // Prune guard (full sync only; incremental never deletes). A refusal skips the upsert AND the delete.
+  const prunePlan = options.incremental
+    ? null
+    : planDraftBoardPrune(
+        existingRows ?? [],
+        deduped.map((r) => r.pokemon_name),
+        { allowLargePrune: options.allowLargePrune === true },
+      )
+  if (prunePlan) stats.prune = toPruneReport(prunePlan)
+
   if (options.dryRun) {
     stats.synced = toUpsert.length
     return stats
   }
 
-  // DB has unique(season_id, pokemon_name) so only one row per name per season; dedupe by name (keep last)
-  const byName = new Map<string, (typeof toUpsert)[0]>()
-  for (const row of toUpsert) {
-    const k = `${row.season_id}:${row.pokemon_name.toLowerCase().trim()}`
-    byName.set(k, row)
+  if (prunePlan && !prunePlan.allowed) {
+    const prunedList = prunePlan.pruned.map((p) => `${p.id}:${p.name}`).join(", ")
+    console.error(`[syncDraftBoard] ${prunePlan.messages.join(" ")} Would prune: ${prunedList || "(none)"}`)
+    prunePlan.messages.forEach((message) => stats.errors.push({ entity: "draft_board", error: message }))
+    return stats
   }
-  const deduped = [...byName.values()]
 
   // Sanitize: remove undefined so Postgres gets null for optional columns
   const sanitize = (row: (typeof deduped)[0]) => {
@@ -718,21 +748,15 @@ async function syncDraftBoard(
 
   // Remove draft_pool rows no longer in Notion (only on full sync - incremental may have partial data)
   // Never delete drafted Pokémon - they are tied to draft picks
-  if (!options.incremental && existingRows && existingRows.length > 0) {
-    const namesInNotion = new Set(deduped.map((r) => r.pokemon_name.toLowerCase().trim()))
-    const toRemove = existingRows.filter(
-      (row) =>
-        !namesInNotion.has((row.pokemon_name || "").toLowerCase().trim()) && row.status !== "drafted"
-    )
-    if (toRemove.length > 0) {
-      const idsToRemove = toRemove.map((r) => r.id).filter(Boolean)
-      const { error: deleteError } = await supabase.from("draft_pool").delete().in("id", idsToRemove)
-      if (deleteError) {
-        console.warn("[syncDraftBoard] Failed to remove stale draft_pool rows:", deleteError.message)
-        stats.errors.push({ entity: "draft_board", error: `Failed to remove stale rows: ${deleteError.message}` })
-      } else {
-        console.log(`  Removed ${toRemove.length} draft_pool row(s) no longer in Notion`)
-      }
+  if (prunePlan && prunePlan.pruned.length > 0) {
+    const idsToRemove = prunePlan.pruned.map((r) => r.id).filter(Boolean)
+    const { error: deleteError } = await supabase.from("draft_pool").delete().in("id", idsToRemove)
+    if (deleteError) {
+      console.warn("[syncDraftBoard] Failed to remove stale draft_pool rows:", deleteError.message)
+      stats.errors.push({ entity: "draft_board", error: `Failed to remove stale rows: ${deleteError.message}` })
+    } else {
+      const prunedList = prunePlan.pruned.map((p) => `${p.id}:${p.name}`).join(", ")
+      console.log(`  Removed ${prunePlan.pruned.length} draft_pool row(s) no longer in Notion: ${prunedList}`)
     }
   }
 

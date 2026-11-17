@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect, useCallback, useRef } from "react"
-import { createBrowserClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -58,38 +57,25 @@ export function SyncStatus() {
   const [syncJobs, setSyncJobs] = useState<SyncJob[]>([])
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
-  const [supabase, setSupabase] = useState<ReturnType<typeof createBrowserClient> | null>(null)
   const syncJobsRef = useRef<SyncJob[]>([])
   const { toast } = useToast()
   const pullSyncEnabled = usePullSyncEnabled()
 
   syncJobsRef.current = syncJobs
 
-  // Create Supabase client only on the client after mount (avoids SSR error)
-  useEffect(() => {
-    if (typeof window === "undefined") return
-    setSupabase(createBrowserClient())
-  }, [])
-
   const loadSyncJobs = useCallback(async () => {
-    if (!supabase) return
     try {
-      // Query sync jobs that include draft_board in scope
-      // config is JSONB, so we check if it contains draft_board in scope array
-      const { data, error } = await supabase
-        .from("sync_jobs")
-        .select("*")
-        .in("triggered_by", ["notion_webhook", "manual"])
-        .order("started_at", { ascending: false })
-        .limit(20)
-
-      if (error) {
-        console.error("Supabase query error:", error)
-        throw error
+      // sync_jobs is not readable from the browser; the status route reads it server-side
+      // and omits actor_user_id / request_ip / notion_event_id.
+      const response = await fetch("/api/sync/notion/status?limit=50", { cache: "no-store" })
+      const body = (await response.json()) as { jobs?: SyncJob[]; error?: string }
+      if (!response.ok) {
+        throw new Error(body.error || "Failed to load sync status")
       }
 
       // Filter to only draft_board syncs (check config.scope array)
-      const draftBoardJobs = (data || []).filter((job: any) => {
+      const draftBoardJobs = (body.jobs || []).filter((job: any) => {
+        if (!["notion_webhook", "manual"].includes(job.triggered_by)) return false
         const config = job.config || {}
         const scope = config.scope || []
         return Array.isArray(scope) && scope.includes("draft_board")
@@ -111,10 +97,9 @@ export function SyncStatus() {
     } finally {
       setLoading(false)
     }
-  }, [supabase, toast])
+  }, [toast])
 
   useEffect(() => {
-    if (!supabase) return
     loadSyncJobs()
     const interval = setInterval(() => {
       if (syncJobsRef.current.some((job) => job.status === "running")) {
@@ -122,7 +107,7 @@ export function SyncStatus() {
       }
     }, 5000)
     return () => clearInterval(interval)
-  }, [supabase, loadSyncJobs])
+  }, [loadSyncJobs])
 
   async function triggerSync(incremental = true) {
     setSyncing(true)

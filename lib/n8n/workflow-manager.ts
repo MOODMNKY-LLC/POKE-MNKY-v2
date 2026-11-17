@@ -253,6 +253,10 @@ export async function createNotionSyncWorkflow(
               name: "Authorization",
               value: `Bearer ${syncSecret}`,
             },
+            {
+              name: "x-sync-source",
+              value: "n8n",
+            },
           ],
         },
         sendBody: true,
