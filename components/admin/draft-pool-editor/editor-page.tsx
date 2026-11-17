@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
+import Link from "next/link"
 import useSWR from "swr"
 import { CheckCircle2, CircleAlert, GitCompareArrows, Loader2, Send, ShieldCheck, Trash2, Undo2 } from "lucide-react"
 import { toast } from "sonner"
@@ -29,13 +30,16 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { EntryList } from "@/components/admin/draft-pool-editor/entry-list"
 import { RestrictionsPanel } from "@/components/admin/draft-pool-editor/restrictions-panel"
+import { draftPoolAccessView } from "@/lib/draft-pool-builder/access-view"
 import { diffDraftPoolVersions, type DraftPoolRestrictionSnapshot } from "@/lib/draft-pool-builder/diff"
 import {
   addDraftPoolEntry,
   addDraftPoolRestriction,
   discardDraftPoolRevision,
-  getDraftPoolEditorAccess,
-  listDraftPoolSeasons,
+  DRAFT_POOL_EDITOR_ACCESS_KEY,
+  DRAFT_POOL_EDITOR_SEASONS_KEY,
+  draftPoolEditorAccessFetcher,
+  draftPoolSeasonsFetcher,
   loadDraftPoolEditorSnapshot,
   publishDraftPoolRevision,
   removeDraftPoolEntry,
@@ -107,8 +111,8 @@ export function DraftPoolEditorPage() {
   const [seasonOverride, setSeasonOverride] = useState("")
   const [busyAction, setBusyAction] = useState<string | null>(null)
   const [discardOpen, setDiscardOpen] = useState(false)
-  const { data: access, error: accessError, isLoading: accessLoading } = useSWR("draft-pool-editor-access", getDraftPoolEditorAccess)
-  const { data: seasons = [], isLoading: seasonsLoading } = useSWR(access?.isEditor ? "draft-pool-editor-seasons" : null, listDraftPoolSeasons)
+  const { data: access, error: accessError, isLoading: accessLoading, mutate: mutateAccess } = useSWR(DRAFT_POOL_EDITOR_ACCESS_KEY, draftPoolEditorAccessFetcher)
+  const { data: seasons = [], isLoading: seasonsLoading } = useSWR(access?.isEditor ? DRAFT_POOL_EDITOR_SEASONS_KEY : null, draftPoolSeasonsFetcher)
   const currentSeasonId = seasons.find((season) => season.is_current)?.id ?? seasons[0]?.id ?? ""
   const seasonId = seasonOverride || currentSeasonId
   const { data: snapshot, error: snapshotError, isLoading: snapshotLoading, mutate } = useSWR(
@@ -147,12 +151,31 @@ export function DraftPoolEditorPage() {
     }
   }
 
-  if (accessLoading) return <div className="flex min-h-64 items-center justify-center"><Loader2 className="animate-spin" /><span className="sr-only">Checking access</span></div>
-  if (accessError || !access?.isEditor) {
+  const accessView = draftPoolAccessView({ access, error: accessError, loading: accessLoading })
+  if (accessView === "loading") return <div className="flex min-h-64 items-center justify-center"><Loader2 className="animate-spin" /><span className="sr-only">Checking access</span></div>
+  if (accessView === "error") {
+    return (
+      <Card className="mx-auto max-w-xl">
+        <CardHeader><CardTitle>Couldn&apos;t verify your access</CardTitle><CardDescription>Something went wrong while checking whether you can edit the draft pool. This is not a permissions decision. Try again.</CardDescription></CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <p className="text-sm text-destructive">{accessError instanceof Error ? accessError.message : String(accessError)}</p>
+          <div><Button className="min-h-11" onClick={() => void mutateAccess()}>Retry</Button></div>
+        </CardContent>
+      </Card>
+    )
+  }
+  if (accessView === "signed-out" || !access) {
+    return (
+      <Card className="mx-auto max-w-xl">
+        <CardHeader><CardTitle>Please sign in</CardTitle><CardDescription>Sign in to use the draft pool editor.</CardDescription></CardHeader>
+        <CardContent><Button asChild className="min-h-11"><Link href="/auth/login?next=/admin/draft-pool">Sign in</Link></Button></CardContent>
+      </Card>
+    )
+  }
+  if (accessView === "forbidden") {
     return (
       <Card className="mx-auto max-w-xl">
         <CardHeader><CardTitle>Not authorized</CardTitle><CardDescription>This editor is available only to draft-pool editors, league mods, and admins.</CardDescription></CardHeader>
-        {accessError ? <CardContent><p className="text-sm text-destructive">{accessError.message}</p></CardContent> : null}
       </Card>
     )
   }
