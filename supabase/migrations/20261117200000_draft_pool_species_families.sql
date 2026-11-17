@@ -1541,38 +1541,44 @@ $$;
 -- Alias fixes for unresolved pending-revision names (only where pokemon_id is null)
 -- ---------------------------------------------------------------------------
 
+-- The inner join to pokepedia_pokemon is required: draft_pool_sheet_aliases.pokemon_id has an FK to
+-- the catalog, so a clean schema replay (empty catalog) must be a no-op here, while production
+-- (catalog already loaded) still applies all 29 mappings.
 insert into public.draft_pool_sheet_aliases
   (sheet_name, sheet_slug, pokemon_id, match_kind, notes, updated_at)
-values
-  ('Ogerpon Hearthflame', 'ogerpon-hearthflame', 10274, 'manual', 'ogerpon-hearthflame-mask', now()),
-  ('Ogerpon Wellspring', 'ogerpon-wellspring', 10273, 'manual', 'ogerpon-wellspring-mask', now()),
-  ('Ogerpon Cornerstone', 'ogerpon-cornerstone', 10275, 'manual', 'ogerpon-cornerstone-mask', now()),
-  ('Tauros Paldean', 'tauros-paldea', 10250, 'manual', 'tauros-paldea-combat-breed', now()),
-  ('Tauros Paldean Blaze', 'tauros-paldea-fire', 10251, 'manual', 'tauros-paldea-blaze-breed', now()),
-  ('Tauros Paldean Aqua', 'tauros-paldea-water', 10252, 'manual', 'tauros-paldea-aqua-breed', now()),
-  ('Pyroar', 'pyroar', 668, 'manual', 'pyroar-male (PokeAPI default form)', now()),
-  ('Giratina', 'giratina', 487, 'manual', 'giratina-altered', now()),
-  ('Arceus Bug', 'arceus-bug', 493, 'form_of_base', 'No separate catalog id; type form of Arceus', now()),
-  ('Arceus Dark', 'arceus-dark', 493, 'form_of_base', 'No separate catalog id; type form of Arceus', now()),
-  ('Arceus Dragon', 'arceus-dragon', 493, 'form_of_base', 'No separate catalog id; type form of Arceus', now()),
-  ('Arceus Electric', 'arceus-electric', 493, 'form_of_base', 'No separate catalog id; type form of Arceus', now()),
-  ('Arceus Fairy', 'arceus-fairy', 493, 'form_of_base', 'No separate catalog id; type form of Arceus', now()),
-  ('Arceus Fighting', 'arceus-fighting', 493, 'form_of_base', 'No separate catalog id; type form of Arceus', now()),
-  ('Arceus Fire', 'arceus-fire', 493, 'form_of_base', 'No separate catalog id; type form of Arceus', now()),
-  ('Arceus Flying', 'arceus-flying', 493, 'form_of_base', 'No separate catalog id; type form of Arceus', now()),
-  ('Arceus Ghost', 'arceus-ghost', 493, 'form_of_base', 'No separate catalog id; type form of Arceus', now()),
-  ('Arceus Grass', 'arceus-grass', 493, 'form_of_base', 'No separate catalog id; type form of Arceus', now()),
-  ('Arceus Ground', 'arceus-ground', 493, 'form_of_base', 'No separate catalog id; type form of Arceus', now()),
-  ('Arceus Ice', 'arceus-ice', 493, 'form_of_base', 'No separate catalog id; type form of Arceus', now()),
-  ('Arceus Poison', 'arceus-poison', 493, 'form_of_base', 'No separate catalog id; type form of Arceus', now()),
-  ('Arceus Psychic', 'arceus-psychic', 493, 'form_of_base', 'No separate catalog id; type form of Arceus', now()),
-  ('Arceus Rock', 'arceus-rock', 493, 'form_of_base', 'No separate catalog id; type form of Arceus', now()),
-  ('Arceus Steel', 'arceus-steel', 493, 'form_of_base', 'No separate catalog id; type form of Arceus', now()),
-  ('Arceus Water', 'arceus-water', 493, 'form_of_base', 'No separate catalog id; type form of Arceus', now()),
-  ('Genesect Douse', 'genesect-douse', 649, 'form_of_base', 'No separate catalog id; drive form of Genesect', now()),
-  ('Genesect Shock', 'genesect-shock', 649, 'form_of_base', 'No separate catalog id; drive form of Genesect', now()),
-  ('Genesect Burn', 'genesect-burn', 649, 'form_of_base', 'No separate catalog id; drive form of Genesect', now()),
-  ('Genesect Chill', 'genesect-chill', 649, 'form_of_base', 'No separate catalog id; drive form of Genesect', now())
+select v.sheet_name, v.sheet_slug, v.pokemon_id, v.match_kind, v.notes, now()
+from (values
+  ('Ogerpon Hearthflame', 'ogerpon-hearthflame', 10274, 'manual', 'ogerpon-hearthflame-mask'),
+  ('Ogerpon Wellspring', 'ogerpon-wellspring', 10273, 'manual', 'ogerpon-wellspring-mask'),
+  ('Ogerpon Cornerstone', 'ogerpon-cornerstone', 10275, 'manual', 'ogerpon-cornerstone-mask'),
+  ('Tauros Paldean', 'tauros-paldea', 10250, 'manual', 'tauros-paldea-combat-breed'),
+  ('Tauros Paldean Blaze', 'tauros-paldea-fire', 10251, 'manual', 'tauros-paldea-blaze-breed'),
+  ('Tauros Paldean Aqua', 'tauros-paldea-water', 10252, 'manual', 'tauros-paldea-aqua-breed'),
+  ('Pyroar', 'pyroar', 668, 'manual', 'pyroar-male (PokeAPI default form)'),
+  ('Giratina', 'giratina', 487, 'manual', 'giratina-altered'),
+  ('Arceus Bug', 'arceus-bug', 493, 'form_of_base', 'No separate catalog id; type form of Arceus'),
+  ('Arceus Dark', 'arceus-dark', 493, 'form_of_base', 'No separate catalog id; type form of Arceus'),
+  ('Arceus Dragon', 'arceus-dragon', 493, 'form_of_base', 'No separate catalog id; type form of Arceus'),
+  ('Arceus Electric', 'arceus-electric', 493, 'form_of_base', 'No separate catalog id; type form of Arceus'),
+  ('Arceus Fairy', 'arceus-fairy', 493, 'form_of_base', 'No separate catalog id; type form of Arceus'),
+  ('Arceus Fighting', 'arceus-fighting', 493, 'form_of_base', 'No separate catalog id; type form of Arceus'),
+  ('Arceus Fire', 'arceus-fire', 493, 'form_of_base', 'No separate catalog id; type form of Arceus'),
+  ('Arceus Flying', 'arceus-flying', 493, 'form_of_base', 'No separate catalog id; type form of Arceus'),
+  ('Arceus Ghost', 'arceus-ghost', 493, 'form_of_base', 'No separate catalog id; type form of Arceus'),
+  ('Arceus Grass', 'arceus-grass', 493, 'form_of_base', 'No separate catalog id; type form of Arceus'),
+  ('Arceus Ground', 'arceus-ground', 493, 'form_of_base', 'No separate catalog id; type form of Arceus'),
+  ('Arceus Ice', 'arceus-ice', 493, 'form_of_base', 'No separate catalog id; type form of Arceus'),
+  ('Arceus Poison', 'arceus-poison', 493, 'form_of_base', 'No separate catalog id; type form of Arceus'),
+  ('Arceus Psychic', 'arceus-psychic', 493, 'form_of_base', 'No separate catalog id; type form of Arceus'),
+  ('Arceus Rock', 'arceus-rock', 493, 'form_of_base', 'No separate catalog id; type form of Arceus'),
+  ('Arceus Steel', 'arceus-steel', 493, 'form_of_base', 'No separate catalog id; type form of Arceus'),
+  ('Arceus Water', 'arceus-water', 493, 'form_of_base', 'No separate catalog id; type form of Arceus'),
+  ('Genesect Douse', 'genesect-douse', 649, 'form_of_base', 'No separate catalog id; drive form of Genesect'),
+  ('Genesect Shock', 'genesect-shock', 649, 'form_of_base', 'No separate catalog id; drive form of Genesect'),
+  ('Genesect Burn', 'genesect-burn', 649, 'form_of_base', 'No separate catalog id; drive form of Genesect'),
+  ('Genesect Chill', 'genesect-chill', 649, 'form_of_base', 'No separate catalog id; drive form of Genesect')
+) as v(sheet_name, sheet_slug, pokemon_id, match_kind, notes)
+join public.pokepedia_pokemon p on p.id = v.pokemon_id
 on conflict (sheet_name) do update set
   pokemon_id = excluded.pokemon_id,
   match_kind = excluded.match_kind,
