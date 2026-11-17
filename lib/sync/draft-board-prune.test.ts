@@ -103,6 +103,30 @@ describe("planDraftBoardPrune", () => {
   })
 })
 
+describe("planDraftBoardPrune with failed upserts", () => {
+  it("does not prune when any row failed, even with otherwise-valid input", () => {
+    const d = planDraftBoardPrune(rows(100), names(95), { failedCount: 1 })
+    expect(d.allowed).toBe(false)
+    expect(d.reasons).toContain("upsert_failures")
+    expect(d.pruned).toHaveLength(5)
+  })
+
+  it("does not prune when rows failed, even with allowLargePrune", () => {
+    const d = planDraftBoardPrune(rows(100), names(10), { failedCount: 3, allowLargePrune: true })
+    expect(d.allowed).toBe(false)
+    expect(d.bypassed_with_allow_large_prune).toBe(false)
+    expect(d.reasons).toContain("upsert_failures")
+  })
+
+  it("still allows when nothing failed", () => {
+    expect(planDraftBoardPrune(rows(100), names(95), { failedCount: 0 }).allowed).toBe(true)
+  })
+
+  it("nothing to prune is not blocked by failures", () => {
+    expect(planDraftBoardPrune(rows(100), names(100), { failedCount: 2 }).allowed).toBe(true)
+  })
+})
+
 describe("drafted state preserved across point changes", () => {
   const existing: ExistingPoolRow[] = [
     {

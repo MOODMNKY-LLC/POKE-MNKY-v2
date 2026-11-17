@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
         )
       case "error":
         logger.error("Notion webhook failed to start sync", { requestId, message: result.message })
-        return internalError(result.message)
+        return internalError("Failed to start sync")
       case "started":
         logger.info("Notion webhook sync started", { requestId, eventType: payload.type })
         return NextResponse.json({ success: true }, { status: 200 })
@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     const error = err instanceof Error ? err : new Error(String(err))
     logger.error("Notion webhook error", { requestId, message: error.message })
-    return internalError(error.message, process.env.NODE_ENV === "development" ? err : undefined)
+    return internalError("Internal server error")
   }
 }
 

@@ -3,13 +3,16 @@
  *
  * GET /api/sync/notion/status?job_id=<uuid>
  *
- * Returns status of sync jobs. sync_jobs is no longer publicly readable, so this route reads it
- * with the service-role client and strips attribution fields (actor_user_id, request_ip,
- * notion_event_id) before responding.
+ * League admins only (401 anonymous, 403 non-admin; both before any flag or DB work).
+ * sync_jobs is no longer publicly readable, so this route reads it with the service-role
+ * client and strips attribution fields (actor_user_id, request_ip, notion_event_id) before
+ * responding. Raw database errors are logged server-side and never returned.
  */
 
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { leagueAdminDeniedResponse } from "@/lib/admin-api-auth"
+import { createServerClient } from "@/lib/supabase/server"
 import { isNotionPullSyncEnabled } from "@/lib/sync/notion-pull-sync-gate"
 
 const PRIVATE_COLUMNS = ["actor_user_id", "request_ip", "notion_event_id"] as const
@@ -21,8 +24,21 @@ export function sanitizeSyncJob<T extends Record<string, unknown>>(job: T): Omit
 }
 
 export async function GET(request: NextRequest) {
-  const pull_sync_enabled = isNotionPullSyncEnabled()
   try {
+    const authClient = await createServerClient()
+    const {
+      data: { user },
+      error: authError,
+    } = await authClient.auth.getUser()
+
+    if (authError || !user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+    const adminDenied = await leagueAdminDeniedResponse(user.id)
+    if (adminDenied) return adminDenied
+
+    const pull_sync_enabled = isNotionPullSyncEnabled()
+
     const { searchParams } = new URL(request.url)
     const jobId = searchParams.get("job_id")
     const parsedLimit = parseInt(searchParams.get("limit") || "10", 10)
@@ -32,7 +48,8 @@ export async function GET(request: NextRequest) {
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
     if (!supabaseUrl || !serviceRoleKey) {
-      return NextResponse.json({ error: "Supabase configuration missing", pull_sync_enabled }, { status: 500 })
+      console.error("Notion sync status: Supabase configuration missing")
+      return NextResponse.json({ error: "Internal server error", pull_sync_enabled }, { status: 500 })
     }
 
     const supabase = createClient(supabaseUrl, serviceRoleKey, {
@@ -56,10 +73,8 @@ export async function GET(request: NextRequest) {
       .limit(limit)
 
     if (error) {
-      return NextResponse.json(
-        { error: `Failed to fetch jobs: ${error.message}`, pull_sync_enabled },
-        { status: 500 },
-      )
+      console.error("Notion sync status: failed to fetch jobs", error)
+      return NextResponse.json({ error: "Failed to fetch jobs", pull_sync_enabled }, { status: 500 })
     }
 
     return NextResponse.json({
@@ -68,9 +83,6 @@ export async function GET(request: NextRequest) {
     })
   } catch (error: unknown) {
     console.error("Notion sync status error:", error)
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Internal server error", pull_sync_enabled },
-      { status: 500 },
-    )
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

@@ -323,10 +323,25 @@ describe("POST /api/webhooks/notion", () => {
       expect(startNotionSyncJob).not.toHaveBeenCalled()
     })
 
-    it("500 when the job cannot be started", async () => {
-      startNotionSyncJob.mockResolvedValue({ kind: "error", message: "boom" })
+    it("500 when the job cannot be started, without leaking the internal message", async () => {
+      startNotionSyncJob.mockResolvedValue({ kind: "error", message: "leaky-start-error-sentinel" })
       const res = await POST(signed(event()))
+      const text = await res.text()
       expect(res.status).toBe(500)
+      expect(text).not.toContain("leaky-start-error-sentinel")
+      expect(text).toContain("Failed to start sync")
+      expect(logger.error).toHaveBeenCalled()
+    })
+
+    it("500 with a generic body when the handler throws, even in development", async () => {
+      vi.stubEnv("NODE_ENV", "development")
+      startNotionSyncJob.mockRejectedValue(new Error("thrown-error-sentinel"))
+      const res = await POST(signed(event()))
+      const text = await res.text()
+      expect(res.status).toBe(500)
+      expect(text).not.toContain("thrown-error-sentinel")
+      expect(text).toContain("Internal server error")
+      expect(logger.error).toHaveBeenCalled()
     })
   })
 })

@@ -748,15 +748,30 @@ async function syncDraftBoard(
 
   // Remove draft_pool rows no longer in Notion (only on full sync - incremental may have partial data)
   // Never delete drafted Pokémon - they are tied to draft picks
-  if (prunePlan && prunePlan.pruned.length > 0) {
-    const idsToRemove = prunePlan.pruned.map((r) => r.id).filter(Boolean)
+  // Re-plan with the failure count: any failed row/batch means the incoming set is incomplete, so skip deletion.
+  const finalPrunePlan = prunePlan
+    ? planDraftBoardPrune(
+        existingRows ?? [],
+        deduped.map((r) => r.pokemon_name),
+        { allowLargePrune: options.allowLargePrune === true, failedCount: stats.failed },
+      )
+    : null
+  if (finalPrunePlan && !finalPrunePlan.allowed) {
+    stats.prune = toPruneReport(finalPrunePlan)
+    const prunedList = finalPrunePlan.pruned.map((p) => `${p.id}:${p.name}`).join(", ")
+    console.error(
+      `[syncDraftBoard] ${finalPrunePlan.messages.join(" ")} Skipped pruning: ${prunedList || "(none)"}`,
+    )
+    finalPrunePlan.messages.forEach((message) => stats.errors.push({ entity: "draft_board", error: message }))
+  } else if (finalPrunePlan && finalPrunePlan.pruned.length > 0) {
+    const idsToRemove = finalPrunePlan.pruned.map((r) => r.id).filter(Boolean)
     const { error: deleteError } = await supabase.from("draft_pool").delete().in("id", idsToRemove)
     if (deleteError) {
       console.warn("[syncDraftBoard] Failed to remove stale draft_pool rows:", deleteError.message)
       stats.errors.push({ entity: "draft_board", error: `Failed to remove stale rows: ${deleteError.message}` })
     } else {
-      const prunedList = prunePlan.pruned.map((p) => `${p.id}:${p.name}`).join(", ")
-      console.log(`  Removed ${prunePlan.pruned.length} draft_pool row(s) no longer in Notion: ${prunedList}`)
+      const prunedList = finalPrunePlan.pruned.map((p) => `${p.id}:${p.name}`).join(", ")
+      console.log(`  Removed ${finalPrunePlan.pruned.length} draft_pool row(s) no longer in Notion: ${prunedList}`)
     }
   }
 

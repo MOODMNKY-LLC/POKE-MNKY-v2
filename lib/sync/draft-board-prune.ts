@@ -14,6 +14,7 @@ export type PruneRefusalReason =
   | "notion_returned_zero_rows"
   | "incoming_below_80_percent_of_existing"
   | "prune_set_too_large"
+  | "upsert_failures"
 
 export interface PruneExistingRow {
   id: string
@@ -44,7 +45,7 @@ export function normalizePoolName(name: string | null | undefined): string {
 export function planDraftBoardPrune(
   existing: PruneExistingRow[],
   incomingNames: string[],
-  opts: { allowLargePrune?: boolean } = {},
+  opts: { allowLargePrune?: boolean; failedCount?: number } = {},
 ): DraftBoardPruneDecision {
   const incoming = new Set(incomingNames.map(normalizePoolName).filter(Boolean))
   const existingCount = existing.length
@@ -81,8 +82,18 @@ export function planDraftBoardPrune(
     )
   }
 
+  // Failed rows mean the incoming set is incomplete; never delete on that basis, even with allowLargePrune.
+  const failedCount = opts.failedCount ?? 0
+  const hasFailures = failedCount > 0 && pruned.length > 0
+  if (hasFailures) {
+    reasons.push("upsert_failures")
+    messages.push(
+      `Refused to prune: ${failedCount} row(s) failed to sync, so ${pruned.length} stale row(s) were left in place.`,
+    )
+  }
+
   const wouldRefuse = reasons.length > 0
-  const bypassed = wouldRefuse && opts.allowLargePrune === true
+  const bypassed = wouldRefuse && !hasFailures && opts.allowLargePrune === true
   const allowed = !wouldRefuse || bypassed
 
   return {
