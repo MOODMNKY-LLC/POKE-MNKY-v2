@@ -59,6 +59,7 @@
     "test:draft-pool-mod-role-pg": "vitest run --config vitest.integration.config.ts lib/draft-pool-builder/league-mod-role.pg.test.ts",
     "test:sync-jobs-attribution-pg": "vitest run --config vitest.integration.config.ts lib/security/sync-jobs-attribution.pg.test.ts",
     "test:draft-pool-workflow-pg": "vitest run --config vitest.integration.config.ts lib/draft-pool-builder/workflow.pg.test.ts",
+    "test:draft-pool-pick-rules-pg": "vitest run --config vitest.integration.config.ts lib/draft-pool-builder/pick-rules.pg.test.ts",
     "test:draft-pool-import-withdraw-pg": "vitest run --config vitest.integration.config.ts lib/draft-pool-builder/import-withdraw.pg.test.ts",
     "draft-pool:import:dry": "tsx scripts/draft-pool/import-pending.ts --fixture",
     "test:season-sim-http": "vitest run --config vitest.integration.config.ts lib/season-sim/routes.http.integration.test.ts",
