@@ -11,6 +11,11 @@ import {
   connectDisposableHarnessClient,
   resolveHarnessPgUrlOrSkip,
 } from "@/lib/season-sim/pg-harness"
+import {
+  SPECIES_FAMILIES_CSV_PATH,
+  SPECIES_FAMILIES_MIGRATION_PATH,
+  parseSpeciesFamiliesCsv,
+} from "./species-families"
 
 const envUrl = process.env.DRAFT_POOL_BUILDER_PG_URL ?? ""
 const resolved = envUrl
@@ -30,8 +35,9 @@ const migrations = [
 const bootstrapSql = sql("fixtures/draft-pool-builder/bootstrap-minimal.sql")
 const extraSql = sql("fixtures/draft-pool-builder/pick-rules-extra.sql")
 const phase5Sql = sql(
-  "supabase/migrations/20261114210000_draft_pool_phase5_pick_rules.sql",
+  "supabase/migrations/20261117190000_draft_pool_phase5_pick_rules.sql",
 )
+const familiesSql = sql(SPECIES_FAMILIES_MIGRATION_PATH)
 
 const PICK_FUNCTIONS = [
   "public.rpc_make_live_draft_pick(uuid,uuid,text,boolean)",
@@ -47,25 +53,15 @@ const HELPER_FUNCTIONS = [
   "public.draft_pool_published_entry_for_pokemon(uuid,uuid)",
   "public.draft_pool_published_cost_for_pokemon(uuid,uuid,text)",
   "public.draft_pool_species_key(integer,uuid)",
+  "public.draft_pool_species_keys(integer,uuid)",
   "public.draft_pool_team_roster_pokemon(uuid,uuid,uuid)",
   "public.draft_pool_pokemon_held_in_season(uuid,integer,text)",
   "public.draft_pool_assert_roster_capacity(uuid,uuid,uuid)",
   "public.draft_pool_assert_species_clause(uuid,uuid,uuid,integer,uuid,boolean)",
 ] as const
 
-const CATALOG: Array<[number, string, string]> = [
-  [100, "rotom-wash", "rotom"],
-  [101, "rotom-heat", "rotom"],
-  [102, "ogerpon-teal-mask", "ogerpon"],
-  [103, "tauros-paldea-aqua-breed", "tauros"],
-  [104, "urshifu-rapid-strike", "urshifu"],
-  [105, "ursaluna-bloodmoon", "ursaluna"],
-  [106, "pikachu", "pikachu"],
-  [107, "eevee", "eevee"],
-  [108, "snorlax", "snorlax"],
-  [109, "garchomp", "garchomp"],
-  [110, "mew", "mew"],
-]
+// Real catalog ids/identifiers (same source as the families seed).
+const familyRows = parseSpeciesFamiliesCsv(sql(SPECIES_FAMILIES_CSV_PATH))
 
 type EntrySeed = {
   sheet: string
@@ -95,20 +91,33 @@ describe.skipIf(!hasPgUrl)("draft pool phase 5 pick rules", () => {
     await c.query(phase5Sql)
     await c.query(`select set_config('pickrules.coach_ok', 'on', false)`)
 
-    for (const [id, name, species] of CATALOG) {
-      await c.query(
-        `insert into public.pokepedia_pokemon (id, name, species_name, type_primary)
-         values ($1, $2, $3, 'normal')`,
-        [id, name, species],
-      )
-    }
+    const catalog = new Map(
+      familyRows.map((r) => [r.pokepediaId, [r.pokemonIdentifier, r.speciesIdentifier]]),
+    )
+    await c.query(
+      `insert into public.pokepedia_pokemon (id, name, species_name, type_primary)
+       select id, name, species, 'normal'
+       from unnest($1::int[], $2::text[], $3::text[]) as t(id, name, species)`,
+      [
+        [...catalog.keys()],
+        [...catalog.values()].map((v) => v[0]),
+        [...catalog.values()].map((v) => v[1]),
+      ],
+    )
+    // Production state before the alias fix: pending names unresolved (null id); one alias
+    // already has a non-null id that the migration must not overwrite.
     await c.query(
       `insert into public.draft_pool_sheet_aliases (sheet_name, sheet_slug, pokemon_id, match_kind)
        values
-         ('Ogerpon Teal', 'ogerpon-teal', 102, 'manual'),
-         ('Tauros Paldea Aqua', 'tauros-paldea-aqua', 103, 'manual'),
-         ('Tauros Paldean Aqua', 'tauros-paldean-aqua', 103, 'manual')`,
+         ('Ogerpon Teal', 'ogerpon-teal', 1017, 'manual'),
+         ('Tauros Paldea Aqua', 'tauros-paldea-aqua', 10252, 'manual'),
+         ('Tauros Paldean Aqua', 'tauros-paldea-water', null, null),
+         ('Ogerpon Wellspring', 'ogerpon-wellspring', null, null),
+         ('Arceus Fire', 'arceus-fire', null, null),
+         ('Giratina', 'giratina', 10007, 'pre_existing')`,
     )
+    await c.query(familiesSql)
+    await c.query(familiesSql)
     client = c
   }, 90_000)
 
@@ -239,7 +248,7 @@ describe.skipIf(!hasPgUrl)("draft pool phase 5 pick rules", () => {
     const session = await mkSession(season, team)
     await db().query(
       `insert into public.draft_pool (season_id, pokemon_name, pokemon_id, point_value)
-       values ($1, 'Pikachu', 106, 7)`,
+       values ($1, 'Pikachu', 25, 7)`,
       [season],
     )
 
@@ -260,10 +269,10 @@ describe.skipIf(!hasPgUrl)("draft pool phase 5 pick rules", () => {
     const season = await mkSeason(10)
     const team = await mkTeam(season)
     const session = await mkSession(season, team)
-    await mkVersion(season, "published", [{ sheet: "Pikachu", pid: 106, points: 9 }])
+    await mkVersion(season, "published", [{ sheet: "Pikachu", pid: 25, points: 9 }])
     await db().query(
       `insert into public.draft_pool (season_id, pokemon_name, pokemon_id, point_value)
-       values ($1, 'Pikachu', 106, 3)`,
+       values ($1, 'Pikachu', 25, 3)`,
       [season],
     )
 
@@ -292,12 +301,12 @@ describe.skipIf(!hasPgUrl)("draft pool phase 5 pick rules", () => {
     const team = await mkTeam(season)
     const session = await mkSession(season, team)
     await mkVersion(season, "published", [
-      { sheet: "Mew", pid: 110, points: 99, status: "banned" },
-      { sheet: "Pikachu", pid: 106, points: 9 },
+      { sheet: "Mew", pid: 151, points: 99, status: "banned" },
+      { sheet: "Pikachu", pid: 25, points: 9 },
     ])
     await db().query(
       `insert into public.draft_pool (season_id, pokemon_name, pokemon_id, point_value)
-       values ($1, 'Mew', 110, 5)`,
+       values ($1, 'Mew', 151, 5)`,
       [season],
     )
 
@@ -314,12 +323,12 @@ describe.skipIf(!hasPgUrl)("draft pool phase 5 pick rules", () => {
     const team = await mkTeam(season)
     const session = await mkSession(season, team)
     await mkVersion(season, "pending", [
-      { sheet: "Eevee", pid: 107, points: 5 },
-      { sheet: "Mew", pid: 110, points: 99, status: "banned" },
+      { sheet: "Eevee", pid: 133, points: 5 },
+      { sheet: "Mew", pid: 151, points: 99, status: "banned" },
     ])
     await db().query(
       `insert into public.draft_pool (season_id, pokemon_name, pokemon_id, point_value)
-       values ($1, 'Eevee', 107, 2), ($1, 'Mew', 110, 4)`,
+       values ($1, 'Eevee', 133, 2), ($1, 'Mew', 151, 4)`,
       [season],
     )
 
@@ -332,10 +341,10 @@ describe.skipIf(!hasPgUrl)("draft pool phase 5 pick rules", () => {
     const team = await mkTeam(season)
     const session = await mkSession(season, team)
     await mkVersion(season, "published", [
-      { sheet: "Ogerpon Teal Mask", pid: 102, points: 8 },
+      { sheet: "Ogerpon Teal Mask", pid: 1017, points: 8 },
       { sheet: "Tauros Paldean Aqua", pid: null, points: 6 },
-      { sheet: "Urshifu Rapid Strike", pid: 104, points: 12 },
-      { sheet: "Ursaluna Bloodmoon", pid: 105, points: 11 },
+      { sheet: "Urshifu Rapid Strike", pid: 10191, points: 12 },
+      { sheet: "Ursaluna Bloodmoon", pid: 10272, points: 11 },
     ])
 
     expect(await livePick(session, team, "Ogerpon Teal")).toMatchObject({
@@ -368,15 +377,15 @@ describe.skipIf(!hasPgUrl)("draft pool phase 5 pick rules", () => {
     const team = await mkTeam(season)
     const session = await mkSession(season, team)
     await mkVersion(season, "published", [
-      { sheet: "Rotom Wash", pid: 100, points: 5 },
-      { sheet: "Rotom Heat", pid: 101, points: 5 },
-      { sheet: "Pikachu", pid: 106, points: 5 },
+      { sheet: "Rotom Wash", pid: 10009, points: 5 },
+      { sheet: "Rotom Heat", pid: 10008, points: 5 },
+      { sheet: "Pikachu", pid: 25, points: 5 },
     ])
 
     await livePick(session, team, "Rotom Wash")
     await expect(livePick(session, team, "Rotom Heat")).rejects.toMatchObject({
       message: "SPECIES_CLAUSE",
-      detail: "species=rotom",
+      detail: "species=Rotom Wash",
     })
     expect(await livePick(session, team, "Pikachu")).toMatchObject({ success: true })
   })
@@ -385,10 +394,10 @@ describe.skipIf(!hasPgUrl)("draft pool phase 5 pick rules", () => {
     const season = await mkSeason(10)
     const team = await mkTeam(season)
     await mkVersion(season, "published", [
-      { sheet: "Rotom Wash", pid: 100, points: 5 },
-      { sheet: "Rotom Heat", pid: 101, points: 7 },
-      { sheet: "Pikachu", pid: 106, points: 5 },
-      { sheet: "Mew", pid: 110, points: 99, status: "banned" },
+      { sheet: "Rotom Wash", pid: 10009, points: 5 },
+      { sheet: "Rotom Heat", pid: 10008, points: 7 },
+      { sheet: "Pikachu", pid: 25, points: 5 },
+      { sheet: "Mew", pid: 151, points: 99, status: "banned" },
     ])
     const wash = await mkPokemon("rotom wash", 5)
     const heat = await mkPokemon("rotom heat", 1)
@@ -413,10 +422,10 @@ describe.skipIf(!hasPgUrl)("draft pool phase 5 pick rules", () => {
     const team = await mkTeam(season)
     const session = await mkSession(season, team)
     await mkVersion(season, "published", [
-      { sheet: "Pikachu", pid: 106, points: 5 },
-      { sheet: "Eevee", pid: 107, points: 5 },
-      { sheet: "Snorlax", pid: 108, points: 5 },
-      { sheet: "Garchomp", pid: 109, points: 5 },
+      { sheet: "Pikachu", pid: 25, points: 5 },
+      { sheet: "Eevee", pid: 133, points: 5 },
+      { sheet: "Snorlax", pid: 143, points: 5 },
+      { sheet: "Garchomp", pid: 445, points: 5 },
     ])
 
     await livePick(session, team, "Pikachu")
@@ -429,9 +438,9 @@ describe.skipIf(!hasPgUrl)("draft pool phase 5 pick rules", () => {
     const faSeason = await mkSeason(2)
     const faTeam = await mkTeam(faSeason)
     await mkVersion(faSeason, "published", [
-      { sheet: "Pikachu", pid: 106, points: 5 },
-      { sheet: "Eevee", pid: 107, points: 5 },
-      { sheet: "Snorlax", pid: 108, points: 5 },
+      { sheet: "Pikachu", pid: 25, points: 5 },
+      { sheet: "Eevee", pid: 133, points: 5 },
+      { sheet: "Snorlax", pid: 143, points: 5 },
     ])
     const pika = await mkPokemon("pikachu", 5)
     const eevee = await mkPokemon("eevee", 5)
@@ -457,11 +466,11 @@ describe.skipIf(!hasPgUrl)("draft pool phase 5 pick rules", () => {
     const season = await mkSeason(2)
     const team = await mkTeam(season)
     await mkVersion(season, "published", [
-      { sheet: "Rotom Wash", pid: 100, points: 5 },
-      { sheet: "Rotom Heat", pid: 101, points: 5 },
-      { sheet: "Pikachu", pid: 106, points: 9 },
-      { sheet: "Mew", pid: 110, points: 99, status: "banned" },
-      { sheet: "Eevee", pid: 107, points: 4 },
+      { sheet: "Rotom Wash", pid: 10009, points: 5 },
+      { sheet: "Rotom Heat", pid: 10008, points: 5 },
+      { sheet: "Pikachu", pid: 25, points: 9 },
+      { sheet: "Mew", pid: 151, points: 99, status: "banned" },
+      { sheet: "Eevee", pid: 133, points: 4 },
     ])
     const wash = await mkPokemon("rotom wash", 5)
     const heat = await mkPokemon("rotom heat", 5)
@@ -482,8 +491,8 @@ describe.skipIf(!hasPgUrl)("draft pool phase 5 pick rules", () => {
     const season2 = await mkSeason(5)
     const team2 = await mkTeam(season2)
     await mkVersion(season2, "published", [
-      { sheet: "Rotom Wash", pid: 100, points: 5 },
-      { sheet: "Rotom Heat", pid: 101, points: 5 },
+      { sheet: "Rotom Wash", pid: 10009, points: 5 },
+      { sheet: "Rotom Heat", pid: 10008, points: 5 },
     ])
     await submit(season2, team2, wash)
     await expect(submit(season2, team2, heat)).rejects.toMatchObject({
@@ -501,6 +510,153 @@ describe.skipIf(!hasPgUrl)("draft pool phase 5 pick rules", () => {
     await expect(submit(season3, team3, wash)).rejects.toMatchObject({
       message: "ROSTER_FULL",
     })
+  })
+
+  const FAMILY_ENTRIES: EntrySeed[] = [
+    { sheet: "Vulpix", pid: 37, points: 1 },
+    { sheet: "Vulpix Alola", pid: 10103, points: 1 },
+    { sheet: "Ninetales", pid: 38, points: 1 },
+    { sheet: "Rotom Wash", pid: 10009, points: 1 },
+    { sheet: "Rotom Heat", pid: 10008, points: 1 },
+    { sheet: "Eevee", pid: 133, points: 1 },
+    { sheet: "Vaporeon", pid: 134, points: 1 },
+    { sheet: "Umbreon", pid: 197, points: 1 },
+    { sheet: "Sylveon", pid: 700, points: 1 },
+    { sheet: "Indeedee M", pid: 876, points: 1 },
+    { sheet: "Indeedee F", pid: 10186, points: 1 },
+    { sheet: "Espurr", pid: 677, points: 1 },
+    { sheet: "Meowstic M", pid: 678, points: 1 },
+    { sheet: "Meowstic F", pid: 10025, points: 1 },
+    { sheet: "Basculin Red", pid: 550, points: 1 },
+    { sheet: "Basculin White-Striped", pid: 10247, points: 1 },
+    { sheet: "Basculegion M", pid: 902, points: 1 },
+    { sheet: "Basculegion F", pid: 10248, points: 1 },
+    { sheet: "Lechonk", pid: 915, points: 1 },
+    { sheet: "Oinkologne M", pid: 916, points: 1 },
+    { sheet: "Oinkologne F", pid: 10254, points: 1 },
+    { sheet: "Tauros", pid: 128, points: 1 },
+    { sheet: "Tauros Paldean Aqua", pid: null, points: 1 },
+  ]
+
+  async function liveSequence(first: string, second: string) {
+    const season = await mkSeason(20, 500)
+    const team = await mkTeam(season)
+    const session = await mkSession(season, team)
+    await mkVersion(season, "published", FAMILY_ENTRIES)
+    await livePick(session, team, first)
+    return livePick(session, team, second)
+  }
+
+  it.each([
+    ["Vulpix", "Ninetales", "Vulpix"],
+    ["Vulpix Alola", "Ninetales", "Vulpix Alola"],
+    ["Rotom Wash", "Rotom Heat", "Rotom Wash"],
+    ["Vaporeon", "Umbreon", "Vaporeon"],
+    ["Eevee", "Sylveon", "Eevee"],
+    ["Espurr", "Meowstic F", "Espurr"],
+    ["Basculin White-Striped", "Basculegion F", "Basculin White-Striped"],
+    ["Basculegion M", "Basculegion F", "Basculegion M"],
+    ["Lechonk", "Oinkologne F", "Lechonk"],
+    ["Tauros", "Tauros Paldean Aqua", "Tauros"],
+  ])("evolution family: %s then %s -> SPECIES_CLAUSE", async (first, second, held) => {
+    await expect(liveSequence(first, second)).rejects.toMatchObject({
+      message: "SPECIES_CLAUSE",
+      detail: `species=${held}`,
+    })
+  })
+
+  it.each([
+    ["Indeedee M", "Indeedee F"],
+    ["Meowstic M", "Meowstic F"],
+    ["Basculin Red", "Basculin White-Striped"],
+    ["Basculin Red", "Basculegion M"],
+    ["Oinkologne M", "Oinkologne F"],
+  ])("split list: %s then %s -> allowed", async (first, second) => {
+    expect(await liveSequence(first, second)).toMatchObject({ success: true })
+  })
+
+  it("free agency: dropping Vulpix allows Ninetales; add-only is rejected", async () => {
+    const season = await mkSeason(10)
+    const team = await mkTeam(season)
+    await mkVersion(season, "published", FAMILY_ENTRIES)
+    const vulpix = await mkPokemon("vulpix", 1)
+    const ninetales = await mkPokemon("ninetales", 1)
+    await mkDraftPick(season, team, vulpix, 1)
+
+    await expect(submit(season, team, ninetales)).rejects.toMatchObject({
+      message: "SPECIES_CLAUSE",
+      detail: "species=Vulpix",
+    })
+    const ok = await freeAgency(season, team, vulpix, ninetales)
+    expect(ok.rows[0]).toMatchObject({ added_points_snapshot: 1 })
+  })
+
+  it("species keys: family keys, back-compat single key, unknown ids", async () => {
+    const keys = await db().query<{ espurr: string[]; ninetales: string[]; one: string; none: string[] | null }>(
+      `select
+         public.draft_pool_species_keys(677) as espurr,
+         public.draft_pool_species_keys(10104) as ninetales,
+         public.draft_pool_species_key(677) as one,
+         public.draft_pool_species_keys(999999) as none`,
+    )
+    expect(keys.rows[0]).toEqual({
+      espurr: ["split:meowstic-female", "split:meowstic-male"],
+      ninetales: ["chain:15"],
+      one: "split:meowstic-female",
+      none: null,
+    })
+    const count = await db().query<{ n: number; keys: number }>(
+      `select count(*)::int as n, count(distinct family_key)::int as keys
+       from public.draft_pool_species_families`,
+    )
+    expect(count.rows[0]).toEqual({ n: 1353, keys: 545 })
+  })
+
+  it("alias migration resolves pending names and never overwrites a non-null id", async () => {
+    const aliases = await db().query<{ sheet_name: string; pokemon_id: number; match_kind: string }>(
+      `select sheet_name, pokemon_id, match_kind from public.draft_pool_sheet_aliases
+       where sheet_name in ('Ogerpon Wellspring', 'Tauros Paldean Aqua', 'Arceus Fire', 'Giratina', 'Genesect Burn')
+       order by sheet_name`,
+    )
+    expect(aliases.rows).toEqual([
+      { sheet_name: "Arceus Fire", pokemon_id: 493, match_kind: "form_of_base" },
+      { sheet_name: "Genesect Burn", pokemon_id: 649, match_kind: "form_of_base" },
+      { sheet_name: "Giratina", pokemon_id: 10007, match_kind: "pre_existing" },
+      { sheet_name: "Ogerpon Wellspring", pokemon_id: 10273, match_kind: "manual" },
+      { sheet_name: "Tauros Paldean Aqua", pokemon_id: 10252, match_kind: "manual" },
+    ])
+
+    const wellspring = await mkPokemon("ogerpon wellspring", 1)
+    const aqua = await mkPokemon("tauros paldean aqua", 1)
+    const resolved = await db().query<{ w: number; a: number }>(
+      `select public.draft_pool_resolve_pokepedia_id($1) as w, public.draft_pool_resolve_pokepedia_id($2) as a`,
+      [wellspring, aqua],
+    )
+    expect(resolved.rows[0]).toEqual({ w: 10273, a: 10252 })
+
+    const season = await mkSeason(10)
+    await mkVersion(season, "published", [
+      { sheet: "Ogerpon Wellspring", pid: null, points: 4 },
+      { sheet: "Tauros Paldean Aqua", pid: null, points: 3 },
+    ])
+    const byName = await db().query<{ pokepedia_id: number }>(
+      `select (select pokepedia_id from public.draft_pool_published_entry_for_name($1, 'Ogerpon Wellspring')) as w,
+              (select pokepedia_id from public.draft_pool_published_entry_for_name($1, 'tauros paldean aqua')) as a`,
+      [season],
+    )
+    expect(byName.rows[0]).toEqual({ w: 10273, a: 10252 })
+  })
+
+  it("families table is service_role only (RLS on, no policies)", async () => {
+    const r = await db().query(
+      `select
+         has_table_privilege('anon', 'public.draft_pool_species_families', 'SELECT') as anon,
+         has_table_privilege('authenticated', 'public.draft_pool_species_families', 'SELECT') as auth,
+         has_table_privilege('service_role', 'public.draft_pool_species_families', 'SELECT') as service,
+         (select relrowsecurity from pg_class where oid = 'public.draft_pool_species_families'::regclass) as rls,
+         (select count(*)::int from pg_policies where tablename = 'draft_pool_species_families') as policies`,
+    )
+    expect(r.rows[0]).toEqual({ anon: false, auth: false, service: true, rls: true, policies: 0 })
   })
 
   it("restricts pick functions and helpers to service_role", async () => {

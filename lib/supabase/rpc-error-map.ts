@@ -37,7 +37,7 @@ const RPC_ERROR_MAP: Record<string, RPCErrorMapping> = {
   },
   SPECIES_CLAUSE: {
     statusCode: 422,
-    message: "You already have that Pokémon's species on your roster (species clause).",
+    message: "You already have a Pokémon from that evolution line on your roster (species clause — one per evolution line).",
     code: "SPECIES_CLAUSE",
   },
   BUDGET_EXCEEDED: {
@@ -118,7 +118,7 @@ function withDetailContext(mapping: RPCErrorMapping, error: any): RPCErrorMappin
     if (species) {
       return {
         ...mapping,
-        message: `You already have a ${formatSpecies(species)} on your roster (species clause).`,
+        message: `You already have a ${formatSpecies(species)} on your roster (species clause — one per evolution line).`,
       }
     }
   }
