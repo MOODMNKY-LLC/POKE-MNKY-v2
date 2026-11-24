@@ -169,5 +169,9 @@ export async function POST(request: NextRequest) {
 
 - Project README: `README.md`
 - Project Rules: `.cursor/rules/`
-- API Documentation: `docs/API-ENDPOINTS-FOR-NEXTJS-APP.md`
-- Architecture: `docs/COMPREHENSIVE-ARCHITECTURE-REVIEW.md`
+- Agent architecture (2026-11-24): `docs/AGENT-ARCHITECTURE.md`
+- Shared identity: `docs/AGENT-IDENTITY.md`
+- API routes: `app/api/` and `docs/ai.md` (`docs/API-ENDPOINTS-FOR-NEXTJS-APP.md` is not in this tree)
+- Discord: `docs/DISCORD-INTEGRATION-GUIDE.md` (`docs/DISCORD-INTEGRATION-VERIFY.md` is not in this tree)
+- Functional snapshot: `docs/CURRENT-STATUS-SUMMARY.md` (`docs/APP-FUNCTIONAL-AUDIT.md` is not in this tree)
+- Architecture narrative: `README.md` architecture section
