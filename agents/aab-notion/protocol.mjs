@@ -44,6 +44,9 @@ async function callTool(role, client, params) {
   if (resolved.error) {
     return toolError(resolved)
   }
+  if (resolved.op === "fixture") {
+    return readFixture()
+  }
   if (!client) {
     return toolError({
       error: "not_configured",
@@ -61,6 +64,15 @@ async function callTool(role, client, params) {
     return { content: [{ type: "text", text: JSON.stringify(payload) }], isError: false }
   } catch (error) {
     return toolError({ error: "notion_denied", status: error.status || 0, code: error.code || "notion_error" })
+  }
+}
+
+function readFixture() {
+  const value = loadToken(process.env.AAB_FIXTURE_FILE)
+  if (!value) return toolError({ error: "fixture_missing" })
+  return {
+    content: [{ type: "text", text: JSON.stringify({ value, authority: "fixture" }) }],
+    isError: false,
   }
 }
 

@@ -1,15 +1,52 @@
 import assert from "node:assert/strict"
+import { mkdtempSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
 import test from "node:test"
 import { resolveCall } from "./catalog.mjs"
 import { blockText, omittedLinks, propertyText } from "./notion.mjs"
 import { createHandler } from "./protocol.mjs"
 
-test("claw cannot open commissioner tools or arbitrary ids", () => {
+test("claw cannot read the maus fixture or commissioner tools", () => {
+  assert.equal(resolveCall("claw", "aab_fixture_canary", {}).error, "permission_denied")
   assert.equal(resolveCall("claw", "aab_get_roadmap", {}).error, "permission_denied")
   assert.equal(resolveCall("claw", "aab_get_pending_decisions", {}).error, "permission_denied")
   const draft = resolveCall("claw", "aab_get_draft_rules", { page_id: "vault-page" })
   assert.equal(draft.source.id, "2e7cd2a65422812890eded026dc817b3")
   assert.equal(resolveCall("maus", "aab_get_project_document", { slug: "vault" }).error, "permission_denied")
+})
+
+test("maus fixture returns only the file value", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "aab-fix-"))
+  const file = join(dir, "canary.txt")
+  writeFileSync(file, "canary-7f3a9c\n")
+  const previous = process.env.AAB_FIXTURE_FILE
+  process.env.AAB_FIXTURE_FILE = file
+  try {
+    const handle = createHandler({ role: "maus", token: "" })
+    const listed = await handle({ jsonrpc: "2.0", id: 1, method: "tools/list" })
+    assert.equal(listed.result.tools.some((tool) => tool.name === "aab_fixture_canary"), true)
+    const called = await handle({
+      jsonrpc: "2.0",
+      id: 2,
+      method: "tools/call",
+      params: { name: "aab_fixture_canary", arguments: {} },
+    })
+    const body = JSON.parse(called.result.content[0].text)
+    assert.equal(body.value, "canary-7f3a9c")
+    assert.equal(body.authority, "fixture")
+    assert.equal(called.result.isError, false)
+    const denied = await createHandler({ role: "claw", token: "" })({
+      jsonrpc: "2.0",
+      id: 3,
+      method: "tools/call",
+      params: { name: "aab_fixture_canary", arguments: {} },
+    })
+    assert.equal(JSON.parse(denied.result.content[0].text).error, "permission_denied")
+  } finally {
+    if (previous === undefined) delete process.env.AAB_FIXTURE_FILE
+    else process.env.AAB_FIXTURE_FILE = previous
+  }
 })
 
 test("linked pages are not traversed", () => {

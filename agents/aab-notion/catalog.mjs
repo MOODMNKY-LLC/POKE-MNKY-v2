@@ -123,6 +123,7 @@ const MAUS_TOOLS = {
   aab_get_roadmap: { database: "roadmap" },
   aab_get_announcements: { database: "announcements" },
   aab_get_project_document: { document: true },
+  aab_fixture_canary: { fixture: true },
 }
 
 function page(id, title, classification) {
@@ -200,6 +201,7 @@ export function resolveCall(role, name, args) {
     if (!query) return { error: "invalid_argument", field: "query" }
     return { op: "search", query, pages: Object.values(RULES) }
   }
+  if (spec.fixture) return { op: "fixture" }
   if (spec.document) {
     const slug = args?.slug
     const source = MAUS_PAGES[slug]
