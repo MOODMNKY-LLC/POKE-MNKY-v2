@@ -35,6 +35,7 @@ interface FloatingAssistantButtonProps {
   onOpenChange: (open: boolean) => void
   /** When true, the dock sits above the dashboard tab bar instead of the viewport edge. */
   aboveTabBar?: boolean
+  knowledgeEnabled?: boolean
 }
 
 export function FloatingAssistantButton({
@@ -44,6 +45,7 @@ export function FloatingAssistantButton({
   open,
   onOpenChange,
   aboveTabBar = false,
+  knowledgeEnabled = false,
 }: FloatingAssistantButtonProps) {
   const launcherRef = useRef<HTMLButtonElement>(null)
 
@@ -90,6 +92,7 @@ export function FloatingAssistantButton({
         onOpenChange={setOpen}
         context={context}
         isAuthenticated={isAuthenticated}
+        knowledgeEnabled={knowledgeEnabled}
       />
     </>
   )

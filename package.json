@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "start": "next start",
     "test": "vitest",
+    "test:aab-notion": "node --test agents/aab-notion/protocol.test.mjs",
     "test:run": "vitest run",
     "sheet-sync": "tsx scripts/sheet-sync.ts",
     "test:e2e": "playwright test",
