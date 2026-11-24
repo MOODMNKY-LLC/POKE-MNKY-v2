@@ -22,8 +22,10 @@ interface RequestAccessCardProps {
 
 const STATUS_MESSAGES: Record<NetbirdRequestStatus, string> = {
   pending: "Your request is waiting for Simeon to review it.",
-  approved: "Approved. Watch for your personal invite from the league, then follow the steps below.",
-  invited: "Your invite has been sent by the league. Follow the steps below.",
+  approved:
+    "Approved. Simeon will send your invite to you personally (for example by Discord DM). Watch for it, then follow the steps below.",
+  invited:
+    "Your invite has been sent to you personally (for example by Discord DM). Follow the steps below.",
   denied: "This request was not approved. Contact Simeon if you think this is a mistake.",
   cancelled: "This request was cancelled.",
 }
@@ -66,7 +68,8 @@ export function RequestAccessCard({ initialRequest, unavailable }: RequestAccess
         </CardTitle>
         <CardDescription>
           This only notifies Simeon and the league admins in the app. It does not connect you or send a NetBird
-          invite. After Simeon approves, you will still receive a personal invite and follow the steps on this page.
+          invite, and there is no open sign-up. Simeon approves each member. After approval, your invite is sent to
+          you personally (for example by Discord DM), and then you follow the steps on this page.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
@@ -100,7 +103,7 @@ export function RequestAccessCard({ initialRequest, unavailable }: RequestAccess
                 disabled={isPending}
               />
               <p className="text-xs text-muted-foreground">
-                {deviceNote.length}/{DEVICE_NOTE_MAX_LENGTH}. Do not enter passwords, codes, or keys.
+                {deviceNote.length}/{DEVICE_NOTE_MAX_LENGTH}. Do not enter passwords or codes.
               </p>
             </div>
             <div>
