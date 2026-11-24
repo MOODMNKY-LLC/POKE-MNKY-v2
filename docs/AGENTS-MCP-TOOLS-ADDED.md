@@ -73,7 +73,7 @@ All three AI agents have been equipped with additional MCP (Model Context Protoc
 - `tavily-crawl` - Website crawling
 - `tavily-map` - Website structure mapping
 
-**API Key**: `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` (from Notion Credentials)
+**API Key**: `TAVILY_API_KEY` (must come from the environment / Infisical, never from source code or Notion). If unset, the Tavily MCP server is not registered.
 
 ---
 
@@ -150,9 +150,9 @@ All three agents now use the shared MCP servers:
 Add these to your `.env.local` file:
 
 ```bash
-# MCP Server API Keys (from Notion Credentials database)
+# MCP Server API Keys (inject from the environment / Infisical; never commit real values)
 BRAVE_API_KEY=***REMOVED***
-TAVILY_API_KEY=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
+TAVILY_API_KEY=
 FIRECRAWL_API_KEY=***REMOVED***
 
 # Draft Pool MCP Server (existing)

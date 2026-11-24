@@ -11,7 +11,10 @@ import { NextResponse } from 'next/server'
 import { 
   getOpenAI, 
   convertUIMessagesToResponsesAPIFormat, 
-  convertResponsesAPIToUIMessage 
+  convertResponsesAPIToUIMessage,
+  isOpenAIConfigured,
+  isOpenAIUnavailableError,
+  openaiUnavailableResponse,
 } from '@/lib/openai-client'
 import { logger } from '@/lib/logger'
 import type { EasyInputMessage, ResponseInput, Tool } from 'openai/resources/responses/responses'
@@ -44,6 +47,8 @@ function toResponseInput(
 }
 
 export async function POST(request: Request) {
+  if (!isOpenAIConfigured()) return openaiUnavailableResponse()
+
   try {
     const supabase = await createServerClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -606,6 +611,7 @@ Be friendly, helpful, and knowledgeable. Always use available tools (file_search
       consumeSseStream: consumeStream,
     })
   } catch (error) {
+    if (isOpenAIUnavailableError(error)) return openaiUnavailableResponse()
     logger.error('[General Assistant] Error', {
       error: error instanceof Error ? error.message : String(error),
     })

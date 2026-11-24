@@ -3,7 +3,14 @@ import { streamText, stepCountIs } from 'ai'
 import { openai } from '@ai-sdk/openai'
 import { convertToModelMessages } from 'ai'
 import { createServerClient } from '@/lib/supabase/server'
-import { AI_MODELS, createResponseWithMCP, openai as openaiRest } from '@/lib/openai-client'
+import {
+  AI_MODELS,
+  createResponseWithMCP,
+  openai as openaiRest,
+  isOpenAIConfigured,
+  isOpenAIUnavailableError,
+  openaiUnavailableResponse,
+} from '@/lib/openai-client'
 import { getPokemonData } from '@/lib/pokemon-api'
 import { NextResponse } from 'next/server'
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions'
@@ -15,6 +22,8 @@ import {
 import { resolveMcpToolsEnabled } from '@/lib/ai/mcp-tools-enabled'
 
 export async function POST(request: Request) {
+  if (!isOpenAIConfigured()) return openaiUnavailableResponse()
+
   try {
     const body = await request.json()
     
@@ -336,6 +345,7 @@ When asked about 'points', refer to draft point costs in the league draft pool. 
       source: 'chat_completions',
     })
   } catch (error) {
+    if (isOpenAIUnavailableError(error)) return openaiUnavailableResponse()
     console.error('[Pokédex] Error:', error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Pokédex AI failed' },

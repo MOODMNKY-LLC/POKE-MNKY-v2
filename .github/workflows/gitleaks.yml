@@ -1,0 +1,28 @@
+name: Gitleaks
+
+on:
+  pull_request:
+    branches:
+      - main
+      - master
+
+permissions:
+  contents: read
+
+jobs:
+  gitleaks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Scan the checked-out PR tree only (--no-git): full git history is intentionally not scanned,
+      # so a PR that removes a historical secret does not fail on the deleted line.
+      - name: Install gitleaks CLI
+        run: |
+          VERSION="8.21.2"
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}/gitleaks_${VERSION}_linux_x64.tar.gz" -o gitleaks.tar.gz
+          tar -xzf gitleaks.tar.gz gitleaks
+          sudo mv gitleaks /usr/local/bin/gitleaks
+
+      - name: Scan current tree
+        run: gitleaks detect --no-git --source . --redact --verbose
