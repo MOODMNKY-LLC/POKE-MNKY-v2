@@ -8,12 +8,13 @@ import {
   DNS_SUFFIX,
   DOCS_LINKS,
   GAME_NETWORK_NAME,
-  GAME_SERVER_HOST,
+  GAME_SERVER_ADDRESS,
   GAME_SERVER_PORT,
   GAME_SERVER_PROTOCOL,
   GROUP_DISPLAY_NAME,
   INSTALL_LINKS,
   MANAGEMENT_URL,
+  RYUBING_LDN_GUIDE_URL,
   SETUP_KEY_CLI_EXAMPLE,
 } from "@/lib/netbird/onboarding"
 import {
@@ -114,8 +115,8 @@ const TROUBLESHOOTING: ReadonlyArray<{ title: string; body: ReactNode }> = [
     title: "I am connected but battles do not work",
     body: (
       <>
-        Confirm the app shows Connected and that you are trying <Code>{GAME_SERVER_HOST}</Code> on port{" "}
-        <Code>{GAME_SERVER_PORT}</Code> only. Then contact Simeon.
+        Confirm the app shows Connected and that you are using the league game server address{" "}
+        <Code>{GAME_SERVER_ADDRESS}</Code> only. Then contact Simeon.
       </>
     ),
   },
@@ -200,8 +201,9 @@ export default async function NetbirdGuidePage() {
               <li>Do not turn on an exit node or route advertising.</li>
               <li>Do not add a second NetBird account or profile on the same device.</li>
               <li>
-                You can reach only the league game server ({GAME_NETWORK_NAME}, {GAME_SERVER_PROTOCOL}{" "}
-                {GAME_SERVER_PORT}).
+                You can reach only the league game server (address below):{" "}
+                <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">{GAME_SERVER_ADDRESS}</code>{" "}
+                ({GAME_NETWORK_NAME}, {GAME_SERVER_PROTOCOL} {GAME_SERVER_PORT}).
               </li>
             </ul>
           </AlertDescription>
@@ -377,11 +379,25 @@ export default async function NetbirdGuidePage() {
               </li>
               <li>You do not need to wait for device approval.</li>
               <li>
-                You should be able to reach the {GAME_NETWORK_NAME} game server at <Code>{GAME_SERVER_HOST}</Code>{" "}
-                on {GAME_SERVER_PROTOCOL} port <Code>{GAME_SERVER_PORT}</Code> (Ryujinx LDN). You should not have
-                access to other private machines.
+                You should be able to reach the league game server ({GAME_NETWORK_NAME}) at{" "}
+                <Code>{GAME_SERVER_ADDRESS}</Code> over {GAME_SERVER_PROTOCOL}. You should not have access to other
+                private machines.
               </li>
               <li>Leave exit node unselected.</li>
+              <li>
+                In Ryujinx&apos;s multiplayer settings, set the LDN server to <Code>{GAME_SERVER_ADDRESS}</Code>. In
+                Ryujinx (Ryubing), go to Options → Settings → Multiplayer and set Mode to RyuLDN (also labeled Ryujinx
+                Ldn).{" "}
+                <a
+                  href={RYUBING_LDN_GUIDE_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline underline-offset-4"
+                >
+                  Ryubing LDN guide
+                </a>
+                . Menu names can differ slightly by app version.
+              </li>
             </ul>
           </CardContent>
         </Card>

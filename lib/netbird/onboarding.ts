@@ -1,10 +1,13 @@
 export const MANAGEMENT_URL = "https://netbird.moodmnky.com"
 export const GROUP_DISPLAY_NAME = "Average At Best: Pokemon Battle League"
 export const DNS_SUFFIX = "mesh.moodmnky.com"
-export const GAME_SERVER_HOST = "10.4.0.102"
+// TODO: a hostname for the game server is pending confirmation; switch this one constant when it lands.
+export const GAME_SERVER_HOST = "100.64.163.195"
 export const GAME_SERVER_PORT = 30456
+export const GAME_SERVER_ADDRESS = `${GAME_SERVER_HOST}:${GAME_SERVER_PORT}`
 export const GAME_SERVER_PROTOCOL = "TCP"
 export const GAME_NETWORK_NAME = "AAB Battle Net"
+export const RYUBING_LDN_GUIDE_URL = "https://docs.ryujinx.app/guides/ldn-guide/"
 
 export const INSTALL_LINKS = {
   windows: {
