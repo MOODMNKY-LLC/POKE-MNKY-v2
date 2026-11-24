@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server"
-import { openai, AI_MODELS } from "@/lib/openai-client"
+import { openai, AI_MODELS, isOpenAIConfigured, isOpenAIUnavailableError, openaiUnavailableResponse } from "@/lib/openai-client"
 import { createServerClient } from "@/lib/supabase/server"
 import { getWeeklyStats } from "@/lib/weekly-stats"
 
 export async function POST(request: Request) {
+  if (!isOpenAIConfigured()) return openaiUnavailableResponse()
+
   try {
     const supabase = await createServerClient()
     const {
@@ -67,6 +69,7 @@ export async function POST(request: Request) {
       },
     })
   } catch (error) {
+    if (isOpenAIUnavailableError(error)) return openaiUnavailableResponse()
     console.error("[v0] Weekly recap error:", error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Recap generation failed" },

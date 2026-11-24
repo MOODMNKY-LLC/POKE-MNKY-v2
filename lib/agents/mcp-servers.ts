@@ -57,21 +57,32 @@ export const braveSearchMCP = new MCPServerStdio({
 
 /**
  * Tavily Search MCP Server
- * Provides AI-optimized web search with advanced filtering
+ * Provides AI-optimized web search with advanced filtering.
+ *
+ * Fails closed: the server is only constructed when TAVILY_API_KEY is set to a
+ * non-blank value in the environment. Otherwise this is `null` and Tavily is
+ * omitted from every helper below.
  */
-export const tavilyMCP = new MCPServerStdio({
-  name: 'tavily',
-  command: 'docker',
-  args: [
-    'run',
-    '--rm',
-    '-i',
-    '-e',
-    `TAVILY_API_KEY=${process.env.TAVILY_API_KEY || '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'}`,
-    'mcp/tavily',
-  ],
-  cacheToolsList: true,
-})
+function createTavilyMCP(): MCPServerStdio | null {
+  const apiKey = process.env.TAVILY_API_KEY?.trim()
+  if (!apiKey) return null
+
+  return new MCPServerStdio({
+    name: 'tavily',
+    command: 'docker',
+    args: [
+      'run',
+      '--rm',
+      '-i',
+      '-e',
+      `TAVILY_API_KEY=${apiKey}`,
+      'mcp/tavily',
+    ],
+    cacheToolsList: true,
+  })
+}
+
+export const tavilyMCP: MCPServerStdio | null = createTavilyMCP()
 
 /**
  * Firecrawl MCP Server
@@ -113,14 +124,14 @@ export const fetchMCP = new MCPServerStdio({
 
 /**
  * Get all standard MCP servers for agents
- * Includes: Draft Pool, Sequential Thinking, Brave Search, Tavily, Firecrawl, Fetch
+ * Includes: Draft Pool, Sequential Thinking, Brave Search, Tavily (only when TAVILY_API_KEY is set), Firecrawl, Fetch
  */
 export function getAllMCPServers() {
   return [
     draftPoolMCP,
     sequentialThinkingMCP,
     braveSearchMCP,
-    tavilyMCP,
+    ...(tavilyMCP ? [tavilyMCP] : []),
     firecrawlMCP,
     fetchMCP,
   ]
@@ -128,13 +139,13 @@ export function getAllMCPServers() {
 
 /**
  * Get research-focused MCP servers (search + scraping)
- * Includes: Brave Search, Tavily, Firecrawl, Fetch, Sequential Thinking
+ * Includes: Brave Search, Tavily (only when TAVILY_API_KEY is set), Firecrawl, Fetch, Sequential Thinking
  */
 export function getResearchMCPServers() {
   return [
     sequentialThinkingMCP,
     braveSearchMCP,
-    tavilyMCP,
+    ...(tavilyMCP ? [tavilyMCP] : []),
     firecrawlMCP,
     fetchMCP,
   ]

@@ -2,7 +2,7 @@
 import { streamText, convertToModelMessages, stepCountIs } from 'ai'
 import { openai } from '@ai-sdk/openai'
 import { createServerClient } from '@/lib/supabase/server'
-import { AI_MODELS } from '@/lib/openai-client'
+import { AI_MODELS, isOpenAIConfigured, openaiUnavailableResponse } from '@/lib/openai-client'
 import { resolveCoachTeamForSeason } from '@/lib/coach-team-context'
 import {
   handleOpenClawChatRequest,
@@ -12,6 +12,8 @@ import {
 import { resolveMcpToolsEnabled } from '@/lib/ai/mcp-tools-enabled'
 
 export async function POST(request: Request) {
+  if (!isOpenAIConfigured()) return openaiUnavailableResponse()
+
   try {
     const supabase = await createServerClient()
     const {

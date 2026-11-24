@@ -46,7 +46,7 @@ According to `.cursor/rules/deep-thinking.mdc`, the protocol explicitly requires
 **Current Status**:
 - ✅ Configured as stdio (Docker)
 - ⚠️ Needs HTTP endpoint for agent use
-- ✅ API key available: `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`
+- ⚠️ `TAVILY_API_KEY` must be supplied via the environment / Infisical (never from source or Notion); Tavily is disabled when it is unset
 
 **Protocol Usage**:
 - Deep investigation after initial Brave Search

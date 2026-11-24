@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase/server"
 import { createServiceRoleClient } from "@/lib/supabase/service"
-import { getOpenAI, AI_MODELS } from "@/lib/openai-client"
+import { getOpenAI, AI_MODELS, isOpenAIConfigured, isOpenAIUnavailableError, openaiUnavailableResponse } from "@/lib/openai-client"
 import type { ChatCompletionCreateParamsNonStreaming } from "openai/resources/chat/completions"
 
 const DRAFT_BOARD_ANALYSIS_SCHEMA = {
@@ -70,6 +70,8 @@ const DRAFT_BOARD_ANALYSIS_SCHEMA = {
 }
 
 export async function POST(request: NextRequest) {
+  if (!isOpenAIConfigured()) return openaiUnavailableResponse()
+
   try {
     const supabase = await createServerClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -264,6 +266,7 @@ Provide: summary, balanceFindings (top 5–10 notable over/undervalued), tierSug
       analysis,
     })
   } catch (err) {
+    if (isOpenAIUnavailableError(err)) return openaiUnavailableResponse()
     console.error("[draft-board-analysis]", err)
     return NextResponse.json(
       {
