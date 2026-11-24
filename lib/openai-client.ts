@@ -11,14 +11,39 @@ import type {
 // Singleton instance - only created when first needed at runtime
 let _openaiClient: OpenAI | null = null
 
-// Lazy initialization function - only called when actually used
+export const OPENAI_UNAVAILABLE_MESSAGE = "OpenAI is not configured"
+
+/** Thrown when an OpenAI-backed feature is used while OPENAI_API_KEY is not set. */
+export class OpenAIUnavailableError extends Error {
+  readonly code = "unavailable" as const
+
+  constructor(message: string = OPENAI_UNAVAILABLE_MESSAGE) {
+    super(message)
+    this.name = "OpenAIUnavailableError"
+  }
+}
+
+export function isOpenAIUnavailableError(error: unknown): error is OpenAIUnavailableError {
+  return error instanceof OpenAIUnavailableError
+}
+
+/** True when OPENAI_API_KEY is present and non-blank. Safe to call from any request path. */
+export function isOpenAIConfigured(): boolean {
+  return Boolean(process.env.OPENAI_API_KEY?.trim())
+}
+
+/** Standard HTTP 503 JSON response for routes whose OpenAI dependency is unavailable. */
+export function openaiUnavailableResponse(): Response {
+  return Response.json({ error: "unavailable", message: OPENAI_UNAVAILABLE_MESSAGE }, { status: 503 })
+}
+
+// Lazy initialization function - only called when actually used.
+// Throws OpenAIUnavailableError (never a generic Error) when the key is missing so callers can degrade gracefully.
 function getOpenAIClient(): OpenAI {
   if (!_openaiClient) {
-    const apiKey = process.env.OPENAI_API_KEY
+    const apiKey = process.env.OPENAI_API_KEY?.trim()
     if (!apiKey) {
-      throw new Error(
-        "OPENAI_API_KEY environment variable is not set. Please add it to your Vercel project environment variables.",
-      )
+      throw new OpenAIUnavailableError()
     }
     _openaiClient = new OpenAI({ apiKey })
   }

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { parseMatchResult } from "@/lib/openai-client"
+import { parseMatchResult, isOpenAIUnavailableError, openaiUnavailableResponse } from "@/lib/openai-client"
 import { createServerClient } from "@/lib/supabase/server"
 import { createServiceRoleClient } from "@/lib/supabase/service"
 import { completeMatchResult } from "@/lib/match-result-complete"
@@ -111,6 +111,7 @@ export async function POST(request: Request) {
         : undefined,
     })
   } catch (error) {
+    if (isOpenAIUnavailableError(error)) return openaiUnavailableResponse()
     console.error("[parse-result]", error)
     if (error instanceof SheetSyncWriteBlockedError) {
       return NextResponse.json({ error: error.message }, { status: error.status })

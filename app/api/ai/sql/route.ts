@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { leagueAdminDeniedResponse } from "@/lib/admin-api-auth"
 import { createServerClient } from "@/lib/supabase/server"
 import { configuredSupabaseProjectRef } from "@/lib/proxy-allowlists"
-import { getOpenAI } from "@/lib/openai-client"
+import { getOpenAI, isOpenAIUnavailableError, openaiUnavailableResponse } from "@/lib/openai-client"
 import createClient from "openapi-fetch"
 import type { paths } from "@/lib/management-api-schema"
 
@@ -172,6 +172,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ sql: sqlQuery })
   } catch (error: any) {
+    if (isOpenAIUnavailableError(error)) return openaiUnavailableResponse()
     console.error("[v0] AI SQL generation error:", error)
     return NextResponse.json({ error: error.message || "Failed to generate SQL" }, { status: 500 })
   }

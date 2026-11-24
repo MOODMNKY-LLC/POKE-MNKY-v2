@@ -14,6 +14,7 @@ export function AabDrafts() {
   const [kind, setKind] = useState<(typeof KINDS)[number]["id"]>("pending")
   const [question, setQuestion] = useState("")
   const [draft, setDraft] = useState("")
+  const [sources, setSources] = useState<Array<{ title: string; source_url: string }>>([])
   const [state, setState] = useState<"idle" | "loading" | "error">("idle")
   const [error, setError] = useState<string | null>(null)
 
@@ -21,6 +22,7 @@ export function AabDrafts() {
     setState("loading")
     setError(null)
     setDraft("")
+    setSources([])
     const response = await fetch("/api/ai/aab-drafts", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -32,27 +34,9 @@ export function AabDrafts() {
       setError(body.error || "request_failed")
       return
     }
-    const type = response.headers.get("content-type") || ""
-    if (type.includes("application/json")) {
-      const body = await response.json()
-      setDraft(body.answer || "")
-      setState("idle")
-      return
-    }
-    const reader = response.body?.getReader()
-    if (!reader) {
-      setState("error")
-      setError("empty_response")
-      return
-    }
-    const decoder = new TextDecoder()
-    let text = ""
-    while (true) {
-      const chunk = await reader.read()
-      if (chunk.done) break
-      text += decoder.decode(chunk.value, { stream: true })
-      setDraft(text)
-    }
+    const body = await response.json()
+    setDraft(body.draft_text || "")
+    setSources(Array.isArray(body.sources) ? body.sources : [])
     setState("idle")
   }
 
@@ -94,6 +78,15 @@ export function AabDrafts() {
         <article className="whitespace-pre-wrap rounded-md border p-3 text-sm" aria-live="polite">
           {draft}
         </article>
+      ) : null}
+      {sources.length ? (
+        <ul className="space-y-1 text-xs">
+          {sources.map((source) => (
+            <li key={source.source_url}>
+              <a className="underline" href={source.source_url}>{source.title}</a>
+            </li>
+          ))}
+        </ul>
       ) : null}
     </section>
   )

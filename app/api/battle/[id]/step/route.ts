@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { getBattleRequest, applyChoice } from "@/lib/battle-engine"
-import { selectBattleMove } from "@/lib/openai-client"
+import { selectBattleMove, isOpenAIUnavailableError, openaiUnavailableResponse } from "@/lib/openai-client"
 import { createServerClient } from "@/lib/supabase/server"
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -57,6 +57,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       state: updatedRequest.state_summary,
     })
   } catch (error) {
+    if (isOpenAIUnavailableError(error)) return openaiUnavailableResponse()
     console.error("[v0] Battle step error:", error)
     return NextResponse.json({ error: error instanceof Error ? error.message : "Battle step failed" }, { status: 500 })
   }

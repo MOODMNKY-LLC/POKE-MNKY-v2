@@ -254,6 +254,13 @@ export default async function DashboardSettingsPage({
                       — Full inventory of slash commands, APIs, status, and E2E testing.
                     </li>
                     <li>
+                      <Link href="/dashboard/guides/netbird" className="text-primary hover:underline">
+                        NetBird battle network
+                      </Link>
+                      {" "}
+                      — How to accept your invite, install NetBird, and connect to the league battle server.
+                    </li>
+                    <li>
                       Dashboard guide (above) — Overview, sidebar, Teams, League, Draft, Weekly Matches.
                     </li>
                   </ul>

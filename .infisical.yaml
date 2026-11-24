@@ -1,0 +1,6 @@
+# Infisical CLI project link for local `infisical secrets-manager run`.
+# This file must never contain secret values.
+# TODO: set workspaceId after GROK MNKY creates the Infisical project for POKE-MNKY-v2.
+# Do not invent an ID. Suggested folder once created: /apps/poke-mnky-v2 (prod/preview/dev).
+# workspaceId:  # paste the real ID here, then commit
+# defaultEnvironment: dev

@@ -10,6 +10,9 @@ const ACTIONS = [
   { label: "Constitution", prompt: "Summarize the league constitution.", tool: "aab_get_league_rules" },
 ] as const
 
+type Excerpt = { text: string; source_title: string | null; source_url: string | null }
+type SourceLink = { title: string; source_url: string; classification: string | null }
+
 type Packet = {
   title?: string
   classification?: string
@@ -22,6 +25,8 @@ type Packet = {
 export function AabKnowledgePanel({ enabled }: { enabled: boolean }) {
   const [prompt, setPrompt] = useState("")
   const [answer, setAnswer] = useState("")
+  const [excerpts, setExcerpts] = useState<Excerpt[]>([])
+  const [sources, setSources] = useState<SourceLink[]>([])
   const [packet, setPacket] = useState<Packet | null>(null)
   const [state, setState] = useState<"idle" | "loading" | "error">("idle")
   const [error, setError] = useState<string | null>(null)
@@ -42,6 +47,8 @@ export function AabKnowledgePanel({ enabled }: { enabled: boolean }) {
     setError(null)
     setAnswer("")
     setPacket(null)
+    setExcerpts([])
+    setSources([])
     const response = await fetch("/api/ai/aab-knowledge", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -53,37 +60,13 @@ export function AabKnowledgePanel({ enabled }: { enabled: boolean }) {
       setError(body.error || "request_failed")
       return
     }
-    const type = response.headers.get("content-type") || ""
-    if (type.includes("application/json")) {
-      const body = await response.json()
-      setPacket(body.packet || null)
-      setAnswer(body.answer || "")
-      setState("idle")
-      return
-    }
-    const reader = response.body?.getReader()
-    if (!reader) {
-      setState("error")
-      setError("empty_response")
-      return
-    }
-    const decoder = new TextDecoder()
-    let text = ""
-    while (true) {
-      const chunk = await reader.read()
-      if (chunk.done) break
-      text += decoder.decode(chunk.value, { stream: true })
-      setAnswer(text)
-    }
+    const body = await response.json()
+    setPacket(body.packet || null)
+    setAnswer(body.answer || "")
+    setExcerpts(Array.isArray(body.excerpts) ? body.excerpts : [])
+    setSources(Array.isArray(body.sources) ? body.sources : [])
     setState("idle")
   }
-
-  const links = [
-    packet?.source_url ? { title: packet.title || "Source", url: packet.source_url } : null,
-    ...(packet?.sources || []).map((source) =>
-      source.source_url ? { title: source.title || "Source", url: source.source_url } : null,
-    ),
-  ].filter((link): link is { title: string; url: string } => Boolean(link))
 
   return (
     <section className="border-b px-3 py-2" aria-label="League knowledge">
@@ -131,12 +114,24 @@ export function AabKnowledgePanel({ enabled }: { enabled: boolean }) {
         <p className="mt-2 text-sm text-muted-foreground">Official page text is not loaded. This is not a ruling.</p>
       ) : null}
       {answer ? <p className="mt-2 whitespace-pre-wrap text-sm">{answer}</p> : null}
-      {links.length ? (
+      {excerpts.length ? (
+        <ul className="mt-2 space-y-2 text-sm">
+          {excerpts.map((excerpt, index) => (
+            <li key={`${index}-${excerpt.text.slice(0, 24)}`} className="rounded-md border p-2">
+              <p className="whitespace-pre-wrap">{excerpt.text}</p>
+              {excerpt.source_url ? (
+                <a className="text-xs underline" href={excerpt.source_url}>{excerpt.source_title || "Source"}</a>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {sources.length ? (
         <ul className="mt-2 space-y-1 text-xs">
-          {links.map((link) => (
-            <li key={link.url}>
-              <a className="underline" href={link.url}>{link.title}</a>
-              {packet?.classification ? <span className="text-muted-foreground"> · {packet.classification}</span> : null}
+          {sources.map((source) => (
+            <li key={source.source_url}>
+              <a className="underline" href={source.source_url}>{source.title}</a>
+              {source.classification ? <span className="text-muted-foreground"> · {source.classification}</span> : null}
             </li>
           ))}
         </ul>
