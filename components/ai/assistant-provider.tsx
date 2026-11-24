@@ -11,7 +11,6 @@ import { useEffect, useState } from "react"
 import { usePathname } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { FloatingAssistantButton } from "./floating-assistant-button"
-import { AabKnowledgeCard } from "./aab-knowledge-card"
 
 export function AssistantProvider() {
   const [mounted, setMounted] = useState(false)
@@ -105,10 +104,8 @@ export function AssistantProvider() {
         open={open}
         onOpenChange={setOpen}
         aboveTabBar={aboveTabBar}
+        knowledgeEnabled={process.env.NEXT_PUBLIC_AAB_KNOWLEDGE_ENABLED === "true" && isAuthenticated}
       />
-      {isAuthenticated ? (
-        <AabKnowledgeCard enabled={process.env.NEXT_PUBLIC_AAB_KNOWLEDGE_ENABLED === "true"} />
-      ) : null}
     </>
   )
 }

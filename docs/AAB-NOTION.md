@@ -12,6 +12,7 @@ The token is read from a file outside the prompt. The tool list does not accept 
 |------|-------------|----------------|
 | Claw | `NOTION_CLAW_READONLY_TOKEN` | `mnky-lab` `/services/mnky-agent-stack/poke` |
 | Maus | `NOTION_MAUS_READONLY_TOKEN` | same folder, separate value |
+| App | `NOTION_APP_READONLY_TOKEN` | same folder, server-only, not a copy of either runtime token |
 
 Neither secret exists yet. Share each internal integration only with the pages in `agents/aab-notion/catalog.mjs` for that role. Do not share Average At Best HQ with the Claw integration.
 
@@ -31,6 +32,16 @@ Data source `7d83e48d-83a3-4ab8-92d1-c389422a68ca` has no rows. `Season` only of
 
 `npm run test:aab-notion` checks role denial, ignored page ids, dropped child links, a missing token, prompt text that asks for the token, and the Maus-only fixture. A live Notion read still needs the two integrations.
 
+## App route
+
+`AAB_KNOWLEDGE_ENABLED` defaults off. While it is off, the knowledge and draft routes return 404. When it is on, a signed-in coach can ask a league question. The server retrieves the matching allowlisted source with `NOTION_APP_READONLY_TOKEN` when that separate app identity exists. It does not read the Claw or Maus token files and it does not call the operator Codex gateway. Without the app token, the answer cites the source and says the official text is not loaded. PokéAPI lookups are labeled public reference.
+
+`POST /api/ai/aab-drafts` is commissioner or admin only. It returns a reviewable draft and does not write to Notion, Discord, or league records.
+
+The knowledge panel is inside the existing assistant dialog. It renders only when `NEXT_PUBLIC_AAB_KNOWLEDGE_ENABLED` is `true`. Leave both flags unset in production until the operator accepts the preview.
+
+The Maus install is `node scripts/install-aab-notion.mjs <dest-dir> <config.toml>`. It copies the adapter and adds the stdio block only when that block is absent. It does not touch Codex auth files.
+
 ## Native attach (2026-11-24)
 
 Codex's MCP client writes newline-delimited JSON. A server that answers only with `Content-Length` stays at startup status `starting` and never appears in the native tool list. `server.mjs` answers in the same framing it receives.
@@ -39,10 +50,4 @@ OpenMausBot's Codex home `/data/.openmausbot/providers/codex-own/<hash>/codex/co
 
 `aab_fixture_canary` is Maus-only. It reads `AAB_FIXTURE_FILE` and returns that file. On 2026-11-24 the native chat message `52d013ba-83e3-433a-aa6f-2fc74c97b65f` produced `mcpToolCall` server `aab-notion` tool `aab_fixture_canary`. Reply `7ffde1c7-22ab-471d-85bf-8f277bc23a74` matched the file. The file is mode `600` and its value is not stored in git or Notion. Claw cannot call the tool.
 
-The server directory on the Maus data volume is `/data/.openmausbot/aab-notion/`. Recreating the container keeps that volume. A new volume needs the same files from this repo and the same `config.toml` block.
-
-## App route
-
-`AAB_KNOWLEDGE_ENABLED` defaults off. While it is off, `GET` and `POST /api/ai/aab-knowledge` return 404. When it is on, the route requires a Supabase session, reads `profiles.role`, and allows Claw tool names to coaches and spectators. Commissioners and admins may name the Maus tools except the fixture. Page ids are ignored. The body is source identity plus `not_configured` until a separate app reader is approved. The route does not call the operator Codex gateway and does not read the runtime token files.
-
-The existing assistant stays mounted. `components/ai/aab-knowledge-card.tsx` renders only when `NEXT_PUBLIC_AAB_KNOWLEDGE_ENABLED` is `true`. Leave both flags unset in production until the operator accepts the preview.
+The server directory on the Maus data volume is `/data/.openmausbot/aab-notion/`. Recreating the container keeps that volume. A new volume is filled with `node scripts/install-aab-notion.mjs /data/.openmausbot/aab-notion /data/.codex/config.toml` from this repo. The script does not copy auth files.

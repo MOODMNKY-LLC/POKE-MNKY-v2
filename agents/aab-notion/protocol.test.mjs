@@ -4,8 +4,22 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import test from "node:test"
 import { resolveCall } from "./catalog.mjs"
+import { fallbackAnswer } from "./answer.mjs"
 import { blockText, omittedLinks, propertyText } from "./notion.mjs"
 import { createHandler } from "./protocol.mjs"
+test("missing Notion text is labeled and cited", () => {
+  const text = fallbackAnswer("What is the point budget?", {
+    error: "not_configured",
+    title: "Draft Rules",
+    classification: "confirmed_rule",
+    source_url: "https://app.notion.com/p/2e7cd2a65422812890eded026dc817b3",
+    content: null,
+  })
+  assert.match(text, /not loaded/)
+  assert.match(text, /2e7cd2a65422812890eded026dc817b3/)
+  assert.doesNotMatch(text, /120/)
+})
+
 
 test("claw cannot read the maus fixture or commissioner tools", () => {
   assert.equal(resolveCall("claw", "aab_fixture_canary", {}).error, "permission_denied")
@@ -75,6 +89,8 @@ test("missing token does not echo a secret and still lists only claw tools", asy
   const body = JSON.parse(called.result.content[0].text)
   assert.equal(body.error, "not_configured")
   assert.equal(body.secret, "NOTION_CLAW_READONLY_TOKEN")
+  assert.equal(body.source_url, "https://app.notion.com/p/2e7cd2a65422812890eded026dc817b3")
+  assert.equal(body.content, null)
   assert.equal(JSON.stringify(body).includes("secret_"), false)
 })
 

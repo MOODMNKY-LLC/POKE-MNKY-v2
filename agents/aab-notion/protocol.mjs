@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs"
-import { resolveCall, toolSpec, toolsFor } from "./catalog.mjs"
-import { createClient } from "./notion.mjs"
+import { toolSpec, toolsFor } from "./catalog.mjs"
+import { retrieveCall } from "./retrieve.mjs"
 
 export function loadToken(filePath, read = readFileSync) {
   if (!filePath) return ""
@@ -13,7 +13,6 @@ export function loadToken(filePath, read = readFileSync) {
 
 export function createHandler({ role, token, fetchImpl, sleep }) {
   const tools = Object.keys(toolsFor(role)).map(toolSpec)
-  const client = token ? createClient({ token, fetchImpl, sleep }) : null
 
   return async function handle(message) {
     if (!message || message.jsonrpc !== "2.0") return null
@@ -28,7 +27,7 @@ export function createHandler({ role, token, fetchImpl, sleep }) {
     if (message.method === "ping") return result(message.id, {})
     if (message.method === "tools/list") return result(message.id, { tools })
     if (message.method === "tools/call") {
-      return result(message.id, await callTool(role, client, message.params || {}))
+      return result(message.id, await callTool(role, token, fetchImpl, sleep, message.params || {}))
     }
     return {
       jsonrpc: "2.0",
@@ -38,33 +37,19 @@ export function createHandler({ role, token, fetchImpl, sleep }) {
   }
 }
 
-async function callTool(role, client, params) {
+async function callTool(role, token, fetchImpl, sleep, params) {
   const name = params.name
-  const resolved = resolveCall(role, name, params.arguments || {})
-  if (resolved.error) {
-    return toolError(resolved)
-  }
-  if (resolved.op === "fixture") {
-    return readFixture()
-  }
-  if (!client) {
-    return toolError({
-      error: "not_configured",
-      tool: name,
-      secret: role === "maus" ? "NOTION_MAUS_READONLY_TOKEN" : "NOTION_CLAW_READONLY_TOKEN",
-    })
-  }
-  try {
-    const payload =
-      resolved.op === "search"
-        ? await client.search(resolved.pages, resolved.query)
-        : resolved.op === "database"
-          ? await client.database(resolved.source)
-          : await client.page(resolved.source)
-    return { content: [{ type: "text", text: JSON.stringify(payload) }], isError: false }
-  } catch (error) {
-    return toolError({ error: "notion_denied", status: error.status || 0, code: error.code || "notion_error" })
-  }
+  const retrieved = await retrieveCall({
+    role,
+    name,
+    args: params.arguments || {},
+    token,
+    fetchImpl,
+    sleep,
+  })
+  if (retrieved.op === "fixture") return readFixture()
+  if (retrieved.error) return toolError(retrieved)
+  return { content: [{ type: "text", text: JSON.stringify(retrieved) }], isError: false }
 }
 
 function readFixture() {
