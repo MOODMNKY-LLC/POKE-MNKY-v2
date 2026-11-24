@@ -51,6 +51,7 @@ import {
   Image as ImageIcon,
 } from "lucide-react"
 import { BaseChatInterface } from "./base-chat-interface"
+import { AabKnowledgePanel } from "./aab-knowledge-panel"
 import { detectAssistantContext, type AgentType, getQuickActionsForAgent } from "@/lib/ai/assistant-context"
 import { PokeMnkyAssistant, PokeMnkyPremium } from "@/components/ui/poke-mnky-avatar"
 import { cn } from "@/lib/utils"
@@ -72,6 +73,7 @@ interface UnifiedAssistantPopupProps {
   }
   /** Whether user is authenticated */
   isAuthenticated?: boolean
+  knowledgeEnabled?: boolean
 }
 
 export function UnifiedAssistantPopup({
@@ -79,6 +81,7 @@ export function UnifiedAssistantPopup({
   onOpenChange,
   context = {},
   isAuthenticated = false,
+  knowledgeEnabled = false,
 }: UnifiedAssistantPopupProps) {
   const pathname = usePathname()
   const isMobile = useIsMobile()
@@ -357,6 +360,7 @@ export function UnifiedAssistantPopup({
 
       {/* Chat Interface - Always visible */}
       <div className="flex-1 overflow-hidden min-h-0 flex flex-col">
+        <AabKnowledgePanel enabled={knowledgeEnabled} />
         {/* CRITICAL FIX: Use key prop to force remount when apiEndpoint changes */}
         {/* This fixes the @ai-sdk/react v3.0.41 bug where useChat ignores api prop changes */}
         <BaseChatInterface

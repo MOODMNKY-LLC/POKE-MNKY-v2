@@ -97,12 +97,15 @@ export function AssistantProvider() {
   if (!mounted) return null
 
   return (
-    <FloatingAssistantButton
-      context={context}
-      isAuthenticated={isAuthenticated}
-      open={open}
-      onOpenChange={setOpen}
-      aboveTabBar={aboveTabBar}
-    />
+    <>
+      <FloatingAssistantButton
+        context={context}
+        isAuthenticated={isAuthenticated}
+        open={open}
+        onOpenChange={setOpen}
+        aboveTabBar={aboveTabBar}
+        knowledgeEnabled={process.env.NEXT_PUBLIC_AAB_KNOWLEDGE_ENABLED === "true" && isAuthenticated}
+      />
+    </>
   )
 }
