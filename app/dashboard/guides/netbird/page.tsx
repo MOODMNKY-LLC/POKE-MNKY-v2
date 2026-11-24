@@ -31,6 +31,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CopyCodeSnippet } from "@/components/dashboard/netbird/copy-code-snippet"
 import { NetbirdChecklist } from "@/components/dashboard/netbird/netbird-checklist"
+import { RequestAccessCard } from "@/components/dashboard/netbird/request-access-card"
+import { NETBIRD_REQUEST_COLUMNS, type NetbirdAccessRequest } from "@/lib/netbird/access-requests"
 
 export const dynamic = "force-dynamic"
 
@@ -142,6 +144,14 @@ export default async function NetbirdGuidePage() {
     redirect(LOGIN_REDIRECT)
   }
 
+  const { data: latestRequest, error: requestError } = await supabase
+    .from("netbird_access_requests")
+    .select(NETBIRD_REQUEST_COLUMNS)
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
   return (
     <>
       <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
@@ -196,6 +206,11 @@ export default async function NetbirdGuidePage() {
             </ul>
           </AlertDescription>
         </Alert>
+
+        <RequestAccessCard
+          initialRequest={(latestRequest as NetbirdAccessRequest | null) ?? null}
+          unavailable={Boolean(requestError)}
+        />
 
         <Card>
           <CardHeader>

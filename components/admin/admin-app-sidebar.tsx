@@ -42,6 +42,7 @@ const adminNavItems = [
       { title: "Sheet Sync", url: "/admin/sheet-sync" },
       { title: "Discord results", url: "/admin/discord/results" },
       { title: "Coach applications", url: "/admin/coach-applications" },
+      { title: "NetBird requests", url: "/admin/netbird-requests" },
       { title: "Trades", url: "/admin/trades" },
       { title: "Draft Pool & Rules", url: "/admin/draft-pool-rules" },
       { title: "Draft Pool Editor", url: "/admin/draft-pool" },
