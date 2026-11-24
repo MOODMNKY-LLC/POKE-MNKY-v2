@@ -14,9 +14,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history is fetched only so the PR base commit is reachable for the file diff below.
+          # History itself is never scanned.
+          fetch-depth: 0
 
-      # Scan the checked-out PR tree only (--no-git): full git history is intentionally not scanned,
-      # so a PR that removes a historical secret does not fail on the deleted line.
       - name: Install gitleaks CLI
         run: |
           VERSION="8.21.2"
@@ -24,5 +26,25 @@ jobs:
           tar -xzf gitleaks.tar.gz gitleaks
           sudo mv gitleaks /usr/local/bin/gitleaks
 
-      - name: Scan current tree
-        run: gitleaks detect --no-git --source . --redact --verbose
+      # Scan only files this PR adds or modifies, using their post-change content.
+      # Deleted files and removed lines are never scanned, so removing a historical secret does not fail the job.
+      - name: Scan files changed in this PR
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+
+          SCAN_DIR="$(mktemp -d)"
+          trap 'rm -rf "$SCAN_DIR"' EXIT
+
+          git diff --name-only -z --diff-filter=AM "${BASE_SHA}...HEAD" > "${RUNNER_TEMP}/changed-files.bin"
+
+          if [ ! -s "${RUNNER_TEMP}/changed-files.bin" ]; then
+            echo "No added or modified files in this PR; nothing to scan."
+            exit 0
+          fi
+
+          xargs -0 -a "${RUNNER_TEMP}/changed-files.bin" cp --parents -t "$SCAN_DIR"
+
+          echo "Scanning $(tr -cd '\0' < "${RUNNER_TEMP}/changed-files.bin" | wc -c) changed file(s)."
+          gitleaks detect --no-git --source "$SCAN_DIR" --redact --verbose
