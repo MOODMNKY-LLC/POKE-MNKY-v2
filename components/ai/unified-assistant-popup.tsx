@@ -52,6 +52,8 @@ import {
 } from "lucide-react"
 import { BaseChatInterface } from "./base-chat-interface"
 import { AabKnowledgePanel } from "./aab-knowledge-panel"
+import { useLeagueChatAvailable } from "./openai-availability"
+import { AI_CHAT_UNAVAILABLE_MESSAGE, leagueChatDockMode } from "@/lib/ai/league-chat-dock"
 import { detectAssistantContext, type AgentType, getQuickActionsForAgent } from "@/lib/ai/assistant-context"
 import { PokeMnkyAssistant, PokeMnkyPremium } from "@/components/ui/poke-mnky-avatar"
 import { cn } from "@/lib/utils"
@@ -85,6 +87,8 @@ export function UnifiedAssistantPopup({
 }: UnifiedAssistantPopupProps) {
   const pathname = usePathname()
   const isMobile = useIsMobile()
+  const leagueChatAvailable = useLeagueChatAvailable()
+  const dockMode = leagueChatDockMode({ leagueChatAvailable, knowledgeEnabled })
   const [isMinimized, setIsMinimized] = useState(false)
   // MCP tools default OFF (AI_MCP_TOOLS_ENABLED + explicit toggle). Auth still required in UI.
   const [mcpEnabled, setMcpEnabled] = useState(false)
@@ -358,11 +362,16 @@ export function UnifiedAssistantPopup({
         </div>
       )}
 
-      {/* Chat Interface - Always visible */}
       <div className="flex-1 overflow-hidden min-h-0 flex flex-col">
         <AabKnowledgePanel enabled={knowledgeEnabled} />
+        {dockMode === "unavailable" ? (
+          <p role="status" className="px-4 py-6 text-sm text-muted-foreground">
+            {AI_CHAT_UNAVAILABLE_MESSAGE}
+          </p>
+        ) : null}
         {/* CRITICAL FIX: Use key prop to force remount when apiEndpoint changes */}
         {/* This fixes the @ai-sdk/react v3.0.41 bug where useChat ignores api prop changes */}
+        {dockMode === "chat" ? (
         <BaseChatInterface
           key={agentContext.apiEndpoint || "/api/ai/assistant"}
           apiEndpoint={agentContext.apiEndpoint || "/api/ai/assistant"}
@@ -481,6 +490,7 @@ export function UnifiedAssistantPopup({
             </>
           }
         />
+        ) : null}
       </div>
     </div>
   )

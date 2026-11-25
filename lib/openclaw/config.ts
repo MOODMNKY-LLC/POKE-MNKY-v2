@@ -9,12 +9,10 @@ export type OpenClawConfig = {
 }
 
 export function getOpenClawConfig(): OpenClawConfig {
-  const gatewayUrl =
-    process.env.OPENCLAW_GATEWAY_URL?.trim() ||
-    "wss://aab-openclaw.moodmnky.com"
-
+  // No default host or agent. An unset value disables OpenClaw.
+  const gatewayUrl = process.env.OPENCLAW_GATEWAY_URL?.trim() || ""
   const gatewayToken = process.env.OPENCLAW_GATEWAY_TOKEN?.trim()
-  const agentId = process.env.OPENCLAW_AGENT_ID?.trim() || "poke-mnky"
+  const agentId = process.env.OPENCLAW_AGENT_ID?.trim() || ""
   // cli + cli: operator.write for chat.send. (backend = health/read only; webchat-ui may hit origin ACL.)
   const clientId = process.env.OPENCLAW_CLIENT_ID?.trim() || "cli"
   const clientMode = process.env.OPENCLAW_CLIENT_MODE?.trim() || "cli"
@@ -27,14 +25,14 @@ export function getOpenClawConfig(): OpenClawConfig {
     clientMode,
     insecureSkipTlsVerify:
       process.env.OPENCLAW_GATEWAY_INSECURE_SKIP_TLS_VERIFY === "true",
-    enabled: Boolean(gatewayUrl),
+    enabled: Boolean(gatewayUrl && agentId),
   }
 }
 
 export function buildSessionKey(
   mode: string,
   userId?: string | null,
-  agentId = process.env.OPENCLAW_AGENT_ID?.trim() || "poke-mnky"
+  agentId = process.env.OPENCLAW_AGENT_ID?.trim() || ""
 ): string {
   const uid = userId ?? "anonymous"
   return `agent:${agentId}:web:${uid}:${mode}`

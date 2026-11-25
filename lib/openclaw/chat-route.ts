@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto"
 import { createUIMessageStream, createUIMessageStreamResponse } from "ai"
 import { getOpenClawConfig, buildSessionKey } from "./config"
+import { openclawUnavailableResponse } from "./unavailable"
 import { OpenClawGatewayClient } from "./gateway-client"
 import { extractAssistantDelta, isTerminalChatEvent } from "./events"
 import { extractLatestUserText } from "./messages"
@@ -60,14 +61,9 @@ export async function handleOpenClawChatRequest(
 ): Promise<Response> {
   const config = getOpenClawConfig()
 
-  if (!config.gatewayToken) {
-    const message = openClawConfigError()
-    const stream = createUIMessageStream({
-      execute: ({ writer }) => {
-        writer.write({ type: "error", errorText: message })
-      },
-    })
-    return createUIMessageStreamResponse({ stream, status: 503 })
+  // Fail closed before any gateway socket or HTTP call.
+  if (!config.enabled || !config.gatewayToken) {
+    return openclawUnavailableResponse()
   }
 
   let body: Record<string, unknown>
@@ -88,7 +84,7 @@ export async function handleOpenClawChatRequest(
 
   const sessionKey =
     options.sessionKey ??
-    buildSessionKey(options.mode, options.userId ?? null)
+    buildSessionKey(options.mode, options.userId ?? null, config.agentId)
   const agentId = options.agentId ?? config.agentId
 
   const promptParts: string[] = []

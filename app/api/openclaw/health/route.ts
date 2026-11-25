@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { AI_CHAT_UNAVAILABLE_MESSAGE } from "@/lib/ai/league-chat-dock"
 import { getOpenClawConfig } from "@/lib/openclaw/config"
 import { OpenClawGatewayClient } from "@/lib/openclaw/gateway-client"
 import { openClawConfigError } from "@/lib/openclaw/chat-route"
@@ -10,6 +11,19 @@ export const runtime = "nodejs"
  */
 export async function GET() {
   const config = getOpenClawConfig()
+
+  if (!config.enabled) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "unavailable",
+        message: AI_CHAT_UNAVAILABLE_MESSAGE,
+        gatewayUrl: config.gatewayUrl,
+        agentId: config.agentId,
+      },
+      { status: 503 }
+    )
+  }
 
   if (!config.gatewayToken) {
     return NextResponse.json(

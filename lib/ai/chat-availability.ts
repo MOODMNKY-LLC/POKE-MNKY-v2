@@ -1,11 +1,14 @@
-import { shouldRouteChatToOpenClaw } from "@/lib/openclaw/chat-route"
+import { isOpenClawConfigured, prefersOpenClawChat } from "@/lib/openclaw/chat-route"
 import { isOpenAIConfigured } from "@/lib/openai-client"
 
 /**
- * League chat (Ask POKE MNKY and the mode chats) uses OpenClaw when that
- * gateway is configured, and OpenAI only as a fallback. Removing
- * OPENAI_API_KEY must not take the OpenClaw path down.
+ * League chat uses OpenClaw only when the gateway URL, agent id, and token
+ * are all set. A missing OpenAI key does not disable that path. If OpenClaw
+ * was requested but URL or agent id is unset, chat is unavailable: no default
+ * host, and no silent OpenAI fallback.
  */
 export function isLeagueChatAvailable(): boolean {
-  return shouldRouteChatToOpenClaw() || isOpenAIConfigured()
+  if (isOpenClawConfigured()) return true
+  if (prefersOpenClawChat()) return false
+  return isOpenAIConfigured()
 }

@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto"
 import { createUIMessageStream, createUIMessageStreamResponse } from "ai"
 import { getOpenClawConfig } from "./config"
+import { openclawUnavailableResponse } from "./unavailable"
 
 function gatewayHttpBaseUrl(gatewayUrl: string): string {
   return gatewayUrl.replace(/^wss:/i, "https:").replace(/^ws:/i, "http:").replace(/\/$/, "")
@@ -8,7 +9,8 @@ function gatewayHttpBaseUrl(gatewayUrl: string): string {
 
 export function isOpenClawHttpChatEnabled(): boolean {
   if (process.env.OPENCLAW_HTTP_CHAT === "false") return false
-  return Boolean(getOpenClawConfig().gatewayToken)
+  const config = getOpenClawConfig()
+  return config.enabled && Boolean(config.gatewayToken)
 }
 
 type OpenAIChatChunk = {
@@ -30,13 +32,8 @@ export function handleOpenClawHttpChatRequest(options: {
   systemPrompt?: string
 }): Response {
   const config = getOpenClawConfig()
-  if (!config.gatewayToken) {
-    const stream = createUIMessageStream({
-      execute: ({ writer }) => {
-        writer.write({ type: "error", errorText: "OPENCLAW_GATEWAY_TOKEN is not set" })
-      },
-    })
-    return createUIMessageStreamResponse({ stream, status: 503 })
+  if (!config.enabled || !config.gatewayToken) {
+    return openclawUnavailableResponse()
   }
 
   const userMessages = extractOpenAiMessages(options.messages, options.systemPrompt)
