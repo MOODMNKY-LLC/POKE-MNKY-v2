@@ -38,6 +38,9 @@ const phase5Sql = sql(
   "supabase/migrations/20261125210000_draft_pool_phase5_pick_rules.sql",
 )
 const familiesSql = sql(SPECIES_FAMILIES_MIGRATION_PATH)
+const discordPickSql = sql(
+  "supabase/migrations/20261125220000_discord_draft_pick_shared_rules.sql",
+)
 
 const PICK_FUNCTIONS = [
   "public.rpc_make_live_draft_pick(uuid,uuid,text,boolean)",
@@ -118,6 +121,7 @@ describe.skipIf(!hasPgUrl)("draft pool phase 5 pick rules", () => {
     )
     await c.query(familiesSql)
     await c.query(familiesSql)
+    await c.query(discordPickSql)
     client = c
   }, 90_000)
 
