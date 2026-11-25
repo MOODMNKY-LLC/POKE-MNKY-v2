@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { StatMetricCard } from "@/components/league/stat-metric-card"
 import { cn } from "@/lib/utils"
+import { useOpenAIConfigured } from "@/components/ai/openai-availability"
 
 type WeeklyStatsMatch = {
   match_id: string
@@ -79,6 +80,7 @@ function trendIcon(rank: number) {
 }
 
 export default function InsightsPage() {
+  const openaiConfigured = useOpenAIConfigured()
   const [selectedWeek, setSelectedWeek] = useState("")
   const [loadingWeek, setLoadingWeek] = useState(false)
   const [loadingRecap, setLoadingRecap] = useState(false)
@@ -120,6 +122,10 @@ export default function InsightsPage() {
   }, [])
 
   const generateRecap = async () => {
+    if (!openaiConfigured) {
+      setError("OpenAI features are disabled. Weekly recap generation is unavailable.")
+      return
+    }
     setLoadingRecap(true)
     try {
       const response = await fetch("/api/ai/weekly-recap", {
@@ -186,7 +192,7 @@ export default function InsightsPage() {
                 {loadingWeek ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
                 Refresh
               </Button>
-              <Button onClick={() => void generateRecap()} disabled={loadingRecap}>
+              <Button onClick={() => void generateRecap()} disabled={loadingRecap || !openaiConfigured}>
                 {loadingRecap ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
                 {loadingRecap ? "Generating" : "Generate recap"}
               </Button>

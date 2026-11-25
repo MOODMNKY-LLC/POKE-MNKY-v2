@@ -11,8 +11,8 @@ POKE MNKY is the league's AI identity. It is not a member-facing admin product. 
 | Group `Average At Best: Pokemon Battle League` | Exists. **0 peers.** |
 | Policy `RyuLdn Access` | That group to resource `RyuLdn`, TCP `30456` only. |
 | Network `AAB Battle Net` | Resource `RyuLdn` prefix `100.64.163.195/10` (wider than one host). Not changed. |
-| Coolify project `mnky-agent-stack` / `production` | Apps `poke-mnky-pilot`, `poke-mnky-maus` on server `mnky-agents-2120` (`10.1.0.112`). No AAB project, no staging env. |
-| Pilot hostnames | `poke-pilot.mnky-agents.lab`, `omb-poke-pilot.mnky-agents.lab`. Not on the NetBird proxy. Not public DNS. |
+| Coolify project `mnky-agent-stack` / `production` | Apps on server `mnky-agents-2120` (`10.1.0.112`). No AAB project, no staging env. |
+| Operator dashboards | Claw `aab-claw`. Maus `aab-maus.nb`. The earlier `poke-pilot` / `poke-maus` dashboard names, including `poke-pilot.nb.moodmnky.com`, `poke-maus.nb.moodmnky.com`, and `poke-pilot.mnky-agents.lab`, are retired (2026-11-25). |
 | Public app | `poke-mnky.moodmnky.com` CNAME to Vercel. |
 | `aab-openclaw.moodmnky.com` | No dedicated DNS record. Matches wildcard `*.moodmnky.com` and returns Coolify's unconfigured-host page. |
 | NetBird private proxy | `0.83.2`, connected. No `poke` or `aab` service row. |
@@ -26,8 +26,8 @@ POKE MNKY is the league's AI identity. It is not a member-facing admin product. 
 | League app `poke-mnky.moodmnky.com` | `public-cloudflare` / Vercel | Members and public | Keep the current URL. |
 | Standings `GET /api/standings` | same app | Public read | Server holds the service-role key. Agents do not. |
 | Showdown browser, replays, docs | `public-cloudflare` when they are public pages | Members | No new hostname in this pass. |
-| Claw dashboard | `private-netbird-proxy` | Operators, commissioners, developers | Proposed name `poke-pilot.nb.moodmnky.com`. Not created. |
-| Maus dashboard | `private-netbird-proxy` | Operators and developers | Proposed name `poke-maus.nb.moodmnky.com`. Not created. |
+| Claw dashboard | `private-netbird-proxy` | Operators, commissioners, developers | `aab-claw`. |
+| Maus dashboard | `private-netbird-proxy` | Operators and developers | `aab-maus.nb`. |
 | Claw/Maus APIs used by non-browser agents | `private-mesh` | Named peer groups | Browser `*.nb` names return 403 to non-browser clients. |
 | Postgres, Infisical, Coolify API | `internal-only` or existing operator `*.nb` | Operators | No AAB member path. |
 | `aab-openclaw.moodmnky.com` | none until repaired | — | Do not point the app at the pilot. App agent id remains `poke-mnky`. Pilot agent id remains `main`. |

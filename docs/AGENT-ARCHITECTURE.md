@@ -7,13 +7,13 @@
 | App package name `poke-mnky-v3` @ `3.0.0`; GitHub repo remains `POKE-MNKY-v2` | Verified (repo) | `package.json` @ `7cc88f276904e47995ae2c0f98dfc69feaa6b012` |
 | In-app chat defaults gateway `wss://aab-openclaw.moodmnky.com`, agent id `poke-mnky` | Verified (code) | `lib/openclaw/config.ts` |
 | Public HTTPS `/healthz` and `/` on that host | **Failed operational** — HTTP **503** (2026-11-24) | curl from DEVOPS |
-| Pilot OpenClaw | Verified operational (prior alpha) | Coolify `poke-mnky-pilot` Host `http://poke-pilot.mnky-agents.lab`, agent id **`main`** |
-| Pilot OpenMausBot | Verified operational | Coolify `poke-mnky-maus`, Codex CLI ChatGPT login |
+| POKE MNKY Claw | Operator dashboard `aab-claw` (the `poke-pilot` hostnames are retired) | Agent id **`main`** |
+| POKE MNKY Maus | Operator dashboard `aab-maus.nb` (the `poke-maus` hostnames are retired) | Codex CLI ChatGPT login |
 | Framework tag | Immutable | `mnky-agent-stack` `v0.1.0-alpha.1` |
 
 ## Roles
 
-- **POKE MNKY Claw** (OpenClaw `main` on the pilot): league intelligence, read-only. Not the Vercel production gateway.
+- **POKE MNKY Claw** (OpenClaw `main` on `aab-claw`): league intelligence, read-only. Not the Vercel production gateway. Sources-only league knowledge from PR #55 is merged. Production knowledge flags are on as of 2026-11-25.
 - **POKE MNKY Maus** (OpenMausBot): operator project intelligence. No league writes, no Docker socket, no service-role DB.
 
 ## Do not cut over

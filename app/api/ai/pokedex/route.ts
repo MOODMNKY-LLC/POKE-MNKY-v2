@@ -22,8 +22,6 @@ import {
 import { resolveMcpToolsEnabled } from '@/lib/ai/mcp-tools-enabled'
 
 export async function POST(request: Request) {
-  if (!isOpenAIConfigured()) return openaiUnavailableResponse()
-
   try {
     const body = await request.json()
     
@@ -46,6 +44,7 @@ export async function POST(request: Request) {
           }),
         }, body)
       }
+      if (!isOpenAIConfigured()) return openaiUnavailableResponse()
 
       // Get MCP server URL and API key from environment
       const mcpServerUrl = (process.env.MCP_DRAFT_POOL_SERVER_URL || 'https://mcp-draft-pool.moodmnky.com/mcp').trim()
@@ -148,6 +147,7 @@ When asked about 'points', refer to draft point costs in the league draft pool. 
     }
 
     // Legacy format: use Responses API (backward compatibility)
+    if (!isOpenAIConfigured()) return openaiUnavailableResponse()
     const { query, useResponsesAPI = false } = body
 
     if (!query) {

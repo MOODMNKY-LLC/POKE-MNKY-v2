@@ -17,6 +17,7 @@
 
 import { useState, Fragment, useEffect, useCallback, useRef, useMemo, type MouseEvent } from "react"
 import { useChat } from "@ai-sdk/react"
+import { useLeagueChatAvailable } from "./openai-availability"
 import { Book as BookIcon, CopyIcon, RefreshCcwIcon, RotateCcw, SendIcon, Loader2, Sparkles } from "lucide-react"
 import type { BundledLanguage } from "shiki"
 import { PromptInputWrapper, type PromptInputMessage } from "./prompt-input-wrapper"
@@ -91,6 +92,7 @@ export function BaseChatInterface({
   footerActions,
   uploadedFilesDisplay,
 }: BaseChatInterfaceProps) {
+  const leagueChatAvailable = useLeagueChatAvailable()
   // Ensure apiEndpoint is always a valid string - use useMemo to ensure stability
   const resolvedEndpoint = useMemo(() => {
     const endpoint = apiEndpoint || "/api/ai/assistant"
@@ -336,6 +338,7 @@ export function BaseChatInterface({
   }, [])
 
   const handleSubmit = (message?: { text: string } | MouseEvent<HTMLButtonElement>) => {
+    if (!leagueChatAvailable) return
     const messageText = message && "text" in message ? message.text : input.trim()
     if (!messageText || isLoading) return
     sendMessage({ text: messageText })
@@ -632,15 +635,22 @@ export function BaseChatInterface({
           <QuickActions
             actions={quickActions}
             onAction={(prompt) => {
+              if (!leagueChatAvailable) return
               sendMessage({ text: prompt })
               // Focus input immediately after quick action
               requestAnimationFrame(() => {
                 inputRef.current?.focus()
               })
             }}
-            disabled={isLoading}
+            disabled={isLoading || !leagueChatAvailable}
           />
         </div>
+      )}
+
+      {!leagueChatAvailable && (
+        <p role="status" className="border-t px-4 py-3 text-sm text-muted-foreground">
+          Ask POKE MNKY is unavailable. OpenAI is disabled, and the OpenClaw gateway is not configured.
+        </p>
       )}
 
       {/* Footer - Input Area with Actions */}
@@ -678,8 +688,8 @@ export function BaseChatInterface({
                   handleSubmit()
                 }
               }}
-              placeholder="Ask me anything..."
-              disabled={false}
+              placeholder={leagueChatAvailable ? "Ask me anything..." : "Chat is unavailable"}
+              disabled={!leagueChatAvailable}
               rows={1}
               className={cn(
                 "resize-none min-h-[44px] max-h-[200px] pr-12",
@@ -693,7 +703,7 @@ export function BaseChatInterface({
             <Button
               type="button"
               onClick={handleSubmit}
-              disabled={isLoading || !input.trim()}
+              disabled={!leagueChatAvailable || isLoading || !input.trim()}
               size="icon"
               className={cn(
                 "absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 min-h-[44px] min-w-[44px] shrink-0",

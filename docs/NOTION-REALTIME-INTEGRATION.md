@@ -1,5 +1,7 @@
 # Notion Realtime Integration Guide
 
+> **Status (2026-11-25):** Notion → app pull sync is disabled (PR #54). `NOTION_PULL_SYNC_ENABLED` is unset and the pull routes return HTTP 410. The steps below are historical and are not the live path.
+
 Complete guide for setting up real-time synchronization between Notion Draft Board and Supabase using webhooks, n8n workflows, and Supabase Realtime.
 
 ## Overview

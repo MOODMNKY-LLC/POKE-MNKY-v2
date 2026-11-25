@@ -34,11 +34,15 @@ Data source `7d83e48d-83a3-4ab8-92d1-c389422a68ca` has no rows. `Season` only of
 
 ## App route
 
-`AAB_KNOWLEDGE_ENABLED` defaults off. While it is off, the knowledge and draft routes return 404. When it is on, a signed-in coach can ask a league question. The server retrieves the matching allowlisted source with `NOTION_APP_READONLY_TOKEN` when that separate app identity exists. It does not read the Claw or Maus token files and it does not call the operator Codex gateway. Without the app token, the answer cites the source and says the official text is not loaded. PokéAPI lookups are labeled public reference.
+`AAB_KNOWLEDGE_ENABLED` is on in production as of 2026-11-25, together with `NEXT_PUBLIC_AAB_KNOWLEDGE_ENABLED`. An unset flag is still off in code: the knowledge and draft routes return 404 until the server flag is exactly `true`. When it is on, a signed-in coach can ask a league question. The server retrieves the matching allowlisted source with `NOTION_APP_READONLY_TOKEN` when that separate app identity exists. It does not read the Claw or Maus token files and it does not call the operator Codex gateway. Without the app token, the answer cites the source and says the official text is not loaded. PokéAPI lookups are labeled public reference.
+
+The sources-only knowledge routes shipped in PR #55, which is merged (`e7af2d9`).
 
 `POST /api/ai/aab-drafts` is commissioner or admin only. It returns a reviewable draft and does not write to Notion, Discord, or league records.
 
-The knowledge panel is inside the existing assistant dialog. It renders only when `NEXT_PUBLIC_AAB_KNOWLEDGE_ENABLED` is `true`. Leave both flags unset in production until the operator accepts the preview.
+The knowledge panel is inside the existing assistant dialog. It renders when `NEXT_PUBLIC_AAB_KNOWLEDGE_ENABLED` is `true`. That public flag is on in production as of 2026-11-25.
+
+Notion → app pull sync stays disabled (PR #54). `NOTION_PULL_SYNC_ENABLED` is unset, and those routes return HTTP 410. Do not describe that sync as active.
 
 The Maus install is `node scripts/install-aab-notion.mjs <dest-dir> <config.toml>`. It copies the adapter and adds the stdio block only when that block is absent. It does not touch Codex auth files.
 

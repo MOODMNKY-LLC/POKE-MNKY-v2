@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { parseMatchResult, isOpenAIUnavailableError, openaiUnavailableResponse } from "@/lib/openai-client"
+import { parseMatchResult, isOpenAIConfigured, isOpenAIUnavailableError, openaiUnavailableResponse } from "@/lib/openai-client"
 import { createServerClient } from "@/lib/supabase/server"
 import { createServiceRoleClient } from "@/lib/supabase/service"
 import { completeMatchResult } from "@/lib/match-result-complete"
@@ -48,6 +48,8 @@ export async function POST(request: Request) {
       }
       userId = user.id
     }
+
+    if (!isOpenAIConfigured()) return openaiUnavailableResponse()
 
     const parsed = await parseMatchResult(text)
 

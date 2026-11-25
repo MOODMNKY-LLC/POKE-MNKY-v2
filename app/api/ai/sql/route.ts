@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { leagueAdminDeniedResponse } from "@/lib/admin-api-auth"
 import { createServerClient } from "@/lib/supabase/server"
 import { configuredSupabaseProjectRef } from "@/lib/proxy-allowlists"
-import { getOpenAI, isOpenAIUnavailableError, openaiUnavailableResponse } from "@/lib/openai-client"
+import { getOpenAI, isOpenAIConfigured, isOpenAIUnavailableError, openaiUnavailableResponse } from "@/lib/openai-client"
 import createClient from "openapi-fetch"
 import type { paths } from "@/lib/management-api-schema"
 
@@ -81,6 +81,7 @@ export async function POST(request: NextRequest) {
 
     const adminDenied = await leagueAdminDeniedResponse(user.id)
     if (adminDenied) return adminDenied
+    if (!isOpenAIConfigured()) return openaiUnavailableResponse()
 
     const { prompt, projectRef } = await request.json()
 

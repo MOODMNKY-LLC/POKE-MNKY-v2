@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { useOpenAIConfigured } from "@/components/ai/openai-availability"
 import { ArrowLeft, Sparkles, Send, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -30,6 +31,7 @@ export function MatchSubmitForm({
   successRedirect,
 }: MatchSubmitFormProps) {
   const router = useRouter()
+  const openaiConfigured = useOpenAIConfigured()
   const [teams, setTeams] = useState<TeamOption[]>([])
   const [teamsLoading, setTeamsLoading] = useState(true)
   const [useAI, setUseAI] = useState(false)
@@ -60,6 +62,10 @@ export function MatchSubmitForm({
   const teamName = (id: string) => teams.find((t) => t.id === id)?.name ?? id
 
   const handleAIParse = async () => {
+    if (!openaiConfigured) {
+      toast.error("OpenAI features are disabled. Paste parsing is unavailable.")
+      return
+    }
     if (!aiText.trim()) return
     setLoading(true)
     try {
@@ -71,7 +77,7 @@ export function MatchSubmitForm({
       const data = await response.json()
 
       if (!response.ok) {
-        toast.error(data.error ?? "Failed to parse result")
+        toast.error(data.message ?? data.error ?? "Failed to parse result")
         return
       }
 
@@ -201,7 +207,9 @@ export function MatchSubmitForm({
           <CardHeader>
             <CardTitle>AI Result Parser</CardTitle>
             <CardDescription>
-              Paste your battle result text (Discord format works)
+              {openaiConfigured
+                ? "Paste your battle result text (Discord format works)"
+                : "OpenAI features are disabled. Use manual entry."}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -211,7 +219,7 @@ export function MatchSubmitForm({
               onChange={(e) => setAiText(e.target.value)}
               rows={6}
             />
-            <Button onClick={handleAIParse} disabled={loading || !aiText.trim()}>
+            <Button onClick={handleAIParse} disabled={!openaiConfigured || loading || !aiText.trim()}>
               {loading ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : (

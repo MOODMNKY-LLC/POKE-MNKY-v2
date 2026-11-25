@@ -12,8 +12,6 @@ import {
 import { resolveMcpToolsEnabled } from '@/lib/ai/mcp-tools-enabled'
 
 export async function POST(request: Request) {
-  if (!isOpenAIConfigured()) return openaiUnavailableResponse()
-
   try {
     const supabase = await createServerClient()
     const {
@@ -64,6 +62,7 @@ export async function POST(request: Request) {
         }),
       }, body)
     }
+    if (!isOpenAIConfigured()) return openaiUnavailableResponse()
 
     // Get MCP server URL and API key from environment
     const mcpServerUrl = process.env.MCP_DRAFT_POOL_SERVER_URL || 'https://mcp-draft-pool.moodmnky.com/mcp'

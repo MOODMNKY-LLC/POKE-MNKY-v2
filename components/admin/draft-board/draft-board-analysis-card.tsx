@@ -12,6 +12,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import { Badge } from "@/components/ui/badge"
+import { useOpenAIConfigured } from "@/components/ai/openai-availability"
 
 interface DraftBoardAnalysis {
   summary: string
@@ -46,6 +47,7 @@ interface Season {
 }
 
 export function DraftBoardAnalysisCard() {
+  const openaiConfigured = useOpenAIConfigured()
   const [analyzing, setAnalyzing] = useState(false)
   const [analysis, setAnalysis] = useState<DraftBoardAnalysis | null>(null)
   const [expanded, setExpanded] = useState(false)
@@ -71,6 +73,7 @@ export function DraftBoardAnalysisCard() {
   }, [])
 
   async function runAnalysis() {
+    if (!openaiConfigured) return
     setAnalyzing(true)
     setAnalysis(null)
     try {
@@ -113,7 +116,9 @@ export function DraftBoardAnalysisCard() {
           AI Draft Board Analysis
         </CardTitle>
         <CardDescription>
-          GPT-5.2-powered analysis: balance, tiers, curation, and point value audit
+          {openaiConfigured
+            ? "GPT-5.2-powered analysis: balance, tiers, curation, and point value audit"
+            : "OpenAI features are disabled. Draft board analysis is unavailable."}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -121,7 +126,7 @@ export function DraftBoardAnalysisCard() {
           <div className="flex gap-2 flex-wrap">
             <Button
               onClick={runAnalysis}
-              disabled={analyzing}
+              disabled={analyzing || !openaiConfigured}
               variant="default"
               className="flex-1 min-w-[140px]"
             >

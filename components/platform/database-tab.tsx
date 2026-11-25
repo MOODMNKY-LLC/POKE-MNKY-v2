@@ -6,12 +6,14 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card } from "@/components/ui/card"
 import { Loader2, Sparkles } from "lucide-react"
 import { toast } from "sonner"
+import { useOpenAIConfigured } from "@/components/ai/openai-availability"
 
 interface DatabaseTabProps {
   projectRef: string
 }
 
 export function DatabaseTab({ projectRef }: DatabaseTabProps) {
+  const openaiConfigured = useOpenAIConfigured()
   const [query, setQuery] = useState("")
   const [aiPrompt, setAiPrompt] = useState("")
   const [results, setResults] = useState<any>(null)
@@ -131,6 +133,11 @@ export function DatabaseTab({ projectRef }: DatabaseTabProps) {
       return
     }
 
+    if (!openaiConfigured) {
+      toast.error("OpenAI features are disabled.")
+      return
+    }
+
     setAiLoading(true)
     try {
       if (!validProjectRef || validProjectRef === "default") {
@@ -182,10 +189,15 @@ export function DatabaseTab({ projectRef }: DatabaseTabProps) {
             onChange={(e) => setAiPrompt(e.target.value)}
             rows={2}
           />
-          <Button onClick={generateSQL} disabled={aiLoading}>
+          <Button onClick={generateSQL} disabled={aiLoading || !openaiConfigured}>
             {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
           </Button>
         </div>
+        {!openaiConfigured && (
+          <p role="status" className="mt-2 text-sm text-muted-foreground">
+            OpenAI features are disabled. SQL generation is unavailable.
+          </p>
+        )}
       </Card>
 
       <Card className="p-4">
