@@ -330,7 +330,8 @@ DISCORD_GUILD_ID=your_discord_server_id
 
 # Google Sheets (admin sync)
 GOOGLE_SERVICE_ACCOUNT_EMAIL=your-service-account@project.iam.gserviceaccount.com
-GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+# PEM from the service account. Set it in Vercel. Do not commit a key.
+GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY=
 
 # App Configuration
 NEXT_PUBLIC_APP_URL=http://localhost:3000
