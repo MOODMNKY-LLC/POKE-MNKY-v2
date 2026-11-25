@@ -15,7 +15,6 @@ import {
   INSTALL_LINKS,
   MANAGEMENT_URL,
   RYUBING_LDN_GUIDE_URL,
-  SETUP_KEY_CLI_EXAMPLE,
 } from "@/lib/netbird/onboarding"
 import {
   Breadcrumb,
@@ -98,7 +97,8 @@ const TROUBLESHOOTING: ReadonlyArray<{ title: string; body: ReactNode }> = [
     title: "The browser never opens, or sign-in loops",
     body: (
       <>
-        Confirm the server URL is exactly <Code>{MANAGEMENT_URL}</Code>, then try Connect again.
+        Confirm the server URL is exactly <Code>{MANAGEMENT_URL}</Code>, then try Connect again. On the login page,
+        choose Continue with Email and use the email address your invite was sent to.
       </>
     ),
   },
@@ -196,8 +196,11 @@ export default async function NetbirdGuidePage() {
           <AlertDescription>
             <ul className="list-disc space-y-1 pl-5">
               <li>This private network is only for league battles.</li>
-              <li>Simeon approves each member. You will get a personal invite.</li>
-              <li>Do not share your invite, password, authenticator codes, or any one-time setup key.</li>
+              <li>
+                Simeon approves each member. After approval, your invite is sent to you personally (for example by
+                Discord DM). There is no open sign-up.
+              </li>
+              <li>Do not share your invite, password, or authenticator codes.</li>
               <li>Do not turn on an exit node or route advertising.</li>
               <li>Do not add a second NetBird account or profile on the same device.</li>
               <li>
@@ -222,8 +225,8 @@ export default async function NetbirdGuidePage() {
           <CardContent>
             <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
               <li>
-                A personal invite from the league (usually sent by email or message) with a link to our NetBird
-                server.
+                A personal invite from the league, sent to you after Simeon approves your request (for example by
+                Discord DM), with a link to our NetBird server. The Request access button does not send it.
               </li>
               <li>An authenticator app (Google Authenticator, Authy, 1Password, or similar) for MFA.</li>
               <li>
@@ -250,7 +253,10 @@ export default async function NetbirdGuidePage() {
                 <Code>/invite?token=…</Code>).
               </li>
               <li>Set your own password (at least 8 characters). Save it in a password manager.</li>
-              <li>Sign in with the same email and password.</li>
+              <li>
+                If the NetBird login page asks how to sign in, choose <strong>Continue with Email</strong> and use the
+                email address your invite was sent to.
+              </li>
             </ol>
           </CardContent>
         </Card>
@@ -344,8 +350,13 @@ export default async function NetbirdGuidePage() {
                   <li>
                     Enter <Code>{MANAGEMENT_URL}</Code> and apply.
                   </li>
-                  <li>Tap Connect and sign in. Allow the VPN permission when asked.</li>
+                  <li>Tap Connect. Allow the VPN permission when asked.</li>
+                  <li>
+                    When the NetBird login page opens, choose <strong>Continue with Email</strong> and use the email
+                    address your invite was sent to. Then enter your password and authenticator code.
+                  </li>
                 </ol>
+                <MnkyIdNote />
                 <p className="text-xs">Menu names can differ slightly by app version.</p>
               </TabsContent>
               <TabsContent value="android" className="mt-4 space-y-2 text-sm text-muted-foreground">
@@ -357,8 +368,13 @@ export default async function NetbirdGuidePage() {
                   <li>
                     Confirm, enter <Code>{MANAGEMENT_URL}</Code>, and tap Change.
                   </li>
-                  <li>Tap the NetBird logo to connect, allow the VPN, and sign in if prompted.</li>
+                  <li>Tap the NetBird logo to connect and allow the VPN.</li>
+                  <li>
+                    When the NetBird login page opens, choose <strong>Continue with Email</strong> and use the email
+                    address your invite was sent to. Then enter your password and authenticator code.
+                  </li>
                 </ol>
+                <MnkyIdNote />
               </TabsContent>
             </Tabs>
           </CardContent>
@@ -418,21 +434,6 @@ export default async function NetbirdGuidePage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>If you were given a one-time setup key</CardTitle>
-            <CardDescription>Only use a key that was issued to you personally.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm text-muted-foreground">
-            <p>On desktop, run this command and replace the placeholder with your key:</p>
-            <CopyCodeSnippet value={SETUP_KEY_CLI_EXAMPLE} label="setup key command" />
-            <p>
-              On mobile, use “Add this device with a setup key” on the Change Server screen. Request a new key if it
-              fails. Do not reuse someone else&apos;s.
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
             <CardTitle>How to leave</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-muted-foreground">
@@ -462,18 +463,32 @@ export default async function NetbirdGuidePage() {
   )
 }
 
+function MnkyIdNote() {
+  return (
+    <p className="text-xs">
+      Don&apos;t use <strong>Continue with MNKY ID</strong> unless the league tells you to.
+    </p>
+  )
+}
+
 function DesktopConnectSteps() {
   return (
-    <ol className="list-decimal space-y-2 pl-5">
-      <li>
-        Open NetBird. On first launch choose <strong>Self-hosted</strong> and enter <Code>{MANAGEMENT_URL}</Code>.
-      </li>
-      <li>
-        If the app is already set to NetBird Cloud, go to <strong>Settings → Profiles</strong>, add or edit a
-        profile, and set that same URL.
-      </li>
-      <li>Click Connect.</li>
-      <li>A browser window opens. Sign in with your email, password, and authenticator code.</li>
-    </ol>
+    <>
+      <ol className="list-decimal space-y-2 pl-5">
+        <li>
+          Open NetBird. On first launch choose <strong>Self-hosted</strong> and enter <Code>{MANAGEMENT_URL}</Code>.
+        </li>
+        <li>
+          If the app is already set to NetBird Cloud, go to <strong>Settings → Profiles</strong>, add or edit a
+          profile, and set that same URL.
+        </li>
+        <li>Click Connect.</li>
+        <li>
+          A browser window opens with the NetBird login page. Choose <strong>Continue with Email</strong> and use
+          the email address your invite was sent to. Then enter your password and authenticator code.
+        </li>
+      </ol>
+      <MnkyIdNote />
+    </>
   )
 }

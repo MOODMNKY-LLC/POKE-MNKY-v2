@@ -37,5 +37,3 @@ export const DOCS_LINKS = {
   android: INSTALL_LINKS.android.docs,
   desktopApp: "https://docs.netbird.io/client/desktop-app",
 } as const
-
-export const SETUP_KEY_CLI_EXAMPLE = `netbird up --setup-key <your key> --management-url https://netbird.moodmnky.com`
