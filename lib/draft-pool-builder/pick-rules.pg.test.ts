@@ -35,7 +35,7 @@ const migrations = [
 const bootstrapSql = sql("fixtures/draft-pool-builder/bootstrap-minimal.sql")
 const extraSql = sql("fixtures/draft-pool-builder/pick-rules-extra.sql")
 const phase5Sql = sql(
-  "supabase/migrations/20261117190000_draft_pool_phase5_pick_rules.sql",
+  "supabase/migrations/20261125210000_draft_pool_phase5_pick_rules.sql",
 )
 const familiesSql = sql(SPECIES_FAMILIES_MIGRATION_PATH)
 

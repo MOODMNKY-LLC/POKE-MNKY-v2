@@ -1,4 +1,9 @@
 -- purpose: species clause = evolution family (Matt's ruling, Discord Nov 17) + alias fixes.
+-- apply order: stamped 20261125210100, immediately after
+--   20261125210000_draft_pool_phase5_pick_rules.sql and after production head
+--   20261124220000, so `supabase db push` on merge applies it. Idempotent.
+--   Does not update Season 7 rows or draft_pool_version_entries. Alias writes
+--   touch draft_pool_sheet_aliases only where pokemon_id is null.
 --   1. public.draft_pool_species_families: pokepedia id -> family key(s), seeded from
 --      fixtures/draft-pool-builder/pokeapi/species_families.csv (PokeAPI commit 7764ee08,
 --      'chain:<evolution_chain_id>', split list uses 'split:*' keys; see the fixture README).
@@ -11,7 +16,7 @@
 --   create or replace of draft_pool_species_key, draft_pool_assert_species_clause (signatures
 --   unchanged). Does NOT touch pokemon_species, draft_pool_version_entries or pick RPCs.
 -- rollback: re-apply draft_pool_species_key / draft_pool_assert_species_clause from
---   20261117190000_draft_pool_phase5_pick_rules.sql (+ service_role-only grants), then
+--   20261125210000_draft_pool_phase5_pick_rules.sql (+ service_role-only grants), then
 --   drop function public.draft_pool_species_keys(integer, uuid);
 --   drop table public.draft_pool_species_families;
 --   alias rows: update draft_pool_sheet_aliases set pokemon_id = null where sheet_name in (...)

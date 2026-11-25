@@ -1,4 +1,9 @@
 -- purpose: draft pool builder phase 5 - pick-time rule enforcement.
+-- apply order: stamped 20261125210000, after production head 20261124220000
+--   (netbird_access_requests). An earlier stamp (20261117190000) would sort behind
+--   that head, and `supabase db push` on merge would skip it without --include-all.
+--   Idempotent create-or-replace only. No table writes. Does not update Season 7
+--   rows or draft_pool_version_entries.
 --   1. Published pool source: when a season has a draft_pool_versions row with
 --      status='published', a pick/claim is valid only for a `draftable` entry of that
 --      version and costs the entry's points. No published version -> legacy validation.

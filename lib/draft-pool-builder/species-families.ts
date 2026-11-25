@@ -8,7 +8,7 @@ import { createHash } from "node:crypto"
 
 export const SPECIES_FAMILIES_CSV_PATH = "fixtures/draft-pool-builder/pokeapi/species_families.csv"
 export const SPECIES_FAMILIES_MIGRATION_PATH =
-  "supabase/migrations/20261117200000_draft_pool_species_families.sql"
+  "supabase/migrations/20261125210100_draft_pool_species_families.sql"
 export const SEED_BEGIN_MARKER =
   "-- BEGIN GENERATED SPECIES FAMILIES SEED (scripts/draft-pool/generate-species-families.ts)"
 export const SEED_END_MARKER = "-- END GENERATED SPECIES FAMILIES SEED"
