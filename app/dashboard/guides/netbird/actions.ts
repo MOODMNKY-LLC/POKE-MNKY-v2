@@ -43,7 +43,8 @@ export async function requestNetbirdAccess(deviceNoteInput: string): Promise<Req
       discord_id: profile.discord_id,
       discord_username: profile.discord_username,
       device_note: deviceNote.length > 0 ? deviceNote : null,
-      status: "pending",
+      // Do not send `status`: the authenticated role has no INSERT grant on that column,
+      // so the column default ('pending') must apply (RLS requires status = 'pending').
     })
     .select(NETBIRD_REQUEST_COLUMNS)
     .single()
