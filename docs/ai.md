@@ -27,11 +27,11 @@ Short inventory of remaining `/api/ai/*` routes after the AI trim. MCP tool mode
 
 ## OpenClaw
 
-When `OPENCLAW_GATEWAY_*` / `AI_CHAT_PROVIDER=openclaw` is set, chat-style routes prefer the OpenClaw gateway (`lib/openclaw/`). See `.env.example` and `AGENTS.md`. Those routes do not require `OPENAI_API_KEY`.
+League chat uses the OpenClaw gateway only when `OPENCLAW_GATEWAY_URL`, `OPENCLAW_AGENT_ID`, and `OPENCLAW_GATEWAY_TOKEN` are all set. There is no default host or agent id. If the URL or agent id is unset, those routes return HTTP 503 `{ error: "unavailable", message: "AI chat is unavailable right now" }` and do not call the gateway. `AI_CHAT_PROVIDER=openclaw` still blocks the OpenAI fallback. A configured OpenClaw path does not require `OPENAI_API_KEY`.
 
 ## OpenAI key absent
 
-Production does not set `OPENAI_API_KEY` (removed 2026-11-25). Chat routes (`assistant`, `draft-assistant`, `battle-strategy`, `free-agency`, `pokedex`) keep using OpenClaw. If OpenClaw is also unset, the composer shows that Ask POKE MNKY is unavailable instead of calling a missing key.
+Production does not set `OPENAI_API_KEY` (removed 2026-11-25). Chat routes (`assistant`, `draft-assistant`, `battle-strategy`, `free-agency`, `pokedex`) keep using OpenClaw when that gateway is fully configured. If it is not, the Ask POKE MNKY dock uses sources-only league knowledge when that flag is on, and otherwise shows "AI chat is unavailable right now". The other chat composers stay on the disabled state from the OpenAI-absent work.
 
 These routes are OpenAI-only. With the key absent they return HTTP 503 `{ error: "unavailable", message: "OpenAI is not configured" }` and the controls that call them are disabled:
 
