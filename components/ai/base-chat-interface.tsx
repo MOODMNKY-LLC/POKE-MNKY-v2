@@ -18,6 +18,7 @@
 import { useState, Fragment, useEffect, useCallback, useRef, useMemo, type MouseEvent } from "react"
 import { useChat } from "@ai-sdk/react"
 import { useLeagueChatAvailable } from "./openai-availability"
+import { formatLeagueChatComposerError } from "@/lib/ai/league-chat-dock"
 import { Book as BookIcon, CopyIcon, RefreshCcwIcon, RotateCcw, SendIcon, Loader2, Sparkles } from "lucide-react"
 import type { BundledLanguage } from "shiki"
 import { PromptInputWrapper, type PromptInputMessage } from "./prompt-input-wrapper"
@@ -457,9 +458,7 @@ export function BaseChatInterface({
         <ConversationContent className="pb-safe">
           {error && (
             <div className="p-4 m-4 rounded-md bg-destructive/10 text-destructive text-sm">
-              {/"error"\s*:\s*"unavailable"/.test(error.message || "") || /not configured/i.test(error.message || "")
-                ? "This AI assistant is currently unavailable (OpenAI is not configured)."
-                : `Error: ${error.message || "Failed to get response"}`}
+              {formatLeagueChatComposerError(error.message)}
             </div>
           )}
           {messages.length === 0 ? (

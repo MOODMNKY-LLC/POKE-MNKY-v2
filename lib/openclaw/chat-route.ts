@@ -6,11 +6,12 @@ import { OpenClawGatewayClient } from "./gateway-client"
 import { extractAssistantDelta, isTerminalChatEvent } from "./events"
 import { extractLatestUserText } from "./messages"
 import { handleOpenClawHttpChatRequest, isOpenClawHttpChatEnabled } from "./http-chat"
+import { prepareLeagueChatMessages } from "@/lib/ai/chat-input"
+import { enforceAiChatRateLimit } from "@/lib/ai/rate-limit"
 import type { OpenClawAgentMode, OpenClawChatOptions } from "./types"
 
 export function isOpenClawConfigured(): boolean {
-  const config = getOpenClawConfig()
-  return config.enabled && Boolean(config.gatewayToken)
+  return getOpenClawConfig().enabled
 }
 
 /** True when env suggests OpenClaw is intended (avoid silent OpenAI fallback with a stale key). */
@@ -25,23 +26,21 @@ export function prefersOpenClawChat(): boolean {
     process.env.OPENCLAW_GATEWAY_TOKEN?.trim() ||
       process.env.OPENCLAW_AGENT_ID?.trim() ||
       process.env.OPENCLAW_HOOKS_TOKEN?.trim() ||
-      process.env.OPENCLAW_GATEWAY_URL?.trim()
+      process.env.OPENCLAW_GATEWAY_URL?.trim() ||
+      process.env.OPENCLAW_CF_ACCESS_CLIENT_ID?.trim() ||
+      process.env.OPENCLAW_CF_ACCESS_CLIENT_SECRET?.trim()
   )
 }
 
 export function openClawConfigError(): string {
-  const hasHooksOnly =
-    Boolean(process.env.OPENCLAW_HOOKS_TOKEN?.trim()) &&
-    !process.env.OPENCLAW_GATEWAY_TOKEN?.trim()
-
-  if (hasHooksOnly) {
-    return (
-      "OPENCLAW_GATEWAY_TOKEN is missing. You have OPENCLAW_HOOKS_TOKEN (HTTP /hooks only) — " +
-      "copy gateway.auth.token from the OpenClaw host into OPENCLAW_GATEWAY_TOKEN, not hooks.token."
-    )
-  }
-  if (!process.env.OPENCLAW_GATEWAY_TOKEN?.trim()) {
-    return "OPENCLAW_GATEWAY_TOKEN is not set (use gateway.auth.token, not hooks.token)"
+  if (!process.env.OPENCLAW_GATEWAY_URL?.trim()) return "OPENCLAW_GATEWAY_URL is not set"
+  if (!process.env.OPENCLAW_AGENT_ID?.trim()) return "OPENCLAW_AGENT_ID is not set"
+  const hasAccess = Boolean(
+    process.env.OPENCLAW_CF_ACCESS_CLIENT_ID?.trim() &&
+      process.env.OPENCLAW_CF_ACCESS_CLIENT_SECRET?.trim()
+  )
+  if (!hasAccess && !process.env.OPENCLAW_GATEWAY_TOKEN?.trim()) {
+    return "OpenClaw auth is not set (Cloudflare Access service token or gateway token)"
   }
   return "OpenClaw gateway is not configured"
 }
@@ -62,8 +61,12 @@ export async function handleOpenClawChatRequest(
   const config = getOpenClawConfig()
 
   // Fail closed before any gateway socket or HTTP call.
-  if (!config.enabled || !config.gatewayToken) {
+  if (!config.enabled) {
     return openclawUnavailableResponse()
+  }
+
+  if (!options.userId) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
 
   let body: Record<string, unknown>
@@ -77,14 +80,30 @@ export async function handleOpenClawChatRequest(
     }
   }
 
-  const userText = extractLatestUserText(body.messages)
-  if (!userText) {
-    return new Response("Message text is required", { status: 400 })
+  const prepared = prepareLeagueChatMessages({
+    raw: body.messages,
+    systemPrompt: options.systemPrompt,
+  })
+  if (!prepared.ok) {
+    if (prepared.code === "message_required") {
+      return new Response("Message text is required", { status: 400 })
+    }
+    return Response.json(
+      { error: prepared.code, code: prepared.code, message: prepared.message },
+      { status: prepared.status },
+    )
   }
 
+  const limited = await enforceAiChatRateLimit({
+    userId: options.userId,
+    mode: options.mode,
+  })
+  if (limited) return limited
+
+  const userText = extractLatestUserText(body.messages)
   const sessionKey =
     options.sessionKey ??
-    buildSessionKey(options.mode, options.userId ?? null, config.agentId)
+    buildSessionKey(options.mode, options.userId, config.agentId)
   const agentId = options.agentId ?? config.agentId
 
   const promptParts: string[] = []
@@ -95,14 +114,15 @@ export async function handleOpenClawChatRequest(
   promptParts.push(userText)
   const outboundMessage = promptParts.join("\n")
 
-  // HTTP /v1/chat/completions uses full operator scopes with the same gateway token
-  // (WS connect often returns auth.scopes: [] on remote gateways).
+  // Cloudflare Access and the legacy gateway token both use HTTPS chat completions.
+  // WebSocket remains only for an explicit token-mode opt-out.
   if (isOpenClawHttpChatEnabled()) {
     return handleOpenClawHttpChatRequest({
-      messages: body.messages,
+      messages: prepared.messages,
       sessionKey,
       agentId,
-      systemPrompt: options.systemPrompt,
+      userId: options.userId,
+      mode: options.mode,
     })
   }
 

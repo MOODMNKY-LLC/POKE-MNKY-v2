@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
-import { AI_CHAT_UNAVAILABLE_MESSAGE, leagueChatDockMode } from "./league-chat-dock"
+import { AI_CHAT_UNAVAILABLE_MESSAGE, formatLeagueChatComposerError, leagueChatDockMode } from "./league-chat-dock"
 
 const root = process.cwd()
 
@@ -30,5 +30,22 @@ describe("league chat dock", () => {
     expect(composer).toContain(
       "Ask POKE MNKY is unavailable. OpenAI is disabled, and the OpenClaw gateway is not configured.",
     )
+    expect(composer).toContain("formatLeagueChatComposerError")
+  })
+
+  it("shows a friendly rate-limit message and keeps chat-unavailable copy", () => {
+    expect(
+      formatLeagueChatComposerError(
+        JSON.stringify({
+          code: "rate_limited",
+          scope: "hour",
+          retryAfter: 60,
+          message: "You've reached the chat limit for this hour. Please wait and try again.",
+        }),
+      ),
+    ).toBe("You've reached the chat limit for this hour. Please wait and try again.")
+    expect(
+      formatLeagueChatComposerError(JSON.stringify({ error: "unavailable", code: "chat_unavailable" })),
+    ).toBe(AI_CHAT_UNAVAILABLE_MESSAGE)
   })
 })
