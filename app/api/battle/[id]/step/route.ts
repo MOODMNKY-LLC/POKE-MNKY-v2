@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { getBattleRequest, applyChoice } from "@/lib/battle-engine"
-import { selectBattleMove, isOpenAIUnavailableError, openaiUnavailableResponse } from "@/lib/openai-client"
+import { selectBattleMove, isOpenAIConfigured, isOpenAIUnavailableError, openaiUnavailableResponse } from "@/lib/openai-client"
 import { createServerClient } from "@/lib/supabase/server"
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -25,6 +25,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
     // If AI should choose, use OpenAI
     if (use_ai && !manualChoice) {
+      if (!isOpenAIConfigured()) return openaiUnavailableResponse()
       const aiChoice = await selectBattleMove({
         battle_id: battleId,
         turn: currentRequest.turn,

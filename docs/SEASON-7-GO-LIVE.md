@@ -19,7 +19,7 @@ The migration:
 
 ## After Migration
 
-- **Notion Draft Board sync**: The sync uses the season with `is_current = true`. Trigger sync from **Admin → Draft Board Management** or run the n8n “Draft Pool Seed (Notion → Supabase)” workflow; `draft_pool` will fill for Season 7.
+- **Notion → app pull is disabled** (PR #54). `NOTION_PULL_SYNC_ENABLED` stays unset and the pull routes return HTTP 410. Do not run the old “Draft Pool Seed (Notion → Supabase)” workflow against production. Season 8 draft pool work lives in the app.
 - **App fallback**: `lib/seasons.ts` falls back to Season 7 by name/`season_id` when no row has `is_current = true`.
 
 ## Changing the Current Season

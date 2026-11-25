@@ -15,8 +15,8 @@ POKE MNKY is a full-featured platform for managing Pokémon draft leagues, inclu
 - **Team Building** - Team builder with validation and Showdown integration
 - **Battle Management** - Match scheduling, results tracking, and standings
 - **Discord Integration** - Bot commands for draft picks, team management, and notifications
-- **Notion Sync** - Bidirectional sync with Notion databases for league data
-- **AI Features** - OpenAI-powered assistants for draft strategy and battle analysis
+- **Notion** - Governance notes. Notion → app pull sync is disabled (HTTP 410 unless `NOTION_PULL_SYNC_ENABLED` is set)
+- **AI Features** - League chat uses the OpenClaw gateway. OpenAI-only helpers are off in production because `OPENAI_API_KEY` is unset
 
 ## Key Features
 

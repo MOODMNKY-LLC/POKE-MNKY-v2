@@ -317,8 +317,10 @@ NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key_here
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
 
-# OpenAI Configuration
-OPENAI_API_KEY=sk-your-openai-api-key
+# OpenAI (optional). Production leaves this unset. OpenAI-only features then
+# return HTTP 503 and the UI shows them as disabled. League chat uses OpenClaw
+# and does not require this key. See docs/ai.md.
+# OPENAI_API_KEY=
 
 # Discord Configuration
 DISCORD_BOT_TOKEN=your_discord_bot_token
@@ -328,7 +330,8 @@ DISCORD_GUILD_ID=your_discord_server_id
 
 # Google Sheets (admin sync)
 GOOGLE_SERVICE_ACCOUNT_EMAIL=your-service-account@project.iam.gserviceaccount.com
-GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+# PEM from the service account. Set it in Vercel. Do not commit a key.
+GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY=
 
 # App Configuration
 NEXT_PUBLIC_APP_URL=http://localhost:3000

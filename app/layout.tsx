@@ -10,6 +10,9 @@ import { ThemeColorSync } from "@/components/pwa/theme-color-sync"
 import { PWA_THEME_COLORS } from "@/lib/pwa/theme-colors"
 import { ConditionalHeader } from "@/components/conditional-header"
 import { AssistantWrapper } from "@/components/ai/assistant-wrapper"
+import { AiAvailabilityProvider } from "@/components/ai/openai-availability"
+import { isLeagueChatAvailable } from "@/lib/ai/chat-availability"
+import { isOpenAIConfigured } from "@/lib/openai-client"
 import { MobileMusicPlayer } from "@/components/music/mobile-music-player"
 import { Suspense } from "react"
 import { Toaster } from "sonner"
@@ -120,6 +123,10 @@ export default function RootLayout({
         </div>
         
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          <AiAvailabilityProvider
+            openaiConfigured={isOpenAIConfigured()}
+            leagueChatAvailable={isLeagueChatAvailable()}
+          >
           <InstallAppProvider>
             <div className="flex min-h-screen flex-col relative">
               <ConditionalHeader />
@@ -128,6 +135,7 @@ export default function RootLayout({
           </InstallAppProvider>
           <ThemeColorSync />
           <AssistantWrapper />
+          </AiAvailabilityProvider>
         </ThemeProvider>
         <Analytics />
         <ServiceWorkerRegistration />

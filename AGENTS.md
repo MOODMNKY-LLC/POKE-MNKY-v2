@@ -14,7 +14,7 @@ POKE MNKY is a comprehensive Pokémon Draft League Management Platform built wit
 - **Next.js 16** (App Router) with React 19.2
 - **TypeScript** for type safety
 - **Supabase** (PostgreSQL) for database
-- **OpenAI GPT-4.1 & GPT-5.2** for AI features
+- **OpenClaw** for in-app league chat. **OpenAI is disabled in production** (`OPENAI_API_KEY` unset as of 2026-11-25). OpenAI-only routes return HTTP 503.
 - **Pokémon Showdown** integration for battle simulation
 - **Discord** integration for workflows
 
@@ -152,7 +152,7 @@ export async function POST(request: NextRequest) {
 
 ## Learned Workspace Facts
 
-- In-app AI: all `/api/ai/*` proxy via `lib/openclaw/` (native WebSocket; `@openclaw/sdk` not on npm). Gateway `wss://aab-openclaw.moodmnky.com` (443); HTTP hooks `https://aab-openclaw.moodmnky.com/hooks/...`. `OPENCLAW_GATEWAY_TOKEN` = host `gateway.auth.token` (not `hooks.token`). If WebSocket handshake returns empty scopes (`operator.write` denied), chat uses HTTPS `/v1/chat/completions` with the same token (`lib/openclaw/http-chat.ts`; `AI_CHAT_PROVIDER=openclaw` blocks OpenAI fallback). Local WSS behind SSL inspection: `OPENCLAW_GATEWAY_INSECURE_SKIP_TLS_VERIFY=true` only (never production).
+- In-app league chat (`/api/ai/assistant`, draft, battle-strategy, free-agency, pokedex) uses `lib/openclaw/` when the gateway is configured (native WebSocket; `@openclaw/sdk` not on npm). Gateway `wss://aab-openclaw.moodmnky.com` (443); HTTP hooks `https://aab-openclaw.moodmnky.com/hooks/...`. Operator dashboards are `aab-claw` and `aab-maus.nb` (the `poke-pilot` / `poke-maus` dashboard hostnames are retired). `OPENCLAW_GATEWAY_TOKEN` = host `gateway.auth.token` (not `hooks.token`). If WebSocket handshake returns empty scopes (`operator.write` denied), chat uses HTTPS `/v1/chat/completions` with the same token (`lib/openclaw/http-chat.ts`; `AI_CHAT_PROVIDER=openclaw` blocks OpenAI fallback). Missing `OPENAI_API_KEY` does not block that path. OpenAI-only routes (`parse-result`, `weekly-recap`, `draft-board-analysis`, `sql`, AI battle moves) return HTTP 503. Production knowledge flags `AAB_KNOWLEDGE_ENABLED` and `NEXT_PUBLIC_AAB_KNOWLEDGE_ENABLED` are on (2026-11-25). Notion → app pull stays off (`NOTION_PULL_SYNC_ENABLED` unset, HTTP 410, PR #54). PR #55 is merged. Local WSS behind SSL inspection: `OPENCLAW_GATEWAY_INSECURE_SKIP_TLS_VERIFY=true` only (never production).
 - `lib/ops-alerts.ts` POSTs JSON to `N8N_WEBHOOK_URL` and optionally `OPENCLAW_ALERT_WEBHOOK_URL` without an `Authorization` header. OpenClaw `/hooks/*` expects `Authorization: Bearer` matching OpenClaw `hooks.token`; production often chains app → n8n Webhook → HTTP Request to OpenClaw with Bearer supplied from n8n. Smoke-test with `scripts/test-ops-webhook-e2e.ts`.
 - Cursor merges user-level `%USERPROFILE%\.cursor\mcp.json` with the project `.cursor/mcp.json`; an empty or truncated user file can break MCP with JSON parse errors.
 - Cursor MCP server `poke-mnky-n8n` uses Docker image `ghcr.io/czlonkowski/n8n-mcp`; set `N8N_API_URL` and `N8N_API_KEY` in `.cursor/mcp.json` for n8n REST API access from MCP tools (separate from app webhook URLs).

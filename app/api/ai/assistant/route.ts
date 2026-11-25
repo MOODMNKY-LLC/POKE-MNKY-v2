@@ -47,8 +47,6 @@ function toResponseInput(
 }
 
 export async function POST(request: Request) {
-  if (!isOpenAIConfigured()) return openaiUnavailableResponse()
-
   try {
     const supabase = await createServerClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -68,6 +66,7 @@ export async function POST(request: Request) {
         systemPrompt: openClawModeSystemPrompt('general'),
       }, body)
     }
+    if (!isOpenAIConfigured()) return openaiUnavailableResponse()
     const { 
       messages: rawMessages, 
       model = 'gpt-4o', 

@@ -42,7 +42,7 @@ Required environment variables:
 - `NEXT_PUBLIC_SUPABASE_URL` - Your Supabase project URL
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase anonymous key
 - `SUPABASE_SERVICE_ROLE_KEY` - Supabase service role key
-- `OPENAI_API_KEY` - OpenAI API key for AI features
+- `OPENAI_API_KEY` - Optional. Leave unset in production. OpenAI-only routes return HTTP 503 and the matching controls stay disabled. League chat does not need this key when OpenClaw is configured
 
 Optional variables:
 

@@ -27,4 +27,16 @@ Short inventory of remaining `/api/ai/*` routes after the AI trim. MCP tool mode
 
 ## OpenClaw
 
-When `OPENCLAW_GATEWAY_*` / `AI_CHAT_PROVIDER=openclaw` is set, chat-style routes prefer the OpenClaw gateway (`lib/openclaw/`). See `.env.example` and `AGENTS.md`.
+When `OPENCLAW_GATEWAY_*` / `AI_CHAT_PROVIDER=openclaw` is set, chat-style routes prefer the OpenClaw gateway (`lib/openclaw/`). See `.env.example` and `AGENTS.md`. Those routes do not require `OPENAI_API_KEY`.
+
+## OpenAI key absent
+
+Production does not set `OPENAI_API_KEY` (removed 2026-11-25). Chat routes (`assistant`, `draft-assistant`, `battle-strategy`, `free-agency`, `pokedex`) keep using OpenClaw. If OpenClaw is also unset, the composer shows that Ask POKE MNKY is unavailable instead of calling a missing key.
+
+These routes are OpenAI-only. With the key absent they return HTTP 503 `{ error: "unavailable", message: "OpenAI is not configured" }` and the controls that call them are disabled:
+
+- `POST /api/ai/weekly-recap`
+- `POST /api/ai/parse-result`
+- `POST /api/ai/draft-board-analysis`
+- `POST /api/ai/sql`
+- `POST /api/battle/[id]/step` when `use_ai` is set (a manual choice still applies)

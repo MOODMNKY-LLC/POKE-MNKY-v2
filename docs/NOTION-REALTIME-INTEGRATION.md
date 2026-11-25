@@ -1,5 +1,7 @@
 # Notion Realtime Integration Guide
 
+> **Status (2026-11-25):** Notion → app pull sync is disabled (PR #54). `NOTION_PULL_SYNC_ENABLED` is unset and the pull routes return HTTP 410. The steps below are historical and are not the live path.
+
 Complete guide for setting up real-time synchronization between Notion Draft Board and Supabase using webhooks, n8n workflows, and Supabase Realtime.
 
 ## Overview
@@ -57,13 +59,13 @@ Discord Notification (for important changes)
 
 ```bash
 # Notion
-NOTION_API_KEY=secret_...
+NOTION_API_KEY=<notion integration token, do not commit>
 NOTION_WEBHOOK_SECRET=<generated-secret>  # For signature verification
 NOTION_SYNC_SECRET=<generated-secret>      # For API authentication
 
 # n8n
 N8N_API_URL=https://aab-n8n.moodmnky.com
-N8N_API_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+N8N_API_KEY=<n8n API key, set in the host, do not commit>
 
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
