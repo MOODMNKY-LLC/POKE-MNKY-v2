@@ -11,7 +11,14 @@ export async function GET(request: NextRequest) {
   const code = requestUrl.searchParams.get("code")
   const errorParam = requestUrl.searchParams.get("error")
   const errorDescription = requestUrl.searchParams.get("error_description")
-  const next = requestUrl.searchParams.get("next") || "/dashboard"
+  const nextParam = requestUrl.searchParams.get("next")
+  const nextCookie = request.cookies.get("oauth_next")?.value
+  const decodedCookie = nextCookie ? decodeURIComponent(nextCookie) : null
+  const nextCandidate = nextParam || decodedCookie || "/dashboard"
+  const next =
+    nextCandidate.startsWith("/") && !nextCandidate.startsWith("//")
+      ? nextCandidate
+      : "/dashboard"
 
   if (errorParam) {
     const errorUrl = new URL("/auth/login", requestUrl.origin)
@@ -62,5 +69,7 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.redirect(new URL(next, requestUrl.origin))
+  const response = NextResponse.redirect(new URL(next, requestUrl.origin))
+  response.cookies.set("oauth_next", "", { path: "/", maxAge: 0 })
+  return response
 }

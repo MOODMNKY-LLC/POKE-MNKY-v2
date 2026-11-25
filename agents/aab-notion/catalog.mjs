@@ -85,24 +85,27 @@ const MAUS_PAGES = {
   ),
 }
 
+// Notion /v1/databases/{id}/query requires the database page id, not the
+// collection/data-source id (collection://…). Data-source ids remain in docs
+// for schema reference only.
 const DATABASES = {
   announcements: database(
-    "41bcd2a6-5422-8154-bddd-000b0cf1623f",
+    "41bcd2a6-5422-81e2-96c9-f2d8dd684fe3",
     "Announcements",
     "announcement",
   ),
   meetings: database(
-    "41bcd2a6-5422-818e-bacc-000bf511e9af",
+    "41bcd2a6-5422-81a7-beb9-e90e8e816ff5",
     "Mod Meetings & Points Calls",
     "governance",
   ),
   roadmap: database(
-    "126e6e2c-5072-4dcf-b320-889d09ba2234",
+    "536fcec5-a384-45d0-bbc6-f9157d335b6d",
     "POKE-MNKY Roadmap",
     "project_plan",
   ),
   "weekly-recaps": database(
-    "7d83e48d-83a3-4ab8-92d1-c389422a68ca",
+    "4afffb7d-1638-4f9e-abf1-b31cec9211a3",
     "Weekly Recaps",
     "governance",
   ),
@@ -122,6 +125,7 @@ const MAUS_TOOLS = {
   aab_get_commissioner_meetings: { database: "meetings" },
   aab_get_roadmap: { database: "roadmap" },
   aab_get_announcements: { database: "announcements" },
+  aab_get_weekly_recaps: { database: "weekly-recaps" },
   aab_get_project_document: { document: true },
   aab_fixture_canary: { fixture: true },
 }

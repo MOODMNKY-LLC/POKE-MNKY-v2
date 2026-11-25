@@ -40,10 +40,14 @@ function LoginForm() {
     setError(null)
 
     try {
+      // Keep redirectTo path-exact (no query). Supabase allowlist matching rejects
+      // /auth/callback?next=… against entries like https://*.vercel.app/auth/callback,
+      // which falls back to production Site URL and breaks preview PKCE sessions.
+      document.cookie = `oauth_next=${encodeURIComponent(afterLogin)}; Path=/; Max-Age=600; SameSite=Lax`
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "discord",
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(afterLogin)}`,
+          redirectTo: `${window.location.origin}/auth/callback`,
         },
       })
       if (error) throw error
