@@ -32,8 +32,13 @@ const RPC_ERROR_MAP: Record<string, RPCErrorMapping> = {
   },
   POKEMON_NOT_IN_POOL: {
     statusCode: 422,
-    message: "Pokémon is not available in the draft pool for this season",
+    message: "That Pokémon isn't in this season's published pool.",
     code: "POKEMON_NOT_IN_POOL",
+  },
+  SPECIES_CLAUSE: {
+    statusCode: 422,
+    message: "You already have a Pokémon from that evolution line on your roster (species clause — one per evolution line).",
+    code: "SPECIES_CLAUSE",
   },
   BUDGET_EXCEEDED: {
     statusCode: 422,
@@ -42,7 +47,7 @@ const RPC_ERROR_MAP: Record<string, RPCErrorMapping> = {
   },
   ROSTER_FULL: {
     statusCode: 422,
-    message: "Team roster is full",
+    message: "Your roster is full.",
     code: "ROSTER_FULL",
   },
   POKEMON_ALREADY_OWNED: {
@@ -97,6 +102,35 @@ const RPC_ERROR_MAP: Record<string, RPCErrorMapping> = {
   },
 }
 
+function formatSpecies(species: string): string {
+  return species
+    .split(/[\s-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ")
+}
+
+/** Adds context carried in the RPC error detail (species=<key>, roster_max=<n>). */
+function withDetailContext(mapping: RPCErrorMapping, error: any): RPCErrorMapping {
+  const detail = String(error?.details ?? error?.detail ?? "")
+  if (mapping.code === "SPECIES_CLAUSE") {
+    const species = /species=(.+)/.exec(detail)?.[1]?.trim()
+    if (species) {
+      return {
+        ...mapping,
+        message: `You already have a ${formatSpecies(species)} on your roster (species clause — one per evolution line).`,
+      }
+    }
+  }
+  if (mapping.code === "ROSTER_FULL") {
+    const max = /roster_max=(\d+)/.exec(detail)?.[1]
+    if (max) {
+      return { ...mapping, message: `Your roster is full (max ${max}).` }
+    }
+  }
+  return mapping
+}
+
 /**
  * Map RPC error to HTTP response
  */
@@ -111,7 +145,7 @@ export function mapRPCError(error: any): RPCErrorMapping {
       errorCode.includes(key) ||
       errorMessage.toUpperCase().includes(key)
     ) {
-      return mapping
+      return withDetailContext(mapping, error)
     }
   }
 
