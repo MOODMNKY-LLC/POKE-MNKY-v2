@@ -10,9 +10,9 @@ const GROUP_ID = "grp-league"
 const NETBIRD_TOKEN = "test-netbird-token-value"
 const EMAIL = "member@example.test"
 const REQUEST_ID = "11111111-1111-4111-8111-111111111111"
-const DISCORD_ID = "123456789012345678"
-const ADMIN_ONE = "223456789012345678"
-const ADMIN_TWO = "323456789012345678"
+const DISCORD_ID = "1".repeat(18)
+const ADMIN_ONE = "2".repeat(18)
+const ADMIN_TWO = "3".repeat(18)
 
 function makeKv(): KVLike & { store: Map<string, string> } {
   const store = new Map<string, string>()
@@ -93,7 +93,7 @@ const fail = (status: number, body: unknown = { message: "boom" }): Responder =>
 
 const discordOk: Record<string, Responder> = {
   "POST /api/v10/users/@me/channels": (call) => new Response(JSON.stringify({ id: `chan-${call.body?.recipient_id}` })),
-  "POST /api/v10/channels/chan-123456789012345678/messages": ok({ id: "m1" }),
+  [`POST /api/v10/channels/chan-${DISCORD_ID}/messages`]: ok({ id: "m1" }),
   [`POST /api/v10/channels/chan-${ADMIN_ONE}/messages`]: ok({ id: "m2" }),
   [`POST /api/v10/channels/chan-${ADMIN_TWO}/messages`]: ok({ id: "m3" }),
 }

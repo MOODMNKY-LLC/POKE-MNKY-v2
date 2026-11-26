@@ -33,8 +33,8 @@ import type { InteractionPayload } from "@/lib/discord/interactions-handler"
 import { handleJoinBattles, handleNetbirdComponent } from "./netbird-interactions"
 
 const GUILD = "111111111111111111"
-const ADMIN_DISCORD = "222222222222222222"
-const MEMBER_DISCORD = "333333333333333333"
+const ADMIN_DISCORD = "2".repeat(18)
+const MEMBER_DISCORD = "3".repeat(18)
 const REQUEST_ID = "9b2f6c1e-1c43-4a8e-9a55-3f0f2f0a1b11"
 const APP_URL = "https://app.example.test"
 
