@@ -13,8 +13,10 @@ import { whoamiCommand } from "./whoami"
 import { setseasonCommand } from "./setseason"
 import { getseasonCommand } from "./getseason"
 import { coverageCommand } from "./coverage"
+import { joinBattlesCommand } from "./join-battles"
 
 export {
+  joinBattlesCommand,
   calcCommand,
   freeAgencySubmitCommand,
   freeAgencyStatusCommand,
@@ -41,6 +43,7 @@ export function getAllCommands() {
     setseasonCommand,
     getseasonCommand,
     coverageCommand,
+    joinBattlesCommand,
   ]
 }
 

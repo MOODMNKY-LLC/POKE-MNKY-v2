@@ -12,6 +12,8 @@ export const EVENT_LABELS: Record<string, string> = {
   invite_expired: "invite expired",
   revoked: "access was removed",
   revoke_failed: "access could not be removed",
+  admin_notified: "admins were sent a Discord message to review the request",
+  admin_notify_failed: "the Discord message to admins could not be sent",
 }
 
 export function describeEvent(action: string): string {

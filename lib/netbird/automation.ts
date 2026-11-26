@@ -93,7 +93,11 @@ export function sanitizeError(value: unknown, secret?: string | null): string {
 
 type WorkerCallResult = { ok: true; data: Record<string, unknown> } | { ok: false; error: string }
 
-async function callWorker(path: "/invite" | "/revoke", payload: Record<string, unknown>): Promise<WorkerCallResult> {
+async function callWorker(
+  path: "/invite" | "/revoke" | "/notify-admins",
+  payload: Record<string, unknown>,
+  timeoutMs: number = WORKER_TIMEOUT_MS,
+): Promise<WorkerCallResult> {
   const config = getWorkerConfig()
   if (!config) return { ok: false, error: "The onboarding worker is not configured." }
 
@@ -110,7 +114,7 @@ async function callWorker(path: "/invite" | "/revoke", payload: Record<string, u
       },
       body,
       cache: "no-store",
-      signal: AbortSignal.timeout(WORKER_TIMEOUT_MS),
+      signal: AbortSignal.timeout(timeoutMs),
     })
 
     let data: unknown = null
@@ -325,6 +329,51 @@ export async function createInviteViaWorker(request: NetbirdAdminAccessRequest):
     detail: { delivered_via: deliveredVia, expires_at: parsed.expiresAt, attempt: attemptCount },
   })
   return { ok: true, request: updated }
+}
+
+// ---------------------------------------------------------------------------
+// Worker: admin DM with Approve / Deny buttons
+// ---------------------------------------------------------------------------
+
+const DISCORD_ID_PATTERN = /^\d{15,25}$/
+const NOTIFY_TIMEOUT_MS = 5_000
+
+/** Discord ids of the admins who get the approval DM and may use its buttons (env NETBIRD_ADMIN_DISCORD_IDS). */
+export function getAdminDiscordIds(): string[] {
+  const raw = process.env.NETBIRD_ADMIN_DISCORD_IDS ?? ""
+  const ids = raw
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter((entry) => DISCORD_ID_PATTERN.test(entry))
+  return [...new Set(ids)]
+}
+
+/**
+ * Asks the Worker to DM the listed admins an Approve / Deny message (custom ids `nbreq:approve:<id>` and
+ * `nbreq:deny:<id>`; the Worker builds the message). Best effort: it never fails the member's request, and the
+ * admin page still lists everything. Does nothing while onboarding is paused or when no admin ids are configured.
+ */
+async function notifyAdminsOfPending(db: Db, request: NetbirdAdminAccessRequest): Promise<void> {
+  if (!isOnboardingEnabled()) return
+  const adminIds = getAdminDiscordIds()
+  if (adminIds.length === 0) return
+
+  const result = await callWorker(
+    "/notify-admins",
+    {
+      request_id: request.id,
+      admin_discord_ids: adminIds,
+      requester_name: request.display_name ?? request.discord_username ?? "League member",
+      source: request.source,
+    },
+    NOTIFY_TIMEOUT_MS,
+  )
+  if (result.ok && result.data.status !== "error") {
+    await logEvent(db, { requestId: request.id, action: "admin_notified", detail: { admins: adminIds.length } })
+    return
+  }
+  const reason = result.ok ? sanitizeError(result.data.error ?? "The worker could not notify admins.") : result.error
+  await logEvent(db, { requestId: request.id, action: "admin_notify_failed", detail: { error: reason } })
 }
 
 // ---------------------------------------------------------------------------
@@ -552,6 +601,12 @@ export async function requestAccess(input: RequestAccessInput): Promise<RequestA
       })
       const invite = await createInviteViaWorker(request)
       if (invite.request) request = invite.request
+    } else {
+      try {
+        await notifyAdminsOfPending(db, request)
+      } catch (error) {
+        console.error("[netbird] admin notification failed:", sanitizeError(error))
+      }
     }
 
     return { ok: true, request: toMemberRequest(request), created: true }
