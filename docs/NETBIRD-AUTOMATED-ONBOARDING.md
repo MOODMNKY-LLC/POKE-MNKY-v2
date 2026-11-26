@@ -1,6 +1,6 @@
 # Automated NetBird battle-network onboarding
 
-Status: built, **switched off everywhere**, nothing deployed. Every step in the rollout section needs Simeon's approval.
+Status (Nov 26 2026): live in the app only. Both switches are on, NetBird user approval is on. Discord `/join-battles` and admin DM buttons are not active yet, because the POKE MNKY bot has no Interactions Endpoint URL (its commands go to the live bot connection); `NETBIRD_ADMIN_DISCORD_IDS` is empty until that is solved.
 
 The battle network is a private NetBird network that only reaches the RyuLDN battle server (TCP 30456). This feature lets league members get an invite without anyone creating it by hand.
 
@@ -83,7 +83,7 @@ Code map:
 
 | Name | Purpose |
 | --- | --- |
-| `NETBIRD_ONBOARDING_ENABLED` | Kill switch. Only the exact text `true` turns it on. Leave unset or `false` for off. |
+| `NETBIRD_ONBOARDING_ENABLED` | The main kill switch (currently `true` in production). Only the exact text `true` turns it on. Set it to `false` and redeploy to pause. |
 | `NETBIRD_ONBOARD_WORKER_URL` | Base URL of the Worker, for example the `workers.dev` address. |
 | `NETBIRD_ONBOARD_SIGNING_SECRET` | Shared HMAC secret. Must equal the Worker's `SIGNING_SECRET`. |
 | `DISCORD_LEAGUE_GUILD_ID` | The league Discord server id. `/join-battles` is refused everywhere else. |
@@ -97,7 +97,7 @@ Plain variables (in `wrangler.toml`, safe to commit):
 
 | Name | Value |
 | --- | --- |
-| `ONBOARDING_ENABLED` | `"false"` until go-live; only `"true"` turns it on |
+| `ONBOARDING_ENABLED` | `"true"` (on, matches production); only `"true"` turns it on |
 | `NETBIRD_API_BASE` | `https://netbird.moodmnky.com` |
 | `NETBIRD_LEAGUE_GROUP_ID` | The NetBird group id for league members (the "Average At Best: Pokemon Battle League" group). Now committed in `wrangler.toml`. Empty would make the Worker refuse to create invites. |
 | `INVITE_TTL_SECONDS` | `259200` (72 hours) |
@@ -115,7 +115,7 @@ It also needs a KV namespace bound as `ONBOARD_KV`. Its id is now committed in `
 
 ## Rollout (needs Simeon's approval at every step)
 
-Do these in order. Progress (Nov 26 2026): steps 1 to 5 are done. The NetBird service user `aab-netbird-onboard` and its token exist, the Worker is deployed at https://aab-netbird-onboard.simeon-bowman.workers.dev with its secrets set, the migration is applied to production, PR #70 is merged, and the Vercel variables are set. Both switches are still off.
+Do these in order. Progress (Nov 26 2026): steps 1 to 5, 8 and 9 are done (app-only launch). A live test invite into the league group was created, checked (3-day expiry, league group only) and deleted. Step 6 (Discord) is on hold; see Status. NetBird never emails invites: members get the link on the guide page, plus a plain Discord DM when their Discord id is known.
 
 1. **Create the NetBird service user and token.** Use a dedicated service user whose role is allowed to create user invites, and create a personal access token for it. Create the league group (and a separate test group with no policies) and note their ids.
 2. **Set the Worker secrets** with `wrangler secret put` for `NETBIRD_API_TOKEN`, `DISCORD_BOT_TOKEN` and `SIGNING_SECRET`. The KV namespace id and the league group id are already committed in `wrangler.toml`.
@@ -132,8 +132,8 @@ Do these in order. Progress (Nov 26 2026): steps 1 to 5 are done. The NetBird se
 
 Fastest stop, either one is enough:
 
-- **App side:** set `NETBIRD_ONBOARDING_ENABLED` to `false` (or remove it) in Vercel and redeploy. The page and `/join-battles` say onboarding is paused and nothing calls the Worker.
-- **Worker side:** set `ONBOARDING_ENABLED = "false"` and redeploy the Worker. It answers 503 to everything.
+- **App side (the main kill switch, use this first):** set `NETBIRD_ONBOARDING_ENABLED` to `false` (or remove it) in Vercel and redeploy. The page and `/join-battles` say onboarding is paused and nothing calls the Worker.
+- **Worker side (second, stronger stop):** set `ONBOARDING_ENABLED = "false"` and redeploy the Worker. It answers 503 to everything.
 
 Undoing things:
 
