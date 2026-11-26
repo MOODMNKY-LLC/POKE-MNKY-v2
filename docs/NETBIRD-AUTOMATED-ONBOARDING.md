@@ -70,7 +70,7 @@ Code map:
 
 | Area | Files |
 | --- | --- |
-| Database | `supabase/migrations/20261126120000_netbird_automated_onboarding.sql` |
+| Database | `supabase/migrations/20261126165003_netbird_automated_onboarding.sql` |
 | App logic | `lib/netbird/automation.ts`, `lib/netbird/access-requests.ts`, `lib/netbird/worker-signing.ts` |
 | Member UI | `app/dashboard/guides/netbird/`, `components/dashboard/netbird/`, `app/api/netbird/my-invite/route.ts` |
 | Admin UI | `app/admin/netbird-requests/`, `app/api/admin/netbird-requests/route.ts`, `components/admin/netbird-review-actions.tsx` |
@@ -99,7 +99,7 @@ Plain variables (in `wrangler.toml`, safe to commit):
 | --- | --- |
 | `ONBOARDING_ENABLED` | `"false"` until go-live; only `"true"` turns it on |
 | `NETBIRD_API_BASE` | `https://netbird.moodmnky.com` |
-| `NETBIRD_LEAGUE_GROUP_ID` | The NetBird group id for league members. Empty means the Worker refuses to create invites. |
+| `NETBIRD_LEAGUE_GROUP_ID` | The NetBird group id for league members (the "Average At Best: Pokemon Battle League" group). Now committed in `wrangler.toml`. Empty would make the Worker refuse to create invites. |
 | `INVITE_TTL_SECONDS` | `259200` (72 hours) |
 | `DAILY_INVITE_CAP` | `20` |
 
@@ -111,15 +111,15 @@ Secrets (set by a human with `wrangler secret put`, never committed):
 | `DISCORD_BOT_TOKEN` | Discord bot token, used only to send DMs |
 | `SIGNING_SECRET` | Same value as `NETBIRD_ONBOARD_SIGNING_SECRET` in Vercel |
 
-It also needs a KV namespace bound as `ONBOARD_KV` (the id in `wrangler.toml` is a placeholder).
+It also needs a KV namespace bound as `ONBOARD_KV`. Its id is now committed in `wrangler.toml` (ids are not secret).
 
 ## Rollout (needs Simeon's approval at every step)
 
-Do these in order. Nothing has been done yet.
+Do these in order. Progress so far: the migration has been applied to production, and the KV namespace id and league group id are committed. Nothing else has been done yet (no Worker deployed, no secrets set, both switches off).
 
 1. **Create the NetBird service user and token.** Use a dedicated service user whose role is allowed to create user invites, and create a personal access token for it. Create the league group (and a separate test group with no policies) and note their ids.
-2. **Set the Worker secrets** with `wrangler secret put` for `NETBIRD_API_TOKEN`, `DISCORD_BOT_TOKEN` and `SIGNING_SECRET`. Create the KV namespace and put its id and the league group id in `wrangler.toml`.
-3. **Apply the database migration** `20261126120000_netbird_automated_onboarding.sql` to hosted Supabase. It has not been applied anywhere.
+2. **Set the Worker secrets** with `wrangler secret put` for `NETBIRD_API_TOKEN`, `DISCORD_BOT_TOKEN` and `SIGNING_SECRET`. The KV namespace id and the league group id are already committed in `wrangler.toml`.
+3. **Apply the database migration** `20261126165003_netbird_automated_onboarding.sql` to hosted Supabase. Status: already applied to production (recorded there as version `20261126165003`, which is why the file carries that version).
 4. **Deploy the Worker with the switch off** (`ONBOARDING_ENABLED = "false"`).
 5. **Merge and deploy the app with the switch off.** Set the Vercel variables above, leaving `NETBIRD_ONBOARDING_ENABLED` unset or `false`. The page and bot will say onboarding is paused.
 6. **Register `/join-battles`** with the single-command script: `pnpm discord:register-join-battles`. It adds only this one command and leaves the others alone. Do not run the bulk registration script for this.
