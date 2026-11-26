@@ -1,6 +1,6 @@
 # aab-netbird-onboard: creates and revokes NetBird invites for the POKE MNKY app.
 #
-# DO NOT DEPLOY without Simeon's approval. See docs/NETBIRD-AUTOMATED-ONBOARDING.md for the ordered rollout.
+# Deploys change production; get Simeon's approval first. See docs/NETBIRD-AUTOMATED-ONBOARDING.md for the ordered rollout.
 #
 # Secrets (set by a human with `wrangler secret put <NAME>`; never commit values, never put them in [vars]):
 #   NETBIRD_API_TOKEN  NetBird personal access token of a dedicated service user that may create invites
@@ -13,8 +13,9 @@ compatibility_date = "2026-11-01"
 workers_dev = true
 
 [vars]
-# Kill switch. Anything other than the exact string "true" means OFF (requests get HTTP 503).
-ONBOARDING_ENABLED = "false"
+# The Worker's own switch, on by default to match production. Anything other than the exact string "true" means OFF (HTTP 503).
+# The app's NETBIRD_ONBOARDING_ENABLED in Vercel is the main kill switch, because when it is off the app never calls the Worker.
+ONBOARDING_ENABLED = "true"
 NETBIRD_API_BASE = "https://netbird.moodmnky.com"
 # NetBird group id of the "Average At Best: Pokemon Battle League" group. Every invited member is placed only in this group.
 # Empty would make the Worker refuse to create invites.
