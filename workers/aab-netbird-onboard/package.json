@@ -1,0 +1,16 @@
+{
+  "name": "aab-netbird-onboard",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Cloudflare Worker that creates and revokes NetBird invites for POKE MNKY. Holds the NetBird token and Discord bot token.",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run --root ../.. --config ../../vitest.config.ts workers/aab-netbird-onboard",
+    "typecheck": "tsc -p tsconfig.json",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}
