@@ -21,6 +21,7 @@ vi.mock("@/components/ui/poke-mnky-avatar", () => ({
 }))
 
 import { BaseChatInterface } from "./base-chat-interface"
+import { Message, MessageActions, MessageContent } from "@/components/ai-elements/message"
 
 describe("Ask POKE MNKY send", () => {
   let root: Root | null = null
@@ -97,5 +98,39 @@ describe("Ask POKE MNKY send", () => {
       ?.flatMap((message) => message.parts ?? [])
       .find((part) => part.type === "text")?.text
     expect(text).toBe("Who should I pick?")
+  })
+})
+
+describe("assistant message actions", () => {
+  it("keeps retry and copy under the reply instead of beside it", () => {
+    const container = document.createElement("div")
+    document.body.appendChild(container)
+    const root = createRoot(container)
+    act(() => {
+      root.render(
+        createElement(
+          Message,
+          { from: "assistant" },
+          createElement(
+            MessageContent,
+            null,
+            "A long reply that should keep the full width.",
+            createElement(MessageActions, null, "Retry"),
+          ),
+        ),
+      )
+    })
+
+    const message = container.querySelector("[data-slot=message]")
+    const content = container.querySelector("[data-slot=message-content]")
+    const actions = container.querySelector("[data-slot=message-footer]")
+    expect(message?.className).toContain("flex-col")
+    expect(content?.contains(actions ?? null)).toBe(true)
+    expect(message?.className).not.toContain("flex-row")
+
+    act(() => {
+      root.unmount()
+    })
+    container.remove()
   })
 })

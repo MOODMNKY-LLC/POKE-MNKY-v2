@@ -427,17 +427,17 @@ function ChatTurn({
               <Message from={message.role}>
                 <MessageContent>
                   <MessageResponse>{part.text}</MessageResponse>
+                  {message.role === "assistant" && isLast ? (
+                    <MessageActions>
+                      <MessageAction onClick={onRetry} label="Retry" tooltip="Try again">
+                        <RefreshCcwIcon className="size-3" />
+                      </MessageAction>
+                      <MessageAction onClick={() => onCopy(part.text)} label="Copy" tooltip="Copy">
+                        <CopyIcon className="size-3" />
+                      </MessageAction>
+                    </MessageActions>
+                  ) : null}
                 </MessageContent>
-                {message.role === "assistant" && isLast && (
-                  <MessageActions>
-                    <MessageAction onClick={onRetry} label="Retry" tooltip="Try again">
-                      <RefreshCcwIcon className="size-3" />
-                    </MessageAction>
-                    <MessageAction onClick={() => onCopy(part.text)} label="Copy" tooltip="Copy">
-                      <CopyIcon className="size-3" />
-                    </MessageAction>
-                  </MessageActions>
-                )}
               </Message>
             </BlurFade>
           )

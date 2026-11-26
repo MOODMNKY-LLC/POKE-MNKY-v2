@@ -39,7 +39,7 @@ export const Message = ({ className, from, children, ...props }: MessageProps) =
     <MessageRoot
       align={from === "user" ? "end" : "start"}
       className={cn(
-        "group w-full max-w-[95%]",
+        "flex-col data-[align=end]:flex-col group w-full max-w-[95%]",
         from === "user" ? "is-user ml-auto" : "is-assistant",
         className
       )}

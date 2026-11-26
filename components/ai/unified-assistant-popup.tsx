@@ -227,7 +227,10 @@ export function UnifiedAssistantPopup({
                   size="icon"
                   type="button"
                   className={cn(touchTarget, readAloud && "text-primary")}
-                  onClick={() => setReadAloud((current) => !current)}
+                  onClick={() => {
+                    if (readAloud) synthRef.current?.cancel()
+                    setReadAloud((current) => !current)
+                  }}
                   aria-pressed={readAloud}
                   aria-label={readAloud ? "Stop reading replies aloud" : "Read replies aloud"}
                 >
