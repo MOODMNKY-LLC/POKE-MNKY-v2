@@ -1,26 +1,18 @@
 "use client"
 
 /**
- * Unified Assistant Popup Component
- * 
- * A comprehensive ChatGPT-style floating assistant popup with:
- * - Context-aware agent selection
- * - File uploads
- * - Voice input (STT)
- * - Text-to-speech (TTS)
- * - MCP tool integration toggle
- * - Model selection
- * - Agent mode toggle
+ * Ask POKE MNKY chat.
+ * Desktop opens a dialog. Phones open a sheet. The live path is OpenClaw,
+ * so model menus, tool toggles, and file upload are not shown.
  */
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { usePathname } from "next/navigation"
 import { useIsMobile } from "@/hooks/use-mobile"
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { Dialog, DialogClose, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import {
   Select,
@@ -39,25 +31,18 @@ import {
   MicOff,
   Volume2,
   VolumeX,
-  Upload,
-  X,
   Minimize2,
   Maximize2,
   Settings,
-  Sparkles,
-  Zap,
-  ZapOff,
-  FileText,
-  Image as ImageIcon,
+  XIcon,
 } from "lucide-react"
 import { BaseChatInterface } from "./base-chat-interface"
 import { AabKnowledgePanel } from "./aab-knowledge-panel"
 import { useLeagueChatAvailable } from "./openai-availability"
 import { AI_CHAT_UNAVAILABLE_MESSAGE, leagueChatDockMode } from "@/lib/ai/league-chat-dock"
 import { detectAssistantContext, type AgentType, getQuickActionsForAgent } from "@/lib/ai/assistant-context"
-import { PokeMnkyAssistant, PokeMnkyPremium } from "@/components/ui/poke-mnky-avatar"
+import { PokeMnkyPremium } from "@/components/ui/poke-mnky-avatar"
 import { cn } from "@/lib/utils"
-import { AI_MODELS } from "@/lib/openai-client"
 
 interface UnifiedAssistantPopupProps {
   /** Whether popup is open */
@@ -78,6 +63,8 @@ interface UnifiedAssistantPopupProps {
   knowledgeEnabled?: boolean
 }
 
+const touchTarget = "h-11 w-11 min-h-11 min-w-11 touch-manipulation active:scale-95"
+
 export function UnifiedAssistantPopup({
   open,
   onOpenChange,
@@ -90,72 +77,40 @@ export function UnifiedAssistantPopup({
   const leagueChatAvailable = useLeagueChatAvailable()
   const dockMode = leagueChatDockMode({ leagueChatAvailable, knowledgeEnabled })
   const [isMinimized, setIsMinimized] = useState(false)
-  // MCP tools default OFF (AI_MCP_TOOLS_ENABLED + explicit toggle). Auth still required in UI.
-  const [mcpEnabled, setMcpEnabled] = useState(false)
-  const [ttsEnabled, setTtsEnabled] = useState(false)
-  const [selectedModel, setSelectedModel] = useState<string>("gpt-5.2")
+  const [readAloud, setReadAloud] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
   const [selectedAgent, setSelectedAgent] = useState<AgentType | null>(null)
   const sendMessageFnRef = useRef<((message: { text: string }) => void) | null>(null)
-
-  // Update MCP enabled state when authentication status changes
-  useEffect(() => {
-    if (!isAuthenticated) {
-      setMcpEnabled(false)
-    }
-  }, [isAuthenticated])
-
-  // Debug: Log minimize state changes
-  useEffect(() => {
-    console.log("[UnifiedAssistantPopup] isMinimized state changed:", isMinimized)
-  }, [isMinimized])
-  
   const recognitionRef = useRef<BrowserSpeechRecognition | null>(null)
   const synthRef = useRef<SpeechSynthesis | null>(null)
 
-  // Detect context from current route
   const detectedContext = detectAssistantContext(pathname, context)
   const currentAgent = selectedAgent || detectedContext.agentType
-  const agentContext = selectedAgent 
+  const agentContext = selectedAgent
     ? detectAssistantContext(`/${selectedAgent}`, context)
     : detectedContext
 
-  // Debug: Log the detected context
   useEffect(() => {
-    console.log("[UnifiedAssistantPopup] Agent context:", {
-      pathname,
-      selectedAgent,
-      agentType: agentContext.agentType,
-      apiEndpoint: agentContext.apiEndpoint,
-    })
-  }, [pathname, selectedAgent, agentContext])
-
-  // Initialize speech recognition
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition
-      if (SpeechRecognitionCtor) {
-        recognitionRef.current = new SpeechRecognitionCtor()
-        recognitionRef.current.continuous = false
-        recognitionRef.current.interimResults = false
-        recognitionRef.current.lang = "en-US"
-      }
-      synthRef.current = window.speechSynthesis
+    if (typeof window === "undefined") return
+    const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (SpeechRecognitionCtor) {
+      recognitionRef.current = new SpeechRecognitionCtor()
+      recognitionRef.current.continuous = false
+      recognitionRef.current.interimResults = false
+      recognitionRef.current.lang = "en-US"
     }
+    synthRef.current = window.speechSynthesis
   }, [])
 
-  // Handle voice recording
   const handleStartRecording = () => {
     if (!recognitionRef.current) {
-      alert("Speech recognition not supported in this browser")
+      window.alert("Voice input is not available in this browser.")
       return
     }
 
     setIsRecording(true)
     recognitionRef.current.onresult = (event) => {
       const transcript = event.results[0][0].transcript
-      // Send transcript as message using the sendMessageFn callback
       if (sendMessageFnRef.current && transcript.trim()) {
         sendMessageFnRef.current({ text: transcript })
       }
@@ -168,197 +123,59 @@ export function UnifiedAssistantPopup({
   }
 
   const handleStopRecording = () => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop()
-      setIsRecording(false)
-    }
+    recognitionRef.current?.stop()
+    setIsRecording(false)
   }
 
-  // Handle file upload
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files || [])
-    setUploadedFiles((prev) => [...prev, ...files])
-  }
-
-  // Handle TTS for assistant messages
-  const handleTTS = (text: string) => {
-    if (!synthRef.current || !ttsEnabled) return
-    
+  const speakReply = useCallback((text: string) => {
+    if (!synthRef.current || !readAloud || !text.trim()) return
     const utterance = new SpeechSynthesisUtterance(text)
-    utterance.rate = 1.0
-    utterance.pitch = 1.0
-    utterance.volume = 1.0
+    utterance.rate = 1
+    utterance.pitch = 1
+    utterance.volume = 1
+    synthRef.current.cancel()
     synthRef.current.speak(utterance)
-  }
-
-  // Get available models based on MCP toggle
-  const availableModels = mcpEnabled
-    ? [
-        { value: "gpt-5.2", label: "GPT-5.2 (Strategy)" },
-        { value: "gpt-4.1", label: "GPT-4.1 (Grounded)" },
-        { value: "gpt-5-mini", label: "GPT-5 Mini (Fast)" },
-      ]
-    : [
-        { value: "gpt-5.2", label: "GPT-5.2" },
-        { value: "gpt-4.1", label: "GPT-4.1" },
-        { value: "gpt-5-mini", label: "GPT-5 Mini" },
-      ]
+  }, [readAloud])
 
   const quickActions = getQuickActionsForAgent(currentAgent)
 
   const popupContent = (
     <div className="flex flex-col h-full">
-      {/* Header - Only show in desktop Dialog */}
       {!isMobile && (
-        <div className="border-b pb-3 px-6 pt-6 flex-shrink-0">
+        <div className="border-b pb-3 px-6 pt-6 pe-16 flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <PokeMnkyPremium size={48} />
               <div>
-                <h2 className="text-lg font-semibold">
-                  POKE MNKY
-                </h2>
+                <h2 className="text-lg font-semibold">POKE MNKY</h2>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {agentContext.description}
                 </p>
               </div>
             </div>
-          <div className="flex items-center gap-2">
-            {/* Minimize button */}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => {
-                console.log("[UnifiedAssistantPopup] Expand/Minimize button clicked, current state:", isMinimized)
-                setIsMinimized(!isMinimized)
-              }}
-              className={cn(
-                "h-10 w-10 min-h-[44px] min-w-[44px]",
-                "touch-manipulation active:scale-95"
-              )}
-              aria-label={!isMinimized ? "Expand to fullscreen" : "Minimize to normal size"}
-            >
-              {!isMinimized ? (
-                <Maximize2 className="h-4 w-4" />
-              ) : (
-                <Minimize2 className="h-4 w-4" />
-              )}
-            </Button>
-            {/* Settings popover - Only show for authenticated users */}
-            {isAuthenticated && (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <Settings className="h-4 w-4" />
-                  </Button>
-                </PopoverTrigger>
-              <PopoverContent 
-                className={cn(
-                  "w-[calc(100vw-2rem)] max-w-80",
-                  // Mobile optimization
-                  "max-h-[calc(100vh-8rem)] overflow-y-auto",
-                  // Safe area handling
-                  "pb-safe"
-                )} 
-                align="end"
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsMinimized(!isMinimized)}
+                className={touchTarget}
+                aria-label={!isMinimized ? "Expand to fullscreen" : "Minimize to normal size"}
               >
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">Agent Type</Label>
-                    <Select
-                      value={currentAgent}
-                      onValueChange={(value) => setSelectedAgent(value as AgentType)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="general">General Assistant</SelectItem>
-                        <SelectItem value="draft">Draft Assistant</SelectItem>
-                        <SelectItem value="battle-strategy">Battle Strategy</SelectItem>
-                        <SelectItem value="free-agency">Free Agency</SelectItem>
-                        <SelectItem value="pokedex">Pokédex</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">Model</Label>
-                    <Select value={selectedModel} onValueChange={setSelectedModel}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableModels.map((model) => (
-                          <SelectItem key={model.value} value={model.value}>
-                            {model.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="mcp-toggle" className="text-sm font-medium">
-                        MCP Tools
-                      </Label>
-                      <p className="text-xs text-muted-foreground">
-                        {isAuthenticated 
-                          ? "Enable tool calling" 
-                          : "Requires authentication"}
-                      </p>
-                    </div>
-                    <Switch
-                      id="mcp-toggle"
-                      checked={mcpEnabled}
-                      onCheckedChange={setMcpEnabled}
-                      disabled={!isAuthenticated}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="tts-toggle" className="text-sm font-medium">
-                        Text-to-Speech
-                      </Label>
-                      <p className="text-xs text-muted-foreground">
-                        Read responses aloud
-                      </p>
-                    </div>
-                    <Switch
-                      id="tts-toggle"
-                      checked={ttsEnabled}
-                      onCheckedChange={setTtsEnabled}
-                    />
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
-            )}
+                {!isMinimized ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
+              </Button>
+              {isAuthenticated && (
+                <AssistantSettings
+                  currentAgent={currentAgent}
+                  onAgentChange={setSelectedAgent}
+                />
+              )}
+            </div>
           </div>
-        </div>
-        {/* Status badges */}
-        <div className="flex items-center gap-2 mt-2">
-          <Badge 
-            variant="outline" 
-            className="text-xs bg-background text-foreground border-border"
-          >
-            Assistant
-          </Badge>
-          {isAuthenticated && mcpEnabled && (
-            <Badge 
-              variant="outline" 
-              className="text-xs bg-primary/10 text-primary border-primary/20 dark:bg-primary/20 dark:text-primary dark:border-primary/30"
-            >
-              <Zap className="h-3 w-3 mr-1" />
-              League Mode
+          <div className="flex items-center gap-2 mt-2">
+            <Badge variant="outline" className="text-xs bg-background text-foreground border-border">
+              Assistant
             </Badge>
-          )}
-          {uploadedFiles.length > 0 && (
-            <Badge variant="outline" className="text-xs">
-              <FileText className="h-3 w-3 mr-1" />
-              {uploadedFiles.length} file{uploadedFiles.length > 1 ? "s" : ""}
-            </Badge>
-          )}
-        </div>
+          </div>
         </div>
       )}
 
@@ -369,127 +186,59 @@ export function UnifiedAssistantPopup({
             {AI_CHAT_UNAVAILABLE_MESSAGE}
           </p>
         ) : null}
-        {/* CRITICAL FIX: Use key prop to force remount when apiEndpoint changes */}
-        {/* This fixes the @ai-sdk/react v3.0.41 bug where useChat ignores api prop changes */}
         {dockMode === "chat" ? (
-        <BaseChatInterface
-          key={agentContext.apiEndpoint || "/api/ai/assistant"}
-          apiEndpoint={agentContext.apiEndpoint || "/api/ai/assistant"}
-          title=""
-          description=""
-          characterPalette={agentContext.characterPalette}
-          showCharacter={false}
-          body={{
-            ...agentContext.context,
-            model: selectedModel,
-            mcpEnabled,
-            files: uploadedFiles.map((f) => ({
-              name: f.name,
-              type: f.type,
-              size: f.size,
-            })),
-          }}
-          emptyStateTitle="Welcome to POKE MNKY"
-          emptyStateDescription={
-            isAuthenticated 
-              ? agentContext.description
-              : `${agentContext.description} Sign in to access advanced features like draft assistance and team management.`
-          }
-          className="h-full"
-          quickActions={quickActions.map((action) => ({
-            label: action.label,
-            prompt: action.prompt,
-          }))}
-          onSendMessageReady={(fn) => {
-            // Use ref callback to avoid setState during render
-            sendMessageFnRef.current = fn
-          }}
-          uploadedFilesDisplay={
-            uploadedFiles.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {uploadedFiles.map((file, index) => (
-                  <Badge key={index} variant="secondary" className="text-xs">
-                    {file.type.startsWith("image/") ? (
-                      <ImageIcon className="h-3 w-3 mr-1" />
-                    ) : (
-                      <FileText className="h-3 w-3 mr-1" />
-                    )}
-                    {file.name}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-4 w-4 ml-1 -mr-1"
-                      onClick={() =>
-                        setUploadedFiles((prev) => prev.filter((_, i) => i !== index))
-                      }
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </Badge>
-                ))}
-              </div>
-            ) : undefined
-          }
-          footerActions={
-            <>
-              <input
-                type="file"
-                id="file-upload"
-                className="hidden"
-                multiple
-                onChange={handleFileUpload}
-                accept="image/*,application/pdf,.txt,.doc,.docx"
-              />
-              <label htmlFor="file-upload" className="touch-manipulation">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className={cn(
-                    "h-10 w-10 min-h-[44px] min-w-[44px]",
-                    "touch-manipulation active:scale-95"
-                  )}
-                  aria-label="Upload file"
+          <BaseChatInterface
+            key={agentContext.apiEndpoint || "/api/ai/assistant"}
+            apiEndpoint={agentContext.apiEndpoint || "/api/ai/assistant"}
+            title=""
+            description=""
+            characterPalette={agentContext.characterPalette}
+            showCharacter={false}
+            body={agentContext.context}
+            emptyStateTitle="Welcome to POKE MNKY"
+            emptyStateDescription={
+              isAuthenticated
+                ? agentContext.description
+                : `${agentContext.description} Sign in for draft help and team tools.`
+            }
+            className="h-full"
+            quickActions={quickActions.map((action) => ({
+              label: action.label,
+              prompt: action.prompt,
+            }))}
+            onSendMessageReady={(fn) => {
+              sendMessageFnRef.current = fn
+            }}
+            onAssistantText={speakReply}
+            footerActions={
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  type="button"
+                  className={cn(touchTarget, isRecording && "text-destructive")}
+                  onClick={isRecording ? handleStopRecording : handleStartRecording}
+                  aria-label={isRecording ? "Stop speaking" : "Speak your question"}
                 >
-                  <Upload className="h-5 w-5" />
+                  {isRecording ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
                 </Button>
-              </label>
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  "h-10 w-10 min-h-[44px] min-w-[44px]",
-                  "touch-manipulation active:scale-95",
-                  isRecording && "text-destructive"
-                )}
-                onClick={isRecording ? handleStopRecording : handleStartRecording}
-                aria-label={isRecording ? "Stop recording" : "Start voice input"}
-              >
-                {isRecording ? (
-                  <MicOff className="h-5 w-5" />
-                ) : (
-                  <Mic className="h-5 w-5" />
-                )}
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  "h-10 w-10 min-h-[44px] min-w-[44px]",
-                  "touch-manipulation active:scale-95",
-                  ttsEnabled && "text-primary"
-                )}
-                onClick={() => setTtsEnabled(!ttsEnabled)}
-                aria-label={ttsEnabled ? "Disable text-to-speech" : "Enable text-to-speech"}
-              >
-                {ttsEnabled ? (
-                  <Volume2 className="h-5 w-5" />
-                ) : (
-                  <VolumeX className="h-5 w-5" />
-                )}
-              </Button>
-            </>
-          }
-        />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  type="button"
+                  className={cn(touchTarget, readAloud && "text-primary")}
+                  onClick={() => {
+                    if (readAloud) synthRef.current?.cancel()
+                    setReadAloud((current) => !current)
+                  }}
+                  aria-pressed={readAloud}
+                  aria-label={readAloud ? "Stop reading replies aloud" : "Read replies aloud"}
+                >
+                  {readAloud ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
+                </Button>
+              </>
+            }
+          />
         ) : null}
       </div>
     </div>
@@ -498,26 +247,22 @@ export function UnifiedAssistantPopup({
   if (isMobile) {
     return (
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent 
-          side="bottom" 
+        <SheetContent
+          side="bottom"
           className={cn(
             "h-[calc(100vh-env(safe-area-inset-bottom))] max-h-[90vh] p-0 flex flex-col",
-            // PWA safe area handling
             "pb-[max(0px,env(safe-area-inset-bottom))]",
-            // Better mobile experience
             "touch-pan-y overscroll-contain"
           )}
         >
-          <SheetHeader className="border-b pb-3 px-4 pt-safe">
+          <SheetHeader className="border-b pb-3 px-4 pt-safe pe-16">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <PokeMnkyPremium size={48} />
                 <div>
-                  <SheetTitle className="text-lg font-semibold">
-                    POKE MNKY
-                  </SheetTitle>
+                  <SheetTitle className="text-lg font-semibold">POKE MNKY</SheetTitle>
                   <SheetDescription className="sr-only">
-                    {agentContext.description || "AI-powered assistant for POKE MNKY"}
+                    {agentContext.description || "Help from POKE MNKY"}
                   </SheetDescription>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     {agentContext.description}
@@ -525,23 +270,10 @@ export function UnifiedAssistantPopup({
                 </div>
               </div>
             </div>
-            {/* Status badges */}
             <div className="flex items-center gap-2 mt-2">
-              <Badge 
-                variant="outline" 
-                className="text-xs bg-background text-foreground border-border"
-              >
+              <Badge variant="outline" className="text-xs bg-background text-foreground border-border">
                 Assistant
               </Badge>
-              {isAuthenticated && mcpEnabled && (
-                <Badge 
-                  variant="outline" 
-                  className="text-xs bg-primary/10 text-primary border-primary/20 dark:bg-primary/20 dark:text-primary dark:border-primary/30"
-                >
-                  <Zap className="h-3 w-3 mr-1" />
-                  League Mode
-                </Badge>
-              )}
             </div>
           </SheetHeader>
           {popupContent}
@@ -552,27 +284,66 @@ export function UnifiedAssistantPopup({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent 
+      <DialogContent
+        showCloseButton={false}
         className={cn(
           "p-0 flex flex-col",
-          // Toggle between normal and fullscreen sizes
-          // isMinimized = false means normal size, true means fullscreen
-          !isMinimized 
-            ? "max-w-4xl h-[85vh] max-h-[calc(100vh-4rem)]" 
+          !isMinimized
+            ? "max-w-4xl h-[85vh] max-h-[calc(100vh-4rem)]"
             : "!w-[calc(100vw-1.5rem)] !h-[calc(100vh-1.5rem)] !max-w-[calc(100vw-1.5rem)] !max-h-[calc(100vh-1.5rem)] sm:!max-w-[calc(100vw-1.5rem)] md:!max-w-[calc(100vw-1.5rem)] lg:!max-w-[calc(100vw-1.5rem)]",
-          // PWA safe area
           "pb-safe"
         )}
       >
-            <DialogTitle className="sr-only">
-              POKE MNKY
-            </DialogTitle>
-            <DialogDescription className="sr-only">
-              {agentContext.description || "AI-powered assistant for POKE MNKY"}
-            </DialogDescription>
+        <DialogTitle className="sr-only">POKE MNKY</DialogTitle>
+        <DialogDescription className="sr-only">
+          {agentContext.description || "Help from POKE MNKY"}
+        </DialogDescription>
+        <DialogClose
+          className="absolute top-3 right-3 z-10 flex min-h-11 min-w-11 items-center justify-center rounded-md text-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <XIcon className="size-4" />
+          <span className="sr-only">Close</span>
+        </DialogClose>
         {popupContent}
       </DialogContent>
     </Dialog>
+  )
+}
+
+function AssistantSettings({
+  currentAgent,
+  onAgentChange,
+}: {
+  currentAgent: AgentType
+  onAgentChange: (agent: AgentType) => void
+}) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="ghost" size="icon" className={touchTarget} aria-label="Assistant settings">
+          <Settings className="h-4 w-4" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[calc(100vw-2rem)] max-w-80" align="end">
+        <div className="space-y-2">
+          <Label className="text-sm font-medium" htmlFor="assistant-kind">
+            What kind of help
+          </Label>
+          <Select value={currentAgent} onValueChange={(value) => onAgentChange(value as AgentType)}>
+            <SelectTrigger id="assistant-kind">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="general">General help</SelectItem>
+              <SelectItem value="draft">Draft help</SelectItem>
+              <SelectItem value="battle-strategy">Battle strategy</SelectItem>
+              <SelectItem value="free-agency">Free agency</SelectItem>
+              <SelectItem value="pokedex">Pokédex</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </PopoverContent>
+    </Popover>
   )
 }
 

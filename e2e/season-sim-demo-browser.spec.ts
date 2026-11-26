@@ -238,9 +238,13 @@ test.describe("season-sim demo browser acceptance", () => {
     await shot(page, `${testInfo.project.name}-assistant-closed-dark`)
     await page.evaluate(() => document.documentElement.classList.remove("dark"))
     const launcher = page.getByTestId("assistant-launcher")
+    const launcherBox = await launcher.boundingBox()
+    expect(launcherBox?.height ?? 0).toBeGreaterThanOrEqual(44)
+    expect(launcherBox?.width ?? 0).toBeGreaterThanOrEqual(44)
     await launcher.click()
     const dialog = page.getByRole("dialog")
     await expect(dialog).toBeVisible()
+    await expect(dialog).toHaveAccessibleName(/POKE MNKY/)
     await shot(page, `${testInfo.project.name}-assistant-open`)
     await page.keyboard.press("Escape")
     await expect(dialog).toBeHidden()
@@ -274,6 +278,19 @@ test.describe("season-sim demo browser acceptance", () => {
       return Boolean(el?.closest("[data-testid='assistant-dock']"))
     })
     expect(hit).toBe(true)
+
+    await page.setViewportSize({ width: 390, height: 800 })
+    await expect(page.getByTestId("assistant-dock")).toBeVisible()
+    const clearAt390 = await page.evaluate(() => {
+      const dock = document.querySelector("[data-testid='assistant-dock']")
+        const heading = document.querySelector("h1, h2")
+      if (!dock || !heading) return { ok: false, reason: "missing dock or heading" }
+      const dockBox = dock.getBoundingClientRect()
+      const headingBox = heading.getBoundingClientRect()
+      const overlaps = headingBox.bottom > dockBox.top + 1 && headingBox.top < dockBox.bottom
+      return { ok: !overlaps, headingBottom: headingBox.bottom, dockTop: dockBox.top }
+    })
+    expect(clearAt390.ok, JSON.stringify(clearAt390)).toBe(true)
 
     await page.goto(`${APP}/`)
     await expect(page.getByTestId("assistant-launcher")).toBeVisible()

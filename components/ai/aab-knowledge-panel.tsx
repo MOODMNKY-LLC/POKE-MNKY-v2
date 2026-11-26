@@ -2,6 +2,11 @@
 
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card"
 
 const ACTIONS = [
   { label: "Draft budget", prompt: "What is the draft point budget?", tool: "aab_get_draft_rules" },
@@ -20,6 +25,13 @@ type Packet = {
   note?: string
   error?: string
   sources?: Array<{ title?: string; source_url?: string }>
+}
+
+function plainLookupError(error: string) {
+  if (!error.trim() || !error.includes(" ")) {
+    return "Could not look that up. Please try again."
+  }
+  return error
 }
 
 export function AabKnowledgePanel({ enabled }: { enabled: boolean }) {
@@ -57,7 +69,7 @@ export function AabKnowledgePanel({ enabled }: { enabled: boolean }) {
     if (!response.ok) {
       const body = await response.json().catch(() => ({}))
       setState("error")
-      setError(body.error || "request_failed")
+      setError(typeof body.error === "string" ? body.error : "request_failed")
       return
     }
     const body = await response.json()
@@ -70,14 +82,14 @@ export function AabKnowledgePanel({ enabled }: { enabled: boolean }) {
 
   return (
     <section className="border-b px-3 py-2" aria-label="League knowledge">
-      <div className="flex gap-1 overflow-x-auto pb-2">
+      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
         {ACTIONS.map((action) => (
           <Button
             key={action.tool}
             type="button"
-            size="sm"
             variant="outline"
             disabled={state === "loading"}
+            className="h-11 min-h-11 shrink-0 rounded-full px-4"
             onClick={() => ask(action.prompt, action.tool)}
           >
             {action.label}
@@ -99,29 +111,41 @@ export function AabKnowledgePanel({ enabled }: { enabled: boolean }) {
         <label className="sr-only" htmlFor="aab-knowledge-prompt">League question</label>
         <input
           id="aab-knowledge-prompt"
-          className="min-w-0 flex-1 rounded-md border bg-background px-2 py-1 text-sm"
+          className="min-h-11 min-w-0 flex-1 rounded-md border bg-background px-3 text-sm"
           value={prompt}
           onChange={(event) => setPrompt(event.target.value)}
           placeholder="Ask about a league rule"
         />
-        <Button type="submit" size="sm" disabled={state === "loading" || !prompt.trim()}>
+        <Button type="submit" className="h-11 min-h-11" disabled={state === "loading" || !prompt.trim()}>
           {state === "loading" ? "Looking up" : "Ask"}
         </Button>
       </form>
       {state === "loading" ? <p className="mt-2 text-sm text-muted-foreground">Checking approved sources…</p> : null}
-      {error ? <p className="mt-2 text-sm text-destructive">{error}</p> : null}
+      {error ? <p className="mt-2 text-sm text-destructive">{plainLookupError(error)}</p> : null}
       {packet?.error === "not_configured" ? (
         <p className="mt-2 text-sm text-muted-foreground">Official page text is not loaded. This is not a ruling.</p>
       ) : null}
       {answer ? <p className="mt-2 whitespace-pre-wrap text-sm">{answer}</p> : null}
       {excerpts.length ? (
-        <ul className="mt-2 space-y-2 text-sm">
+        <ul className="mt-2 flex flex-wrap gap-2 text-sm">
           {excerpts.map((excerpt, index) => (
-            <li key={`${index}-${excerpt.text.slice(0, 24)}`} className="rounded-md border p-2">
-              <p className="whitespace-pre-wrap">{excerpt.text}</p>
-              {excerpt.source_url ? (
-                <a className="text-xs underline" href={excerpt.source_url}>{excerpt.source_title || "Source"}</a>
-              ) : null}
+            <li key={`${index}-${excerpt.text.slice(0, 24)}`}>
+              <HoverCard>
+                <HoverCardTrigger asChild>
+                  {excerpt.source_url ? (
+                    <a className="inline-flex min-h-11 items-center rounded-full border px-3 text-xs underline" href={excerpt.source_url}>
+                      {excerpt.source_title || "Source"}
+                    </a>
+                  ) : (
+                    <button type="button" className="inline-flex min-h-11 items-center rounded-full border px-3 text-xs">
+                      {excerpt.source_title || "Source"}
+                    </button>
+                  )}
+                </HoverCardTrigger>
+                <HoverCardContent className="text-sm">
+                  <p className="whitespace-pre-wrap">{excerpt.text}</p>
+                </HoverCardContent>
+              </HoverCard>
             </li>
           ))}
         </ul>

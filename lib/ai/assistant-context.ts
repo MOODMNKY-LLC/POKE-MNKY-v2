@@ -39,8 +39,8 @@ export function detectAssistantContext(
     matchId?: string | null
   }
 ): AssistantContext {
-  // Draft Assistant
-  if (pathname.startsWith("/draft")) {
+  // Draft Assistant, including the coach dashboard draft pages.
+  if (pathname.startsWith("/draft") || pathname.startsWith("/dashboard/draft")) {
     return {
       agentType: "draft",
       apiEndpoint: "/api/ai/draft-assistant",
@@ -55,7 +55,7 @@ export function detectAssistantContext(
   }
 
   // Battle Strategy
-  if (pathname.startsWith("/showdown")) {
+  if (pathname.startsWith("/showdown") || pathname.startsWith("/battle-strategy")) {
     return {
       agentType: "battle-strategy",
       apiEndpoint: "/api/ai/battle-strategy",
@@ -71,7 +71,7 @@ export function detectAssistantContext(
   }
 
   // Free Agency
-  if (pathname.startsWith("/dashboard/free-agency")) {
+  if (pathname.startsWith("/dashboard/free-agency") || pathname.startsWith("/free-agency")) {
     return {
       agentType: "free-agency",
       apiEndpoint: "/api/ai/free-agency",
