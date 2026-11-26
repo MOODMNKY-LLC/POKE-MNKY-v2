@@ -5,9 +5,9 @@ import { openclawUnavailableResponse } from "./unavailable"
 import { OpenClawGatewayClient } from "./gateway-client"
 import { extractAssistantDelta, isTerminalChatEvent } from "./events"
 import { extractLatestUserText } from "./messages"
-import { handleOpenClawHttpChatRequest, isOpenClawHttpChatEnabled } from "./http-chat"
+import { handleOpenClawHttpChatRequest, isOpenClawHttpChatEnabled, type OpenClawUpstreamFailure } from "./http-chat"
 import { prepareLeagueChatMessages } from "@/lib/ai/chat-input"
-import { enforceAiChatRateLimit } from "@/lib/ai/rate-limit"
+import { enforceAiChatRateLimit, refundAiChatQuota } from "@/lib/ai/rate-limit"
 import type { OpenClawAgentMode, OpenClawChatOptions } from "./types"
 
 export function isOpenClawConfigured(): boolean {
@@ -50,6 +50,20 @@ export function shouldRouteChatToOpenClaw(): boolean {
   return isOpenClawConfigured() || prefersOpenClawChat()
 }
 
+function logCallerUpstreamFailure(input: {
+  userId: string
+  mode: string
+  failure: OpenClawUpstreamFailure
+}): void {
+  console.error(JSON.stringify({
+    event: "openclaw_chat_upstream_failure",
+    status: input.failure.status,
+    code: input.failure.code,
+    userId: input.userId,
+    mode: input.mode,
+  }))
+}
+
 /**
  * Stream an assistant reply from the OpenClaw gateway in AI SDK UI message format.
  */
@@ -68,6 +82,7 @@ export async function handleOpenClawChatRequest(
   if (!options.userId) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
+  const userId = options.userId
 
   let body: Record<string, unknown>
   if (parsedBody) {
@@ -94,16 +109,21 @@ export async function handleOpenClawChatRequest(
     )
   }
 
+  // Reserve the slot before the gateway call so concurrent sends still hit the limit.
+  // A later refund uses this same timestamp. Counting only after the first byte would
+  // let parallel requests pass the check together.
+  const countedAt = new Date()
   const limited = await enforceAiChatRateLimit({
-    userId: options.userId,
+    userId,
     mode: options.mode,
+    now: countedAt,
   })
   if (limited) return limited
 
   const userText = extractLatestUserText(body.messages)
   const sessionKey =
     options.sessionKey ??
-    buildSessionKey(options.mode, options.userId, config.agentId)
+    buildSessionKey(options.mode, userId, config.agentId)
   const agentId = options.agentId ?? config.agentId
 
   const promptParts: string[] = []
@@ -121,8 +141,13 @@ export async function handleOpenClawChatRequest(
       messages: prepared.messages,
       sessionKey,
       agentId,
-      userId: options.userId,
+      userId,
       mode: options.mode,
+      onUpstreamFailure: async (failure) => {
+        logCallerUpstreamFailure({ userId, mode: options.mode, failure })
+        if (failure.replyStarted) return
+        await refundAiChatQuota({ userId, mode: options.mode, now: countedAt })
+      },
     })
   }
 

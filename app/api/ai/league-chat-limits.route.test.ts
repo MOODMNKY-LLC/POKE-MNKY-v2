@@ -47,11 +47,13 @@ describe("league chat caps and rate limits", () => {
 
   beforeEach(() => {
     fetchMock.mockReset()
-    fetchMock.mockResolvedValue(
-      new Response('data: {"choices":[{"delta":{"content":"ok"}}]}\n\ndata: [DONE]\n\n', {
-        status: 200,
-        headers: { "content-type": "text/event-stream" },
-      }),
+    fetchMock.mockImplementation(() =>
+      Promise.resolve(
+        new Response('data: {"choices":[{"delta":{"content":"ok"}}]}\n\ndata: [DONE]\n\n', {
+          status: 200,
+          headers: { "content-type": "text/event-stream" },
+        }),
+      ),
     )
     vi.stubGlobal("fetch", fetchMock)
     getUser.mockReset()
@@ -148,6 +150,9 @@ describe("league chat caps and rate limits", () => {
     enableChat()
     setAiChatUsageStore({
       async consume() {
+        throw new Error("store exploded with secret")
+      },
+      async refund() {
         throw new Error("store exploded with secret")
       },
     })

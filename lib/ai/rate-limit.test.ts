@@ -1,8 +1,9 @@
-import { afterEach, describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import {
   americaNewYorkDayStartUtc,
   createMemoryAiChatUsageStore,
   enforceAiChatRateLimit,
+  refundAiChatQuota,
   setAiChatUsageStore,
 } from "./rate-limit"
 
@@ -89,11 +90,93 @@ describe("ai chat rate limit", () => {
       async consume() {
         throw new Error("postgres://secret-host/db")
       },
+      async refund() {
+        throw new Error("postgres://secret-host/db")
+      },
     })
     const response = await enforceAiChatRateLimit({ userId: "coach-1", mode: "general" })
     expect(response?.status).toBe(503)
     const body = await response?.json()
     expect(body).toMatchObject({ code: "chat_unavailable", error: "unavailable" })
     expect(JSON.stringify(body)).not.toContain("secret-host")
+  })
+
+  it("refunds one reservation and ignores a coach or minute that was not reserved", async () => {
+    setLimits("2", "2", "1")
+    setAiChatUsageStore(createMemoryAiChatUsageStore())
+    const now = new Date("2026-11-25T18:00:30Z")
+    const otherMinute = new Date("2026-11-25T18:02:30Z")
+
+    expect(await enforceAiChatRateLimit({ userId: "coach-1", mode: "general", now })).toBeNull()
+    const shared = await enforceAiChatRateLimit({ userId: "coach-2", mode: "general", now })
+    expect(shared?.status).toBe(429)
+    await expect(shared?.json()).resolves.toMatchObject({ code: "rate_limited", scope: "global" })
+
+    await refundAiChatQuota({ userId: "coach-2", mode: "general", now })
+    await refundAiChatQuota({ userId: "coach-1", mode: "general", now: otherMinute })
+    const stillShared = await enforceAiChatRateLimit({ userId: "coach-2", mode: "general", now })
+    expect(stillShared?.status).toBe(429)
+
+    await refundAiChatQuota({ userId: "coach-1", mode: "general", now })
+    expect(await enforceAiChatRateLimit({ userId: "coach-2", mode: "general", now })).toBeNull()
+
+    await refundAiChatQuota({ userId: "coach-1", mode: "general", now })
+    const blocked = await enforceAiChatRateLimit({ userId: "coach-1", mode: "general", now })
+    expect(blocked?.status).toBe(429)
+    await expect(blocked?.json()).resolves.toMatchObject({ code: "rate_limited", scope: "global" })
+  })
+
+  it("refunds a day reservation without touching the next New York day", async () => {
+    setLimits("100", "1", "100")
+    setAiChatUsageStore(createMemoryAiChatUsageStore())
+    const now = new Date("2026-11-25T18:00:00Z")
+    expect(await enforceAiChatRateLimit({ userId: "coach-1", mode: "draft", now })).toBeNull()
+    await refundAiChatQuota({
+      userId: "coach-1",
+      mode: "draft",
+      now: new Date("2026-11-26T05:30:00Z"),
+    })
+    expect((await enforceAiChatRateLimit({ userId: "coach-1", mode: "draft", now }))?.status).toBe(429)
+
+    await refundAiChatQuota({ userId: "coach-1", mode: "draft", now })
+    expect(await enforceAiChatRateLimit({ userId: "coach-1", mode: "draft", now })).toBeNull()
+    const blocked = await enforceAiChatRateLimit({ userId: "coach-1", mode: "draft", now })
+    await expect(blocked?.json()).resolves.toMatchObject({ code: "rate_limited", scope: "day" })
+  })
+
+  it("refunds the shared day bucket for a different coach", async () => {
+    setLimits("100", "100", "1")
+    setAiChatUsageStore(createMemoryAiChatUsageStore())
+    const now = new Date("2026-11-25T18:00:00Z")
+    expect(await enforceAiChatRateLimit({ userId: "coach-a", mode: "general", now })).toBeNull()
+    expect((await enforceAiChatRateLimit({ userId: "coach-b", mode: "general", now }))?.status).toBe(429)
+
+    await refundAiChatQuota({ userId: "coach-a", mode: "general", now })
+    expect(await enforceAiChatRateLimit({ userId: "coach-b", mode: "general", now })).toBeNull()
+    const blocked = await enforceAiChatRateLimit({ userId: "coach-a", mode: "general", now })
+    await expect(blocked?.json()).resolves.toMatchObject({ code: "rate_limited", scope: "global" })
+  })
+
+  it("keeps the reservation when the refund store fails and does not log the store error", async () => {
+    setLimits("1", "10", "10")
+    const memory = createMemoryAiChatUsageStore()
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {})
+    try {
+      setAiChatUsageStore({
+        consume: (input) => memory.consume(input),
+        async refund() {
+          throw new Error("postgres://secret-host/db")
+        },
+      })
+      const now = new Date("2026-11-25T18:00:00Z")
+      expect(await enforceAiChatRateLimit({ userId: "coach-1", mode: "general", now })).toBeNull()
+      await refundAiChatQuota({ userId: "coach-1", mode: "general", now })
+      const logged = consoleError.mock.calls.map((call) => String(call[0])).join("\n")
+      expect(logged).toContain('"code":"refund_failed"')
+      expect(logged).not.toContain("secret-host")
+      expect((await enforceAiChatRateLimit({ userId: "coach-1", mode: "general", now }))?.status).toBe(429)
+    } finally {
+      consoleError.mockRestore()
+    }
   })
 })
