@@ -1,24 +1,27 @@
 "use client";
 
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+  Trace,
+  TraceCollapsible,
+  TraceCollapsibleContent,
+  TraceCollapsibleTrigger,
+  TraceIcon,
+  TraceLine,
+  TraceTitle,
+} from "@/components/ui/trace";
 import { cn } from "@/lib/utils";
-import { BookIcon, ChevronDownIcon } from "lucide-react";
+import { ArrowUpRightIcon, BookIcon, GlobeIcon } from "lucide-react";
 import type { ComponentProps } from "react";
 
 export type SourcesProps = ComponentProps<"div">;
 
-export const Sources = ({ className, ...props }: SourcesProps) => (
-  <Collapsible
-    className={cn("not-prose mb-4 text-primary text-xs", className)}
-    {...props}
-  />
+export const Sources = ({ className, children, ...props }: SourcesProps) => (
+  <Trace className={cn("not-prose mb-4 text-xs", className)} {...props}>
+    <TraceCollapsible>{children}</TraceCollapsible>
+  </Trace>
 );
 
-export type SourcesTriggerProps = ComponentProps<typeof CollapsibleTrigger> & {
+export type SourcesTriggerProps = ComponentProps<"button"> & {
   count: number;
 };
 
@@ -28,50 +31,43 @@ export const SourcesTrigger = ({
   children,
   ...props
 }: SourcesTriggerProps) => (
-  <CollapsibleTrigger
-    className={cn("flex items-center gap-2", className)}
-    {...props}
-  >
+  <TraceCollapsibleTrigger className={cn("flex items-center gap-2", className)} {...props}>
     {children ?? (
-      <>
-        <p className="font-medium">Used {count} sources</p>
-        <ChevronDownIcon className="h-4 w-4" />
-      </>
+      <TraceLine>
+        <TraceIcon>
+          <GlobeIcon />
+        </TraceIcon>
+        <TraceTitle>Used {count} sources</TraceTitle>
+      </TraceLine>
     )}
-  </CollapsibleTrigger>
+  </TraceCollapsibleTrigger>
 );
 
-export type SourcesContentProps = ComponentProps<typeof CollapsibleContent>;
+export type SourcesContentProps = ComponentProps<"div">;
 
-export const SourcesContent = ({
-  className,
-  ...props
-}: SourcesContentProps) => (
-  <CollapsibleContent
-    className={cn(
-      "mt-3 flex w-fit flex-col gap-2",
-      "data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 outline-none data-[state=closed]:animate-out data-[state=open]:animate-in",
-      className
-    )}
-    {...props}
-  />
+export const SourcesContent = ({ className, children, ...props }: SourcesContentProps) => (
+  <TraceCollapsibleContent className={className} {...props}>
+    <Trace>{children}</Trace>
+  </TraceCollapsibleContent>
 );
 
 export type SourceProps = ComponentProps<"a">;
 
 export const Source = ({ href, title, children, ...props }: SourceProps) => (
-  <a
-    className="flex items-center gap-2"
-    href={href}
-    rel="noreferrer"
-    target="_blank"
-    {...props}
-  >
+  <a href={href} rel="noreferrer" target="_blank" {...props}>
     {children ?? (
-      <>
-        <BookIcon className="h-4 w-4" />
-        <span className="block font-medium">{title}</span>
-      </>
+      <TraceLine>
+        <TraceIcon>
+          <BookIcon />
+        </TraceIcon>
+        <TraceTitle>
+          {title}
+          <span className="sr-only"> (opens in a new tab)</span>
+        </TraceTitle>
+        <TraceIcon>
+          <ArrowUpRightIcon />
+        </TraceIcon>
+      </TraceLine>
     )}
   </a>
 );

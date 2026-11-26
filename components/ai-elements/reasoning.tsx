@@ -1,17 +1,21 @@
 "use client";
 
 import { useControllableState } from "@radix-ui/react-use-controllable-state";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { cn } from "@/lib/utils";
-import { BrainIcon, ChevronDownIcon } from "lucide-react";
-import type { ComponentProps, ReactNode } from "react";
-import { createContext, memo, useContext, useEffect, useState } from "react";
 import { StreamdownWrapper } from "@/components/streamdown-wrapper";
-import { Shimmer } from "./shimmer";
+import {
+  Trace,
+  TraceCollapsible,
+  TraceCollapsibleContent,
+  TraceCollapsibleTrigger,
+  TraceDescription,
+  TraceIcon,
+  TraceLine,
+  TraceTitle,
+} from "@/components/ui/trace";
+import { cn } from "@/lib/utils";
+import { BrainIcon, LoaderCircleIcon } from "lucide-react";
+import type { ComponentProps, ReactNode } from "react";
+import { createContext, memo, useContext, useEffect, useRef, useState } from "react";
 
 type ReasoningContextValue = {
   isStreaming: boolean;
@@ -30,7 +34,7 @@ export const useReasoning = () => {
   return context;
 };
 
-export type ReasoningProps = ComponentProps<typeof Collapsible> & {
+export type ReasoningProps = ComponentProps<typeof TraceCollapsible> & {
   isStreaming?: boolean;
   open?: boolean;
   defaultOpen?: boolean;
@@ -61,117 +65,99 @@ export const Reasoning = memo(
       prop: durationProp,
       defaultProp: undefined,
     });
+    const [userToggled, setUserToggled] = useState(false);
+    const startTimeRef = useRef<number | null>(null);
 
-    const [hasAutoClosed, setHasAutoClosed] = useState(false);
-    const [startTime, setStartTime] = useState<number | null>(null);
-
-    // Track duration when streaming starts and ends
     useEffect(() => {
       if (isStreaming) {
-        if (startTime === null) {
-          setStartTime(Date.now());
-        }
-      } else if (startTime !== null) {
-        setDuration(Math.ceil((Date.now() - startTime) / MS_IN_S));
-        setStartTime(null);
+        if (startTimeRef.current === null) startTimeRef.current = Date.now();
+        return;
       }
-    }, [isStreaming, startTime, setDuration]);
+      if (startTimeRef.current !== null) {
+        const elapsed = Math.ceil((Date.now() - startTimeRef.current) / MS_IN_S);
+        startTimeRef.current = null;
+        setDuration(elapsed);
+      }
+    }, [isStreaming, setDuration]);
 
-    // Auto-open when streaming starts, auto-close when streaming ends (once only)
     useEffect(() => {
-      if (defaultOpen && !isStreaming && isOpen && !hasAutoClosed) {
-        // Add a small delay before closing to allow user to see the content
-        const timer = setTimeout(() => {
-          setIsOpen(false);
-          setHasAutoClosed(true);
-        }, AUTO_CLOSE_DELAY);
-
-        return () => clearTimeout(timer);
+      if (open !== undefined || userToggled) return;
+      if (isStreaming) {
+        setIsOpen(true);
+        return;
       }
-    }, [isStreaming, isOpen, defaultOpen, setIsOpen, hasAutoClosed]);
+      const timer = setTimeout(() => setIsOpen(false), AUTO_CLOSE_DELAY);
+      return () => clearTimeout(timer);
+    }, [isStreaming, open, setIsOpen, userToggled]);
 
-    const handleOpenChange = (newOpen: boolean) => {
-      setIsOpen(newOpen);
+    const handleOpenChange = (next: boolean) => {
+      setUserToggled(true);
+      setIsOpen(next);
     };
 
     return (
       <ReasoningContext.Provider
-        value={{ isStreaming, isOpen, setIsOpen, duration }}
+        value={{ isStreaming, isOpen: Boolean(isOpen), setIsOpen, duration }}
       >
-        <Collapsible
-          className={cn("not-prose mb-4", className)}
-          onOpenChange={handleOpenChange}
-          open={isOpen}
-          {...props}
-        >
-          {children}
-        </Collapsible>
+        <Trace className={cn("not-prose mb-4", className)}>
+          <TraceCollapsible open={Boolean(isOpen)} onOpenChange={handleOpenChange} {...props}>
+            {children}
+          </TraceCollapsible>
+        </Trace>
       </ReasoningContext.Provider>
     );
   }
 );
 
-export type ReasoningTriggerProps = ComponentProps<typeof CollapsibleTrigger> & {
+export type ReasoningTriggerProps = ComponentProps<typeof TraceCollapsibleTrigger> & {
   getThinkingMessage?: (isStreaming: boolean, duration?: number) => ReactNode;
 };
 
 const defaultGetThinkingMessage = (isStreaming: boolean, duration?: number) => {
-  if (isStreaming || duration === 0) {
-    return <Shimmer duration={1}>Thinking...</Shimmer>;
-  }
-  if (duration === undefined) {
-    return <p>Thought for a few seconds</p>;
-  }
-  return <p>Thought for {duration} seconds</p>;
+  if (isStreaming || duration === 0) return "Thinking";
+  if (duration === undefined) return "Thought for a few seconds";
+  return `Thought for ${duration} seconds`;
 };
 
 export const ReasoningTrigger = memo(
-  ({ className, children, getThinkingMessage = defaultGetThinkingMessage, ...props }: ReasoningTriggerProps) => {
-    const { isStreaming, isOpen, duration } = useReasoning();
+  ({
+    className,
+    children,
+    getThinkingMessage = defaultGetThinkingMessage,
+    ...props
+  }: ReasoningTriggerProps) => {
+    const { isStreaming, duration } = useReasoning();
+    const label = getThinkingMessage(isStreaming, duration);
 
     return (
-      <CollapsibleTrigger
-        className={cn(
-          "flex w-full items-center gap-2 text-muted-foreground text-sm transition-colors hover:text-foreground",
-          className
-        )}
-        {...props}
-      >
+      <TraceCollapsibleTrigger className={className} {...props}>
         {children ?? (
-          <>
-            <BrainIcon className="size-4" />
-            {getThinkingMessage(isStreaming, duration)}
-            <ChevronDownIcon
-              className={cn(
-                "size-4 transition-transform",
-                isOpen ? "rotate-180" : "rotate-0"
+          <TraceLine status={isStreaming ? "running" : undefined}>
+            <TraceIcon>
+              {isStreaming ? (
+                <LoaderCircleIcon className="animate-spin" />
+              ) : (
+                <BrainIcon />
               )}
-            />
-          </>
+            </TraceIcon>
+            <TraceTitle>{label}</TraceTitle>
+            {!isStreaming && duration ? <TraceDescription>{duration}s</TraceDescription> : null}
+          </TraceLine>
         )}
-      </CollapsibleTrigger>
+      </TraceCollapsibleTrigger>
     );
   }
 );
 
-export type ReasoningContentProps = ComponentProps<
-  typeof CollapsibleContent
-> & {
+export type ReasoningContentProps = ComponentProps<"div"> & {
   children: string;
 };
 
 export const ReasoningContent = memo(
   ({ className, children, ...props }: ReasoningContentProps) => (
-    <CollapsibleContent
-      className={cn(
-        "mt-4 text-sm",
-        "data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 text-muted-foreground outline-none data-[state=closed]:animate-out data-[state=open]:animate-in",
-        className
-      )}
-      {...props}
-    >
-      <StreamdownWrapper {...props}>{children}</StreamdownWrapper>
-    </CollapsibleContent>
+    <TraceCollapsibleContent className={cn("text-sm", className)} {...props}>
+      <StreamdownWrapper>{children}</StreamdownWrapper>
+    </TraceCollapsibleContent>
   )
 );
 

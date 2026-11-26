@@ -1,60 +1,35 @@
 "use client";
 
 /**
- * Streamdown Wrapper Component
- * 
- * This component isolates streamdown from Turbopack's build-time evaluation
- * to prevent HMR errors with micromark/debug dependencies.
- * 
- * Uses React.lazy() with Suspense to completely isolate from Turbopack analysis.
+ * Streamdown wrapper.
+ * Lazy-loaded so the markdown parser stays out of the first server render.
  */
 
-import { lazy, Suspense, type ComponentType, type ReactNode } from "react";
+import { code } from "@streamdown/code";
+import { lazy, Suspense } from "react";
+import "streamdown/styles.css";
 
-// Lazy load streamdown using React.lazy() - this prevents Turbopack from analyzing it
-// The import is wrapped in a function that's only called at runtime
-const StreamdownLazy = lazy(() => {
-  // Create a promise that loads streamdown only when this function is called
-  return Promise.resolve().then(() => {
-    // Use a dynamic import that Turbopack can't statically analyze
-    return import("streamdown" as any).then((mod: any) => ({
-      default: mod.Streamdown,
-    }));
-  });
-});
-
-// Define props type manually to avoid importing from streamdown (causes HMR issues)
 export type StreamdownWrapperProps = {
-  children?: ReactNode;
+  children?: string;
   className?: string;
-  [key: string]: any; // Allow other props to pass through
 };
 
-/**
- * StreamdownWrapper - Isolated wrapper for streamdown component
- * 
- * This wrapper prevents Turbopack from evaluating streamdown and its
- * dependencies (micromark, debug) during build/HMR by using React.lazy().
- * 
- * Usage:
- * ```tsx
- * <StreamdownWrapper className="...">
- *   {markdownContent}
- * </StreamdownWrapper>
- * ```
- */
-export function StreamdownWrapper({
-  className,
-  children,
-  ...props
-}: StreamdownWrapperProps) {
-  // Dynamic import erases streamdown's props, so the lazy component is typed explicitly.
-  const StreamdownView = StreamdownLazy as ComponentType<StreamdownWrapperProps>
+const StreamdownLazy = lazy(() =>
+  import("streamdown").then((mod) => ({
+    default: function StreamdownWithCode({ children, className }: StreamdownWrapperProps) {
+      return (
+        <mod.Streamdown className={className} plugins={{ code }}>
+          {children}
+        </mod.Streamdown>
+      );
+    },
+  })),
+);
+
+export function StreamdownWrapper({ className, children }: StreamdownWrapperProps) {
   return (
     <Suspense fallback={<div className={className || ""}>{children}</div>}>
-      <StreamdownView className={className} {...props}>
-        {children}
-      </StreamdownView>
+      <StreamdownLazy className={className}>{children}</StreamdownLazy>
     </Suspense>
   );
 }
