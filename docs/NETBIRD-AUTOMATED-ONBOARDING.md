@@ -115,7 +115,7 @@ It also needs a KV namespace bound as `ONBOARD_KV`. Its id is now committed in `
 
 ## Rollout (needs Simeon's approval at every step)
 
-Do these in order. Progress so far: the migration has been applied to production, and the KV namespace id and league group id are committed. Nothing else has been done yet (no Worker deployed, no secrets set, both switches off).
+Do these in order. Progress (Nov 26 2026): steps 1 to 5 are done. The NetBird service user `aab-netbird-onboard` and its token exist, the Worker is deployed at https://aab-netbird-onboard.simeon-bowman.workers.dev with its secrets set, the migration is applied to production, PR #70 is merged, and the Vercel variables are set. Both switches are still off.
 
 1. **Create the NetBird service user and token.** Use a dedicated service user whose role is allowed to create user invites, and create a personal access token for it. Create the league group (and a separate test group with no policies) and note their ids.
 2. **Set the Worker secrets** with `wrangler secret put` for `NETBIRD_API_TOKEN`, `DISCORD_BOT_TOKEN` and `SIGNING_SECRET`. The KV namespace id and the league group id are already committed in `wrangler.toml`.
