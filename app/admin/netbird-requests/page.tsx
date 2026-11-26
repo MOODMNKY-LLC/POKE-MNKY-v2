@@ -7,11 +7,11 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { NetbirdReviewActions } from "@/components/admin/netbird-review-actions"
 import {
-  NETBIRD_REQUEST_COLUMNS,
+  NETBIRD_ADMIN_REQUEST_COLUMNS,
   NETBIRD_REQUEST_STATUSES,
   STATUS_LABELS,
   isNetbirdRequestStatus,
-  type NetbirdAccessRequest,
+  type NetbirdAdminAccessRequest,
 } from "@/lib/netbird/access-requests"
 
 export const dynamic = "force-dynamic"
@@ -39,21 +39,21 @@ export default async function AdminNetbirdRequestsPage({
 
   let query = supabase
     .from("netbird_access_requests")
-    .select(NETBIRD_REQUEST_COLUMNS)
+    .select(NETBIRD_ADMIN_REQUEST_COLUMNS)
     .order("created_at", { ascending: false })
     .limit(200)
   if (filter !== "all") query = query.eq("status", filter)
 
   const { data, error } = await query
-  const rows = (data ?? []) as NetbirdAccessRequest[]
+  const rows = (data ?? []) as unknown as NetbirdAdminAccessRequest[]
 
   return (
     <div className="flex max-w-4xl flex-col gap-4 p-4">
       <div>
         <h1 className="text-balance text-2xl font-bold tracking-tight">NetBird access requests</h1>
         <p className="text-sm text-muted-foreground">
-          Review member requests. Approve, deny and invited only change the status here; they do not contact NetBird,
-          Discord, or the member. Send invites from the NetBird dashboard yourself.
+          Current league coaches are approved automatically. Approving a request here creates the NetBird invite and
+          sends it to the member. Nothing is sent while onboarding is switched off.
         </p>
       </div>
 
@@ -91,6 +91,11 @@ export default async function AdminNetbirdRequestsPage({
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
             {row.device_note ? <p className="text-sm text-muted-foreground">Device: {row.device_note}</p> : null}
+            {row.last_error ? (
+              <p className="text-sm text-destructive">
+                Last problem: {row.last_error} (attempt {row.attempt_count})
+              </p>
+            ) : null}
             <NetbirdReviewActions id={row.id} status={row.status} />
           </CardContent>
         </Card>

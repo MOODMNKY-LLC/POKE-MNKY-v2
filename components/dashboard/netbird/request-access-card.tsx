@@ -22,20 +22,24 @@ interface RequestAccessCardProps {
 
 const STATUS_MESSAGES: Record<NetbirdRequestStatus, string> = {
   pending: "Your request is waiting for Simeon to review it.",
-  approved:
-    "Approved. Simeon will send your invite to you personally (for example by Discord DM). Watch for it, then follow the steps below.",
+  approved: "Approved. Your invite is being prepared and will be sent to you personally.",
   invited:
     "Your invite has been sent to you personally (for example by Discord DM). Follow the steps below.",
+  failed: "We could not send your invite. A league admin has been notified; you can also ask Simeon.",
+  expired: "Your invite expired. Request access again, or ask Simeon for a new one.",
+  revoked: "Your access was removed. Contact Simeon if you think this is a mistake.",
   denied: "This request was not approved. Contact Simeon if you think this is a mistake.",
   cancelled: "This request was cancelled.",
 }
 
 function statusVariant(status: NetbirdRequestStatus): "default" | "secondary" | "destructive" | "outline" {
   if (status === "approved" || status === "invited") return "default"
-  if (status === "denied") return "destructive"
-  if (status === "cancelled") return "outline"
+  if (status === "denied" || status === "failed" || status === "revoked") return "destructive"
+  if (status === "cancelled" || status === "expired") return "outline"
   return "secondary"
 }
+
+const RE_REQUESTABLE: readonly NetbirdRequestStatus[] = ["denied", "cancelled", "failed", "expired"]
 
 export function RequestAccessCard({ initialRequest, unavailable }: RequestAccessCardProps) {
   const [request, setRequest] = useState<NetbirdAccessRequest | null>(initialRequest)
@@ -43,7 +47,7 @@ export function RequestAccessCard({ initialRequest, unavailable }: RequestAccess
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
-  const canRequest = !unavailable && (request === null || request.status === "denied" || request.status === "cancelled")
+  const canRequest = !unavailable && (request === null || RE_REQUESTABLE.includes(request.status))
 
   function handleSubmit() {
     setError(null)
