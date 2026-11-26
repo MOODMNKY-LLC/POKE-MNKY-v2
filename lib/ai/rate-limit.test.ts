@@ -126,6 +126,26 @@ describe("ai chat rate limit", () => {
     await expect(blocked?.json()).resolves.toMatchObject({ code: "rate_limited", scope: "global" })
   })
 
+  it("bases hourly retry on a slice that still has a count", async () => {
+    setLimits("1", "100", "100")
+    setAiChatUsageStore(createMemoryAiChatUsageStore())
+    const refundedAt = new Date("2026-11-25T15:00:00Z")
+    const keptAt = new Date("2026-11-25T15:30:00Z")
+    const blockedAt = new Date("2026-11-25T15:31:00Z")
+
+    expect(await enforceAiChatRateLimit({ userId: "coach-1", mode: "general", now: refundedAt })).toBeNull()
+    await refundAiChatQuota({ userId: "coach-1", mode: "general", now: refundedAt })
+    expect(await enforceAiChatRateLimit({ userId: "coach-1", mode: "general", now: keptAt })).toBeNull()
+
+    const blocked = await enforceAiChatRateLimit({ userId: "coach-1", mode: "general", now: blockedAt })
+    expect(blocked?.status).toBe(429)
+    await expect(blocked?.json()).resolves.toMatchObject({
+      code: "rate_limited",
+      scope: "hour",
+      retryAfter: 3540,
+    })
+  })
+
   it("refunds a day reservation without touching the next New York day", async () => {
     setLimits("100", "1", "100")
     setAiChatUsageStore(createMemoryAiChatUsageStore())

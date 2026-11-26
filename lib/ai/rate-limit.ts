@@ -97,6 +97,7 @@ export function createMemoryAiChatUsageStore(): AiChatUsageStore {
         (row) =>
           row.userId === userId &&
           row.bucket === bucket &&
+          row.count > 0 &&
           row.windowStartMs > fromExclusiveMs &&
           row.windowStartMs <= toMs,
       )
@@ -117,9 +118,11 @@ export function createMemoryAiChatUsageStore(): AiChatUsageStore {
   }
 
   function unbump(userId: string, bucket: UsageRow["bucket"], windowStartMs: number): boolean {
-    const row = rows.find((item) => item.userId === userId && item.bucket === bucket && item.windowStartMs === windowStartMs)
+    const index = rows.findIndex((item) => item.userId === userId && item.bucket === bucket && item.windowStartMs === windowStartMs)
+    const row = index >= 0 ? rows[index] : undefined
     if (!row || row.count <= 0) return false
     row.count -= 1
+    if (row.count === 0) rows.splice(index, 1)
     return true
   }
 
@@ -145,6 +148,7 @@ export function createMemoryAiChatUsageStore(): AiChatUsageStore {
             (row) =>
               row.userId === input.userId &&
               row.bucket === "hour" &&
+              row.count > 0 &&
               row.windowStartMs > nowMs - HOUR_MS &&
               row.windowStartMs <= nowMs,
           )
