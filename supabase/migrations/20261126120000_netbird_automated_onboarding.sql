@@ -9,13 +9,14 @@
 --   * New table public.netbird_invite_links holding the one-time invite URL (service_role ONLY; owners read it
 --     through a server route, never directly).
 --   * SECURITY DEFINER helpers (service_role only): netbird_current_coach, netbird_user_id_for_discord,
---     netbird_onboarding_rate_ok.
+--     netbird_onboarding_rate_ok (per person, 3/hour) and netbird_auto_invite_cap_ok (league-wide, 10 auto invites/24h).
 --   * All writes now go through server code using the service role. Authenticated users keep SELECT on their own
 --     rows only (RLS); direct INSERT and UPDATE are revoked.
 --
 -- Rollback (manual, run in this order). Restores the phase-0 write grants and policies; adjust if you have
 -- since changed them. Rows in the new statuses must be reassigned before step 3.
 --   -- 1. helpers and new tables
+--   drop function if exists public.netbird_auto_invite_cap_ok();
 --   drop function if exists public.netbird_onboarding_rate_ok(uuid, text);
 --   drop function if exists public.netbird_user_id_for_discord(text);
 --   drop function if exists public.netbird_current_coach(uuid);
@@ -257,20 +258,16 @@ $$;
 revoke execute on function public.netbird_user_id_for_discord(text) from public, anon, authenticated;
 grant execute on function public.netbird_user_id_for_discord(text) to service_role;
 
--- Rate limit: at most 3 'request_attempt' events per user (or Discord id) in the last hour, and at most 10
--- 'auto_approved' events league-wide in the last 24 hours.
+-- Per-person rate limit: at most 3 'request_attempt' events per user (or Discord id) in the last hour. This is the
+-- ONLY check that rejects a request outright.
 create or replace function public.netbird_onboarding_rate_ok(p_user_id uuid, p_discord_id text)
 returns boolean
-language plpgsql
+language sql
 stable
 security definer
 set search_path = public, pg_temp
 as $$
-declare
-  v_recent_attempts int;
-  v_recent_auto int;
-begin
-  select count(*) into v_recent_attempts
+  select count(*) < 3
     from public.netbird_onboarding_events e
    where e.action = 'request_attempt'
      and e.created_at > now() - interval '1 hour'
@@ -278,21 +275,25 @@ begin
        (p_user_id is not null and e.actor_user_id = p_user_id)
        or (nullif(p_discord_id, '') is not null and e.actor_discord_id = p_discord_id)
      );
-  if v_recent_attempts >= 3 then
-    return false;
-  end if;
-
-  select count(*) into v_recent_auto
-    from public.netbird_onboarding_events e
-   where e.action = 'auto_approved'
-     and e.created_at > now() - interval '24 hours';
-  if v_recent_auto >= 10 then
-    return false;
-  end if;
-
-  return true;
-end;
 $$;
 
 revoke execute on function public.netbird_onboarding_rate_ok(uuid, text) from public, anon, authenticated;
 grant execute on function public.netbird_onboarding_rate_ok(uuid, text) to service_role;
+
+-- League-wide cap on AUTOMATIC invites: at most 10 'auto_approved' events in the last 24 hours. When it is reached
+-- the app does not reject anyone; a coach's request simply falls back to 'pending' for an admin to approve.
+create or replace function public.netbird_auto_invite_cap_ok()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+  select count(*) < 10
+    from public.netbird_onboarding_events e
+   where e.action = 'auto_approved'
+     and e.created_at > now() - interval '24 hours';
+$$;
+
+revoke execute on function public.netbird_auto_invite_cap_ok() from public, anon, authenticated;
+grant execute on function public.netbird_auto_invite_cap_ok() to service_role;

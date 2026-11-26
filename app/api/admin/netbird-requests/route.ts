@@ -63,5 +63,5 @@ export async function PATCH(request: NextRequest) {
       { status: STATUS_BY_FAILURE[result.code] },
     )
   }
-  return NextResponse.json({ request: result.request })
+  return NextResponse.json({ request: result.request, paused: result.paused === true })
 }

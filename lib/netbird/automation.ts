@@ -44,7 +44,7 @@ export type RequestAccessResult =
   | { ok: false; code: FailureCode; message: string }
 
 export type AdminActionResult =
-  | { ok: true; request: NetbirdAdminAccessRequest }
+  | { ok: true; request: NetbirdAdminAccessRequest; /** Approval saved while onboarding is paused: no invite was sent. */ paused?: boolean }
   | { ok: false; code: FailureCode; message: string; request?: NetbirdAdminAccessRequest }
 
 export type InviteResult =
@@ -338,6 +338,110 @@ export interface RequestAccessInput {
   deviceNote?: string | null
 }
 
+/**
+ * Marks `invited` requests whose invite has passed its expiry as `expired` and deletes their stored links.
+ * Opportunistic (no cron): called from requestAccess, retryInvite and the admin page. Never throws.
+ * Does not depend on the kill switch because it never contacts the Worker.
+ */
+export async function expireStaleInvites(): Promise<number> {
+  try {
+    const db = createServiceRoleClient()
+    const { data, error } = await db
+      .from(REQUESTS_TABLE)
+      .update({ status: "expired" })
+      .eq("status", "invited")
+      .lt("invite_expires_at", new Date().toISOString())
+      .select("id")
+    if (error) {
+      console.error("[netbird] expiring stale invites failed:", error.message)
+      return 0
+    }
+    const ids = ((data ?? []) as { id: string }[]).map((row) => row.id)
+    if (ids.length === 0) return 0
+
+    const { error: linkError } = await db.from(LINKS_TABLE).delete().in("request_id", ids)
+    if (linkError) console.error("[netbird] could not delete expired invite links:", linkError.message)
+    for (const id of ids) await logEvent(db, { requestId: id, action: "invite_expired" })
+    return ids.length
+  } catch (error) {
+    console.error("[netbird] expiring stale invites failed:", sanitizeError(error))
+    return 0
+  }
+}
+
+const ACCESS_UNAVAILABLE_MESSAGE = "Access isn't available. Please contact a league admin."
+
+/** Per-person limit only. Returns a failure result when the person has asked too often. */
+async function checkPersonRateLimit(
+  db: Db,
+  userId: string,
+  discordId: string | null,
+): Promise<{ ok: false; code: FailureCode; message: string } | null> {
+  const rate = await db.rpc("netbird_onboarding_rate_ok", { p_user_id: userId, p_discord_id: discordId })
+  if (rate.error) {
+    console.error("[netbird] rate limit check failed:", rate.error.message)
+    return fail("error", GENERIC_ERROR_MESSAGE)
+  }
+  return rate.data === true ? null : fail("rate_limited", RATE_LIMITED_MESSAGE)
+}
+
+/** League-wide cap on automatic invites. Fails closed: if the check errors, the request waits for an admin. */
+async function autoInviteCapAllows(db: Db): Promise<boolean> {
+  const cap = await db.rpc("netbird_auto_invite_cap_ok")
+  if (cap.error) {
+    console.error("[netbird] auto invite cap check failed:", cap.error.message)
+    return false
+  }
+  return cap.data === true
+}
+
+/**
+ * A member who asks again after an invite failed or expired. The earlier request was already approved, so it is
+ * resent in place (no second approval needed); anything else goes through requestAccess.
+ */
+export async function retryInvite(input: RequestAccessInput): Promise<RequestAccessResult> {
+  if (!isOnboardingEnabled()) return fail("disabled", ONBOARDING_PAUSED_MESSAGE)
+
+  const { userId } = input
+  const discordId = input.discordId?.trim() || null
+  const db = createServiceRoleClient()
+
+  try {
+    await expireStaleInvites()
+    const { data, error } = await db
+      .from(REQUESTS_TABLE)
+      .select(NETBIRD_ADMIN_REQUEST_COLUMNS)
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    if (error) throw new Error(`latest request lookup failed: ${error.message}`)
+    const latest = data as unknown as NetbirdAdminAccessRequest | null
+
+    if (!latest || (latest.status !== "failed" && latest.status !== "expired")) return requestAccess(input)
+
+    const limited = await checkPersonRateLimit(db, userId, discordId)
+    if (limited) return limited
+    await logEvent(db, {
+      requestId: latest.id,
+      actorUserId: userId,
+      actorDiscordId: discordId,
+      action: "request_attempt",
+      detail: { source: input.source, retry: true },
+    })
+
+    const moved = await applyTransition(db, latest.id, "resend", { last_error: null })
+    if (isTransitionFailure(moved)) return fail(moved.code, moved.message)
+    await logEvent(db, { requestId: latest.id, actorUserId: userId, action: "resend_requested", detail: { by: "member" } })
+
+    const invite = await createInviteViaWorker(moved)
+    return { ok: true, request: toMemberRequest(invite.request ?? moved), created: false }
+  } catch (error) {
+    console.error("[netbird] retryInvite failed:", sanitizeError(error))
+    return fail("error", GENERIC_ERROR_MESSAGE)
+  }
+}
+
 export async function requestAccess(input: RequestAccessInput): Promise<RequestAccessResult> {
   if (!isOnboardingEnabled()) return fail("disabled", ONBOARDING_PAUSED_MESSAGE)
 
@@ -346,12 +450,10 @@ export async function requestAccess(input: RequestAccessInput): Promise<RequestA
   const db = createServiceRoleClient()
 
   try {
-    const rate = await db.rpc("netbird_onboarding_rate_ok", { p_user_id: userId, p_discord_id: discordId })
-    if (rate.error) {
-      console.error("[netbird] rate limit check failed:", rate.error.message)
-      return fail("error", GENERIC_ERROR_MESSAGE)
-    }
-    if (rate.data !== true) return fail("rate_limited", RATE_LIMITED_MESSAGE)
+    await expireStaleInvites()
+
+    const limited = await checkPersonRateLimit(db, userId, discordId)
+    if (limited) return limited
 
     await logEvent(db, {
       requestId: null,
@@ -363,6 +465,18 @@ export async function requestAccess(input: RequestAccessInput): Promise<RequestA
 
     const existing = await findOpenRequest(db, userId)
     if (existing) return { ok: true, request: toMemberRequest(existing), created: false }
+
+    // A request an admin denied or revoked is final until an admin acts: otherwise a coach could simply ask again.
+    const { data: latestRow, error: latestError } = await db
+      .from(REQUESTS_TABLE)
+      .select("status")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    if (latestError) throw new Error(`latest request lookup failed: ${latestError.message}`)
+    const latestStatus = (latestRow as { status?: string } | null)?.status
+    if (latestStatus === "denied" || latestStatus === "revoked") return fail("forbidden", ACCESS_UNAVAILABLE_MESSAGE)
 
     const email = await lookupEmail(db, userId)
     if (!email) {
@@ -379,6 +493,9 @@ export async function requestAccess(input: RequestAccessInput): Promise<RequestA
       | null
       | undefined
     const isCoach = Boolean(coachRow?.coach_id)
+    // The league-wide cap never turns anyone away: past it, a coach waits for an admin like everyone else.
+    const capReached = isCoach && !(await autoInviteCapAllows(db))
+    const autoApprove = isCoach && !capReached
 
     const deviceNote = input.deviceNote?.trim() || null
     const insert = await db
@@ -388,11 +505,11 @@ export async function requestAccess(input: RequestAccessInput): Promise<RequestA
         source,
         device_note: deviceNote,
         invite_email: email,
-        decision: isCoach ? "auto_coach" : "admin",
-        status: isCoach ? "approved" : "pending",
+        decision: autoApprove ? "auto_coach" : "admin",
+        status: autoApprove ? "approved" : "pending",
         coach_id: isCoach ? coachRow?.coach_id : null,
         season_id: isCoach ? (coachRow?.season_id ?? null) : null,
-        reviewed_at: isCoach ? new Date().toISOString() : null,
+        reviewed_at: autoApprove ? new Date().toISOString() : null,
       })
       .select(NETBIRD_ADMIN_REQUEST_COLUMNS)
       .single()
@@ -415,7 +532,17 @@ export async function requestAccess(input: RequestAccessInput): Promise<RequestA
       detail: { source, decision: request.decision, status: request.status },
     })
 
-    if (isCoach) {
+    if (capReached) {
+      await logEvent(db, {
+        requestId: request.id,
+        actorUserId: userId,
+        actorDiscordId: discordId,
+        action: "auto_cap_reached",
+        detail: { coach_id: coachRow?.coach_id ?? null, season_id: coachRow?.season_id ?? null },
+      })
+    }
+
+    if (autoApprove) {
       await logEvent(db, {
         requestId: request.id,
         actorUserId: userId,
@@ -483,7 +610,9 @@ async function approveOrResend(
   requestId: string,
   adminUserId: string,
 ): Promise<AdminActionResult> {
-  if (!isOnboardingEnabled()) return fail("disabled", ONBOARDING_PAUSED_MESSAGE)
+  const paused = !isOnboardingEnabled()
+  // While paused an approval is still saved (so it can be sent later), but nothing may contact the Worker.
+  if (paused && action === "resend") return fail("disabled", ONBOARDING_PAUSED_MESSAGE)
 
   try {
     const denied = await authorizeAdmin(adminUserId)
@@ -503,7 +632,10 @@ async function approveOrResend(
       requestId,
       actorUserId: adminUserId,
       action: action === "approve" ? "approved" : "resend_requested",
+      ...(paused ? { detail: { invite_deferred: true } } : {}),
     })
+    if (paused) return { ok: true, request: moved, paused: true }
+
     const invite = await createInviteViaWorker(moved)
     if (invite.ok) return { ok: true, request: invite.request }
     return { ok: false, code: invite.code, message: invite.message, request: invite.request ?? moved }

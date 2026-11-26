@@ -122,5 +122,6 @@ export const REVIEW_TRANSITIONS: Record<ReviewAction, { from: NetbirdRequestStat
   approve: { from: ["pending"], to: "approved" },
   deny: { from: ["pending"], to: "denied" },
   revoke: { from: ["approved", "invited"], to: "revoked" },
-  resend: { from: ["invited", "expired", "failed"], to: "approved" },
+  // "approved" is included so an approval saved while onboarding was paused can be sent later.
+  resend: { from: ["approved", "invited", "expired", "failed"], to: "approved" },
 }

@@ -57,6 +57,10 @@ class Query implements PromiseLike<{ data: unknown; error: { message: string; co
     this.filters.push((row) => row[column] === value)
     return this
   }
+  lt(column: string, value: string) {
+    this.filters.push((row) => row[column] != null && String(row[column]) < value)
+    return this
+  }
   in(column: string, values: unknown[]) {
     this.filters.push((row) => values.includes(row[column]))
     return this
@@ -164,9 +168,11 @@ vi.mock("@/lib/admin-api-auth", () => ({
 import {
   approveRequest,
   denyRequest,
+  expireStaleInvites,
   isOnboardingEnabled,
   requestAccess,
   resendRequest,
+  retryInvite,
   revokeRequest,
   sanitizeError,
 } from "./automation"
@@ -202,6 +208,7 @@ beforeEach(() => {
   state.adminIds = new Set([ADMIN])
   state.rpc = {
     netbird_onboarding_rate_ok: () => ({ data: true, error: null }),
+    netbird_auto_invite_cap_ok: () => ({ data: true, error: null }),
     netbird_current_coach: () => ({ data: [], error: null }),
   }
   vi.stubEnv("NETBIRD_ONBOARDING_ENABLED", "true")
@@ -231,24 +238,44 @@ describe("kill switch", () => {
 
   it("blocks member requests and every Worker-calling admin action when OFF", async () => {
     vi.stubEnv("NETBIRD_ONBOARDING_ENABLED", "false")
-    requests() // ensure table exists
-    state.tables.netbird_access_requests = [
-      { id: "req-1", user_id: USER, status: "pending" },
-      { id: "req-2", user_id: USER, status: "invited" },
-    ]
+    state.tables.netbird_access_requests = [{ id: "req-2", user_id: USER, status: "invited" }]
 
     const results = [
       await requestAccess({ userId: USER, source: "app" }),
-      await approveRequest("req-1", ADMIN),
+      await retryInvite({ userId: USER, source: "app" }),
       await resendRequest("req-2", ADMIN),
-      await revokeRequest("req-2", ADMIN),
     ]
     for (const result of results) {
       expect(result).toMatchObject({ ok: false, code: "disabled" })
     }
     expect(fetchMock).not.toHaveBeenCalled()
     expect(state.tables.netbird_onboarding_events ?? []).toHaveLength(0)
-    expect(requests().map((r) => r.status)).toEqual(["pending", "invited"])
+    expect(requests().map((r) => r.status)).toEqual(["invited"])
+  })
+
+  it("approve while OFF saves approved without calling the Worker, and Send again works once ON", async () => {
+    vi.stubEnv("NETBIRD_ONBOARDING_ENABLED", "false")
+    state.tables.netbird_access_requests = [
+      { id: "req-1", user_id: USER, status: "pending", decision: "admin", attempt_count: 0, invite_email: "member@example.test" },
+    ]
+
+    const approved = await approveRequest("req-1", ADMIN)
+    expect(approved).toMatchObject({ ok: true, paused: true, request: { status: "approved", reviewed_by: ADMIN } })
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(events()[0]).toMatchObject({ action: "approved", detail: { invite_deferred: true } })
+
+    vi.stubEnv("NETBIRD_ONBOARDING_ENABLED", "true")
+    const sent = await resendRequest("req-1", ADMIN)
+    expect(sent).toMatchObject({ ok: true, request: { status: "invited" } })
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it("keeps deny and expiry sweeping available while OFF", async () => {
+    vi.stubEnv("NETBIRD_ONBOARDING_ENABLED", "false")
+    state.tables.netbird_access_requests = [{ id: "req-1", user_id: USER, status: "pending" }]
+    await expect(denyRequest("req-1", ADMIN)).resolves.toMatchObject({ ok: true })
+    await expect(expireStaleInvites()).resolves.toBe(0)
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 })
 
@@ -325,6 +352,49 @@ describe("requestAccess", () => {
     expect(result).toMatchObject({ ok: false, code: "rate_limited" })
     expect(requests() ?? []).toHaveLength(0)
     expect(events() ?? []).toHaveLength(0)
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it("falls back to pending for a coach when the league-wide cap is reached, without rejecting", async () => {
+    state.rpc.netbird_current_coach = () => ({ data: COACH_ROW, error: null })
+    state.rpc.netbird_auto_invite_cap_ok = () => ({ data: false, error: null })
+
+    const result = await requestAccess({ userId: USER, source: "app" })
+
+    expect(result).toMatchObject({ ok: true, created: true, request: { status: "pending", decision: "admin" } })
+    expect(requests()[0]).toMatchObject({ coach_id: "coach-1", season_id: "season-8" })
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(eventActions()).toEqual(["request_attempt", "request_created", "auto_cap_reached"])
+  })
+
+  it("fails closed to pending when the cap check errors", async () => {
+    state.rpc.netbird_current_coach = () => ({ data: COACH_ROW, error: null })
+    state.rpc.netbird_auto_invite_cap_ok = () => ({ data: null, error: { message: "boom" } })
+    await expect(requestAccess({ userId: USER, source: "app" })).resolves.toMatchObject({
+      ok: true,
+      request: { status: "pending" },
+    })
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it("never consults the cap for non-coaches", async () => {
+    const cap = vi.fn(() => ({ data: false, error: null }))
+    state.rpc.netbird_auto_invite_cap_ok = cap
+    await expect(requestAccess({ userId: USER, source: "app" })).resolves.toMatchObject({
+      ok: true,
+      request: { status: "pending" },
+    })
+    expect(cap).not.toHaveBeenCalled()
+    expect(eventActions()).not.toContain("auto_cap_reached")
+  })
+
+  it("does not let a member with a denied or revoked request ask again", async () => {
+    state.rpc.netbird_current_coach = () => ({ data: COACH_ROW, error: null })
+    state.tables.netbird_access_requests = [{ id: "old", user_id: USER, status: "revoked", created_at: "2026-01-01T00:00:00Z" }]
+    await expect(requestAccess({ userId: USER, source: "app" })).resolves.toMatchObject({
+      ok: false,
+      code: "forbidden",
+    })
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
@@ -475,6 +545,70 @@ describe("admin actions", () => {
 
   it("revoke only works from approved or invited", async () => {
     await expect(revokeRequest("req-1", ADMIN)).resolves.toMatchObject({ ok: false, code: "invalid_state" })
+  })
+})
+
+describe("expireStaleInvites", () => {
+  it("expires only invited rows past their expiry and deletes their links", async () => {
+    state.tables.netbird_access_requests = [
+      { id: "old", user_id: USER, status: "invited", invite_expires_at: "2020-01-01T00:00:00.000Z" },
+      { id: "fresh", user_id: "u2", status: "invited", invite_expires_at: "2999-01-01T00:00:00.000Z" },
+      { id: "pending", user_id: "u3", status: "pending", invite_expires_at: null },
+    ]
+    state.tables.netbird_invite_links = [
+      { request_id: "old", invite_url: "https://battle.example.test/join/old" },
+      { request_id: "fresh", invite_url: "https://battle.example.test/join/fresh" },
+    ]
+
+    await expect(expireStaleInvites()).resolves.toBe(1)
+
+    expect(requests().map((r) => [r.id, r.status])).toEqual([
+      ["old", "expired"],
+      ["fresh", "invited"],
+      ["pending", "pending"],
+    ])
+    expect(state.tables.netbird_invite_links.map((l) => l.request_id)).toEqual(["fresh"])
+    expect(eventActions()).toEqual(["invite_expired"])
+  })
+
+  it("runs at the start of requestAccess", async () => {
+    state.tables.netbird_access_requests = [
+      { id: "old", user_id: USER, status: "invited", invite_expires_at: "2020-01-01T00:00:00.000Z", created_at: "2026-01-01T00:00:00Z" },
+    ]
+    const result = await requestAccess({ userId: USER, source: "app" })
+    expect(requests().find((r) => r.id === "old")?.status).toBe("expired")
+    // The expired request no longer blocks a fresh one.
+    expect(result).toMatchObject({ ok: true, created: true })
+  })
+})
+
+describe("retryInvite", () => {
+  it("resends the member's own failed request in place", async () => {
+    state.tables.netbird_access_requests = [
+      { id: "req-1", user_id: USER, status: "failed", decision: "auto_coach", attempt_count: 1, last_error: "x", invite_email: "member@example.test", created_at: "2026-01-01T00:00:00Z" },
+    ]
+    const result = await retryInvite({ userId: USER, source: "app", discordId: "111" })
+    expect(result).toMatchObject({ ok: true, created: false, request: { id: "req-1", status: "invited" } })
+    expect(requests()).toHaveLength(1)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it("respects the per-person limit", async () => {
+    state.tables.netbird_access_requests = [
+      { id: "req-1", user_id: USER, status: "expired", attempt_count: 1, created_at: "2026-01-01T00:00:00Z" },
+    ]
+    state.rpc.netbird_onboarding_rate_ok = () => ({ data: false, error: null })
+    await expect(retryInvite({ userId: USER, source: "app" })).resolves.toMatchObject({ ok: false, code: "rate_limited" })
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(requests()[0].status).toBe("expired")
+  })
+
+  it("falls through to a normal request when there is nothing to retry", async () => {
+    await expect(retryInvite({ userId: USER, source: "app" })).resolves.toMatchObject({
+      ok: true,
+      created: true,
+      request: { status: "pending" },
+    })
   })
 })
 

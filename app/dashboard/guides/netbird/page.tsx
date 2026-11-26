@@ -31,8 +31,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CopyCodeSnippet } from "@/components/dashboard/netbird/copy-code-snippet"
 import { NetbirdChecklist } from "@/components/dashboard/netbird/netbird-checklist"
-import { RequestAccessCard } from "@/components/dashboard/netbird/request-access-card"
+import { NetbirdStatusCard } from "@/components/dashboard/netbird/status-card"
 import { NETBIRD_REQUEST_COLUMNS, type NetbirdAccessRequest } from "@/lib/netbird/access-requests"
+import { isOnboardingEnabled } from "@/lib/netbird/automation"
 
 export const dynamic = "force-dynamic"
 
@@ -80,7 +81,8 @@ const TROUBLESHOOTING: ReadonlyArray<{ title: string; body: ReactNode }> = [
     title: "No invite, or the link expired",
     body: (
       <>
-        Invite links often expire after a few days. Ask Simeon to send a new one. Do not sign up on your own.
+        Invite links expire after about three days. Use Try again in the battle access card above, or ask a league
+        admin to send a new one. Do not sign up on your own.
       </>
     ),
   },
@@ -197,8 +199,8 @@ export default async function NetbirdGuidePage() {
             <ul className="list-disc space-y-1 pl-5">
               <li>This private network is only for league battles.</li>
               <li>
-                Simeon approves each member. After approval, your invite is sent to you personally (for example by
-                Discord DM). There is no open sign-up.
+                Current league coaches get in right away. Everyone else waits for a league admin to approve. Your
+                invite appears in the card below and is also sent to you personally. There is no open sign-up.
               </li>
               <li>Do not share your invite, password, or authenticator codes.</li>
               <li>Do not turn on an exit node or route advertising.</li>
@@ -212,7 +214,8 @@ export default async function NetbirdGuidePage() {
           </AlertDescription>
         </Alert>
 
-        <RequestAccessCard
+        <NetbirdStatusCard
+          enabled={isOnboardingEnabled()}
           initialRequest={(latestRequest as NetbirdAccessRequest | null) ?? null}
           unavailable={Boolean(requestError)}
         />
@@ -225,8 +228,8 @@ export default async function NetbirdGuidePage() {
           <CardContent>
             <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
               <li>
-                A personal invite from the league, sent to you after Simeon approves your request (for example by
-                Discord DM), with a link to our NetBird server. The Request access button does not send it.
+                A personal invite link to our NetBird server. It shows up in the battle access card above once
+                you&apos;re approved (use Get battle access to start).
               </li>
               <li>An authenticator app (Google Authenticator, Authy, 1Password, or similar) for MFA.</li>
               <li>
@@ -249,7 +252,8 @@ export default async function NetbirdGuidePage() {
           <CardContent>
             <ol className="list-decimal space-y-2 pl-5 text-sm text-muted-foreground">
               <li>
-                Open the invite link from the league. It goes to <Code>{MANAGEMENT_URL}</Code> (the path looks like{" "}
+                Your invite comes automatically: it appears in the battle access card above (and in your Discord DMs
+                when we can send it). Open that link. It goes to <Code>{MANAGEMENT_URL}</Code> (the path looks like{" "}
                 <Code>/invite?token=…</Code>).
               </li>
               <li>Set your own password (at least 8 characters). Save it in a password manager.</li>

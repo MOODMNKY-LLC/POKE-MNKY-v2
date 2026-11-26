@@ -8,18 +8,26 @@ import { REVIEW_TRANSITIONS, type NetbirdRequestStatus, type ReviewAction } from
 interface NetbirdReviewActionsProps {
   id: string
   status: NetbirdRequestStatus
+  /** Onboarding switch is OFF: approvals are saved, but nothing that contacts the Worker can run. */
+  paused?: boolean
 }
 
-const ACTIONS: { action: ReviewAction; label: string; variant: "default" | "outline" | "destructive" }[] = [
-  { action: "approve", label: "Approve and send invite", variant: "default" },
-  { action: "deny", label: "Deny", variant: "destructive" },
-  { action: "resend", label: "Send invite again", variant: "outline" },
-  { action: "revoke", label: "Remove access", variant: "destructive" },
+const ACTIONS: {
+  action: ReviewAction
+  label: string
+  variant: "default" | "outline" | "destructive"
+  needsWorker: boolean
+}[] = [
+  { action: "approve", label: "Approve", variant: "default", needsWorker: false },
+  { action: "deny", label: "Deny", variant: "destructive", needsWorker: false },
+  { action: "resend", label: "Send again", variant: "outline", needsWorker: true },
+  { action: "revoke", label: "Revoke", variant: "destructive", needsWorker: true },
 ]
 
-export function NetbirdReviewActions({ id, status }: NetbirdReviewActionsProps) {
+export function NetbirdReviewActions({ id, status, paused = false }: NetbirdReviewActionsProps) {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
   const available = ACTIONS.filter((item) => REVIEW_TRANSITIONS[item.action].from.includes(status))
@@ -27,6 +35,7 @@ export function NetbirdReviewActions({ id, status }: NetbirdReviewActionsProps) 
 
   function review(action: ReviewAction) {
     setError(null)
+    setNotice(null)
     startTransition(async () => {
       const res = await fetch("/api/admin/netbird-requests", {
         method: "PATCH",
@@ -39,9 +48,15 @@ export function NetbirdReviewActions({ id, status }: NetbirdReviewActionsProps) 
         router.refresh()
         return
       }
+      const json: { paused?: boolean } = await res.json().catch(() => ({}))
+      if (json.paused) {
+        setNotice("Saved. No invite was sent because onboarding is paused. Use Send again once it is switched on.")
+      }
       router.refresh()
     })
   }
+
+  const blockedByPause = paused && available.some((item) => item.needsWorker)
 
   return (
     <div className="flex flex-col gap-2">
@@ -52,13 +67,21 @@ export function NetbirdReviewActions({ id, status }: NetbirdReviewActionsProps) 
             type="button"
             size="sm"
             variant={item.variant}
-            disabled={isPending}
+            disabled={isPending || (paused && item.needsWorker)}
             onClick={() => review(item.action)}
           >
             {item.label}
           </Button>
         ))}
       </div>
+      {blockedByPause ? (
+        <p className="text-xs text-muted-foreground">Send again and Revoke are unavailable while onboarding is paused.</p>
+      ) : null}
+      {notice ? (
+        <p className="text-xs text-muted-foreground" role="status">
+          {notice}
+        </p>
+      ) : null}
       {error ? (
         <p className="text-xs text-destructive" role="alert">
           {error}

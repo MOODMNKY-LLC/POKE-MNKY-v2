@@ -4,19 +4,21 @@ import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
 import { getCurrentUserProfile } from "@/lib/rbac"
 import { DEVICE_NOTE_MAX_LENGTH, type NetbirdAccessRequest } from "@/lib/netbird/access-requests"
-import { requestAccess } from "@/lib/netbird/automation"
+import { requestAccess, retryInvite, type RequestAccessResult as AutomationResult } from "@/lib/netbird/automation"
 
 export type RequestAccessResult =
   | { ok: true; request: NetbirdAccessRequest }
   | { ok: false; error: string; existing?: NetbirdAccessRequest }
 
-export async function requestNetbirdAccess(deviceNoteInput: string): Promise<RequestAccessResult> {
+async function runForSignedInMember(
+  run: (member: { userId: string; discordId: string | null }) => Promise<AutomationResult>,
+): Promise<RequestAccessResult> {
   const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) {
-    return { ok: false, error: "You need to be signed in to request access." }
+    return { ok: false, error: "You need to be signed in to get battle access." }
   }
 
   const profile = await getCurrentUserProfile(supabase)
@@ -24,22 +26,28 @@ export async function requestNetbirdAccess(deviceNoteInput: string): Promise<Req
     return { ok: false, error: "Could not load your profile. Please sign in again." }
   }
 
-  const deviceNote = deviceNoteInput.trim()
-  if (deviceNote.length > DEVICE_NOTE_MAX_LENGTH) {
-    return { ok: false, error: `Device note must be ${DEVICE_NOTE_MAX_LENGTH} characters or fewer.` }
-  }
-
   // The coach check, rate limit, request row and invite all happen server-side with the service role.
-  const result = await requestAccess({
-    userId: user.id,
-    source: "app",
-    discordId: profile.discord_id,
-    deviceNote: deviceNote.length > 0 ? deviceNote : null,
-  })
+  const result = await run({ userId: user.id, discordId: profile.discord_id })
   if (!result.ok) {
     return { ok: false, error: result.message }
   }
 
   revalidatePath("/dashboard/guides/netbird")
   return { ok: true, request: result.request }
+}
+
+export async function requestNetbirdAccess(deviceNoteInput = ""): Promise<RequestAccessResult> {
+  const deviceNote = deviceNoteInput.trim()
+  if (deviceNote.length > DEVICE_NOTE_MAX_LENGTH) {
+    return { ok: false, error: `Device note must be ${DEVICE_NOTE_MAX_LENGTH} characters or fewer.` }
+  }
+
+  return runForSignedInMember(({ userId, discordId }) =>
+    requestAccess({ userId, source: "app", discordId, deviceNote: deviceNote.length > 0 ? deviceNote : null }),
+  )
+}
+
+/** "Try again" after an invite failed or expired. Resends the member's own approved request. */
+export async function retryNetbirdInvite(): Promise<RequestAccessResult> {
+  return runForSignedInMember(({ userId, discordId }) => retryInvite({ userId, source: "app", discordId }))
 }
