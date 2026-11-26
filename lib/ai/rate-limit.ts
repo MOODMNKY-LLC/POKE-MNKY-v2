@@ -13,6 +13,8 @@ export type AiChatUsageStore = {
     now: Date
     limits: { hour: number; day: number; global: number }
   }): Promise<AiChatConsumeResult>
+  /** Undo one allowed consume for the same `now`. Does not go below zero. */
+  refund(input: { userId: string; now: Date }): Promise<void>
 }
 
 const GLOBAL_USER_ID = "00000000-0000-0000-0000-000000000000"
@@ -95,6 +97,7 @@ export function createMemoryAiChatUsageStore(): AiChatUsageStore {
         (row) =>
           row.userId === userId &&
           row.bucket === bucket &&
+          row.count > 0 &&
           row.windowStartMs > fromExclusiveMs &&
           row.windowStartMs <= toMs,
       )
@@ -114,7 +117,26 @@ export function createMemoryAiChatUsageStore(): AiChatUsageStore {
     rows.push({ userId, bucket, windowStartMs, count: 1 })
   }
 
+  function unbump(userId: string, bucket: UsageRow["bucket"], windowStartMs: number): boolean {
+    const index = rows.findIndex((item) => item.userId === userId && item.bucket === bucket && item.windowStartMs === windowStartMs)
+    const row = index >= 0 ? rows[index] : undefined
+    if (!row || row.count <= 0) return false
+    row.count -= 1
+    if (row.count === 0) rows.splice(index, 1)
+    return true
+  }
+
   return {
+    async refund(input) {
+      const nowMs = input.now.getTime()
+      const minuteStart = Math.floor(nowMs / 60_000) * 60_000
+      const dayStart = americaNewYorkDayStartUtc(input.now).getTime()
+      // The hour slice is the reservation. Day and global move only with it,
+      // so a second refund or another coach cannot borrow a shared slot.
+      if (!unbump(input.userId, "hour", minuteStart)) return
+      unbump(input.userId, "day", dayStart)
+      unbump(GLOBAL_USER_ID, "global", dayStart)
+    },
     async consume(input) {
       const nowMs = input.now.getTime()
       const minuteStart = Math.floor(nowMs / 60_000) * 60_000
@@ -126,6 +148,7 @@ export function createMemoryAiChatUsageStore(): AiChatUsageStore {
             (row) =>
               row.userId === input.userId &&
               row.bucket === "hour" &&
+              row.count > 0 &&
               row.windowStartMs > nowMs - HOUR_MS &&
               row.windowStartMs <= nowMs,
           )
@@ -189,6 +212,14 @@ const supabaseUsageStore: AiChatUsageStore = {
     if (error) throw new Error("ai_chat_usage_store_error")
     return parseConsumeResult(data)
   },
+  async refund(input) {
+    const supabase = createServiceRoleClient()
+    const { error } = await supabase.rpc("refund_ai_chat_quota", {
+      p_user_id: input.userId,
+      p_now: input.now.toISOString(),
+    })
+    if (error) throw new Error("ai_chat_usage_store_error")
+  },
 }
 
 let usageStore: AiChatUsageStore = supabaseUsageStore
@@ -225,8 +256,9 @@ export function chatUnavailableResponse(): Response {
 }
 
 /**
- * Count a request that already passed validation and is about to be sent.
- * Store failures fail closed.
+ * Reserve a question that already passed validation and is about to be sent.
+ * Store failures fail closed. Release the reservation with `refundAiChatQuota`
+ * only when the upstream fails before any reply byte.
  */
 export async function enforceAiChatRateLimit(input: {
   userId: string
@@ -258,5 +290,26 @@ export async function enforceAiChatRateLimit(input: {
       code: "chat_unavailable",
     }))
     return chatUnavailableResponse()
+  }
+}
+
+/**
+ * Give back one reservation made with the same `now`.
+ * A refund that fails stays consumed so a broken counter cannot grant extra questions.
+ */
+export async function refundAiChatQuota(input: {
+  userId: string
+  mode: string
+  now: Date
+}): Promise<void> {
+  try {
+    await usageStore.refund({ userId: input.userId, now: input.now })
+  } catch {
+    console.error(JSON.stringify({
+      event: "ai_chat_quota_refund_error",
+      userId: input.userId,
+      mode: input.mode,
+      code: "refund_failed",
+    }))
   }
 }

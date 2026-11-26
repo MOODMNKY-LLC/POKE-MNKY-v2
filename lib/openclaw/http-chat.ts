@@ -84,6 +84,52 @@ export function openClawUpstreamErrorMessage(status: number, code: string | unde
   return UPSTREAM_UNAVAILABLE
 }
 
+export type OpenClawUpstreamFailure = {
+  status: number | "timeout" | "error"
+  code: string
+  replyStarted: boolean
+}
+
+const SAFE_FAILURE_CODE = /^[A-Za-z0-9_.:-]{1,64}$/
+const SECRET_LIKE_CODE = /secret|token|bearer|sk-|cf-access|authorization|api[_-]?key/i
+
+/**
+ * Keep an upstream code only when it is a short category.
+ * Prompts, tokens, and Access credentials fall back to `category`.
+ */
+export function openClawFailureCode(
+  code: string | undefined,
+  category: string,
+  messages?: LeagueChatMessage[],
+): string {
+  const fallback = SAFE_FAILURE_CODE.test(category) ? category : "upstream_error"
+  if (!code || !SAFE_FAILURE_CODE.test(code) || SECRET_LIKE_CODE.test(code)) return fallback
+  if (messages?.some((message) => messageRepeatsCode(message.content, code))) return fallback
+  return code
+}
+
+function messageRepeatsCode(content: string, code: string): boolean {
+  const text = content.trim()
+  if (!text) return false
+  if (text === code) return true
+  return text.length >= 12 && code.includes(text)
+}
+
+function logUpstreamFailure(fields: {
+  status: number | "timeout" | "error"
+  code: string
+  userId: string
+  mode: string
+}): void {
+  console.error(JSON.stringify({
+    event: "openclaw_upstream_failure",
+    status: fields.status,
+    code: fields.code,
+    userId: fields.userId,
+    mode: fields.mode,
+  }))
+}
+
 function audit(fields: Record<string, string | number | undefined>): void {
   const payload: Record<string, string | number> = { event: "openclaw_chat" }
   for (const [key, value] of Object.entries(fields)) {
@@ -117,6 +163,7 @@ export function handleOpenClawHttpChatRequest(options: {
   agentId: string
   userId: string
   mode: string
+  onUpstreamFailure?: (failure: OpenClawUpstreamFailure) => void | Promise<void>
 }): Response {
   const config = getOpenClawConfig()
   if (!config.enabled || config.authMode === "none") {
@@ -143,9 +190,37 @@ export function handleOpenClawHttpChatRequest(options: {
       const started = Date.now()
       let status: number | "timeout" | "error" = "error"
       let code: string | undefined
+      let replyStarted = false
       let promptTokens: number | undefined
       let completionTokens: number | undefined
       let totalTokens: number | undefined
+
+      const reportFailure = async (
+        failureStatus: number | "timeout" | "error",
+        failureCode: string,
+        errorText: string,
+      ) => {
+        status = failureStatus
+        code = failureCode
+        logUpstreamFailure({
+          status: failureStatus,
+          code: failureCode,
+          userId: options.userId,
+          mode: options.mode,
+        })
+        if (options.onUpstreamFailure) {
+          try {
+            await options.onUpstreamFailure({
+              status: failureStatus,
+              code: failureCode,
+              replyStarted,
+            })
+          } catch {
+            // The caller logs refund problems. The coach still gets errorText.
+          }
+        }
+        writer.write({ type: "error", errorText })
+      }
 
       try {
         const response = await fetch(url, {
@@ -157,16 +232,17 @@ export function handleOpenClawHttpChatRequest(options: {
         status = response.status
 
         if (!response.ok) {
-          code = await upstreamCode(response)
-          writer.write({
-            type: "error",
-            errorText: openClawUpstreamErrorMessage(response.status, code),
-          })
+          const rawCode = await upstreamCode(response)
+          await reportFailure(
+            response.status,
+            openClawFailureCode(rawCode, "http_error", options.messages),
+            openClawUpstreamErrorMessage(response.status, rawCode),
+          )
           return
         }
 
         if (!response.body) {
-          writer.write({ type: "error", errorText: UPSTREAM_UNAVAILABLE })
+          await reportFailure(response.status, "empty_body", UPSTREAM_UNAVAILABLE)
           return
         }
 
@@ -202,13 +278,18 @@ export function handleOpenClawHttpChatRequest(options: {
             }
 
             if (chunk.error) {
-              code = typeof chunk.error.code === "string" ? chunk.error.code.slice(0, 80) : code
-              writer.write({ type: "error", errorText: UPSTREAM_UNAVAILABLE })
+              const rawCode = typeof chunk.error.code === "string" ? chunk.error.code.slice(0, 80) : undefined
+              await reportFailure(
+                response.status,
+                openClawFailureCode(rawCode, "stream_error", options.messages),
+                UPSTREAM_UNAVAILABLE,
+              )
               return
             }
 
             const delta = chunk.choices?.[0]?.delta?.content
             if (typeof delta === "string" && delta.length > 0) {
+              replyStarted = true
               writer.write({ type: "text-delta", id: textId, delta })
             }
           }
@@ -217,12 +298,10 @@ export function handleOpenClawHttpChatRequest(options: {
         writer.write({ type: "text-end", id: textId })
       } catch (error) {
         if (isAbortError(error)) {
-          status = "timeout"
-          writer.write({ type: "error", errorText: UPSTREAM_TIMEOUT })
+          await reportFailure("timeout", "timeout", UPSTREAM_TIMEOUT)
           return
         }
-        status = "error"
-        writer.write({ type: "error", errorText: UPSTREAM_UNAVAILABLE })
+        await reportFailure("error", "network", UPSTREAM_UNAVAILABLE)
       } finally {
         clearTimeout(timer)
         audit({
