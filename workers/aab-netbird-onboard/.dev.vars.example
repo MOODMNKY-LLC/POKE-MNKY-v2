@@ -1,0 +1,4 @@
+# Local `wrangler dev` secrets. Copy to `.dev.vars` (git-ignored) and fill in. Never commit real values.
+NETBIRD_API_TOKEN=
+DISCORD_BOT_TOKEN=
+SIGNING_SECRET=

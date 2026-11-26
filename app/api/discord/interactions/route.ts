@@ -10,15 +10,29 @@
  * Env: DISCORD_PUBLIC_KEY, DISCORD_BOT_API_KEY, VERCEL_URL or APP_BASE_URL or NEXT_PUBLIC_APP_URL
  */
 
-import { NextRequest, NextResponse } from "next/server"
+import { after, NextRequest, NextResponse } from "next/server"
 import { verifyDiscordInteraction } from "@/lib/discord/verify-interaction"
 import {
   handleApplicationCommand,
   type InteractionPayload,
 } from "@/lib/discord/interactions-handler"
+import {
+  COMPONENT_PREFIX,
+  JOIN_BATTLES_COMMAND,
+  handleJoinBattles,
+  handleNetbirdComponent,
+  type InteractionResult,
+} from "@/lib/discord/netbird-interactions"
 
 const INTERACTION_TYPE_PING = 1
 const INTERACTION_TYPE_APPLICATION_COMMAND = 2
+const INTERACTION_TYPE_MESSAGE_COMPONENT = 3
+
+/** Sends the immediate response and schedules any follow-up (a deferred reply is finished after the response). */
+function respond(result: InteractionResult): NextResponse {
+  if (result.followUp) after(result.followUp)
+  return NextResponse.json(result.response, { status: 200 })
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -49,6 +63,22 @@ export async function POST(request: NextRequest) {
 
     if (payload.type === INTERACTION_TYPE_PING) {
       return NextResponse.json({ type: 1 })
+    }
+
+    if (
+      payload.type === INTERACTION_TYPE_APPLICATION_COMMAND &&
+      payload.data?.name?.toLowerCase() === JOIN_BATTLES_COMMAND
+    ) {
+      return respond(handleJoinBattles(payload))
+    }
+
+    if (
+      payload.type === INTERACTION_TYPE_MESSAGE_COMPONENT &&
+      payload.data?.custom_id?.startsWith(COMPONENT_PREFIX)
+    ) {
+      const result = await handleNetbirdComponent(payload)
+      if (result) return respond(result)
+      return NextResponse.json({ error: "Unknown component" }, { status: 400 })
     }
 
     if (payload.type === INTERACTION_TYPE_APPLICATION_COMMAND && payload.data) {

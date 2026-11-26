@@ -18,11 +18,16 @@ interface DiscordOption {
 
 export interface InteractionPayload {
   type: number
+  application_id?: string
+  token?: string
   data?: {
     id: string
     name: string
     type?: number
     options?: DiscordOption[]
+    /** MESSAGE_COMPONENT interactions: the button's custom id. */
+    custom_id?: string
+    component_type?: number
   }
   member?: { user: { id: string; username: string } }
   user?: { id: string; username: string }

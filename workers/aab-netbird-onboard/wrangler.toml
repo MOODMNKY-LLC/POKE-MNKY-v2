@@ -1,0 +1,29 @@
+# aab-netbird-onboard: creates and revokes NetBird invites for the POKE MNKY app.
+#
+# DO NOT DEPLOY without Simeon's approval. See docs/NETBIRD-AUTOMATED-ONBOARDING.md for the ordered rollout.
+#
+# Secrets (set by a human with `wrangler secret put <NAME>`; never commit values, never put them in [vars]):
+#   NETBIRD_API_TOKEN  NetBird personal access token of a dedicated service user that may create invites
+#   DISCORD_BOT_TOKEN  Discord bot token used only to send DMs
+#   SIGNING_SECRET     shared HMAC secret; must equal NETBIRD_ONBOARD_SIGNING_SECRET in Vercel
+
+name = "aab-netbird-onboard"
+main = "src/index.ts"
+compatibility_date = "2026-11-01"
+workers_dev = true
+
+[vars]
+# Kill switch. Anything other than the exact string "true" means OFF (requests get HTTP 503).
+ONBOARDING_ENABLED = "false"
+NETBIRD_API_BASE = "https://netbird.moodmnky.com"
+# NetBird group id that every invited member is placed in. Empty means the Worker refuses to create invites.
+NETBIRD_LEAGUE_GROUP_ID = ""
+# 72 hours
+INVITE_TTL_SECONDS = "259200"
+# Maximum new or regenerated invites per UTC day.
+DAILY_INVITE_CAP = "20"
+
+[[kv_namespaces]]
+binding = "ONBOARD_KV"
+# Placeholder. Create the namespace (`wrangler kv namespace create ONBOARD_KV`) and paste its id here before deploying.
+id = "REPLACE_WITH_KV_NAMESPACE_ID"

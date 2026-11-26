@@ -34,6 +34,8 @@ const eslintConfig = defineConfig([
     "node_modules/**",
     "scripts/**",
     "agents/**",
+    // Cloudflare Workers are deployed separately and have their own tsconfig and tests.
+    "workers/**",
     "supabase/functions/**",
     "docs/**",
     "coverage/**",
