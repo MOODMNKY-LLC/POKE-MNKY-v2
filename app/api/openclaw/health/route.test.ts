@@ -10,7 +10,13 @@ vi.mock("@/lib/openclaw/gateway-client", () => ({
 
 import { GET } from "./route"
 
-const KEYS = ["OPENCLAW_GATEWAY_URL", "OPENCLAW_GATEWAY_TOKEN", "OPENCLAW_AGENT_ID"] as const
+const KEYS = [
+  "OPENCLAW_GATEWAY_URL",
+  "OPENCLAW_GATEWAY_TOKEN",
+  "OPENCLAW_AGENT_ID",
+  "OPENCLAW_CF_ACCESS_CLIENT_ID",
+  "OPENCLAW_CF_ACCESS_CLIENT_SECRET",
+] as const
 
 describe("GET /api/openclaw/health", () => {
   const previous = new Map<string, string | undefined>()
@@ -24,7 +30,7 @@ describe("GET /api/openclaw/health", () => {
     previous.clear()
   })
 
-  function setEnv(next: Record<(typeof KEYS)[number], string | undefined>) {
+  function setEnv(next: Partial<Record<(typeof KEYS)[number], string | undefined>>) {
     for (const key of KEYS) {
       if (!previous.has(key)) previous.set(key, process.env[key])
       const value = next[key]
@@ -45,6 +51,47 @@ describe("GET /api/openclaw/health", () => {
       ok: false,
       error: "unavailable",
       message: "AI chat is unavailable right now",
+      authMode: "token",
+      enabled: false,
+    })
+  })
+
+  it("reports configured for cf-access and does not open a socket or reveal secrets", async () => {
+    setEnv({
+      OPENCLAW_GATEWAY_URL: "https://gateway.example",
+      OPENCLAW_GATEWAY_TOKEN: undefined,
+      OPENCLAW_AGENT_ID: "member-agent",
+      OPENCLAW_CF_ACCESS_CLIENT_ID: "test-cf-id",
+      OPENCLAW_CF_ACCESS_CLIENT_SECRET: "test-cf-secret",
+    })
+    const response = await GET()
+    expect(response.status).toBe(200)
+    const body = await response.json()
+    expect(body).toMatchObject({
+      ok: true,
+      configured: true,
+      authMode: "cf-access",
+      enabled: true,
+      agentId: "member-agent",
+    })
+    expect(JSON.stringify(body)).not.toContain("test-cf-secret")
+    expect(JSON.stringify(body)).not.toContain("test-cf-id")
+  })
+
+  it("fails closed for a URL and agent id with no auth", async () => {
+    setEnv({
+      OPENCLAW_GATEWAY_URL: "wss://gateway.example/ws",
+      OPENCLAW_GATEWAY_TOKEN: undefined,
+      OPENCLAW_AGENT_ID: "stale-agent",
+      OPENCLAW_CF_ACCESS_CLIENT_ID: undefined,
+      OPENCLAW_CF_ACCESS_CLIENT_SECRET: undefined,
+    })
+    const response = await GET()
+    expect(response.status).toBe(503)
+    await expect(response.json()).resolves.toMatchObject({
+      ok: false,
+      enabled: false,
+      authMode: "none",
     })
   })
 })

@@ -9,6 +9,8 @@ const KEYS = [
   "OPENCLAW_AGENT_ID",
   "OPENCLAW_HOOKS_TOKEN",
   "OPENCLAW_GATEWAY_URL",
+  "OPENCLAW_CF_ACCESS_CLIENT_ID",
+  "OPENCLAW_CF_ACCESS_CLIENT_SECRET",
 ] as const
 
 describe("chat availability without OPENAI_API_KEY", () => {
@@ -23,7 +25,7 @@ describe("chat availability without OPENAI_API_KEY", () => {
     previous.clear()
   })
 
-  function setEnv(next: Record<string, string | undefined>) {
+  function setEnv(next: Partial<Record<(typeof KEYS)[number], string | undefined>>) {
     for (const key of KEYS) {
       if (!previous.has(key)) previous.set(key, process.env[key])
       const value = next[key]
@@ -87,6 +89,34 @@ describe("chat availability without OPENAI_API_KEY", () => {
       OPENCLAW_GATEWAY_URL: undefined,
     })
     expect(isOpenAIConfigured()).toBe(false)
+    expect(isLeagueChatAvailable()).toBe(false)
+  })
+
+  it("keeps league chat available on Cloudflare Access without a gateway token or OpenAI key", () => {
+    setEnv({
+      OPENAI_API_KEY: undefined,
+      AI_CHAT_PROVIDER: "openclaw",
+      OPENCLAW_GATEWAY_TOKEN: undefined,
+      OPENCLAW_AGENT_ID: "member-agent",
+      OPENCLAW_HOOKS_TOKEN: undefined,
+      OPENCLAW_GATEWAY_URL: "https://gateway.example",
+      OPENCLAW_CF_ACCESS_CLIENT_ID: "access-id",
+      OPENCLAW_CF_ACCESS_CLIENT_SECRET: "access-secret",
+    })
+    expect(isLeagueChatAvailable()).toBe(true)
+  })
+
+  it("disables league chat when a URL and agent id have no auth", () => {
+    setEnv({
+      OPENAI_API_KEY: "sk-test",
+      AI_CHAT_PROVIDER: undefined,
+      OPENCLAW_GATEWAY_TOKEN: undefined,
+      OPENCLAW_AGENT_ID: "stale-agent",
+      OPENCLAW_HOOKS_TOKEN: undefined,
+      OPENCLAW_GATEWAY_URL: "wss://gateway.example/ws",
+      OPENCLAW_CF_ACCESS_CLIENT_ID: undefined,
+      OPENCLAW_CF_ACCESS_CLIENT_SECRET: undefined,
+    })
     expect(isLeagueChatAvailable()).toBe(false)
   })
 

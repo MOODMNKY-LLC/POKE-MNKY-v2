@@ -39,6 +39,8 @@ const KEYS = [
   "OPENCLAW_HOOKS_TOKEN",
   "OPENCLAW_GATEWAY_URL",
   "OPENCLAW_HTTP_CHAT",
+  "OPENCLAW_CF_ACCESS_CLIENT_ID",
+  "OPENCLAW_CF_ACCESS_CLIENT_SECRET",
 ] as const
 
 const messages = [{ role: "user", parts: [{ type: "text", text: "Who should I draft?" }] }]

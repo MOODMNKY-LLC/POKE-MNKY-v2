@@ -36,9 +36,12 @@ export async function POST(request: Request) {
       if (shouldRouteChatToOpenClaw()) {
         const supabase = await createServerClient()
         const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+          return new Response('Unauthorized', { status: 401 })
+        }
         return handleOpenClawChatRequest(request, {
           mode: 'pokedex',
-          userId: user?.id ?? null,
+          userId: user.id,
           systemPrompt: openClawModeSystemPrompt('pokedex', {
             selectedPokemon: selectedPokemon ? String(selectedPokemon) : undefined,
           }),

@@ -27,7 +27,13 @@ Short inventory of remaining `/api/ai/*` routes after the AI trim. MCP tool mode
 
 ## OpenClaw
 
-League chat uses the OpenClaw gateway only when `OPENCLAW_GATEWAY_URL`, `OPENCLAW_AGENT_ID`, and `OPENCLAW_GATEWAY_TOKEN` are all set. There is no default host or agent id. If the URL or agent id is unset, those routes return HTTP 503 `{ error: "unavailable", message: "AI chat is unavailable right now" }` and do not call the gateway. `AI_CHAT_PROVIDER=openclaw` still blocks the OpenAI fallback. A configured OpenClaw path does not require `OPENAI_API_KEY`.
+League chat uses the OpenClaw gateway only when `OPENCLAW_GATEWAY_URL`, `OPENCLAW_AGENT_ID`, and an auth mode are all set. There is no default host or agent id. Set `OPENCLAW_AGENT_ID=aab-member` for the member agent. Auth is Cloudflare Access when both `OPENCLAW_CF_ACCESS_CLIENT_ID` and `OPENCLAW_CF_ACCESS_CLIENT_SECRET` are set (those requests send the Access service-token headers and do not send `Authorization`). Otherwise a legacy `OPENCLAW_GATEWAY_TOKEN` is a bearer token. A URL and agent id with neither auth mode — including a stale gateway host — fail closed: `enabled` is false and chat is not called.
+
+The Access path is `POST {OPENCLAW_GATEWAY_URL}/v1/chat/completions` with `model` `openclaw/<OPENCLAW_AGENT_ID>`. `GET /api/openclaw/health` reports `authMode` and `enabled` only. In `cf-access` mode it reports `configured` and does not open a WebSocket or call the model.
+
+If the URL, agent id, or auth is unset, the five member routes return HTTP 503 `{ error: "unavailable", message: "AI chat is unavailable right now" }` and do not call the gateway. The Ask POKE MNKY dock then uses sources-only `/api/ai/aab-knowledge` when that flag is on. `AI_CHAT_PROVIDER=openclaw` still blocks the OpenAI fallback. A configured OpenClaw path does not require `OPENAI_API_KEY`.
+
+Limits, before the gateway is called: a user message longer than `AI_CHAT_MAX_MESSAGE_CHARS` (default 2,000) is rejected, and history is trimmed to the last `AI_CHAT_MAX_HISTORY` turns (default 10) plus the server system prompt. Requests that pass validation are counted per coach (`AI_CHAT_LIMIT_PER_HOUR` default 20 rolling hours, `AI_CHAT_LIMIT_PER_DAY` default 100 America/New_York days) and app-wide (`AI_CHAT_LIMIT_GLOBAL_PER_DAY` default 300 per New York day). Over the limit is HTTP 429 `{ code: "rate_limited", scope, retryAfter }`. The counter is `public.ai_chat_usage` via `consume_ai_chat_quota` (service role only; the migration is additive). A limiter store error is HTTP 503 `{ code: "chat_unavailable" }` so a broken counter cannot turn into unlimited use. Preview has none of the `OPENCLAW_*` variables, so chat stays unavailable there.
 
 ## OpenAI key absent
 
