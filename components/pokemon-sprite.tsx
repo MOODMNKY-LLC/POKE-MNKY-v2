@@ -148,6 +148,8 @@ export function PokemonSprite({
         style={imageStyle}
         className={cn("transition-opacity duration-300")}
         onError={handleImageError}
+        // Pixel-art sprites must stay byte-for-byte (image-rendering: pixelated), and the
+        // `sprite` prop / MinIO fallback can be any host, so the optimizer is bypassed.
         unoptimized
         priority={mode === "artwork"}
         loading={mode === "artwork" ? "eager" : "lazy"}

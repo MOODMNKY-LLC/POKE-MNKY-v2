@@ -1,7 +1,19 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    unoptimized: true,
+    formats: ['image/avif', 'image/webp'],
+    // 31 days: limits re-optimization work and usage on Vercel.
+    minimumCacheTTL: 2678400,
+    // Every remote host a next/image can receive. Images whose host cannot be
+    // predicted must set `unoptimized` on that single <Image> instead.
+    remotePatterns: [
+      // PokeAPI sprites (lib/pokemon-utils.ts, lib/pokemon-ui-sprites.ts)
+      { protocol: 'https', hostname: 'raw.githubusercontent.com', pathname: '/PokeAPI/sprites/**' },
+      // YouTube thumbnails returned by the YouTube Data API (components/videos/video-card.tsx)
+      { protocol: 'https', hostname: 'i.ytimg.com', pathname: '/vi/**' },
+      // Supabase Storage public sprites (getSupabaseSpriteUrl in lib/pokemon-utils.ts)
+      { protocol: 'https', hostname: '*.supabase.co', pathname: '/storage/v1/object/public/**' },
+    ],
   },
   // Exclude discord.js from server-side bundling (uses native modules)
   serverExternalPackages: ['discord.js'],

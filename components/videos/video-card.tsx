@@ -35,6 +35,7 @@ export function VideoCard({ video, viewMode, onClick }: VideoCardProps) {
                   src={video.thumbnail_medium_url}
                   alt={video.title}
                   fill
+                  sizes="256px"
                   className="object-cover"
                 />
               ) : (
@@ -96,6 +97,7 @@ export function VideoCard({ video, viewMode, onClick }: VideoCardProps) {
               src={thumbnailUrl}
               alt={video.title}
               fill
+              sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
               className="object-cover rounded-md border shadow-lg transition-all duration-200 ease-out group-hover:brightness-[0.8]"
             />
           ) : (
