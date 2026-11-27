@@ -27,18 +27,17 @@ describe("showdown identity flags", () => {
     }
   })
 
-  it("does not enable oauth from CLIENT_ID alone while unimplemented", () => {
-    expect(SHOWDOWN_OAUTH_LINK_IMPLEMENTED).toBe(false)
+  it("enables oauth availability only when implemented and client id set", () => {
+    expect(SHOWDOWN_OAUTH_LINK_IMPLEMENTED).toBe(true)
     expect(isShowdownOauthLinkAvailable({})).toBe(false)
     expect(
       isShowdownOauthLinkAvailable({ SHOWDOWN_OAUTH_CLIENT_ID: "ps-client" }),
-    ).toBe(false)
+    ).toBe(true)
     const status = getShowdownIdentityStatus({
       SHOWDOWN_OAUTH_CLIENT_ID: "ps-client",
     })
-    expect(status.oauth_link_available).toBe(false)
-    expect(status.oauth_link_implemented).toBe(false)
-    expect(status.oauth_unavailable_reason?.toLowerCase()).toContain("not shipped")
+    expect(status.oauth_link_available).toBe(true)
+    expect(status.oauth_link_implemented).toBe(true)
     // Never leak client id into status payload
     expect(JSON.stringify(status)).not.toContain("ps-client")
   })

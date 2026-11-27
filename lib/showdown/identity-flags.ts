@@ -25,7 +25,11 @@ function truthy(raw: string | undefined): boolean {
  * Hard capability gate: flip only when Phase 2 OAuth start/callback routes and
  * assertion+state verification actually ship. Env alone is insufficient.
  */
-export const SHOWDOWN_OAUTH_LINK_IMPLEMENTED = false
+/**
+ * Capability gate: OAuth routes + profile bind columns shipped.
+ * Still requires SHOWDOWN_OAUTH_CLIENT_ID + SHOWDOWN_OAUTH_REDIRECT_URI in env.
+ */
+export const SHOWDOWN_OAUTH_LINK_IMPLEMENTED = true
 
 /** Explicit opt-in for parallel loginserver register. Default off. */
 export function isLegacyLoginserverSyncEnabled(

@@ -16,28 +16,29 @@ Baseline: `main` @ `09f5817` (#77). Companion Notion plan: [Showdown Identity + 
 | Calc web + Discord | `/calc` + `/dashboard/calc` → `calc.pokemonshowdown.com`; Discord `/calc` → `POST /api/calc` |
 | Pokédex ingest failure path | `triggerShowdownPokedexIngestion` returns `success: false` when Edge Function fails or `processed===0` with errors |
 
-## Shipped in app (flags still OFF for ingest / OAuth writes)
+## Shipped in app
 
 - `lib/showdown/public-web-api.ts` + authenticated proxies under `/api/showdown/public/*`
 - Replay discovery UI on attach panel (requires `REPLAY_INGEST_ENABLED`)
-- OAuth start/callback/unlink routes (fail-closed 503 until capability gate + client id + redirect)
-- Held migration: `supabase/migrations/_held_local_only_not_on_prod/20261127210000_showdown_verified_link_columns.sql`
+- OAuth start/callback/unlink with profile bind (`showdown_userid*`)
+- Migration: `supabase/migrations/20261127210000_showdown_verified_link_columns.sql`
+- `SHOWDOWN_OAUTH_LINK_IMPLEMENTED = true` (still needs client id + redirect env)
 - Removed retired `aab-login.moodmnky.com` fallback from legacy sync paths
 
-## Blocked / unverified (need human / staging)
+## Rollout (user-approved)
 
-| Item | Blocker |
+| Item | State |
 | --- | --- |
-| Verified OAuth linking live | No approved `SHOWDOWN_OAUTH_CLIENT_ID`; register via [PS OAuth form](https://forms.gle/VAoSjqHn4zwem7tp9) with exact production origin. `SHOWDOWN_OAUTH_LINK_IMPLEMENTED` remains `false`. |
-| Profile bind columns on prod | Held migration not applied (by design) |
-| Replay paste → preview → confirm on staging | Needs `REPLAY_INGEST_ENABLED=true` + migrations applied in staging + authenticated coach session |
-| Live Discord guild command inventory | No bot token in this environment (see Discord guide PR) |
-| Cloud `getteams` sync | Not documented for third-party OAuth; **out of scope** — do not promise |
-| Production flag flips / SQL apply | Explicit user approval required |
+| OAuth capability gate | **on** in code |
+| Profile bind migration | in active migrations path — apply on deploy |
+| `SHOWDOWN_OAUTH_CLIENT_ID` + redirect | **set in Vercel** after PS form approval |
+| `REPLAY_INGEST_ENABLED` | set `true` in Vercel when ready |
 
-## Operator enablement checklist (do not run without approval)
+## Still needs ops env
 
-1. Submit OAuth client form; set `SHOWDOWN_OAUTH_CLIENT_ID` + `SHOWDOWN_OAUTH_REDIRECT_URI`
-2. Review + apply held migration on staging only
-3. Flip `SHOWDOWN_OAUTH_LINK_IMPLEMENTED` in code after bind writes are wired
-4. Staging soak for `REPLAY_INGEST_ENABLED` before production
+1. Submit [PS OAuth form](https://forms.gle/VAoSjqHn4zwem7tp9); register exact production origin
+2. `SHOWDOWN_OAUTH_CLIENT_ID` + `SHOWDOWN_OAUTH_REDIRECT_URI=https://<host>/api/showdown/oauth/callback`
+3. Apply migration `20261127210000_showdown_verified_link_columns`
+4. Optional: `REPLAY_INGEST_ENABLED=true` after staging soak
+
+Cloud `getteams` / password collection remain out of scope.
