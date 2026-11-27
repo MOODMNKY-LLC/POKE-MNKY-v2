@@ -5,6 +5,7 @@ import {
   createOauthBindingPayload,
   signOauthBinding,
 } from "./oauth-binding"
+import { createMemoryOauthJtiStore } from "./oauth-jti"
 import { verifyOauthOwnershipProof } from "./oauth-verify"
 
 const { publicKey, privateKey } = generateKeyPairSync("rsa", {
@@ -142,11 +143,55 @@ describe("verifyOauthOwnershipProof", () => {
     expect(result.ok).toBe(false)
     if (!result.ok) expect(result.code).toBe("BINDING_MISSING")
   })
+
+  it("rejects signed unregistered userType=1 even with valid binding", () => {
+    const data = `${CHALLENGE},freename,1,${NOW},sim3.psim.us`
+    const signer = createSign("RSA-SHA1")
+    signer.update(data)
+    signer.end()
+    const assertion = `${data};${signer.sign(privateKeyPem, "hex")}`
+    const result = verifyOauthOwnershipProof({
+      leagueUserId: LEAGUE_USER,
+      bindingCookie: bindingCookie(),
+      bindingSecret: SECRET,
+      stateFromQuery: STATE,
+      assertion,
+      userParam: "freename",
+      nowSec: NOW,
+      assertionOptions: { publicKeyPem },
+    })
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.code).toBe("ASSERTION_UNREGISTERED_USER")
+  })
+
+  it("consumes JTI server-side so Cookie-header replay fails", async () => {
+    const store = createMemoryOauthJtiStore()
+    const payload = createOauthBindingPayload({
+      leagueUserId: LEAGUE_USER,
+      state: STATE,
+      challenge: CHALLENGE,
+      nowSec: NOW,
+    })
+    const first = await store.tryConsume({
+      jti: payload.jti,
+      leagueUserId: LEAGUE_USER,
+      expiresAt: new Date(payload.exp * 1000),
+    })
+    const second = await store.tryConsume({
+      jti: payload.jti,
+      leagueUserId: LEAGUE_USER,
+      expiresAt: new Date(payload.exp * 1000),
+    })
+    expect(first.ok).toBe(true)
+    expect(second.ok).toBe(false)
+    if (!second.ok) expect(second.code).toBe("JTI_REPLAY")
+  })
 })
 
 describe("oauth callback + unlink routes (mocked provider proof)", () => {
   const profileUpdate = vi.fn()
   const profileSelect = vi.fn()
+  const jtiInsert = vi.fn()
   const getUser = vi.fn()
 
   beforeEach(() => {
@@ -157,6 +202,7 @@ describe("oauth callback + unlink routes (mocked provider proof)", () => {
     process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-for-tests"
     profileUpdate.mockReset()
     profileSelect.mockReset()
+    jtiInsert.mockReset()
     getUser.mockReset()
     getUser.mockResolvedValue({ data: { user: { id: LEAGUE_USER } } })
     profileSelect.mockReturnValue({
@@ -169,6 +215,7 @@ describe("oauth callback + unlink routes (mocked provider proof)", () => {
     profileUpdate.mockReturnValue({
       eq: vi.fn().mockResolvedValue({ error: null }),
     })
+    jtiInsert.mockResolvedValue({ error: null })
   })
 
   afterEach(() => {
@@ -188,6 +235,9 @@ describe("oauth callback + unlink routes (mocked provider proof)", () => {
     vi.doMock("@/lib/supabase/service", () => ({
       createServiceRoleClient: vi.fn(() => ({
         from: vi.fn((table: string) => {
+          if (table === "showdown_oauth_consumed_jti") {
+            return { insert: jtiInsert }
+          }
           if (table !== "profiles") throw new Error(`unexpected table ${table}`)
           return {
             select: profileSelect,
@@ -196,10 +246,6 @@ describe("oauth callback + unlink routes (mocked provider proof)", () => {
         }),
       })),
     }))
-    // Force assertion verification to use test key via oauth-verify path:
-    // we patch verifyShowdownAssertion by signing with official-format and
-    // injecting through verifyOauthOwnershipProof's assertionOptions in unit tests above.
-    // For route tests, mock oauth-verify to keep route wiring focused.
     const verifyOauthOwnershipProofMock = vi.fn()
     vi.doMock("@/lib/showdown/oauth-verify", () => ({
       verifyOauthOwnershipProof: verifyOauthOwnershipProofMock,
@@ -209,10 +255,9 @@ describe("oauth callback + unlink routes (mocked provider proof)", () => {
     return { callback, unlink, verifyOauthOwnershipProofMock }
   }
 
-  it("binds profile on valid proof and clears binding cookie", async () => {
-    const { callback, verifyOauthOwnershipProofMock } = await loadRoutes()
-    verifyOauthOwnershipProofMock.mockReturnValue({
-      ok: true,
+  function validProof() {
+    return {
+      ok: true as const,
       userid: "zarel",
       binding: createOauthBindingPayload({
         leagueUserId: LEAGUE_USER,
@@ -221,14 +266,19 @@ describe("oauth callback + unlink routes (mocked provider proof)", () => {
         nowSec: NOW,
       }),
       assertion: {
-        ok: true,
+        ok: true as const,
         userid: "zarel",
         challenge: CHALLENGE,
         userType: "2",
         issuedAtSec: NOW,
         hostname: "sim3.psim.us",
       },
-    })
+    }
+  }
+
+  it("binds profile on valid proof, consumes JTI, and clears binding cookie", async () => {
+    const { callback, verifyOauthOwnershipProofMock } = await loadRoutes()
+    verifyOauthOwnershipProofMock.mockReturnValue(validProof())
 
     const cookie = bindingCookie()
     const req = new NextRequest(
@@ -238,9 +288,26 @@ describe("oauth callback + unlink routes (mocked provider proof)", () => {
     const res = await callback.GET(req)
     expect(res.status).toBe(307)
     expect(res.headers.get("location")).toContain("showdown_linked=1")
+    expect(jtiInsert).toHaveBeenCalled()
     expect(profileUpdate).toHaveBeenCalled()
     const setCookie = res.headers.getSetCookie?.() ?? []
     expect(setCookie.some((c) => c.startsWith("ps_oauth_binding=;"))).toBe(true)
+  })
+
+  it("rejects Cookie-header replay when JTI was already consumed", async () => {
+    const { callback, verifyOauthOwnershipProofMock } = await loadRoutes()
+    verifyOauthOwnershipProofMock.mockReturnValue(validProof())
+    jtiInsert.mockResolvedValue({ error: { code: "23505", message: "duplicate" } })
+
+    const req = new NextRequest(
+      `https://example.com/api/showdown/oauth/callback?assertion=x&state=${STATE}&user=zarel`,
+      { headers: { cookie: `ps_oauth_binding=${bindingCookie()}` } },
+    )
+    const res = await callback.GET(req)
+    expect(res.status).toBe(409)
+    const body = await res.json()
+    expect(body.code).toBe("JTI_REPLAY")
+    expect(profileUpdate).not.toHaveBeenCalled()
   })
 
   it("fails closed on invalid proof without updating profile", async () => {
@@ -257,6 +324,7 @@ describe("oauth callback + unlink routes (mocked provider proof)", () => {
     )
     const res = await callback.GET(req)
     expect(res.status).toBe(400)
+    expect(jtiInsert).not.toHaveBeenCalled()
     expect(profileUpdate).not.toHaveBeenCalled()
   })
 

@@ -17,12 +17,13 @@ The OAuth callback trusted the redirect `user` query param and an unbound
 | Control | Behavior |
 | --- | --- |
 | Provider proof | RSA-SHA1 verify of assertion with official Main loginserver public key (`lib/showdown/assertion.ts`) |
+| Registered only | Rejects Showdown `userType === "1"` (unregistered name) and `guest*` userids |
 | Userid source | Derived from verified assertion fields — never from `user` alone |
 | Request binding | HMAC cookie `ps_oauth_binding` = league uid + state + challenge + jti + exp |
 | State | Appended to registered `redirect_uri` (`?state=`); compared on callback |
 | Challenge | `4\|<hex>` challstr on authorize; hex embedded in assertion must match binding |
-| Single-use | Binding cookie cleared on every callback attempt (success or fail) |
-| Fail closed | Missing/invalid proof, session mismatch, state mismatch, stale assertion → 4xx, no profile write |
+| Single-use | Server-side atomic JTI insert into `showdown_oauth_consumed_jti` before profile write; cookie also cleared |
+| Fail closed | Missing/invalid proof, unregistered assertion, session/state mismatch, JTI replay, stale assertion → 4xx/409, no profile write |
 
 Public profile / ladder / replay discovery stay separate read-only surfaces and
 **do not** prove ownership.
@@ -51,9 +52,11 @@ Link control stays hidden (`oauth_link_available: false`).
    - `SHOWDOWN_OAUTH_CLIENT_ID=<issued public id>`
    - `SHOWDOWN_OAUTH_REDIRECT_URI=https://<staging-host>/api/showdown/oauth/callback`
    - `SHOWDOWN_OAUTH_BINDING_SECRET=<long random>` (or rely on `SUPABASE_SERVICE_ROLE_KEY` derivation)
-3. Apply migration `supabase/migrations/20261127210000_showdown_verified_link_columns.sql` on **staging** Postgres.
+3. Apply on **staging** Postgres only:
+   - `supabase/migrations/20261127210000_showdown_verified_link_columns.sql`
+   - `supabase/migrations/20261127213000_showdown_oauth_consumed_jti.sql`
 4. Smoke: Profile → Link → authorize on play.pokemonshowdown.com → land on `/profile?showdown_linked=1` with `profiles.showdown_userid` set; Unlink clears columns.
-5. Negative smoke: replay callback URL → `BINDING_MISSING`; wrong session cookie → `BINDING_USER_MISMATCH`.
+5. Negative smoke: replay callback with same Cookie → `JTI_REPLAY`; wrong session → `BINDING_USER_MISMATCH`; forged type-1 assertion → `ASSERTION_UNREGISTERED_USER`.
 
 ## Production enablement (later, coordinator-approved)
 

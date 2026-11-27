@@ -6,6 +6,7 @@ import {
   getShowdownOauthPrerequisites,
   PS_OAUTH_BINDING_COOKIE,
 } from "@/lib/showdown/oauth"
+import { createSupabaseOauthJtiStore } from "@/lib/showdown/oauth-jti"
 import { verifyOauthOwnershipProof } from "@/lib/showdown/oauth-verify"
 
 function clearOauthCookies(response: NextResponse): NextResponse {
@@ -17,7 +18,7 @@ function clearOauthCookies(response: NextResponse): NextResponse {
 
 /**
  * OAuth redirect handler. Verifies provider-signed assertion + session binding,
- * then binds the derived Showdown userid to the league profile.
+ * atomically consumes the binding JTI, then binds the derived Showdown userid.
  * Does not store passwords or enable getteams.
  */
 export async function GET(request: NextRequest) {
@@ -69,7 +70,6 @@ export async function GET(request: NextRequest) {
     userParam: sp.get("user"),
   })
 
-  // Consume binding on every callback attempt (single-use / anti-replay).
   if (!proof.ok) {
     return clearOauthCookies(
       NextResponse.json(
@@ -79,8 +79,24 @@ export async function GET(request: NextRequest) {
     )
   }
 
-  const oauthUser = proof.userid
   const admin = createServiceRoleClient()
+  // Atomically consume JTI before any profile write (server-side anti-replay).
+  const jtiStore = createSupabaseOauthJtiStore(admin)
+  const consumed = await jtiStore.tryConsume({
+    jti: proof.binding.jti,
+    leagueUserId: user.id,
+    expiresAt: new Date(proof.binding.exp * 1000),
+  })
+  if (!consumed.ok) {
+    return clearOauthCookies(
+      NextResponse.json(
+        { error: consumed.message, code: consumed.code },
+        { status: consumed.code === "JTI_REPLAY" ? 409 : 500 },
+      ),
+    )
+  }
+
+  const oauthUser = proof.userid
   const { data: conflict } = await admin
     .from("profiles")
     .select("id")
@@ -115,7 +131,7 @@ export async function GET(request: NextRequest) {
         {
           error: error.message,
           code: "SHOWDOWN_OAUTH_BIND_FAILED",
-          hint: "Ensure migration 20261127210000_showdown_verified_link_columns is applied on the target environment.",
+          hint: "Ensure migrations 20261127210000_showdown_verified_link_columns and 20261127213000_showdown_oauth_consumed_jti are applied on the target environment.",
         },
         { status: 500 },
       ),

@@ -97,4 +97,16 @@ describe("showdown assertion verification", () => {
     expect(result.ok).toBe(false)
     if (!result.ok) expect(result.code).toBe("ASSERTION_STALE")
   })
+
+  it("rejects signed unregistered (userType 1) assertions", () => {
+    const data = `${challenge},freename,1,${nowSec},sim3.psim.us`
+    const raw = signAssertion(data, privateKeyPem)
+    const result = verifyShowdownAssertion(raw, {
+      expectedChallenge: challenge,
+      nowSec,
+      publicKeyPem,
+    })
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.code).toBe("ASSERTION_UNREGISTERED_USER")
+  })
 })

@@ -66,7 +66,17 @@ export type AssertionVerifyFail = {
     | "ASSERTION_CHALLENGE_MISMATCH"
     | "ASSERTION_STALE"
     | "ASSERTION_SIGNATURE_INVALID"
+    | "ASSERTION_UNREGISTERED_USER"
   message: string
+}
+
+/**
+ * Showdown usertype `1` is issued for unregistered names without proving
+ * ownership of a central account. Only registered (logged-in) types may bind.
+ * See loginserver Session.getAssertion / ntbb-session.lib.php.
+ */
+export function isRegisteredShowdownUserType(userType: string): boolean {
+  return userType !== "1" && /^\d+$/.test(userType)
 }
 
 export type AssertionVerifyResult = AssertionVerifyOk | AssertionVerifyFail
@@ -194,6 +204,23 @@ export function verifyShowdownAssertion(
       ok: false,
       code: "ASSERTION_SIGNATURE_INVALID",
       message: "Showdown assertion signature could not be verified.",
+    }
+  }
+
+  if (!isRegisteredShowdownUserType(parsed.userType)) {
+    return {
+      ok: false,
+      code: "ASSERTION_UNREGISTERED_USER",
+      message:
+        "Showdown assertion is for an unregistered name and does not prove account ownership.",
+    }
+  }
+
+  if (parsed.userid.startsWith("guest")) {
+    return {
+      ok: false,
+      code: "ASSERTION_UNREGISTERED_USER",
+      message: "Guest Showdown identities cannot be linked.",
     }
   }
 
