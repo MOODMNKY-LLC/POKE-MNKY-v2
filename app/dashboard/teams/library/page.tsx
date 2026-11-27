@@ -3,9 +3,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service"
 import { getCurrentUserProfile } from "@/lib/rbac"
 import { redirect } from "next/navigation"
 import {
-  SidebarInset,
-  SidebarTrigger,
-} from "@/components/ui/sidebar"
+  SidebarInset } from "@/components/ui/sidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Library, ArrowLeft } from "lucide-react"
@@ -30,8 +28,7 @@ function readStockTeam(value: unknown): StockTeamCard | null {
     format: typeof row.format === "string" ? row.format : null,
     generation: typeof row.generation === "number" ? row.generation : null,
     pokemon_count: typeof row.pokemon_count === "number" ? row.pokemon_count : 0,
-    folder_path: typeof row.folder_path === "string" ? row.folder_path : null,
-  }
+    folder_path: typeof row.folder_path === "string" ? row.folder_path : null }
 }
 
 export const dynamic = 'force-dynamic'
@@ -39,8 +36,7 @@ export const dynamic = 'force-dynamic'
 export default async function TeamLibraryPage() {
   const supabase = await createClient()
   const {
-    data: { user },
-  } = await supabase.auth.getUser()
+    data: { user } } = await supabase.auth.getUser()
 
   if (!user) {
     redirect("/auth/login")
@@ -72,8 +68,7 @@ export default async function TeamLibraryPage() {
   console.log("[Team Library] Stock teams query result:", {
     count: count || stockTeams?.length || 0,
     hasError: !!stockTeamsError,
-    userId: user?.id,
-  })
+    userId: user?.id })
 
   // Group by format
   const teamsByFormat: Record<string, StockTeamCard[]> = {}
@@ -90,13 +85,6 @@ export default async function TeamLibraryPage() {
 
   return (
     <>
-      <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-        <SidebarTrigger className="-ml-1" />
-        <div className="flex items-center gap-2">
-          <Library className="h-5 w-5" />
-          <h1 className="text-lg font-semibold">Team Library</h1>
-        </div>
-      </header>
       <div className="flex flex-1 flex-col gap-4 p-4 md:p-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">

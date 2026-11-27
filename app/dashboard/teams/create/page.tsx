@@ -1,9 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { getCurrentUserProfile } from "@/lib/rbac"
 import { redirect } from "next/navigation"
-import {
-  SidebarTrigger,
-} from "@/components/ui/sidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Upload, FileText } from "lucide-react"
@@ -14,8 +11,7 @@ export const dynamic = 'force-dynamic'
 export default async function CreateTeamPage() {
   const supabase = await createClient()
   const {
-    data: { user },
-  } = await supabase.auth.getUser()
+    data: { user } } = await supabase.auth.getUser()
 
   if (!user) {
     redirect("/auth/login")
@@ -29,13 +25,6 @@ export default async function CreateTeamPage() {
 
   return (
     <>
-      <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-        <SidebarTrigger className="-ml-1" />
-        <div className="flex items-center gap-2">
-          <FileText className="h-5 w-5" />
-          <h1 className="text-lg font-semibold">Create Team</h1>
-        </div>
-      </header>
       <div className="flex flex-1 flex-col gap-4 p-4 md:p-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">

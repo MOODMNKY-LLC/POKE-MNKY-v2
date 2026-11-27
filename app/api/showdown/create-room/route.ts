@@ -3,6 +3,7 @@ import { createServerClient } from '@/lib/supabase/server';
 import { createServiceRoleClient } from '@/lib/supabase/service';
 import { z } from 'zod';
 import { apiError, apiErrorInternal } from '@/lib/api-response';
+import { getShowdownClientUrl } from '@/lib/showdown/public-hosts';
 
 const createRoomSchema = z.object({
   match_id: z.string().uuid('match_id must be a valid UUID'),
@@ -70,7 +71,7 @@ export async function POST(request: NextRequest) {
     
     // Construct room URL
     // Showdown format: /battle-[format]-[roomId] or /battle-[roomId]
-    const showdownClientUrl = process.env.NEXT_PUBLIC_SHOWDOWN_CLIENT_URL || 'https://aab-play.moodmnky.com';
+    const showdownClientUrl = getShowdownClientUrl()
     const battleFormat = 'gen9avgatbest'; // Your league format - adjust as needed
     // Try format-specific URL first, fallback to simple room ID
     const roomUrl = `${showdownClientUrl}/battle-${battleFormat}-${roomId}`;

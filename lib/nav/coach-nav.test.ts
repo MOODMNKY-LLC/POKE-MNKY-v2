@@ -6,8 +6,10 @@ import {
   getMobileTabs,
   getNavFlags,
   getPaletteEntries,
+  getSectionSwitcherSections,
   getVisibleGroups,
   resolveActiveEntry,
+  resolveActiveSection,
   type CoachNavContext,
 } from "./coach-nav"
 import { draftPhaseFromStatuses } from "./coach-nav-context"
@@ -167,5 +169,29 @@ describe("draftPhaseFromStatuses", () => {
     expect(draftPhaseFromStatuses(["paused"])).toBe("active")
     expect(draftPhaseFromStatuses(["pending"])).toBe("upcoming")
     expect(draftPhaseFromStatuses([])).toBe("none")
+  })
+})
+
+describe("section switcher", () => {
+  it("always includes league home so coaches can leave the dashboard", () => {
+    const ids = getSectionSwitcherSections(coach).map((s) => s.id)
+    expect(ids[0]).toBe("league-home")
+    expect(ids).toEqual(expect.arrayContaining(["dashboard", "this-week", "showdown", "guides"]))
+  })
+
+  it("hides my-team for non-coaches and draft when none is scheduled", () => {
+    const ids = getSectionSwitcherSections({ ...DEFAULT_NAV_CONTEXT, isCoach: false, draftPhase: "none" }).map(
+      (s) => s.id,
+    )
+    expect(ids).not.toContain("my-team")
+    expect(ids).not.toContain("draft")
+  })
+
+  it("resolves the active section from the pathname", () => {
+    expect(resolveActiveSection("/")?.id).toBe("league-home")
+    expect(resolveActiveSection("/dashboard")?.id).toBe("dashboard")
+    expect(resolveActiveSection("/dashboard/teams/builder")?.id).toBe("showdown")
+    expect(resolveActiveSection("/dashboard/draft/board")?.id).toBe("draft")
+    expect(resolveActiveSection("/dashboard/guides/netbird")?.id).toBe("guides")
   })
 })

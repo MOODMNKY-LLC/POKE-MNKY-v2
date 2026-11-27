@@ -2,11 +2,17 @@
  * Utility functions for working with Pokémon Showdown replays
  */
 
+import {
+  getShowdownClientUrl,
+  getShowdownReplayBaseUrl,
+  PUBLIC_SHOWDOWN_REPLAY_URL,
+} from "@/lib/showdown/public-hosts"
+
 /**
  * Extract replay ID from a Showdown room URL
  * Handles various URL formats:
- * - https://aab-play.moodmnky.com/battle-gen9randombattle-35
- * - https://aab-replay.moodmnky.com/gen9randombattle-35
+ * - https://play.pokemonshowdown.com/battle-gen9randombattle-35
+ * - https://replay.pokemonshowdown.com/gen9randombattle-35
  * - gen9randombattle-35
  */
 export function extractReplayId(roomUrl: string | null | undefined): string | null {
@@ -30,7 +36,7 @@ export function extractReplayId(roomUrl: string | null | undefined): string | nu
     }
 
     return null;
-  } catch (error) {
+  } catch {
     // If URL parsing fails, try to extract ID directly
     const match = roomUrl.match(/(?:battle-)?([a-z0-9]+-[0-9]+)$/i);
     return match ? match[1].replace(/^battle-/, '') : null;
@@ -38,25 +44,28 @@ export function extractReplayId(roomUrl: string | null | undefined): string | nu
 }
 
 /**
- * Get replay log URL from replay ID
+ * Get replay log URL from replay ID (public replay host by default).
  */
 export function getReplayLogUrl(replayId: string, serverUrl?: string): string {
-  const baseUrl = serverUrl || process.env.NEXT_PUBLIC_SHOWDOWN_SERVER_URL || 'https://aab-showdown.moodmnky.com';
-  return `${baseUrl}/replay/${replayId}.log`;
+  const baseUrl = serverUrl || getShowdownReplayBaseUrl()
+  return `${baseUrl}/${replayId}.log`
 }
 
 /**
- * Get replay JSON URL from replay ID
+ * Get replay JSON URL from replay ID (public replay host by default).
  */
 export function getReplayJsonUrl(replayId: string, serverUrl?: string): string {
-  const baseUrl = serverUrl || process.env.NEXT_PUBLIC_SHOWDOWN_SERVER_URL || 'https://aab-showdown.moodmnky.com';
-  return `${baseUrl}/replay/${replayId}.json`;
+  const baseUrl = serverUrl || getShowdownReplayBaseUrl()
+  return `${baseUrl}/${replayId}.json`
 }
 
 /**
- * Get replay embed script URL
+ * Get replay embed script URL from the public client.
  */
 export function getReplayEmbedScriptUrl(clientUrl?: string): string {
-  const baseUrl = clientUrl || process.env.NEXT_PUBLIC_SHOWDOWN_CLIENT_URL || 'https://aab-play.moodmnky.com';
-  return `${baseUrl}/js/replay-embed.js`;
+  const baseUrl = clientUrl || getShowdownClientUrl()
+  return `${baseUrl}/js/replay-embed.js`
 }
+
+/** @deprecated Prefer getShowdownReplayBaseUrl — kept for older call sites. */
+export const DEFAULT_REPLAY_HOST = PUBLIC_SHOWDOWN_REPLAY_URL

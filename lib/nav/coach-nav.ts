@@ -8,6 +8,7 @@ import {
   ClipboardList,
   Hammer,
   History,
+  Home,
   LayoutDashboard,
   LayoutGrid,
   Library,
@@ -100,6 +101,10 @@ export interface CoachNavGroup {
 
 export const RESULT_SUBMIT_DISABLED_REASON =
   "Result submission is locked while the league sheet is the source of truth."
+
+function normalizePath(pathname: string): string {
+  return pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname
+}
 
 export const COACH_NAV_GROUPS: CoachNavGroup[] = [
   {
@@ -326,11 +331,12 @@ export const COACH_NAV_GROUPS: CoachNavGroup[] = [
         keywords: ["help", "docs", "how to"],
         children: [
           { id: "guide-overview", title: "Coach and team builder", href: "/dashboard/settings?tab=guides" },
-          { id: "guide-features", title: "League features (v3)", href: "/dashboard/guides/league-features-v3" },
-          { id: "guide-draft-session", title: "Create a draft session", href: "/dashboard/guides/create-draft-session" },
+          { id: "guide-features", title: "League features", href: "/dashboard/guides/league-features-v3" },
           { id: "guide-discord", title: "Discord integration", href: "/dashboard/guides/discord-integration" },
           { id: "guide-slash", title: "Discord slash commands", href: "/dashboard/guides/discord-slash-commands" },
-          { id: "guide-simulation", title: "League simulation", href: "/dashboard/guides/league-simulation" },
+          { id: "guide-netbird", title: "Battle network (NetBird)", href: "/dashboard/guides/netbird" },
+          { id: "guide-draft-session", title: "Create a draft session (admin)", href: "/dashboard/guides/create-draft-session" },
+          { id: "guide-simulation", title: "League simulation (admin)", href: "/dashboard/guides/league-simulation" },
         ],
       },
     ],
@@ -348,6 +354,119 @@ export const LEAGUE_SITE_LINKS: { title: string; href: string }[] = [
   { title: "Pokédex", href: "/pokedex" },
   { title: "Insights", href: "/insights" },
 ]
+
+/**
+ * Major site sections for the sidebar header switcher (shadcn team-switcher pattern).
+ * Includes a path back to the public league home plus primary coach destinations.
+ */
+export interface SectionSwitcherSection {
+  id: string
+  name: string
+  description: string
+  href: string
+  icon: LucideIcon
+  /** Path prefixes that mark this section active (longest match wins). */
+  matchPrefixes: string[]
+  isVisible?: (ctx: CoachNavContext) => boolean
+}
+
+export const SECTION_SWITCHER_SECTIONS: SectionSwitcherSection[] = [
+  {
+    id: "league-home",
+    name: "League home",
+    description: "Public site",
+    href: "/",
+    icon: Home,
+    matchPrefixes: [],
+  },
+  {
+    id: "dashboard",
+    name: "Coach dashboard",
+    description: "Overview & account",
+    href: "/dashboard",
+    icon: LayoutDashboard,
+    matchPrefixes: ["/dashboard"],
+  },
+  {
+    id: "my-team",
+    name: "My team",
+    description: "Roster & schedule",
+    href: "/dashboard/league-team",
+    icon: Trophy,
+    matchPrefixes: ["/dashboard/league-team", "/dashboard/free-agency", "/dashboard/trade-block"],
+    isVisible: (ctx) => ctx.isCoach,
+  },
+  {
+    id: "this-week",
+    name: "This week",
+    description: "Match prep",
+    href: "/dashboard/weekly-matches",
+    icon: Swords,
+    matchPrefixes: ["/dashboard/weekly-matches"],
+  },
+  {
+    id: "draft",
+    name: "Draft board",
+    description: "Planning & picks",
+    href: "/dashboard/draft/board",
+    icon: ClipboardList,
+    matchPrefixes: ["/dashboard/draft", "/draft"],
+    isVisible: (ctx) => ctx.draftPhase !== "none",
+  },
+  {
+    id: "showdown",
+    name: "Showdown tools",
+    description: "Teams & calculator",
+    href: "/dashboard/teams",
+    icon: Wrench,
+    matchPrefixes: ["/dashboard/teams", "/dashboard/calc", "/showdown", "/calc"],
+  },
+  {
+    id: "guides",
+    name: "Guides",
+    description: "Help & setup",
+    href: "/dashboard/guides",
+    icon: BookOpen,
+    matchPrefixes: ["/dashboard/guides", "/dashboard/onboarding", "/dashboard/settings"],
+  },
+]
+
+export function getSectionSwitcherSections(ctx: CoachNavContext): SectionSwitcherSection[] {
+  return SECTION_SWITCHER_SECTIONS.filter((section) =>
+    section.isVisible ? section.isVisible(ctx) : true,
+  )
+}
+
+export function resolveActiveSection(
+  pathname: string,
+  sections: SectionSwitcherSection[] = SECTION_SWITCHER_SECTIONS,
+): SectionSwitcherSection | null {
+  const current = normalizePath(pathname)
+  if (current === "/" || current === "") {
+    return sections.find((section) => section.id === "league-home") ?? null
+  }
+
+  let best: SectionSwitcherSection | null = null
+  let bestLen = -1
+  for (const section of sections) {
+    if (section.id === "league-home") continue
+    for (const prefix of section.matchPrefixes) {
+      const normalizedPrefix = normalizePath(prefix)
+      const matches =
+        current === normalizedPrefix || current.startsWith(`${normalizedPrefix}/`)
+      if (matches && normalizedPrefix.length > bestLen) {
+        best = section
+        bestLen = normalizedPrefix.length
+      }
+    }
+  }
+
+  // Prefer the more specific dashboard child sections over the generic dashboard root.
+  if (!best && current.startsWith("/dashboard")) {
+    return sections.find((section) => section.id === "dashboard") ?? null
+  }
+  return best
+}
 
 export function getNavFlags(env: Record<string, string | undefined> = process.env): NavFlags {
   return {
@@ -449,10 +568,6 @@ export function buildNavEntries(groups: CoachNavGroup[] = COACH_NAV_GROUPS): Nav
     }
   }
   return entries
-}
-
-function normalizePath(pathname: string): string {
-  return pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname
 }
 
 function matches(entry: NavEntry, pathname: string, tab: string | null | undefined): boolean {

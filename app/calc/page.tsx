@@ -4,43 +4,45 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { ExternalLink } from "lucide-react"
 import Link from "next/link"
+import { getDamageCalcUrl } from "@/lib/showdown/public-hosts"
 
 export default function CalcPage() {
+  const calcUrl = getDamageCalcUrl()
+
   return (
-    <div className="container mx-auto py-8 max-w-7xl">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+    <div className="container mx-auto max-w-7xl py-8">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Damage Calculator</h1>
           <p className="text-muted-foreground">
-            Calculate damage between Pokémon with full customization options
+            Calculate damage with the public Pokémon Showdown calculator.
           </p>
         </div>
         <Button variant="outline" asChild>
           <a
-            href="https://aab-calc.moodmnky.com"
+            href={calcUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2"
           >
-            <ExternalLink className="h-4 w-4" />
+            <ExternalLink className="h-4 w-4" aria-hidden="true" />
             Open in New Tab
           </a>
         </Button>
       </div>
 
-      {/* Calculator Embed */}
       <Card className="overflow-hidden">
         <CardHeader>
           <CardTitle>Pokémon Damage Calculator</CardTitle>
           <CardDescription>
-            Full-featured damage calculator with support for all generations, items, abilities, and field effects
+            Full-featured calculator with support for all generations, items, abilities, and field
+            effects (calc.pokemonshowdown.com).
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <div className="w-full" style={{ height: "calc(100vh - 300px)", minHeight: "800px" }}>
             <iframe
-              src="https://aab-calc.moodmnky.com"
+              src={calcUrl}
               width="100%"
               height="100%"
               title="Pokémon Damage Calculator"
@@ -52,7 +54,6 @@ export default function CalcPage() {
         </CardContent>
       </Card>
 
-      {/* Quick Links */}
       <div className="mt-6 grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader>

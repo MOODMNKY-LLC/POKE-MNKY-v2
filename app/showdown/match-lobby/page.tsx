@@ -8,8 +8,11 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Link from 'next/link';
+import { getShowdownClientUrl } from '@/lib/showdown/public-hosts';
 
 export default function MatchLobbyPage() {
+  const showdownClientUrl = getShowdownClientUrl()
+
   return (
     <div className="container mx-auto py-8 px-4 max-w-7xl">
       {/* Navigation */}
@@ -70,13 +73,13 @@ export default function MatchLobbyPage() {
                 asChild
               >
                 <a 
-                  href={process.env.NEXT_PUBLIC_SHOWDOWN_CLIENT_URL || 'https://aab-play.moodmnky.com'} 
+                  href={showdownClientUrl} 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="flex items-center gap-2"
                 >
                   <ExternalLink className="h-4 w-4" />
-                  Open Battle Client
+                  Open Pokémon Showdown
                 </a>
               </Button>
             </div>

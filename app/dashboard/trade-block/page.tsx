@@ -4,15 +4,6 @@ import { useState, useEffect } from "react"
 import { createBrowserClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbLink,
-} from "@/components/ui/breadcrumb"
-import { SidebarTrigger } from "@/components/ui/sidebar"
-import { Separator } from "@/components/ui/separator"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -32,8 +23,7 @@ export default function TradeBlockPage() {
     async function load() {
       const supabase = createBrowserClient()
       const {
-        data: { user },
-      } = await supabase.auth.getUser()
+        data: { user } } = await supabase.auth.getUser()
       if (!user) {
         router.push("/auth/login")
         return
@@ -51,8 +41,7 @@ export default function TradeBlockPage() {
           .single()
         setProfile({
           team_id: profileData.team_id,
-          team_name: team?.name ?? undefined,
-        })
+          team_name: team?.name ?? undefined })
       }
       const { data: season } = await supabase
         .from("seasons")
@@ -68,22 +57,6 @@ export default function TradeBlockPage() {
   if (loading) {
     return (
       <>
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-          <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-2 h-4" />
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbLink asChild>
-                  <Link href="/dashboard">Dashboard</Link>
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbItem>
-                <BreadcrumbPage>Trade Block</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-        </header>
         <div className="flex flex-1 flex-col gap-4 p-4">
           <Skeleton className="h-24 w-full" />
           <Skeleton className="h-64 w-full" />
@@ -94,22 +67,6 @@ export default function TradeBlockPage() {
 
   return (
     <>
-      <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-        <SidebarTrigger className="-ml-1" />
-        <Separator orientation="vertical" className="mr-2 h-4" />
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link href="/dashboard">Dashboard</Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbItem>
-              <BreadcrumbPage>Trade Block</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
-      </header>
       <div className="flex flex-1 flex-col gap-6 p-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Trade Block</h1>

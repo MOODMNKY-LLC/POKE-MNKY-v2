@@ -14,17 +14,7 @@ import {
   GROUP_DISPLAY_NAME,
   INSTALL_LINKS,
   MANAGEMENT_URL,
-  RYUBING_LDN_GUIDE_URL,
-} from "@/lib/netbird/onboarding"
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-} from "@/components/ui/breadcrumb"
-import { SidebarTrigger } from "@/components/ui/sidebar"
-import { Separator } from "@/components/ui/separator"
+  RYUBING_LDN_GUIDE_URL } from "@/lib/netbird/onboarding"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -84,8 +74,7 @@ const TROUBLESHOOTING: ReadonlyArray<{ title: string; body: ReactNode }> = [
         Invite links expire after about three days. Use Try again in the battle access card above, or ask a league
         admin to send a new one. Do not sign up on your own.
       </>
-    ),
-  },
+    ) },
   {
     title: "The app connects to NetBird Cloud instead of us",
     body: (
@@ -93,8 +82,7 @@ const TROUBLESHOOTING: ReadonlyArray<{ title: string; body: ReactNode }> = [
         Set the server URL again: choose Self-hosted on desktop, Change Server on a phone, or Settings → Profiles on
         desktop if the app is already set up. Use <Code>{MANAGEMENT_URL}</Code>.
       </>
-    ),
-  },
+    ) },
   {
     title: "The browser never opens, or sign-in loops",
     body: (
@@ -102,8 +90,7 @@ const TROUBLESHOOTING: ReadonlyArray<{ title: string; body: ReactNode }> = [
         Confirm the server URL is exactly <Code>{MANAGEMENT_URL}</Code>, then try Connect again. On the login page,
         choose Continue with Email and use the email address your invite was sent to.
       </>
-    ),
-  },
+    ) },
   {
     title: "My MFA code is rejected",
     body: (
@@ -111,8 +98,7 @@ const TROUBLESHOOTING: ReadonlyArray<{ title: string; body: ReactNode }> = [
         Use the same authenticator you enrolled. If you lost it, ask Simeon to reset MFA. Do not create a second
         account.
       </>
-    ),
-  },
+    ) },
   {
     title: "I am connected but battles do not work",
     body: (
@@ -120,23 +106,20 @@ const TROUBLESHOOTING: ReadonlyArray<{ title: string; body: ReactNode }> = [
         Confirm the app shows Connected and that you are using the league game server address{" "}
         <Code>{GAME_SERVER_ADDRESS}</Code> only. Then contact Simeon.
       </>
-    ),
-  },
+    ) },
   {
     title: "I already have NetBird",
     body: (
       <>
         Still switch this device to our server. Do not add a second account or profile on the same device.
       </>
-    ),
-  },
+    ) },
 ]
 
 export default async function NetbirdGuidePage() {
   const supabase = await createClient()
   const {
-    data: { user },
-  } = await supabase.auth.getUser()
+    data: { user } } = await supabase.auth.getUser()
 
   if (!user) {
     redirect(LOGIN_REDIRECT)
@@ -157,27 +140,6 @@ export default async function NetbirdGuidePage() {
 
   return (
     <>
-      <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-        <SidebarTrigger className="-ml-1" />
-        <Separator orientation="vertical" className="mr-2 h-4" />
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link href="/dashboard">Dashboard</Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link href="/dashboard/settings?tab=guides">Guides</Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbItem>
-              <BreadcrumbPage>NetBird</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
-      </header>
       <div className="flex max-w-3xl flex-1 flex-col gap-4 p-4">
         <div className="flex items-start gap-2">
           <Network className="mt-1 h-6 w-6 shrink-0 text-muted-foreground" />
