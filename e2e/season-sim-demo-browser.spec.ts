@@ -317,7 +317,10 @@ test.describe("season-sim demo browser acceptance", () => {
     await page.getByRole("button", { name: "Start a practice season" }).click()
 
     await expect(
-      page.getByText(/Could not create run|Unauthorized|not on SIM_DEMO|sign in|Forbidden/i).first(),
+      page
+        .locator("#sim-main")
+        .getByText(/Could not create run|Unauthorized|not on SIM_DEMO|sign in|Forbidden/i)
+        .first(),
     ).toBeVisible({ timeout: 30_000 })
     await shot(page, `${testInfo.project.name}-anon-denied`)
   })
