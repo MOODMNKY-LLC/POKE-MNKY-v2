@@ -9,12 +9,12 @@ This doc explains where Discord slash commands live, how they get registered, an
 ### App repo (this repo — POKE MNKY-v2)
 
 - **Interaction entrypoint:** `app/api/discord/interactions/route.ts`
-- **Commands:** `/pick`, `/search`, `/calc`, `/free-agency-submit`, `/free-agency-status`, `/draftstatus`, `/whoami`, `/setseason`, `/getseason`, `/coverage`
+- **Commands (11):** `/pick`, `/search`, `/calc`, `/free-agency-submit`, `/free-agency-status`, `/draftstatus`, `/whoami`, `/setseason`, `/getseason`, `/coverage`, `/join-battles`
 - **Registration:** Run from this repo with:
   ```bash
   pnpm discord:register-commands
   ```
-  That script uses `getAllCommands()` from `lib/discord-commands/index.ts` to register **guild** commands for `DISCORD_GUILD_ID`. The Next.js interactions route returns the live command responses.
+  That script uses `getAllCommands()` from `lib/discord-commands/index.ts` to register **guild** commands for `DISCORD_GUILD_ID`. Prefer `pnpm discord:register-join-battles` when you only need to upsert `/join-battles` without a bulk PUT. The Next.js interactions route returns the live command responses (`/join-battles` → NetBird handler).
 
 - **How-to content:** The embed text for the “how to use” guide is built in **`lib/discord/slash-commands-guide-embed.ts`** (title, description, fields for each command). Scripts that post the guide use that module so the guide is a single source of truth.
 
@@ -23,7 +23,7 @@ This doc explains where Discord slash commands live, how they get registered, an
 - **Path on server:** `/home/moodmnky/POKE-MNKY/tools/discord-bot/index.ts`
 - **Commands:** A separate, legacy set is defined **in that file** (e.g. `/matchups`, `/submit`, `/standings`, `/recap`, `/pokemon`, `/draft`, `/draft-status`, `/draft-available`, `/draft-my-team`, `/battle`, `/validate-team`, `/showdown-link`, `/api-docs`, `/free-agency-submit`, `/free-agency-status`, `/free-agency-available`).
 - **Registration:** The server bot calls its own `registerDiscordCommands()` on startup and registers **that** list for the same (or multiple) guild IDs.
-- **Important:** Whichever registration runs **last** for a given guild wins. So if the app repo runs `pnpm discord:register-commands`, Discord will show the app’s 10 commands for that guild. If the server bot then starts and registers its commands for the same guild, Discord will show the server’s set instead (and the app’s 10 may disappear until you run the app registration again).
+- **Important:** Whichever registration runs **last** for a given guild wins. So if the app repo runs `pnpm discord:register-commands`, Discord will show the app’s 11 commands for that guild. If the server bot then starts and registers its commands for the same guild, Discord will show the server’s set instead (and the app’s 11 may disappear until you run the app registration again).
 
 ---
 
@@ -35,7 +35,7 @@ This doc explains where Discord slash commands live, how they get registered, an
 - **Steps:**
   1. Register from the app repo: `pnpm discord:register-commands` (with `DISCORD_BOT_TOKEN`, `DISCORD_CLIENT_ID`, `DISCORD_GUILD_ID` in `.env.local` or `.env`).
   2. Keep the interactions route and the app APIs aligned with those definitions.
-  3. Keep the how-to guide in sync by editing only **`lib/discord/slash-commands-guide-embed.ts`** and re-posting the embed when needed (`pnpm discord:post-guide-embed [channelId]`).
+  3. Keep the how-to guide in sync by editing **`docs/DISCORD-SLASH-COMMANDS-REFERENCE.md`** (coach UI) and **`lib/discord/slash-commands-guide-embed.ts`** (Discord embed), then re-post the embed when needed (`pnpm discord:post-guide-embed [channelId]`).
 
 Result: One active interaction path, one registration source, one guide.
 
@@ -44,7 +44,7 @@ Result: One active interaction path, one registration source, one guide.
 - **App commands:** Registered from this repo; handlers in `lib/discord-commands/` (and the Next.js app APIs they call).
 - **Legacy commands:** Defined and registered by the server bot in `tools/discord-bot`; handlers in that same file.
 - **Caveat:** Discord allows only **one** application command list per application per guild. So you cannot have both sets visible at once unless:
-  - You merge them into one registration (e.g. register both the app’s 10 and the server’s legacy list from one place), or
+  - You merge them into one registration (e.g. register both the app’s 11 and the server’s legacy list from one place), or
   - You use two different Discord **applications** (two bots) — one for app commands, one for legacy.
 
 - **How-to:** The guide in `lib/discord/slash-commands-guide-embed.ts` already includes both “App commands” and “Legacy / server bot commands” so one embed documents everything. Post it with `pnpm discord:post-guide-embed` or `pnpm discord:post-guide-webhook`.
@@ -55,7 +55,7 @@ Result: One active interaction path, one registration source, one guide.
 
 | What | Where | How to register | How-to guide |
 |------|--------|------------------|--------------|
-| App commands (10) | `lib/discord-commands/` in this repo | `pnpm discord:register-commands` | `lib/discord/slash-commands-guide-embed.ts` |
+| App commands (11) | `lib/discord-commands/` in this repo | `pnpm discord:register-commands` (+ optional `discord:register-join-battles`) | `docs/DISCORD-SLASH-COMMANDS-REFERENCE.md` + `lib/discord/slash-commands-guide-embed.ts` |
 | Legacy commands (14) | `tools/discord-bot/index.ts` on server | Server bot’s `registerDiscordCommands()` on startup | Same embed (section “Legacy / server bot”) |
 | Post guide to channel | — | `pnpm discord:post-guide-embed [channelId]` | Uses slash-commands-guide-embed |
 | Post guide via webhook | — | `pnpm discord:post-guide-webhook <url>` | Same content in script |

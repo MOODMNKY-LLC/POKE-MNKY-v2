@@ -1,139 +1,220 @@
-# Discord Slash Commands Reference
+# Discord Slash Commands
 
-## Overview
+POKE MNKY registers **11** slash commands for the league Discord. Type `/` in a channel, choose the POKE MNKY app, then pick a command.
 
-POKE MNKY registers 10 slash commands with Discord. Each command is handled by the interactions handler (Next.js API or Supabase Edge Function) and calls the corresponding app API.
+You need a **Discord-linked app account** for most coach actions (`/whoami` tells you if the link is working). Battle-network access (`/join-battles`) is optional and only for coaches who play on Ryujinx.
 
-## Command Inventory
+---
 
-| # | Command | Description | API | Status |
-|---|---------|-------------|-----|--------|
-| 1 | `/pick` | Make a draft pick | POST /api/discord/draft/pick | Working |
-| 2 | `/search` | Search Pokémon in draft pool | GET /api/discord/pokemon/search | Working |
-| 3 | `/draftstatus` | View draft status | In-process (getDraftStatusData) | Working |
-| 4 | `/whoami` | View your identity/role | In-process (getWhoamiData) | Working |
-| 5 | `/setseason` | Set active season for guild | POST /api/discord/guild/config | Working |
-| 6 | `/getseason` | Get active season | GET /api/discord/guild/config | Working |
-| 7 | `/coverage` | Check type coverage, notify | GET /api/draft/status + POST /api/discord/notify/coverage | Working |
-| 8 | `/calc` | Damage calculator | POST /api/calc | Working |
-| 9 | `/free-agency-submit` | Submit FA add/drop | POST /api/discord/free-agency/submit | Working |
-| 10 | `/free-agency-status` | View FA team status | GET /api/discord/free-agency/team-status | Working |
-
-## Command Details
+## Draft
 
 ### `/pick`
 
-- **Options**: `pokemon` (required), `session_id` (optional)
-- **API**: `POST /api/discord/draft/pick`
-- **Auth**: Discord user must be linked to a coach/team for the active draft session
+- **Purpose:** Submit your draft pick when it is your turn.
+- **Who can use:** Coaches linked to Discord with a team in the active draft. Anyone can open the command; it fails if you are not linked or it is not your turn.
+- **Options:**
+  - `pokemon` (required) — start typing; pick from autocomplete
+  - `season_id` (optional) — season UUID if the guild default is wrong
+  - `draft_round` / `pick_number` / `notes` (optional)
+- **Example:** `/pick pokemon:Garchomp`
+- **Availability:** Guild channels where the bot is present
 
 ### `/search`
 
-- **Options**: `query` (required)
-- **API**: `GET /api/discord/pokemon/search?q=...`
-- **Returns**: Matching Pokémon from draft pool
+- **Purpose:** Look up Pokémon still in the draft pool (cost, availability).
+- **Who can use:** Anyone. Linked coaches get owned-mon filtering when possible.
+- **Options:**
+  - `query` (required) — name fragment; autocomplete supported
+  - `season_id` (optional)
+  - `limit` (optional) — default 10, max 25
+- **Example:** `/search query:land`
+- **Availability:** Guild channels
 
 ### `/draftstatus`
 
-- **Options**: None
-- **Behavior**: Fetches draft session, turn order, and pool status in-process
+- **Purpose:** See draft state — whose turn, round, and whether the draft is live.
+- **Who can use:** Anyone; richest result when Discord is linked to a coach/team.
+- **Options:** `season_id` (optional)
+- **Example:** `/draftstatus`
+- **Availability:** Guild channels
+
+---
+
+## You & your roster
 
 ### `/whoami`
 
-- **Options**: None
-- **Behavior**: Resolves Discord user to coach/team in-process
-
-### `/setseason`
-
-- **Options**: `season_id` (required)
-- **API**: `POST /api/discord/guild/config`
-- **Auth**: Admin/commissioner only
-
-### `/getseason`
-
-- **Options**: None
-- **API**: `GET /api/discord/guild/config`
-- **Returns**: Active season for guild
+- **Purpose:** Show your linked coach profile and team.
+- **Who can use:** Anyone. Returns “not linked” until Discord is connected in the app.
+- **Options:** `season_id` (optional)
+- **Example:** `/whoami`
+- **Availability:** Guild channels
 
 ### `/coverage`
 
-- **Options**: None
-- **API**: `GET /api/draft/status`, `POST /api/discord/notify/coverage`
-- **Behavior**: Computes type coverage and optionally notifies channel
+- **Purpose:** Analyze roster roles and type coverage (hazards, cleric, speed control, and more).
+- **Who can use:** Linked coach with a team in the season.
+- **Options:**
+  - `season_id` (optional)
+  - `checks` (optional) — comma-separated list; default all. Valid: `hazard_removal`, `hazard_setting`, `cleric`, `speed_control`, `recovery`, `phasing`, `screens`
+  - `channel` (optional) — where to post a summary
+- **Example:** `/coverage checks:cleric,speed_control`
+- **Availability:** Guild channels
 
-### `/calc`
+---
 
-- **Options**: `attacker`, `defender`, `move`, `terrain` (optional), `weather` (optional)
-- **API**: `POST /api/calc`
-- **Behavior**: Damage calculation for Pokémon Showdown-style battles
+## Free agency
 
 ### `/free-agency-submit`
 
-- **Options**: `add` (Pokémon name), `drop` (Pokémon name)
-- **API**: `POST /api/discord/free-agency/submit`
-- **Auth**: Discord user must be linked to a coach with a team in the current season
+- **Purpose:** Queue an add, drop, or replacement. Moves settle with the league FA schedule (Monday 12:00 AM Eastern unless your season says otherwise).
+- **Who can use:** Linked coach with an assigned team.
+- **Options:**
+  - `type` (required) — `replacement` | `addition` | `drop_only`
+  - `add` (optional) — Pokémon to add; autocomplete
+  - `drop` (optional) — Pokémon to drop; autocomplete
+- **Examples:**
+  - `/free-agency-submit type:replacement add:Slowking drop:Pikachu`
+  - `/free-agency-submit type:addition add:Charizard`
+  - `/free-agency-submit type:drop_only drop:Bulbasaur`
+- **Availability:** Guild channels
 
 ### `/free-agency-status`
 
-- **Options**: None
-- **API**: `GET /api/discord/free-agency/team-status`
-- **Auth**: Resolves team from coach/Discord user
-- **Returns**: FA submissions, roster, and status for the coach's team
+- **Purpose:** See pending FA moves, remaining transactions, and roster snapshot.
+- **Who can use:** Linked coach with an assigned team.
+- **Options:** none required (handler may accept `season_id` if provided)
+- **Example:** `/free-agency-status`
+- **Availability:** Guild channels
 
-## Registration and Activation
+---
 
-### Option A: App Commands (Global/Guild)
+## Tools
 
-Commands are registered via Discord API when the app starts or via a registration script. The project uses app commands (slash commands) registered per guild or globally.
+### `/calc`
 
-### Option B: Legacy Server Bot
+- **Purpose:** Damage ranges for a move (same engine as the in-app `/api/calc` route; web UI also embeds [calc.pokemonshowdown.com](https://calc.pokemonshowdown.com)).
+- **Who can use:** Anyone.
+- **Options:**
+  - `attacker` / `defender` / `move` (required) — autocomplete
+  - `generation` (optional) — Gen 9 (default), 8, or 7
+- **Example:** `/calc attacker:Pikachu defender:Charizard move:Thunderbolt`
+- **Availability:** Guild channels
 
-The legacy server bot may have additional commands. See `docs/DISCORD-SERVER-MAP.md` for channel and command mapping.
+---
 
-## E2E Testing
+## Commissioners
 
-### Manual Verification
+### `/getseason`
 
-1. Ensure `DISCORD_BOT_TOKEN` and `DISCORD_APPLICATION_ID` are set
-2. Invite the bot to a test guild
-3. Run `/sync` or re-register commands if needed
-4. Test each command in Discord
+- **Purpose:** Show the guild’s default season for draft and free agency.
+- **Who can use:** Any guild member.
+- **Options:** none
+- **Example:** `/getseason`
+- **Availability:** Guild only (not DMs)
 
-### Script-Based Testing
+### `/setseason`
 
-Run `scripts/test-discord-commands-e2e.ts` to exercise each command's API directly:
+- **Purpose:** Set or clear the guild default season.
+- **Who can use:** League admins / commissioners (Discord Administrator or configured admin roles). Prefer running this from a commissioner channel.
+- **Options:**
+  - `season_id` (required) — season UUID, or `clear` to remove the default
+- **Example:** `/setseason season_id:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee`
+- **Availability:** Guild only
+
+---
+
+## Battle network (optional)
+
+### `/join-battles`
+
+- **Purpose:** Request access to the private NetBird mesh used for Ryujinx / RyuLDN battles. Not required for public Pokémon Showdown play.
+- **Who can use:** Members of the league guild with a Discord-linked app account. Approvals go to NetBird admins / league admins.
+- **Options:** none
+- **Example:** `/join-battles` (reply is ephemeral). Re-run after linking Discord in the app if you were unlinked.
+- **Availability:** League guild only — never appears in DMs
+- **Handler note:** Routed through NetBird interactions (`lib/discord/netbird-interactions.ts`), not the generic draft/FA switch.
+
+For setup steps after approval, open [Battle network (NetBird)](/dashboard/guides/netbird).
+
+---
+
+## Operator section
+
+Details below are for commissioners and operators. Coaches can skip this.
+
+### Registration inventory (code)
+
+Canonical definitions: `lib/discord-commands/index.ts` → `getAllCommands()` (**11** commands).
+
+| Command | Live handler | App surface |
+| --- | --- | --- |
+| `/pick` | interactions-handler | `POST /api/discord/draft/pick` |
+| `/search` | interactions-handler | `GET /api/discord/pokemon/search` |
+| `/draftstatus` | interactions-handler | in-process `getDraftStatusData` |
+| `/whoami` | interactions-handler | in-process `getWhoamiData` |
+| `/setseason` | interactions-handler | `POST /api/discord/guild/config` |
+| `/getseason` | interactions-handler | `GET /api/discord/guild/config` |
+| `/coverage` | interactions-handler | draft status + `POST /api/discord/notify/coverage` |
+| `/calc` | interactions-handler | `POST /api/calc` |
+| `/free-agency-submit` | interactions-handler | `POST /api/discord/free-agency/submit` |
+| `/free-agency-status` | interactions-handler | `GET /api/discord/free-agency/team-status` |
+| `/join-battles` | netbird-interactions | NetBird access request + Approve/Deny |
+
+Interaction entrypoint: `app/api/discord/interactions/route.ts` (preferred). An Edge Function path may still exist for older deploys — keep one bot Interactions Endpoint URL.
+
+### Registering commands
+
+```bash
+# Full guild inventory from getAllCommands() (11 commands)
+pnpm discord:register-commands
+
+# Upsert /join-battles alone (preferred when NetBird is already live —
+# avoids a bulk PUT clobbering guild inventory)
+pnpm discord:register-join-battles
+```
+
+Env for registration scripts: `DISCORD_BOT_TOKEN`, `DISCORD_CLIENT_ID` (application id), `DISCORD_GUILD_ID`.
+
+**Do not** re-register from the legacy server bot on the same application + guild after the app register — last write wins and can wipe the app set.
+
+### Live guild inventory (read-only)
+
+To list what Discord currently has (no mutations):
+
+```bash
+# Requires bot token + application id + guild id
+curl -s -H "Authorization: Bot $DISCORD_BOT_TOKEN" \
+  "https://discord.com/api/v10/applications/$DISCORD_CLIENT_ID/guilds/$DISCORD_GUILD_ID/commands" \
+  | jq '.[].name'
+```
+
+Expect 11 names including `join-battles` when the app registration is active. This environment had no bot credentials, so live inventory was **not** verified here.
+
+### Legacy server-bot commands
+
+Older installs may still document `/matchups`, `/submit`, `/standings`, `/battle`, `/validate-team`, and similar. Those are **not** in `getAllCommands()`. Treat them as legacy unless a separate Discord application still serves them.
+
+### Smoke tests
 
 ```bash
 npx tsx scripts/test-discord-commands-e2e.ts
 ```
 
-The script simulates the Discord → app flow by calling APIs with `X-Discord-Bot-Key` (when applicable) and verifies response shape. It does not require a live Discord connection.
+Exercises APIs with bot headers where applicable; does not require a live Discord websocket.
 
-**Required env**: `DISCORD_BOT_TOKEN`, `DISCORD_GUILD_ID`, `NEXT_PUBLIC_APP_URL` (or `http://localhost:3000` for local)
+### Troubleshooting
 
-## Troubleshooting
+| Symptom | What to check |
+| --- | --- |
+| Command missing in Discord | Registration ran for this guild? Last PUT from legacy bot? |
+| Timeout | Discord needs a response in ~3s; slow routes should defer (`type: 5`) |
+| Unauthorized | `/setseason` needs admin; FA/pick need linked coach + team |
+| Autocomplete empty | Handler must return autocomplete (`type: 8`) choices for `/calc` and FA Pokémon options |
+| `/join-battles` fails | User linked in app? League guild id? NetBird feature flags / admin allowlist |
 
-### Command not found
+### Related guides
 
-- Commands must be registered with Discord. Run the registration script or ensure the app has registered commands for the guild.
-- Check `DISCORD_APPLICATION_ID` and `DISCORD_BOT_TOKEN`.
-
-### Timeout
-
-- API routes may be slow. Ensure Supabase and external services (e.g., calc API) respond within Discord's 3-second limit.
-- Consider deferring with `type: 5` (deferred) and editing the response.
-
-### Unauthorized / Forbidden
-
-- `/setseason` requires admin/commissioner role.
-- `/pick`, `/free-agency-submit`, `/free-agency-status` require the user to be linked to a coach/team.
-
-### Autocomplete not working
-
-- `/calc` move option and `/free-agency-submit` Pokémon options support autocomplete. Ensure the handler returns `type: 8` (APPLICATION_COMMAND_AUTOCOMPLETE_RESPONSE) with `choices`.
-
-## References
-
-- [Discord Integration Guide](/dashboard/guides/discord-integration)
-- [League Simulation Guide](/dashboard/guides/league-simulation)
-- [DISCORD-SERVER-MAP.md](./DISCORD-SERVER-MAP.md)
+- [Discord integration](/dashboard/guides/discord-integration)
+- [Battle network (NetBird)](/dashboard/guides/netbird)
+- [League features](/dashboard/guides/league-features-v3)
