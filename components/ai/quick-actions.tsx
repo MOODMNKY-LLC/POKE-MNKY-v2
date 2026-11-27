@@ -34,7 +34,12 @@ export function QuickActions({
 
   return (
     <BlurFade direction="down" delay={0.1}>
-      <div className={cn("flex flex-nowrap gap-1.5 overflow-x-auto scrollbar-hide pb-1", className)}>
+      <div
+        className={cn("flex flex-nowrap gap-1.5 overflow-x-auto scrollbar-hide pb-1", className)}
+        tabIndex={0}
+        role="region"
+        aria-label="Quick actions, scroll horizontally"
+      >
         {actions.map((action, index) => (
           <Button
             key={action.label}

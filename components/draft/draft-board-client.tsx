@@ -316,11 +316,11 @@ export function DraftBoardClient({
             <div className="flex items-center gap-3">
               <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "kanban" | "list")}>
                 <TabsList className="h-9">
-                  <TabsTrigger value="list" className="gap-1.5 text-xs">
+                  <TabsTrigger value="list" aria-controls={undefined} className="gap-1.5 text-xs">
                     <List className="h-4 w-4" />
                     Table
                   </TabsTrigger>
-                  <TabsTrigger value="kanban" className="gap-1.5 text-xs">
+                  <TabsTrigger value="kanban" aria-controls={undefined} className="gap-1.5 text-xs">
                     <LayoutGrid className="h-4 w-4" />
                     Kanban
                   </TabsTrigger>

@@ -29,6 +29,7 @@
   /* Pokémon Yellow #FFDE00 for charts */
   --chart-1: oklch(0.885 0.176 95); /* Pokémon Yellow */
   --chart-2: oklch(0.548 0.217 27); /* Pokémon Red */
+  --chart-2-foreground: oklch(0.99 0.005 27);
   --chart-3: oklch(0.485 0.186 264); /* Pokémon Blue */
   --chart-4: oklch(0.5 0.12 165); /* Green accent */
   --chart-5: oklch(0.6 0.15 340); /* Purple accent */
@@ -61,7 +62,7 @@
   --secondary-foreground: oklch(0.97 0.005 80);
   /* Muted: Slightly lighter than card for subtle differentiation */
   --muted: oklch(0.18 0.015 80); /* Slightly lighter gray */
-  --muted-foreground: oklch(0.6 0.01 80);
+  --muted-foreground: oklch(0.67 0.01 80);
   /* Pokémon Yellow for accent */
   --accent: oklch(0.885 0.176 95); /* Pokémon Yellow accent */
   --accent-foreground: oklch(0.12 0.01 95);
@@ -73,6 +74,7 @@
   --ring: oklch(0.703 0.106 92);
   --chart-1: oklch(0.703 0.106 92); /* Gold */
   --chart-2: oklch(0.885 0.176 95); /* Yellow */
+  --chart-2-foreground: oklch(0.12 0.01 95);
   --chart-3: oklch(0.485 0.186 264); /* Blue */
   --chart-4: oklch(0.5 0.12 165); /* Green */
   --chart-5: oklch(0.6 0.15 340); /* Purple */
@@ -113,6 +115,7 @@
   --color-ring: var(--ring);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
+  --color-chart-2-foreground: var(--chart-2-foreground);
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
@@ -354,6 +357,11 @@ body [data-sonner-toaster][data-x-position="right"] {
 
 /* Enhanced mobile responsiveness and accessibility */
 @layer utilities {
+  /* Dark theme: --destructive (#d2111c) is only 3.5:1 on the dark surfaces, so text uses a lighter red. Backgrounds keep the brand red. */
+  .dark .text-destructive {
+    color: oklch(0.704 0.191 22.216);
+  }
+
   /* Improved text balance for better mobile readability */
   .text-balance {
     text-wrap: balance;

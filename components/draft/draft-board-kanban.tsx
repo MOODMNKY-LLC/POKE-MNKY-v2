@@ -32,7 +32,12 @@ export function DraftBoardKanban({
   visiblePointValues = POINT_VALUES,
 }: DraftBoardKanbanProps) {
   return (
-    <div className="w-full overflow-x-auto overflow-y-hidden pb-2 scroll-smooth">
+    <div
+      className="w-full overflow-x-auto overflow-y-hidden pb-2 scroll-smooth focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+      tabIndex={0}
+      role="region"
+      aria-label="Draft board columns, scroll horizontally"
+    >
       <div className="flex gap-4 min-w-max py-1">
         {visiblePointValues.map((points) => {
           const pokemon = pokemonByPoint[points] ?? []

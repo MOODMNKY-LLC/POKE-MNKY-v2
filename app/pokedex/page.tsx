@@ -288,7 +288,12 @@ export default function PokedexPage() {
 
       <div className="grid lg:grid-cols-[300px_1fr] gap-6">
         {/* Pokemon List */}
-        <div className="space-y-2 h-[calc(100vh-200px)] overflow-y-auto scrollbar-hide pr-2">
+        <div
+          className="space-y-2 h-[calc(100vh-200px)] overflow-y-auto scrollbar-hide pr-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          tabIndex={0}
+          role="region"
+          aria-label="Pokémon list"
+        >
           {filteredPokemon.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <p>No Pokémon found</p>

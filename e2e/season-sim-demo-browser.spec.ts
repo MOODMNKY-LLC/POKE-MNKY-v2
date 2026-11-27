@@ -293,7 +293,7 @@ test.describe("season-sim demo browser acceptance", () => {
     await expect(page.getByRole("button", { name: "Start a practice season" })).toBeVisible()
     await expect(banner).not.toContainText("provisional_demo_v0")
     await expect(page.getByText(/demo operator/i)).toHaveCount(0)
-    await expect(page.getByRole("link", { name: "Sign in" }).first()).toHaveAttribute(
+    await expect(page.getByRole("link", { name: "Sign in", exact: true })).toHaveAttribute(
       "href",
       "/auth/login?next=/demo/season-sim",
     )

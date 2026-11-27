@@ -33,22 +33,22 @@ const getStatusBadge = (status: string) => {
     { color: string; icon: typeof CheckCircle2; label: string }
   > = {
     completed: {
-      color: "bg-green-500/10 text-green-400 border-green-500/20",
+      color: "bg-green-500/10 text-green-800 dark:text-green-300 border-green-500/20",
       icon: CheckCircle2,
       label: "Completed",
     },
     in_progress: {
-      color: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+      color: "bg-blue-500/10 text-blue-800 dark:text-blue-300 border-blue-500/20",
       icon: Clock,
       label: "In Progress",
     },
     scheduled: {
-      color: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
+      color: "bg-yellow-500/10 text-yellow-800 dark:text-yellow-300 border-yellow-500/20",
       icon: Calendar,
       label: "Scheduled",
     },
     disputed: {
-      color: "bg-red-500/10 text-red-400 border-red-500/20",
+      color: "bg-red-500/10 text-red-800 dark:text-red-300 border-red-500/20",
       icon: AlertCircle,
       label: "Disputed",
     },
