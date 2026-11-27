@@ -46,6 +46,8 @@ const KEYS = [
 const messages = [{ role: "user", parts: [{ type: "text", text: "Who should I draft?" }] }]
 
 describe("league chat routes when OpenClaw is not configured", () => {
+  const previous = new Map<string, string | undefined>()
+
   beforeEach(() => {
     fetchMock.mockReset()
     fetchMock.mockRejectedValue(new Error("fetch should not be called"))
@@ -57,14 +59,24 @@ describe("league chat routes when OpenClaw is not configured", () => {
 
   afterEach(() => {
     vi.unstubAllGlobals()
-    vi.unstubAllEnvs()
+    for (const key of KEYS) {
+      const value = previous.get(key)
+      if (value === undefined) delete process.env[key]
+      else process.env[key] = value
+    }
+    previous.clear()
   })
 
   function setEnv(next: Partial<Record<(typeof KEYS)[number], string | undefined>>) {
     for (const key of KEYS) {
-      // Empty string is falsy for Boolean(...?.trim()) checks; prefer stubEnv over
-      // delete process.env, which is unreliable under Vitest's forks pool on CI.
-      vi.stubEnv(key, next[key] ?? "")
+      if (!previous.has(key)) previous.set(key, process.env[key])
+      const value = next[key]
+      if (value === undefined) {
+        process.env[key] = ""
+        delete process.env[key]
+      } else {
+        process.env[key] = value
+      }
     }
   }
 
@@ -108,18 +120,21 @@ describe("league chat routes when OpenClaw is not configured", () => {
   ]
 
   for (const route of routes) {
-    it(`${route.name} returns JSON 503 and does not call the gateway when URL or agent id is unset`, async () => {
+    it(`${route.name} returns OpenAI-absent 503 when openclaw is requested but the gateway URL is empty`, async () => {
       setEnv({
         OPENAI_API_KEY: undefined,
         AI_CHAT_PROVIDER: "openclaw",
         OPENCLAW_GATEWAY_TOKEN: "gateway-token",
-        OPENCLAW_AGENT_ID: undefined,
+        OPENCLAW_AGENT_ID: "league-agent",
         OPENCLAW_HOOKS_TOKEN: undefined,
         OPENCLAW_GATEWAY_URL: undefined,
         OPENCLAW_HTTP_CHAT: undefined,
       })
-      await expectUnavailable(await route.post(post(route.path, route.body)), AI_CHAT_UNAVAILABLE_MESSAGE)
+      // Fail-closed URL: do not pin the OpenClaw route; surface the OpenAI-absent 503.
+      await expectUnavailable(await route.post(post(route.path, route.body)), OPENAI_UNAVAILABLE_MESSAGE)
+    })
 
+    it(`${route.name} returns AI-chat 503 when OpenClaw is preferred but agent id is unset`, async () => {
       setEnv({
         OPENAI_API_KEY: undefined,
         AI_CHAT_PROVIDER: "openclaw",
