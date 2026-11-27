@@ -13,18 +13,24 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { CheckCircle2, XCircle } from "lucide-react"
 import Link from "next/link"
 
+/** Mirrors getAllCommands() — keep in sync with lib/discord-commands/index.ts */
 const COMMANDS = [
-  { command: "/pick", api: "POST /api/discord/draft/pick", status: "working" },
-  { command: "/search", api: "GET /api/discord/pokemon/search", status: "working" },
-  { command: "/draftstatus", api: "In-process (getDraftStatusData)", status: "working" },
-  { command: "/whoami", api: "In-process (getWhoamiData)", status: "working" },
-  { command: "/setseason", api: "POST /api/discord/guild/config", status: "working" },
-  { command: "/getseason", api: "GET /api/discord/guild/config", status: "working" },
-  { command: "/coverage", api: "GET /api/draft/status + POST /api/discord/notify/coverage", status: "working" },
-  { command: "/calc", api: "POST /api/calc", status: "working" },
-  { command: "/free-agency-submit", api: "POST /api/discord/free-agency/submit", status: "working" },
-  { command: "/free-agency-status", api: "GET /api/discord/free-agency/team-status", status: "working" },
-] as const
+  { command: "/pick", api: "POST /api/discord/draft/pick", status: "working" as const },
+  { command: "/search", api: "GET /api/discord/pokemon/search", status: "working" as const },
+  { command: "/draftstatus", api: "In-process (getDraftStatusData)", status: "working" as const },
+  { command: "/whoami", api: "In-process (getWhoamiData)", status: "working" as const },
+  { command: "/setseason", api: "POST /api/discord/guild/config", status: "working" as const },
+  { command: "/getseason", api: "GET /api/discord/guild/config", status: "working" as const },
+  { command: "/coverage", api: "Draft status + notify/coverage", status: "working" as const },
+  { command: "/calc", api: "POST /api/calc", status: "working" as const },
+  { command: "/free-agency-submit", api: "POST /api/discord/free-agency/submit", status: "working" as const },
+  { command: "/free-agency-status", api: "GET /api/discord/free-agency/team-status", status: "working" as const },
+  {
+    command: "/join-battles",
+    api: "NetBird interactions (guild-only)",
+    status: "working" as const,
+  },
+]
 
 export function DiscordCommandStatusTable() {
   return (
@@ -32,11 +38,13 @@ export function DiscordCommandStatusTable() {
       <CardHeader>
         <CardTitle className="text-lg">Slash Command Inventory</CardTitle>
         <CardDescription>
-          Canonical list of all 10 slash commands. See{" "}
+          Canonical list of all {COMMANDS.length} app-registered slash commands from{" "}
+          <code className="text-xs">getAllCommands()</code>. See{" "}
           <Link href="/dashboard/guides/discord-slash-commands" className="text-primary hover:underline">
             Discord Slash Commands Reference
           </Link>{" "}
-          for full details and E2E testing.
+          for coach-facing details. Live Discord guild inventory requires a read-only Bot GET — not shown
+          here.
         </CardDescription>
       </CardHeader>
       <CardContent>

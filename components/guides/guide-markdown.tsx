@@ -1,5 +1,6 @@
 import Link from "next/link"
 import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
 import { cn } from "@/lib/utils"
 
 interface GuideMarkdownProps {
@@ -50,6 +51,7 @@ export function GuideMarkdown({
     >
       <div className="overflow-x-auto [-webkit-overflow-scrolling:touch]">
         <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
           components={{
             a: ({ href, children, ...props }) => {
               if (href?.startsWith("/")) {
@@ -66,7 +68,7 @@ export function GuideMarkdown({
               )
             },
             table: ({ children }) => (
-              <div className="my-4 overflow-x-auto rounded-lg border">
+              <div className="my-4 overflow-x-auto rounded-lg border [-webkit-overflow-scrolling:touch]">
                 <table>{children}</table>
               </div>
             ),
