@@ -1,6 +1,9 @@
 /**
  * Public Pokémon Showdown / Smogon hosts used after scaling back self-hosted aab-* services.
  * Prefer these defaults so the app works when private calc/play stacks are offline.
+ *
+ * Client bundles: read each `process.env.NEXT_PUBLIC_*` key directly (Next.js inlines those
+ * static property accesses). An optional `env` bag is only for tests / server injection.
  */
 
 export const PUBLIC_SHOWDOWN_CLIENT_URL = "https://play.pokemonshowdown.com"
@@ -26,28 +29,37 @@ function pickPublicUrl(fromEnv: string | undefined, fallback: string): string {
 
 /** Battle client URL: env override, else official public Showdown. */
 export function getShowdownClientUrl(
-  env: Record<string, string | undefined> = process.env,
+  env?: Record<string, string | undefined>,
 ): string {
-  return pickPublicUrl(env.NEXT_PUBLIC_SHOWDOWN_CLIENT_URL, PUBLIC_SHOWDOWN_CLIENT_URL)
+  const fromEnv = env
+    ? env.NEXT_PUBLIC_SHOWDOWN_CLIENT_URL
+    : process.env.NEXT_PUBLIC_SHOWDOWN_CLIENT_URL
+  return pickPublicUrl(fromEnv, PUBLIC_SHOWDOWN_CLIENT_URL)
 }
 
 /** Damage calculator URL: env override, else official public Smogon calc. */
 export function getDamageCalcUrl(
-  env: Record<string, string | undefined> = process.env,
+  env?: Record<string, string | undefined>,
 ): string {
-  return pickPublicUrl(env.NEXT_PUBLIC_DAMAGE_CALC_URL, PUBLIC_DAMAGE_CALC_URL)
+  const fromEnv = env
+    ? env.NEXT_PUBLIC_DAMAGE_CALC_URL
+    : process.env.NEXT_PUBLIC_DAMAGE_CALC_URL
+  return pickPublicUrl(fromEnv, PUBLIC_DAMAGE_CALC_URL)
 }
 
 /** Public replay viewer base (no trailing slash). */
 export function getShowdownReplayBaseUrl(
-  env: Record<string, string | undefined> = process.env,
+  env?: Record<string, string | undefined>,
 ): string {
-  return pickPublicUrl(env.NEXT_PUBLIC_SHOWDOWN_REPLAY_URL, PUBLIC_SHOWDOWN_REPLAY_URL)
+  const fromEnv = env
+    ? env.NEXT_PUBLIC_SHOWDOWN_REPLAY_URL
+    : process.env.NEXT_PUBLIC_SHOWDOWN_REPLAY_URL
+  return pickPublicUrl(fromEnv, PUBLIC_SHOWDOWN_REPLAY_URL)
 }
 
 export function getPublicReplayViewerUrl(
   replayId: string,
-  env: Record<string, string | undefined> = process.env,
+  env?: Record<string, string | undefined>,
 ): string {
   return `${getShowdownReplayBaseUrl(env)}/${replayId}`
 }
