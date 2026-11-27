@@ -79,17 +79,44 @@ export type ShowdownIdentityStatus = {
   oauth_unavailable_reason: string | null
   /** Honest product copy — never claim "linked" via legacy sync alone. */
   team_import_note: string
+  /** Public flags only — never includes client_id secret/value. */
+  oauth_prerequisites: {
+    client_id_configured: boolean
+    redirect_uri_configured: boolean
+    registration_form: string
+    blocked_reasons: string[]
+  }
 }
 
 export function getShowdownIdentityStatus(
   env: EnvLike = process.env,
 ): ShowdownIdentityStatus {
   const oauth = isShowdownOauthLinkAvailable(env)
+  const clientConfigured = Boolean(getShowdownOauthClientId(env))
+  const redirectConfigured = Boolean(env.SHOWDOWN_OAUTH_REDIRECT_URI?.trim())
+  const registrationForm = "https://forms.gle/VAoSjqHn4zwem7tp9"
+  const blocked: string[] = []
+  if (!SHOWDOWN_OAUTH_LINK_IMPLEMENTED) {
+    blocked.push(
+      "OAuth link capability gate is off until routes + profile bind columns are approved.",
+    )
+  }
+  if (!clientConfigured) {
+    blocked.push(
+      `No SHOWDOWN_OAUTH_CLIENT_ID — register via ${registrationForm} with the exact production origin.`,
+    )
+  }
+  if (!redirectConfigured) {
+    blocked.push(
+      "No SHOWDOWN_OAUTH_REDIRECT_URI matching the registered origin.",
+    )
+  }
+
   let reason: string | null = null
   if (!oauth) {
     if (!SHOWDOWN_OAUTH_LINK_IMPLEMENTED) {
       reason = SHOWDOWN_OAUTH_UNAVAILABLE_MESSAGE
-    } else if (!getShowdownOauthClientId(env)) {
+    } else if (!clientConfigured) {
       reason =
         "Verified linking requires SHOWDOWN_OAUTH_CLIENT_ID once OAuth is implemented."
     } else {
@@ -103,6 +130,12 @@ export function getShowdownIdentityStatus(
     oauth_unavailable_reason: reason,
     team_import_note:
       "Teams are added by pasting or uploading a Showdown export. Cloud account team sync is not supported.",
+    oauth_prerequisites: {
+      client_id_configured: clientConfigured,
+      redirect_uri_configured: redirectConfigured,
+      registration_form: registrationForm,
+      blocked_reasons: blocked,
+    },
   }
 }
 

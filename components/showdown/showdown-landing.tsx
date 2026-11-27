@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { getShowdownClientUrl } from '@/lib/showdown/public-hosts';
+import { PublicLadderCard } from '@/components/showdown/public-ladder-card';
 
 export function ShowdownLanding() {
   const features = [
@@ -140,6 +141,8 @@ export function ShowdownLanding() {
           </div>
         </CardContent>
       </Card>
+
+      <PublicLadderCard />
 
       {/* Benefits Section */}
       <div>

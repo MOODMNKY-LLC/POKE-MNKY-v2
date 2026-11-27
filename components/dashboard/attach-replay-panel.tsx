@@ -43,6 +43,14 @@ export function AttachReplayPanel({ matchId, existingReplayUrl }: Props) {
   const [preview, setPreview] = useState<PreviewBody | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [discoverUser, setDiscoverUser] = useState("")
+  const [discoverOpponent, setDiscoverOpponent] = useState("")
+  const [discoverFormat, setDiscoverFormat] = useState("")
+  const [discoverHits, setDiscoverHits] = useState<
+    Array<{ id: string; url: string; format?: string; players?: string[]; uploadtime: number }>
+  >([])
+  const [discoverBefore, setDiscoverBefore] = useState<number | null>(null)
+  const [discoverHasMore, setDiscoverHasMore] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -62,6 +70,34 @@ export function AttachReplayPanel({ matchId, existingReplayUrl }: Props) {
 
   // Feature default OFF: do not render controls or imply capability.
   if (enabled !== true) return null
+
+  async function runDiscover(reset: boolean) {
+    setBusy(true)
+    setError(null)
+    try {
+      const params = new URLSearchParams()
+      if (discoverUser.trim()) params.set("user", discoverUser.trim())
+      if (discoverOpponent.trim()) params.set("user2", discoverOpponent.trim())
+      if (discoverFormat.trim()) params.set("format", discoverFormat.trim())
+      if (!reset && discoverBefore) params.set("before", String(discoverBefore))
+      const res = await fetch(`/api/showdown/public/replays/search?${params}`, {
+        credentials: "include",
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error || "Discovery failed")
+        return
+      }
+      const hits = Array.isArray(data.hits) ? data.hits : []
+      setDiscoverHits((prev) => (reset ? hits : [...prev, ...hits]))
+      setDiscoverHasMore(Boolean(data.hasMore))
+      setDiscoverBefore(typeof data.next_before === "number" ? data.next_before : null)
+    } catch {
+      setError("Discovery failed")
+    } finally {
+      setBusy(false)
+    }
+  }
 
   async function runPreview() {
     setBusy(true)
@@ -147,6 +183,85 @@ export function AttachReplayPanel({ matchId, existingReplayUrl }: Props) {
               }}
               placeholder="https://replay.pokemonshowdown.com/…"
             />
+          </div>
+
+          <div className="rounded-lg border border-border/70 p-3 space-y-2">
+            <p className="text-sm font-medium">Optional discovery</p>
+            <p className="text-xs text-muted-foreground text-pretty">
+              Search public replays by linked username, opponent, or format. Private
+              replays are excluded. Selecting a hit only fills the URL — you must
+              still Preview and Confirm.
+            </p>
+            <div className="grid gap-2 sm:grid-cols-3">
+              <Input
+                value={discoverUser}
+                onChange={(e) => setDiscoverUser(e.target.value)}
+                placeholder="User"
+                aria-label="Discover by username"
+              />
+              <Input
+                value={discoverOpponent}
+                onChange={(e) => setDiscoverOpponent(e.target.value)}
+                placeholder="Opponent"
+                aria-label="Discover by opponent"
+              />
+              <Input
+                value={discoverFormat}
+                onChange={(e) => setDiscoverFormat(e.target.value)}
+                placeholder="Format (e.g. gen9ou)"
+                aria-label="Discover by format"
+              />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                disabled={
+                  busy ||
+                  (!discoverUser.trim() &&
+                    !discoverOpponent.trim() &&
+                    !discoverFormat.trim())
+                }
+                onClick={() => void runDiscover(true)}
+              >
+                Search public replays
+              </Button>
+              {discoverHasMore ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  disabled={busy}
+                  onClick={() => void runDiscover(false)}
+                >
+                  More (before-cursor)
+                </Button>
+              ) : null}
+            </div>
+            {discoverHits.length > 0 ? (
+              <ul className="max-h-40 space-y-1 overflow-y-auto text-xs">
+                {discoverHits.map((hit) => (
+                  <li key={hit.id}>
+                    <button
+                      type="button"
+                      className="w-full rounded px-2 py-1 text-left hover:bg-muted"
+                      onClick={() => {
+                        setUrl(hit.url)
+                        setPreview(null)
+                      }}
+                    >
+                      <span className="font-medium">
+                        {(hit.players || []).join(" vs ") || hit.id}
+                      </span>
+                      {hit.format ? (
+                        <span className="text-muted-foreground"> · {hit.format}</span>
+                      ) : null}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
           </div>
 
           {error && (

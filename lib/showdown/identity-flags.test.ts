@@ -48,15 +48,21 @@ describe("showdown identity flags", () => {
     expect(status.legacy_sync_enabled).toBe(false)
     expect(status.oauth_link_available).toBe(false)
     expect(status.team_import_note.toLowerCase()).toContain("pasting")
+    expect(status.oauth_prerequisites.client_id_configured).toBe(false)
+    expect(status.oauth_prerequisites.blocked_reasons.length).toBeGreaterThan(0)
   })
 
   it("returns 410 with code when legacy sync denied", async () => {
-    const res = legacyShowdownSyncDeniedResponse({})
+    const res = legacyShowdownSyncDeniedResponse({
+      SHOWDOWN_OAUTH_CLIENT_ID: "secret-client-value",
+    })
     expect(res).not.toBeNull()
     expect(res!.status).toBe(410)
     const body = await res!.json()
     expect(body.code).toBe(LEGACY_SHOWDOWN_SYNC_DISABLED_CODE)
-    expect(JSON.stringify(body)).not.toMatch(/SHOWDOWN_OAUTH_CLIENT_ID/)
+    // Never leak the client id value (env var name in operator copy is OK)
+    expect(JSON.stringify(body)).not.toContain("secret-client-value")
+    expect(body.identity.oauth_prerequisites.client_id_configured).toBe(true)
   })
 
   it("allows legacy sync when flag on", () => {

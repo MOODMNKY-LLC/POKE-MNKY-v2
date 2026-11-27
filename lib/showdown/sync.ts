@@ -216,8 +216,15 @@ export async function syncShowdownAccount(userId: string): Promise<{
       }
     }
 
-    // Call loginserver API
-    const loginserverUrl = process.env.LOGINSERVER_URL || 'https://aab-login.moodmnky.com'
+    // Call loginserver API — no retired aab-login default; must be explicit.
+    const loginserverUrl = process.env.LOGINSERVER_URL?.trim()
+    if (!loginserverUrl) {
+      return {
+        success: false,
+        error:
+          "LOGINSERVER_URL is not configured. Legacy sync does not use public Pokémon Showdown and must not fall back to retired aab-login hosts.",
+      }
+    }
     
     // Build request payload with all required fields
     const payload = {
