@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { Search } from "lucide-react"
+import { Music2, Search } from "lucide-react"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -15,6 +15,8 @@ import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { OPEN_COMMAND_PALETTE_EVENT } from "@/components/command-palette"
+import { HeaderMusicPlayer } from "@/components/music/header-music-player"
+import { OPEN_MOBILE_MUSIC_EVENT } from "@/components/music/mobile-music-player"
 import { getBreadcrumbs } from "@/lib/nav/coach-nav"
 import { useNavLocation } from "@/components/dashboard/use-nav-location"
 
@@ -49,6 +51,18 @@ export function DashboardHeader() {
           })}
         </BreadcrumbList>
       </Breadcrumb>
+      <HeaderMusicPlayer />
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        className="sm:hidden max-md:size-11 max-md:p-0"
+        aria-label="Open music player"
+        data-testid="dashboard-mobile-music"
+        onClick={() => window.dispatchEvent(new Event(OPEN_MOBILE_MUSIC_EVENT))}
+      >
+        <Music2 className="size-4" aria-hidden="true" />
+      </Button>
       <Button
         variant="outline"
         size="sm"

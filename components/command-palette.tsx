@@ -22,6 +22,14 @@ import {
 
 export const OPEN_COMMAND_PALETTE_EVENT = "open-command-palette"
 
+/** Shared viewport positioning for cmdk CommandDialog (Radix portal has no default fixed styles). */
+export const COMMAND_DIALOG_OVERLAY_CLASS = "fixed inset-0 z-50 bg-black/50"
+export const COMMAND_DIALOG_CONTENT_CLASS = cn(
+  "fixed left-1/2 top-[12%] z-50 w-[calc(100vw-2rem)] -translate-x-1/2",
+  "overflow-hidden rounded-lg border bg-popover text-popover-foreground shadow-lg",
+  "max-w-lg p-1 [&_[cmdk-input]]:mb-1 [&_[cmdk-input]]:border-b",
+)
+
 const ITEM_CLASS =
   "flex min-h-11 cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm aria-selected:bg-accent aria-selected:text-accent-foreground md:min-h-9"
 const HEADING_CLASS =
@@ -67,12 +75,8 @@ export function CommandPalette({ ctx }: { ctx: CoachNavContext }) {
       open={open}
       onOpenChange={setOpen}
       label="Command palette"
-      contentClassName={cn(
-        "overflow-hidden rounded-lg border bg-popover text-popover-foreground shadow-lg",
-        "max-w-[calc(100vw-2rem)] sm:max-w-lg",
-        "p-1 [&_[cmdk-input]]:border-b [&_[cmdk-input]]:mb-1",
-      )}
-      overlayClassName="bg-black/50"
+      contentClassName={COMMAND_DIALOG_CONTENT_CLASS}
+      overlayClassName={COMMAND_DIALOG_OVERLAY_CLASS}
     >
       <CommandInput placeholder="Search pages and actions..." className="h-11 w-full bg-transparent px-2 text-sm outline-none" />
       <CommandList className="max-h-[60svh] overflow-y-auto">

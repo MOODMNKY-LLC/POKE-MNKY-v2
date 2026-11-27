@@ -11,9 +11,12 @@ import {
   CommandList,
 } from "cmdk"
 import { LayoutDashboard } from "lucide-react"
-import { cn } from "@/lib/utils"
 import { getPublicPaletteEntries } from "@/lib/nav/public-nav"
-import { OPEN_COMMAND_PALETTE_EVENT } from "@/components/command-palette"
+import {
+  COMMAND_DIALOG_CONTENT_CLASS,
+  COMMAND_DIALOG_OVERLAY_CLASS,
+  OPEN_COMMAND_PALETTE_EVENT,
+} from "@/components/command-palette"
 
 const ITEM_CLASS =
   "flex min-h-11 cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm aria-selected:bg-accent aria-selected:text-accent-foreground md:min-h-9"
@@ -78,12 +81,8 @@ export function PublicCommandPalette() {
       open={open}
       onOpenChange={setOpen}
       label="Search pages"
-      contentClassName={cn(
-        "overflow-hidden rounded-lg border bg-popover text-popover-foreground shadow-lg",
-        "max-w-[calc(100vw-2rem)] sm:max-w-lg",
-        "p-1 [&_[cmdk-input]]:border-b [&_[cmdk-input]]:mb-1",
-      )}
-      overlayClassName="bg-black/50"
+      contentClassName={COMMAND_DIALOG_CONTENT_CLASS}
+      overlayClassName={COMMAND_DIALOG_OVERLAY_CLASS}
     >
       <CommandInput placeholder="Search pages..." className="h-11 w-full bg-transparent px-2 text-sm outline-none" />
       <CommandList className="max-h-[60svh] overflow-y-auto">
