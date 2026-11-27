@@ -20,7 +20,7 @@ export default defineConfig({
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
     {
       name: "mobile",
-      testMatch: /a11y\.spec\.ts/,
+      testMatch: /(a11y|mobile-layout)\.spec\.ts/,
       use: {
         ...devices["Desktop Chrome"],
         viewport: { width: 390, height: 844 },

@@ -11,18 +11,11 @@ export const metadata: Metadata = {
 export default function DemoSeasonSimLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <a
-        href="#sim-main"
-        className="sr-only rounded-md bg-primary px-4 py-3 text-primary-foreground focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50"
-      >
-        Skip to practice season
-      </a>
-      <div className="border-b border-border bg-card">
+      <div className="border-b border-border bg-muted/40">
         <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-3 text-sm sm:px-6">
-          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <span className="font-semibold tracking-wide text-card-foreground">POKÉ MNKY</span>
-            <span className="text-pretty text-muted-foreground">Practice seasons · not the live league</span>
-          </div>
+          <p className="text-pretty text-muted-foreground">
+            Practice seasons · not the live league
+          </p>
           <Link
             href="/auth/login?next=/demo/season-sim"
             className="inline-flex h-11 items-center font-medium text-primary underline-offset-4 hover:underline sm:h-9"

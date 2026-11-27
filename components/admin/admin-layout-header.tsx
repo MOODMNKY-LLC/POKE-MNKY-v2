@@ -13,6 +13,9 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import { Separator } from "@/components/ui/separator"
+import { ThemeSwitcher } from "@/components/theme-switcher"
+import { Search } from "lucide-react"
+import { OPEN_COMMAND_PALETTE_EVENT } from "@/components/command-palette"
 
 const pathLabels: Record<string, string> = {
   "": "Overview",
@@ -86,9 +89,26 @@ export function AdminLayoutHeader() {
             </BreadcrumbList>
           </Breadcrumb>
         </div>
-        <Button asChild variant="outline" size="sm">
-          <Link href="/">View Site</Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="gap-1.5"
+            aria-label="Search pages"
+            onClick={() => window.dispatchEvent(new Event(OPEN_COMMAND_PALETTE_EVENT))}
+          >
+            <Search className="h-4 w-4" aria-hidden="true" />
+            <span className="hidden sm:inline">Search</span>
+            <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium md:inline-flex">
+              ⌘K
+            </kbd>
+          </Button>
+          <ThemeSwitcher />
+          <Button asChild variant="outline" size="sm">
+            <Link href="/">View Site</Link>
+          </Button>
+        </div>
       </div>
     </header>
   )
