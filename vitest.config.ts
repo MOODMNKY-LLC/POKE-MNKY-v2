@@ -5,6 +5,8 @@ export default defineConfig({
   plugins: [tsconfigPaths()],
   test: {
     environment: "node",
+    // Forks keep process.env mutations in OpenClaw/AI availability tests from racing across files.
+    pool: "forks",
     // Only *.test.ts — e2e/*.spec.ts is Playwright, not Vitest
     include: ["**/*.test.ts"],
     exclude: [
