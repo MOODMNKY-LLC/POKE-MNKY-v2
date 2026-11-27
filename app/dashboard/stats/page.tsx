@@ -1,15 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { getCurrentUserProfile, canAccessCoachFeatures } from "@/lib/rbac"
 import { redirect } from "next/navigation"
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbLink,
-} from "@/components/ui/breadcrumb"
-import { SidebarTrigger } from "@/components/ui/sidebar"
-import { Separator } from "@/components/ui/separator"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
 import { BarChart3, Trophy, Coins } from "lucide-react"
@@ -19,8 +10,7 @@ export const dynamic = "force-dynamic"
 export default async function DashboardStatsPage() {
   const supabase = await createClient()
   const {
-    data: { user },
-  } = await supabase.auth.getUser()
+    data: { user } } = await supabase.auth.getUser()
 
   if (!user) {
     redirect("/auth/login")
@@ -52,8 +42,7 @@ export default async function DashboardStatsPage() {
       stats.team_record = {
         wins: team.wins ?? 0,
         losses: team.losses ?? 0,
-        differential: team.differential ?? 0,
-      }
+        differential: team.differential ?? 0 }
     }
 
     if (season?.id) {
@@ -68,8 +57,7 @@ export default async function DashboardStatsPage() {
         stats.draft_budget = {
           total: budgetRow.draft_points_budget ?? 120,
           spent: budgetRow.points_used ?? 0,
-          remaining: budgetRow.budget_remaining ?? 0,
-        }
+          remaining: budgetRow.budget_remaining ?? 0 }
       } else {
         const { data: draftBudget } = await supabase
           .from("draft_budgets")
@@ -81,15 +69,13 @@ export default async function DashboardStatsPage() {
           stats.draft_budget = {
             total: draftBudget.total_points ?? 120,
             spent: draftBudget.spent_points ?? 0,
-            remaining: draftBudget.remaining_points ?? 0,
-          }
+            remaining: draftBudget.remaining_points ?? 0 }
         } else {
           const { data: seasonRow } = await supabase.from("seasons").select("draft_points_budget").eq("id", season.id).single()
           stats.draft_budget = {
             total: seasonRow?.draft_points_budget ?? 120,
             spent: 0,
-            remaining: seasonRow?.draft_points_budget ?? 120,
-          }
+            remaining: seasonRow?.draft_points_budget ?? 120 }
         }
       }
     }
@@ -105,22 +91,6 @@ export default async function DashboardStatsPage() {
 
   return (
     <>
-      <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-        <SidebarTrigger className="-ml-1" />
-        <Separator orientation="vertical" className="mr-2 h-4" />
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link href="/dashboard">Dashboard</Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbItem>
-              <BreadcrumbPage>My Stats</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
-      </header>
       <div className="flex flex-1 flex-col gap-4 p-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">My Stats</h1>

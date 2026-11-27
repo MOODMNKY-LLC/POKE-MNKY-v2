@@ -2,19 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbList,
-  BreadcrumbLink,
-  BreadcrumbPage,
-} from "@/components/ui/breadcrumb"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { Separator } from "@/components/ui/separator"
-import { SidebarTrigger } from "@/components/ui/sidebar"
 import { CheckCircle2, ChevronRight, Circle, BookOpen, Trophy, Wrench } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
@@ -24,8 +15,7 @@ import {
   getDashboardOnboardingCopy,
   getOnboardingChecklistStatus,
   getOnboardingProgressLabel,
-  getVisibleOnboardingStepId,
-} from "@/lib/onboarding-flow"
+  getVisibleOnboardingStepId } from "@/lib/onboarding-flow"
 
 const BACKEND_STEPS = [
   { id: "welcome", nextLabel: "Coach assigned" },
@@ -83,8 +73,7 @@ export default function CoachOnboardingPage() {
       ONBOARDING_CHECKLIST.map((item) => ({
         ...item,
         status: getOnboardingChecklistStatus(item.id, currentStep, completedSteps, completedAt),
-        isCurrent: item.id === currentVisibleStepId,
-      })),
+        isCurrent: item.id === currentVisibleStepId })),
     [completedAt, completedSteps, currentStep, currentVisibleStepId]
   )
 
@@ -99,8 +88,7 @@ export default function CoachOnboardingPage() {
       const res = await fetch("/api/coach-onboarding", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ step, mark_complete: markComplete }),
-      })
+        body: JSON.stringify({ step, mark_complete: markComplete }) })
       const data = await res.json()
       if (!res.ok) {
         toast.error(data.error ?? "Something went wrong")
@@ -132,22 +120,6 @@ export default function CoachOnboardingPage() {
 
   return (
     <>
-      <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-        <SidebarTrigger className="-ml-1" />
-        <Separator orientation="vertical" className="mr-2 h-4" />
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link href="/dashboard">Dashboard</Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbItem>
-              <BreadcrumbPage>Discord-to-app onboarding</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
-      </header>
       <div className="flex-1 space-y-6 p-4 md:p-6">
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">
@@ -159,9 +131,9 @@ export default function CoachOnboardingPage() {
             </Badge>
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Discord-to-app onboarding</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Coach onboarding</h1>
             <p className="text-muted-foreground">
-              One checklist from Discord login to a connected coach profile, linked team, and ready-to-use Team Builder.
+              Discord login → coach role → linked league team → Team Builder. Public Showdown and the battle-network guide are optional after you finish.
             </p>
           </div>
         </div>
@@ -249,13 +221,12 @@ export default function CoachOnboardingPage() {
                 )}
                 {currentVisibleStepId === "team_linked" && (
                   <p className="text-sm text-muted-foreground">
-                    Link your league team explicitly from League team (no auto-assign). Once linked,
-                    the dashboard and draft assistant use your team from Supabase.
+                    Link your league team from My team (no auto-assign). Once linked, the dashboard and draft tools use your team.
                   </p>
                 )}
                 {currentVisibleStepId === "team_builder_intro" && (
                   <p className="text-sm text-muted-foreground">
-                    Open the Team Builder to learn the roster workflow, budget rules, and how weekly updates fit together.
+                    Open the Team Builder to paste or build weekly exports. Battling happens on public Pokémon Showdown when you are ready — it is not required to finish onboarding.
                   </p>
                 )}
                 {currentVisibleStepId === "complete" && (
@@ -287,12 +258,17 @@ export default function CoachOnboardingPage() {
                     </Button>
                   )}
                   {currentVisibleStepId === "complete" && (
-                    <Button asChild size="sm">
-                      <Link href="/dashboard/teams/builder">
-                        <Wrench className="mr-2 h-4 w-4" />
-                        Open Team Builder
-                      </Link>
-                    </Button>
+                    <>
+                      <Button asChild size="sm">
+                        <Link href="/dashboard/teams/builder">
+                          <Wrench className="mr-2 h-4 w-4" />
+                          Open Team Builder
+                        </Link>
+                      </Button>
+                      <Button asChild variant="outline" size="sm">
+                        <Link href="/dashboard/guides/netbird">Battle network guide</Link>
+                      </Button>
+                    </>
                   )}
                   {nextStep && (
                     <Button disabled={saving} onClick={() => updateStep(nextStep)}>
@@ -328,8 +304,8 @@ export default function CoachOnboardingPage() {
               <CardContent className="space-y-3 text-sm text-muted-foreground">
                 <p>• Discord login establishes the account.</p>
                 <p>• Coach assignment unlocks league tools and permissions.</p>
-                <p>• Team linking connects the roster, budget, and weekly views to Supabase.</p>
-                <p>• Team Builder intro shows how to build and manage your roster in the app.</p>
+                <p>• Team linking connects your roster and weekly views.</p>
+                <p>• Team Builder covers paste/build exports; public Showdown and NetBird stay optional.</p>
               </CardContent>
             </Card>
           </div>

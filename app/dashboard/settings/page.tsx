@@ -1,15 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { getCurrentUserProfile } from "@/lib/rbac"
 import { redirect } from "next/navigation"
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbLink,
-} from "@/components/ui/breadcrumb"
-import { SidebarTrigger } from "@/components/ui/sidebar"
-import { Separator } from "@/components/ui/separator"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import Link from "next/link"
@@ -24,14 +15,12 @@ export const dynamic = "force-dynamic"
 type SearchParams = { tab?: string }
 
 export default async function DashboardSettingsPage({
-  searchParams,
-}: {
+  searchParams }: {
   searchParams: Promise<SearchParams>
 }) {
   const supabase = await createClient()
   const {
-    data: { user },
-  } = await supabase.auth.getUser()
+    data: { user } } = await supabase.auth.getUser()
 
   if (!user) {
     redirect("/auth/login")
@@ -49,22 +38,6 @@ export default async function DashboardSettingsPage({
 
   return (
     <>
-      <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-        <SidebarTrigger className="-ml-1" />
-        <Separator orientation="vertical" className="mr-2 h-4" />
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link href="/dashboard">Dashboard</Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbItem>
-              <BreadcrumbPage>Settings</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
-      </header>
       <div className="flex flex-1 flex-col gap-4 p-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
@@ -214,59 +187,47 @@ export default async function DashboardSettingsPage({
                 </section>
                 <section>
                   <h3 className="font-semibold mb-2">References</h3>
-                  <p className="text-muted-foreground mb-2">
-                    Full guides and documentation you can open from the app:
+                  <p className="mb-3 text-sm text-muted-foreground">
+                    Coach guides open in the app. Admin guides are labeled — skip them unless you help run the league.
                   </p>
-                  <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                    <li>
-                      <Link href="/dashboard/guides/league-features-v3" className="text-primary hover:underline">
-                        League Features Guide (v3)
+                  <ul className="space-y-3 text-sm text-muted-foreground">
+                    <li className="pl-0">
+                      <Link href="/dashboard/guides/league-features-v3" className="font-medium text-primary underline-offset-4 hover:underline">
+                        League features
                       </Link>
-                      {" "}
-                      — How to use Trade Block, Trade Offers, Free Agency, Tera Captains, midnight execution, and weekly roster view (all CHATGPT-V3 features built in app).
+                      <p className="mt-0.5 text-pretty">Trade block, free agency, tera captains, and weekly roster tools.</p>
                     </li>
                     <li>
-                      <Link href="/dashboard/guides/discord-integration" className="text-primary hover:underline">
-                        Discord Integration Guide
+                      <Link href="/dashboard/guides/discord-integration" className="font-medium text-primary underline-offset-4 hover:underline">
+                        Discord integration
                       </Link>
-                      {" "}
-                      — Webhooks, bot commands, channel mapping, what’s working vs. gaps, and how to configure the league Discord server.
+                      <p className="mt-0.5 text-pretty">How Discord links to the app, roles, and bot commands.</p>
                     </li>
                     <li>
-                      <Link href="/dashboard/guides/league-simulation" className="text-primary hover:underline">
-                        League Simulation & Testing Guide
+                      <Link href="/dashboard/guides/discord-slash-commands" className="font-medium text-primary underline-offset-4 hover:underline">
+                        Discord slash commands
                       </Link>
-                      {" "}
-                      — End-to-end simulation: seed, draft, schedule, playoffs, and results for testing.
+                      <p className="mt-0.5 text-pretty">Quick reference for league bot commands in Discord.</p>
                     </li>
                     <li>
-                      <Link href="/dashboard/guides/create-draft-session" className="text-primary hover:underline">
-                        Create Draft Session Guide
+                      <Link href="/dashboard/guides/netbird" className="font-medium text-primary underline-offset-4 hover:underline">
+                        Battle network (NetBird)
                       </Link>
-                      {" "}
-                      — How to configure and create a draft session with rules, playoffs, draft pool, and archive.
+                      <p className="mt-0.5 text-pretty">Optional: connect for Ryujinx / RyuLDN battles on the private mesh.</p>
                     </li>
                     <li>
-                      <Link href="/dashboard/guides/discord-slash-commands" className="text-primary hover:underline">
-                        Discord Slash Commands Reference
+                      <Link href="/dashboard/guides/create-draft-session" className="font-medium text-primary underline-offset-4 hover:underline">
+                        Create a draft session (admin)
                       </Link>
-                      {" "}
-                      — Full inventory of slash commands, APIs, status, and E2E testing.
+                      <p className="mt-0.5 text-pretty">For commissioners setting up a draft — not required for weekly coaching.</p>
                     </li>
                     <li>
-                      <Link href="/dashboard/guides/netbird" className="text-primary hover:underline">
-                        NetBird battle network
+                      <Link href="/dashboard/guides/league-simulation" className="font-medium text-primary underline-offset-4 hover:underline">
+                        League simulation (admin)
                       </Link>
-                      {" "}
-                      — How to accept your invite, install NetBird, and connect to the league battle server.
-                    </li>
-                    <li>
-                      Dashboard guide (above) — Overview, sidebar, Teams, League, Draft, Weekly Matches.
+                      <p className="mt-0.5 text-pretty">Practice seasons and testing tools for operators.</p>
                     </li>
                   </ul>
-                  <p className="text-muted-foreground mt-2 text-xs">
-                    In the project repo: <code className="rounded bg-muted px-1">docs/LEAGUE-FEATURES-GUIDE-V3.md</code>, <code className="rounded bg-muted px-1">docs/DISCORD-INTEGRATION-GUIDE.md</code>, <code className="rounded bg-muted px-1">docs/LEAGUE-SIMULATION-AND-TESTING-GUIDE.md</code>, <code className="rounded bg-muted px-1">docs/DISCORD-SLASH-COMMANDS-REFERENCE.md</code>, <code className="rounded bg-muted px-1">docs/DISCORD-SERVER-INTEGRATION-REPORT.md</code>, <code className="rounded bg-muted px-1">docs/DISCORD-SERVER-MAP.md</code>, <code className="rounded bg-muted px-1">CHATGPT-V3-UPDATE.md</code>.
-                  </p>
                 </section>
               </CardContent>
             </Card>

@@ -1,14 +1,3 @@
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
-import { Separator } from "@/components/ui/separator"
-import {
-  SidebarTrigger,
-} from "@/components/ui/sidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { createClient } from "@/lib/supabase/server"
@@ -42,8 +31,7 @@ function getDiscordRolePriority(discordRole: DiscordRole): number {
 export default async function DashboardPage() {
   const supabase = await createClient()
   const {
-    data: { user },
-  } = await supabase.auth.getUser()
+    data: { user } } = await supabase.auth.getUser()
 
   if (!user) {
     redirect("/auth/login")
@@ -102,8 +90,7 @@ export default async function DashboardPage() {
       overviewStats.team_record = {
         wins: team.wins ?? 0,
         losses: team.losses ?? 0,
-        differential: team.differential ?? 0,
-      }
+        differential: team.differential ?? 0 }
       const { data: budget } = await supabase
         .from("draft_budgets")
         .select("total_points, spent_points, remaining_points")
@@ -114,8 +101,7 @@ export default async function DashboardPage() {
         overviewStats.draft_budget = {
           total: budget.total_points ?? 0,
           spent: budget.spent_points ?? 0,
-          remaining: budget.remaining_points ?? 0,
-        }
+          remaining: budget.remaining_points ?? 0 }
       }
       // Latest roster snapshot for coach card (max week for this team+season)
       const { data: maxWeekRow } = await supabase
@@ -144,8 +130,7 @@ export default async function DashboardPage() {
         const byId = new Map((pokemonRows ?? []).map((p: { id: string; name: string }) => [p.id, p]))
         coachRoster = snapshot.map((s) => ({
           pokemon_name: byId.get(s.pokemon_id)?.name ?? "Unknown",
-          point_value: s.points,
-        }))
+          point_value: s.points }))
       }
       const { count: rosterCount } = await supabase
         .from("team_rosters")
@@ -178,8 +163,7 @@ export default async function DashboardPage() {
           opponent_name: opponent?.name,
           opponent_coach: opponent?.coach_name,
           opponent_logo_url: opponent?.logo_url,
-          status: nextMatch.status,
-        }
+          status: nextMatch.status }
       }
       const { count: tradeBlockCount } = await supabase
         .from("trade_block_entries")
@@ -209,27 +193,10 @@ export default async function DashboardPage() {
     resource_type: r.resource_type,
     resource_id: r.resource_id,
     metadata: r.metadata as Record<string, unknown> | null,
-    created_at: r.created_at,
-  }))
+    created_at: r.created_at }))
 
   return (
     <>
-      <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-        <div className="flex items-center gap-2 px-4">
-          <SidebarTrigger className="-ml-1" />
-          <Separator
-            orientation="vertical"
-            className="mr-2 data-[orientation=vertical]:h-4"
-          />
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbPage>Dashboard</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-        </div>
-      </header>
       <div className="flex min-w-0 flex-1 flex-col gap-4 overflow-x-clip p-4 pt-0 safe-area-padding">
           <div className="min-w-0 space-y-4">
             {/* Welcome Section with Coach Card - Always shown */}
@@ -257,8 +224,7 @@ export default async function DashboardPage() {
                       overviewStats.draft_budget
                         ? {
                             used: overviewStats.draft_budget.total - overviewStats.draft_budget.remaining,
-                            total: overviewStats.draft_budget.total,
-                          }
+                            total: overviewStats.draft_budget.total }
                         : undefined
                     }
                   />
@@ -321,8 +287,7 @@ export default async function DashboardPage() {
                             className="text-xs px-1.5 py-0.5 rounded border"
                             style={{
                               borderColor: discordRole.color !== "#000000" ? discordRole.color : undefined,
-                              color: discordRole.color !== "#000000" ? discordRole.color : undefined,
-                            }}
+                              color: discordRole.color !== "#000000" ? discordRole.color : undefined }}
                           >
                             {discordRole.name}
                           </span>

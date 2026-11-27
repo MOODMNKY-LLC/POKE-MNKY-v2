@@ -1,17 +1,8 @@
 import { WeekSelector, type WeekOption } from "@/components/dashboard/weekly-matches/week-selector"
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { ShineBorder } from "@/components/ui/shine-border"
-import { SidebarTrigger } from "@/components/ui/sidebar"
 import { createClient } from "@/lib/supabase/server"
 import { getCurrentUserProfile, canAccessCoachFeatures } from "@/lib/rbac"
 import { Calendar, ClipboardList, Shield, Swords, Trophy } from "lucide-react"
@@ -83,8 +74,7 @@ async function loadRosterCaptains(
       pokemon_name: byId.get(entry.pokemon_id)?.name ?? "Unknown",
       point_value: entry.points,
       is_tera_captain: true,
-      tera_types: entry.tera_types ?? [],
-    }))
+      tera_types: entry.tera_types ?? [] }))
 }
 
 function parseWeek(input: unknown) {
@@ -100,14 +90,12 @@ function embeddedRow<T>(value: T | T[] | null | undefined): T | null {
 }
 
 export default async function WeeklyMatchesPage({
-  searchParams,
-}: {
+  searchParams }: {
   searchParams?: SearchParams | Promise<SearchParams>
 }) {
   const supabase = await createClient()
   const {
-    data: { user },
-  } = await supabase.auth.getUser()
+    data: { user } } = await supabase.auth.getUser()
 
   if (!user) {
     redirect("/auth/login")
@@ -163,8 +151,7 @@ export default async function WeeklyMatchesPage({
   const availableWeeks = new Set<number>((teamMatches ?? []).map((m) => m.week))
   const weeks: WeekOption[] = Array.from({ length: TOTAL_WEEKS }, (_, i) => ({
     week: i + 1,
-    disabled: teamId ? !availableWeeks.has(i + 1) : true,
-  }))
+    disabled: teamId ? !availableWeeks.has(i + 1) : true }))
 
   const selectedMatch =
     teamMatches?.find((m) => m.week === selectedWeek) ?? null
@@ -213,29 +200,6 @@ export default async function WeeklyMatchesPage({
 
   return (
     <>
-        <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-          <div className="flex items-center gap-2 px-4">
-            <SidebarTrigger className="-ml-1" />
-            <Separator
-              orientation="vertical"
-              className="mr-2 data-[orientation=vertical]:h-4"
-            />
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink asChild>
-                    <Link href="/dashboard">Dashboard</Link>
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator className="hidden md:block" />
-                <BreadcrumbItem>
-                  <BreadcrumbPage>Weekly Matches</BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
-          </div>
-        </header>
-
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
           <div className="space-y-4">
             <div className="flex flex-col gap-1">

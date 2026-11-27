@@ -16,6 +16,7 @@ import {
   PlayCircle
 } from 'lucide-react';
 import Link from 'next/link';
+import { getShowdownClientUrl } from '@/lib/showdown/public-hosts';
 
 export function ShowdownLanding() {
   const features = [
@@ -30,7 +31,7 @@ export function ShowdownLanding() {
     {
       icon: Users,
       title: 'Match Lobby',
-      description: 'Launch battles, find opponents, and create private battle rooms. Connect with league members for scheduled matches.',
+      description: 'Find your scheduled matches and open Pokémon Showdown to challenge your opponent.',
       href: '/showdown/match-lobby',
       color: 'text-green-500',
       bgColor: 'bg-green-500/10',
@@ -56,18 +57,18 @@ export function ShowdownLanding() {
   const benefits = [
     {
       icon: Shield,
-      title: 'Showdown-Level Accuracy',
-      description: 'Our self-hosted Showdown server ensures battle calculations match the official simulator exactly.',
+      title: 'Official Showdown accuracy',
+      description: 'Battles run on the public Pokémon Showdown client coaches already use — same mechanics as the official simulator.',
     },
     {
       icon: Zap,
-      title: 'Seamless Integration',
-      description: 'Teams, matches, and replays sync automatically with your league data. No manual data entry required.',
+      title: 'Paste-first team workflow',
+      description: 'Build, upload, and validate teams in the app, then battle on Showdown. Attach public replay links when you want an archive.',
     },
     {
       icon: CheckCircle2,
       title: 'League-Specific Rules',
-      description: 'Custom formats and rulesets tailored to Average at Best Draft League requirements.',
+      description: 'Validate exports against Average at Best draft rules before you queue a match.',
     },
   ];
 
@@ -86,13 +87,13 @@ export function ShowdownLanding() {
         </p>
         <div className="flex items-center justify-center gap-2 pt-2">
           <Badge variant="secondary" className="text-sm">
-            Self-Hosted Infrastructure
+            Public Pokémon Showdown
           </Badge>
           <Badge variant="secondary" className="text-sm">
-            League-Optimized
+            Optional for coaches
           </Badge>
           <Badge variant="secondary" className="text-sm">
-            Fully Integrated
+            Teams &amp; replays
           </Badge>
         </div>
       </div>
@@ -112,29 +113,29 @@ export function ShowdownLanding() {
             the official games exactly.
           </p>
           <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-            <p className="font-semibold">How We Use Showdown:</p>
+            <p className="font-semibold">How the league uses Showdown:</p>
             <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-              <li>Self-hosted Showdown server running in our infrastructure for league-exclusive access</li>
-              <li>Deep integration with league rosters, schedules, and match results</li>
-              <li>Automatic team validation against league rules and banned moves</li>
-              <li>Replay capture and storage for all league battles</li>
-              <li>Custom formats tailored to our draft league structure</li>
+              <li>Coaches battle on the public Showdown client (play.pokemonshowdown.com)</li>
+              <li>Team paste, upload, and builder stay in the league app</li>
+              <li>Validate exports against league rules before you battle</li>
+              <li>Optionally attach public replay URLs to matches for archive and review</li>
+              <li>Showdown is optional — the league app still works if you never open it</li>
             </ul>
           </div>
           <div className="flex items-center gap-2 pt-2">
             <Button variant="outline" size="sm" asChild>
               <a 
-                href={process.env.NEXT_PUBLIC_SHOWDOWN_CLIENT_URL || 'https://aab-play.moodmnky.com'} 
+                href={getShowdownClientUrl()} 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="flex items-center gap-2"
               >
                 <ExternalLink className="h-4 w-4" />
-                Launch Battle Client
+                Open Pokémon Showdown
               </a>
             </Button>
             <p className="text-xs text-muted-foreground">
-              Opens our self-hosted Showdown client in a new tab
+              Opens the public battle client in a new tab
             </p>
           </div>
         </CardContent>
@@ -208,7 +209,7 @@ export function ShowdownLanding() {
               <span className="font-semibold text-foreground">Validate Your Team:</span> Use the <Link href="/showdown/team-validator" className="text-primary underline underline-offset-2">Team Validator</Link> to ensure your team complies with league rules before battling.
             </li>
             <li className="text-muted-foreground">
-              <span className="font-semibold text-foreground">Launch a Battle:</span> Head to the <Link href="/showdown/match-lobby" className="text-primary underline underline-offset-2">Match Lobby</Link> to create a battle room or join an existing match.
+              <span className="font-semibold text-foreground">Launch a Battle:</span> Find your scheduled match in the <Link href="/showdown/match-lobby" className="text-primary underline underline-offset-2">Match Lobby</Link>, then challenge your opponent in Pokémon Showdown.
             </li>
             <li className="text-muted-foreground">
               <span className="font-semibold text-foreground">Review Replays:</span> After your battle, check the <Link href="/showdown/replay-library" className="text-primary underline underline-offset-2">Replay Library</Link> to study your performance and learn from others.

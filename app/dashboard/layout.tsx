@@ -14,11 +14,11 @@ export default async function DashboardLayout({
 }) {
   const cookieStore = await cookies()
   const defaultOpen = cookieStore.get("sidebar_state")?.value !== "false"
-  const { nav, user, team } = await getCoachNavShellData()
+  const { nav, user } = await getCoachNavShellData()
 
   return (
     <SidebarProvider defaultOpen={defaultOpen}>
-      <AppSidebar nav={nav} user={user} team={team} />
+      <AppSidebar nav={nav} user={user} />
       <SidebarInset className="min-w-0">
         <DashboardHeader />
         <div className="flex flex-1 flex-col pb-[calc(var(--mobile-tab-bar-height)+var(--assistant-dock-bar))] md:pb-0">{children}</div>

@@ -34,17 +34,17 @@ export const ONBOARDING_CHECKLIST: OnboardingChecklistItem[] = [
   {
     id: "team_linked",
     title: "Team linked",
-    description: "Link your league team under Dashboard → League team — required for draft board and the assistant.",
+    description: "Link your league team under Dashboard → My team — required for draft board and the assistant.",
   },
   {
     id: "team_builder_intro",
     title: "Team Builder intro",
-    description: "Learn the Team Builder and roster tools you will use each week.",
+    description: "Open Showdown tools → Builder to paste or build weekly team exports. Battling on public Pokémon Showdown is optional.",
   },
   {
     id: "complete",
     title: "Complete",
-    description: "You are ready to use the league app end to end.",
+    description: "You are ready for the league app. Optional next: Guides → Battle network (NetBird) if you play on Ryujinx.",
   },
 ]
 
@@ -110,26 +110,26 @@ export function getOnboardingProgressLabel(currentStep: string | null | undefine
 export function getDashboardOnboardingCopy(hasCoachAccess: boolean, onboardingCompleted: boolean) {
   if (onboardingCompleted) {
     return {
-      title: "Discord-to-app onboarding complete",
+      title: "Onboarding complete",
       description:
-        "You are set. The dashboard now shows your team, roster, and league tools with the same state the backend uses.",
+        "Your Discord profile, coach role, and league team are linked. Use My team, This week, and Draft from the sidebar. Showdown battles stay optional on the public client.",
       cta: "Open Team Builder",
     }
   }
 
   if (hasCoachAccess) {
     return {
-      title: "Continue Discord-to-app onboarding",
+      title: "Continue coach onboarding",
       description:
-        "Your Discord account is linked. Finish coach assignment, team linking, and the Team Builder intro in one checklist.",
+        "Discord is linked. Finish team linking and the Team Builder intro — no self-hosted Showdown install is required.",
       cta: "Continue onboarding",
     }
   }
 
   return {
-    title: "Start Discord-to-app onboarding",
+    title: "Start coach onboarding",
     description:
-      "Discord is the entrypoint. Sign in, then follow the checklist for coach assignment, team linking, and the Team Builder intro.",
+      "Sign in with Discord, claim your league team, then open the Team Builder. Public Showdown and the battle-network guide are optional after you finish.",
     cta: "Start onboarding",
   }
 }

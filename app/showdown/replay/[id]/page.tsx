@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { ReplayViewer } from '@/components/showdown/replay-viewer';
 import { extractReplayId } from '@/lib/showdown/replay-utils';
+import { getPublicReplayViewerUrl } from '@/lib/showdown/public-hosts';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -81,7 +82,7 @@ export default function ReplayDetailPage({ params }: PageProps) {
                 <div>
                   <p className="text-sm font-medium">External Link</p>
                   <a
-                    href={`https://aab-replay.moodmnky.com/${replayId}`}
+                    href={getPublicReplayViewerUrl(replayId)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-xs text-primary hover:underline"

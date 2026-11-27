@@ -8,8 +8,11 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Link from 'next/link';
+import { getShowdownClientUrl } from '@/lib/showdown/public-hosts';
 
 export default function MatchLobbyPage() {
+  const showdownClientUrl = getShowdownClientUrl()
+
   return (
     <div className="container mx-auto py-8 px-4 max-w-7xl">
       {/* Navigation */}
@@ -43,11 +46,9 @@ export default function MatchLobbyPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              The Match Lobby displays all scheduled and in-progress league matches. From here, 
-              you can create private battle rooms, join existing matches, and launch battles 
-              directly on our self-hosted Showdown server. Each match shows opponent information, 
-              deadlines, and direct links to battle rooms. All battles are automatically tracked 
-              and integrated with league standings.
+              Find your opponent and deadline, then open Pokémon Showdown to challenge them.
+              If a battle link is available, you can join it directly. Use the match details
+              to review the league match and report the result.
             </p>
             <div className="flex flex-wrap gap-2 pt-2">
               <Badge variant="secondary" className="text-xs">
@@ -70,13 +71,13 @@ export default function MatchLobbyPage() {
                 asChild
               >
                 <a 
-                  href={process.env.NEXT_PUBLIC_SHOWDOWN_CLIENT_URL || 'https://aab-play.moodmnky.com'} 
+                  href={showdownClientUrl} 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="flex items-center gap-2"
                 >
                   <ExternalLink className="h-4 w-4" />
-                  Open Battle Client
+                  Open Pokémon Showdown
                 </a>
               </Button>
             </div>

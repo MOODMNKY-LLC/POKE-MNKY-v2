@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, AlertCircle, ExternalLink, RefreshCw } from 'lucide-react';
 import { extractReplayId } from '@/lib/showdown/replay-utils';
+import { getPublicReplayViewerUrl } from '@/lib/showdown/public-hosts';
 
 interface ReplayViewerProps {
   /** Replay ID (e.g., "gen9randombattle-35") or full room URL */
@@ -60,7 +61,7 @@ export function ReplayViewer({
 
         if (useIframe) {
           // Use iframe approach (most reliable)
-          const replayUrl = `https://aab-replay.moodmnky.com/${replayId}`;
+          const replayUrl = getPublicReplayViewerUrl(replayId);
           
           // Verify replay exists by checking if URL is accessible
           try {
@@ -103,7 +104,7 @@ export function ReplayViewer({
           // Try replay-embed.js approach (experimental)
           // This requires understanding the replay-embed.js API
           // For now, fallback to iframe
-          const replayUrl = `https://aab-replay.moodmnky.com/${replayId}`;
+          const replayUrl = getPublicReplayViewerUrl(replayId);
           if (containerRef.current) {
             containerRef.current.innerHTML = `<iframe src="${replayUrl}" width="100%" height="${height}" frameborder="0" style="border: none; border-radius: 0.5rem;"></iframe>`;
             setLoading(false);
@@ -136,7 +137,7 @@ export function ReplayViewer({
   };
 
   const externalReplayUrl = replayId 
-    ? `https://aab-replay.moodmnky.com/${replayId}`
+    ? getPublicReplayViewerUrl(replayId)
     : null;
 
   if (error) {

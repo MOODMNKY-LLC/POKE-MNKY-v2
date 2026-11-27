@@ -1,15 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { getCurrentUserProfile } from "@/lib/rbac"
 import { redirect } from "next/navigation"
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbLink,
-} from "@/components/ui/breadcrumb"
-import { SidebarTrigger } from "@/components/ui/sidebar"
-import { Separator } from "@/components/ui/separator"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
 import { History } from "lucide-react"
@@ -23,14 +14,12 @@ const ACTION_LABELS: Record<string, string> = {
   match_submitted: "Submitted match result",
   profile_updated: "Updated profile",
   trade_block_updated: "Updated trade block",
-  free_agency_request_created: "Created free agency request",
-}
+  free_agency_request_created: "Created free agency request" }
 
 export default async function DashboardActivityPage() {
   const supabase = await createClient()
   const {
-    data: { user },
-  } = await supabase.auth.getUser()
+    data: { user } } = await supabase.auth.getUser()
 
   if (!user) {
     redirect("/auth/login")
@@ -57,28 +46,11 @@ export default async function DashboardActivityPage() {
         action
           .split("_")
           .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-          .join(" "),
-    }
+          .join(" ") }
   })
 
   return (
     <>
-      <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-        <SidebarTrigger className="-ml-1" />
-        <Separator orientation="vertical" className="mr-2 h-4" />
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link href="/dashboard">Dashboard</Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbItem>
-              <BreadcrumbPage>Activity</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
-      </header>
       <div className="flex flex-1 flex-col gap-4 p-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Recent Activity</h1>

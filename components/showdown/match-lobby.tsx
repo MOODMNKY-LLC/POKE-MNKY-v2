@@ -8,6 +8,7 @@ import { PokeballIcon } from '@/components/ui/pokeball-icon';
 import { ExternalLink, Play, Clock, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { getPublicBattleRoomUrl, getShowdownClientUrl, PUBLIC_SHOWDOWN_CLIENT_URL } from '@/lib/showdown/public-hosts';
 
 interface Match {
   id: string;
@@ -25,6 +26,8 @@ export default function MatchLobby() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState<string | null>(null);
   const router = useRouter();
+  const clientUrl = getShowdownClientUrl();
+  const usesPublicShowdown = URL.parse(clientUrl)?.origin === PUBLIC_SHOWDOWN_CLIENT_URL;
 
   useEffect(() => {
     fetchMatches();
@@ -34,14 +37,14 @@ export default function MatchLobby() {
     try {
       const response = await fetch('/api/matches');
       const data = await response.json();
-      
+
       // Filter for scheduled and in_progress matches
       // Handle both { matches: [...] } and direct array responses
       const matchesArray = Array.isArray(data) ? data : (data.matches || []);
       const filteredMatches = matchesArray.filter(
         (match: Match) => match.status === 'scheduled' || match.status === 'in_progress'
       );
-      
+
       setMatches(filteredMatches);
     } catch (error) {
       console.error('Failed to fetch matches:', error);
@@ -105,93 +108,100 @@ export default function MatchLobby() {
       <div>
         <h2 className="text-2xl font-bold mb-2">Upcoming Matches</h2>
         <p className="text-muted-foreground">
-          Launch Showdown battle rooms for your scheduled matches
+          {usesPublicShowdown
+            ? 'Open Pokémon Showdown and challenge your opponent there.'
+            : 'Launch Showdown battle rooms for your scheduled matches.'}
         </p>
       </div>
-      
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {matches.map(match => (
-          <Card key={match.id} className="hover:shadow-md transition-shadow">
-            <CardHeader>
-              <div className="flex items-center justify-between mb-2">
-                <CardTitle className="text-lg">Week {match.week}</CardTitle>
-                <Badge 
-                  variant={match.status === 'in_progress' ? 'default' : 'secondary'}
-                >
-                  {match.status === 'in_progress' ? 'In Progress' : 'Scheduled'}
-                </Badge>
-              </div>
-              <CardDescription>
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">{match.team1?.name || 'Team 1'}</span>
-                    {match.team1?.coach_name && (
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <PokeballIcon role="coach" size="xs" />
-                        <span>{match.team1.coach_name}</span>
-                      </div>
-                    )}
-                  </div>
-                  <span className="text-muted-foreground">vs</span>
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">{match.team2?.name || 'Team 2'}</span>
-                    {match.team2?.coach_name && (
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <PokeballIcon role="coach" size="xs" />
-                        <span>{match.team2.coach_name}</span>
-                      </div>
-                    )}
-                  </div>
+        {matches.map(match => {
+          const roomUrl = usesPublicShowdown
+            ? getPublicBattleRoomUrl(match.showdown_room_url)
+            : match.showdown_room_url;
+          const launchUrl = roomUrl ?? (usesPublicShowdown ? clientUrl : undefined);
+
+          return (
+            <Card key={match.id} className="hover:shadow-md transition-shadow">
+              <CardHeader>
+                <div className="flex items-center justify-between mb-2">
+                  <CardTitle className="text-lg">Week {match.week}</CardTitle>
+                  <Badge
+                    variant={match.status === 'in_progress' ? 'default' : 'secondary'}
+                  >
+                    {match.status === 'in_progress' ? 'In Progress' : 'Scheduled'}
+                  </Badge>
                 </div>
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {match.deadline && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Clock className="h-4 w-4" />
-                  <span>Deadline: {new Date(match.deadline).toLocaleDateString()}</span>
-                </div>
-              )}
-              
-              {match.showdown_room_url ? (
+                <CardDescription>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{match.team1?.name || 'Team 1'}</span>
+                      {match.team1?.coach_name && (
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <PokeballIcon role="coach" size="xs" />
+                          <span>{match.team1.coach_name}</span>
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-muted-foreground">vs</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{match.team2?.name || 'Team 2'}</span>
+                      {match.team2?.coach_name && (
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <PokeballIcon role="coach" size="xs" />
+                          <span>{match.team2.coach_name}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {match.deadline && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Clock className="h-4 w-4" />
+                    <span>Deadline: {new Date(match.deadline).toLocaleDateString()}</span>
+                  </div>
+                )}
+
+                {launchUrl ? (
+                  <Button asChild className="w-full">
+                    <a href={launchUrl} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="h-4 w-4 mr-2" aria-hidden="true" />
+                      {roomUrl ? 'Join Battle Room' : 'Open Pokémon Showdown'}
+                    </a>
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => handleLaunchBattle(match.id)}
+                    className="w-full"
+                    disabled={creating === match.id}
+                  >
+                    {creating === match.id ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Creating...
+                      </>
+                    ) : (
+                      <>
+                        <Play className="h-4 w-4 mr-2" />
+                        Launch Battle
+                      </>
+                    )}
+                  </Button>
+                )}
+
                 <Button
-                  onClick={() => window.open(match.showdown_room_url, '_blank')}
+                  variant="outline"
                   className="w-full"
-                  variant="default"
+                  onClick={() => router.push(`/matches/${match.id}`)}
                 >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Join Battle Room
+                  View Match Details
                 </Button>
-              ) : (
-                <Button
-                  onClick={() => handleLaunchBattle(match.id)}
-                  className="w-full"
-                  disabled={creating === match.id}
-                >
-                  {creating === match.id ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Creating...
-                    </>
-                  ) : (
-                    <>
-                      <Play className="h-4 w-4 mr-2" />
-                      Launch Battle
-                    </>
-                  )}
-                </Button>
-              )}
-              
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => router.push(`/matches/${match.id}`)}
-              >
-                View Match Details
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
     </div>
   );

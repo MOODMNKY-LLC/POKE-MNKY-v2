@@ -1,9 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { getCurrentUserProfile, canAccessCoachFeatures } from "@/lib/rbac"
 import { redirect } from "next/navigation"
-import {
-  SidebarTrigger,
-} from "@/components/ui/sidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Plus, Library, Users } from "lucide-react"
@@ -17,8 +14,7 @@ export const dynamic = 'force-dynamic'
 export default async function TeamsPage() {
   const supabase = await createClient()
   const {
-    data: { user },
-  } = await supabase.auth.getUser()
+    data: { user } } = await supabase.auth.getUser()
 
   if (!user) {
     redirect("/auth/login")
@@ -63,26 +59,17 @@ export default async function TeamsPage() {
     console.error("[Teams Page] Error details:", {
       code: stockTeamsError.code,
       message: stockTeamsError.message,
-      details: stockTeamsError.details,
-    })
+      details: stockTeamsError.details })
   }
 
   // Debug logging
   console.log("[Teams Page] Stock teams query:", {
     count: count || stockTeams?.length || 0,
     hasError: !!stockTeamsError,
-    userId: user?.id,
-  })
+    userId: user?.id })
 
   return (
     <>
-      <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-        <SidebarTrigger className="-ml-1" />
-        <div className="flex items-center gap-2">
-          <Users className="h-5 w-5" />
-          <h1 className="text-lg font-semibold">My Teams</h1>
-        </div>
-      </header>
       <div className="flex flex-1 flex-col gap-4 p-4 md:p-6">
           <div className="flex items-center justify-between">
             <div>
@@ -124,8 +111,7 @@ export default async function TeamsPage() {
                         pokemon_count: team.pokemon_count,
                         avatar_url: team.avatar_url,
                         submitted_for_league_at: team.submitted_for_league_at,
-                        team_id: team.team_id,
-                      }}
+                        team_id: team.team_id }}
                       canAccessCoachFeatures={canAccessCoachFeatures(profile)}
                     />
                   ))}
