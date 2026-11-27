@@ -37,10 +37,11 @@ test.describe("public navigation shell", () => {
   test("404 shows branded recovery links", async ({ page }) => {
     await page.goto("/this-page-does-not-exist")
     await page.waitForLoadState("networkidle")
-    await expect(page.getByRole("heading", { name: /This page fainted/i })).toBeVisible()
-    await expect(page.getByRole("link", { name: "Home" })).toBeVisible()
-    await expect(page.getByRole("link", { name: "Standings" })).toBeVisible()
-    await expect(page.getByRole("link", { name: "Draft board" })).toBeVisible()
+    const main = page.locator("#main-content")
+    await expect(main.getByRole("heading", { name: /This page fainted/i })).toBeVisible()
+    await expect(main.getByRole("link", { name: "Home" })).toBeVisible()
+    await expect(main.getByRole("link", { name: "Standings" })).toBeVisible()
+    await expect(main.getByRole("link", { name: "Draft board" })).toBeVisible()
     await expect(page.locator("main")).toHaveCount(1)
   })
 

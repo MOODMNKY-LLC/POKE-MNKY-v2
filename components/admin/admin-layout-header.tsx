@@ -95,12 +95,11 @@ export function AdminLayoutHeader() {
             variant="ghost"
             size="sm"
             className="gap-1.5"
-            aria-label="Search pages"
             onClick={() => window.dispatchEvent(new Event(OPEN_COMMAND_PALETTE_EVENT))}
           >
             <Search className="h-4 w-4" aria-hidden="true" />
-            <span className="hidden sm:inline">Search</span>
-            <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium md:inline-flex">
+            <span>Search</span>
+            <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium sm:inline-flex">
               ⌘K
             </kbd>
           </Button>

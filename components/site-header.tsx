@@ -295,11 +295,10 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
               size="sm"
               className="gap-1.5 text-muted-foreground"
               onClick={openCommandPalette}
-              aria-label="Search pages"
             >
               <Search className="h-4 w-4" aria-hidden="true" />
-              <span className="hidden xl:inline">Search</span>
-              <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 xl:inline-flex">
+              <span>Search</span>
+              <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:inline-flex">
                 ⌘K
               </kbd>
             </Button>
@@ -368,7 +367,7 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
             size="sm"
             className="px-2"
             onClick={openCommandPalette}
-            aria-label="Search pages"
+            aria-label="Search"
           >
             <Search className="h-4 w-4" aria-hidden="true" />
           </Button>
