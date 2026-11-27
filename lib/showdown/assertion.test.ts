@@ -59,19 +59,23 @@ describe("showdown assertion verification", () => {
     expect(verifyShowdownAssertion(null, { expectedChallenge: challenge }).ok).toBe(
       false,
     )
-    expect(
-      verifyShowdownAssertion(";;error", {
-        expectedChallenge: challenge,
-        publicKeyPem,
-      }).code,
-    ).toBe("ASSERTION_MALFORMED")
-    expect(
-      verifyShowdownAssertion(`${challenge},zarel,2,${nowSec},host;00`, {
+    const malformed = verifyShowdownAssertion(";;error", {
+      expectedChallenge: challenge,
+      publicKeyPem,
+    })
+    expect(malformed.ok).toBe(false)
+    if (!malformed.ok) expect(malformed.code).toBe("ASSERTION_MALFORMED")
+
+    const badSig = verifyShowdownAssertion(
+      `${challenge},zarel,2,${nowSec},host;00`,
+      {
         expectedChallenge: challenge,
         nowSec,
         publicKeyPem,
-      }).code,
-    ).toBe("ASSERTION_SIGNATURE_INVALID")
+      },
+    )
+    expect(badSig.ok).toBe(false)
+    if (!badSig.ok) expect(badSig.code).toBe("ASSERTION_SIGNATURE_INVALID")
   })
 
   it("rejects challenge mismatch", () => {
