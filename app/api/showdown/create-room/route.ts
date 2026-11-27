@@ -3,7 +3,7 @@ import { createServerClient } from '@/lib/supabase/server';
 import { createServiceRoleClient } from '@/lib/supabase/service';
 import { z } from 'zod';
 import { apiError, apiErrorInternal } from '@/lib/api-response';
-import { getShowdownClientUrl } from '@/lib/showdown/public-hosts';
+import { getPublicBattleRoomUrl, getShowdownClientUrl, PUBLIC_SHOWDOWN_CLIENT_URL } from '@/lib/showdown/public-hosts';
 
 const createRoomSchema = z.object({
   match_id: z.string().uuid('match_id must be a valid UUID'),
@@ -53,6 +53,23 @@ export async function POST(request: NextRequest) {
       return apiError('You are not part of this match', 403, { code: 'FORBIDDEN' });
     }
 
+    const showdownClientUrl = getShowdownClientUrl();
+    if (URL.parse(showdownClientUrl)?.origin === PUBLIC_SHOWDOWN_CLIENT_URL) {
+      const existingRoomUrl = getPublicBattleRoomUrl(match.showdown_room_url ?? undefined);
+      if (existingRoomUrl && match.showdown_room_id) {
+        return NextResponse.json({
+          success: true,
+          room_id: match.showdown_room_id,
+          room_url: existingRoomUrl,
+          match_id,
+          message: 'Room already exists'
+        });
+      }
+      return apiError('Challenge your opponent in Pokémon Showdown to start a battle.', 409, {
+        code: 'SHOWDOWN_CHALLENGE_REQUIRED',
+      });
+    }
+
     // Check if room already exists
     if (match.showdown_room_id && match.showdown_room_url) {
       return NextResponse.json({
@@ -71,7 +88,6 @@ export async function POST(request: NextRequest) {
     
     // Construct room URL
     // Showdown format: /battle-[format]-[roomId] or /battle-[roomId]
-    const showdownClientUrl = getShowdownClientUrl()
     const battleFormat = 'gen9avgatbest'; // Your league format - adjust as needed
     // Try format-specific URL first, fallback to simple room ID
     const roomUrl = `${showdownClientUrl}/battle-${battleFormat}-${roomId}`;

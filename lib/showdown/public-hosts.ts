@@ -47,6 +47,14 @@ export function getDamageCalcUrl(
   return pickPublicUrl(fromEnv, PUBLIC_DAMAGE_CALC_URL)
 }
 
+export function getPublicBattleRoomUrl(value: string | undefined): string | undefined {
+  if (!value) return
+  const url = URL.parse(value)
+  if (url?.origin !== PUBLIC_SHOWDOWN_CLIENT_URL) return
+  if (!/^\/battle-[a-z0-9]+-\d+(?:-[a-z0-9]+)?\/?$/i.test(url.pathname)) return
+  return url.href
+}
+
 /** Public replay viewer base (no trailing slash). */
 export function getShowdownReplayBaseUrl(
   env?: Record<string, string | undefined>,

@@ -46,11 +46,9 @@ export default function MatchLobbyPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              The Match Lobby displays all scheduled and in-progress league matches. From here, 
-              you can create private battle rooms, join existing matches, and launch battles 
-              directly on our self-hosted Showdown server. Each match shows opponent information, 
-              deadlines, and direct links to battle rooms. All battles are automatically tracked 
-              and integrated with league standings.
+              Find your opponent and deadline, then open Pokémon Showdown to challenge them.
+              If a battle link is available, you can join it directly. Use the match details
+              to review the league match and report the result.
             </p>
             <div className="flex flex-wrap gap-2 pt-2">
               <Badge variant="secondary" className="text-xs">

@@ -31,7 +31,7 @@ export function ShowdownLanding() {
     {
       icon: Users,
       title: 'Match Lobby',
-      description: 'Launch battles, find opponents, and create private battle rooms. Connect with league members for scheduled matches.',
+      description: 'Find your scheduled matches and open Pokémon Showdown to challenge your opponent.',
       href: '/showdown/match-lobby',
       color: 'text-green-500',
       bgColor: 'bg-green-500/10',
@@ -209,7 +209,7 @@ export function ShowdownLanding() {
               <span className="font-semibold text-foreground">Validate Your Team:</span> Use the <Link href="/showdown/team-validator" className="text-primary underline underline-offset-2">Team Validator</Link> to ensure your team complies with league rules before battling.
             </li>
             <li className="text-muted-foreground">
-              <span className="font-semibold text-foreground">Launch a Battle:</span> Head to the <Link href="/showdown/match-lobby" className="text-primary underline underline-offset-2">Match Lobby</Link> to create a battle room or join an existing match.
+              <span className="font-semibold text-foreground">Launch a Battle:</span> Find your scheduled match in the <Link href="/showdown/match-lobby" className="text-primary underline underline-offset-2">Match Lobby</Link>, then challenge your opponent in Pokémon Showdown.
             </li>
             <li className="text-muted-foreground">
               <span className="font-semibold text-foreground">Review Replays:</span> After your battle, check the <Link href="/showdown/replay-library" className="text-primary underline underline-offset-2">Replay Library</Link> to study your performance and learn from others.
