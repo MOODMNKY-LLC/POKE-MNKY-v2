@@ -22,12 +22,10 @@ function truthy(raw: string | undefined): boolean {
 }
 
 /**
- * Hard capability gate: flip only when Phase 2 OAuth start/callback routes and
- * assertion+state verification actually ship. Env alone is insufficient.
- */
-/**
- * Capability gate: OAuth routes + profile bind columns shipped.
- * Still requires SHOWDOWN_OAUTH_CLIENT_ID + SHOWDOWN_OAUTH_REDIRECT_URI in env.
+ * Capability gate: OAuth start/callback with RSA assertion verification and
+ * HMAC session binding. Still requires client id, redirect URI, and a binding
+ * secret in env before Link is offered. Keep production OAuth env unset until
+ * staging soak passes.
  */
 export const SHOWDOWN_OAUTH_LINK_IMPLEMENTED = true
 
@@ -47,15 +45,23 @@ export function getShowdownOauthClientId(
 }
 
 /**
- * True only when OAuth is implemented AND client id is configured.
- * CLIENT_ID without implementation ⇒ unavailable.
+ * True only when OAuth is implemented AND client id + redirect + binding secret
+ * are configured. CLIENT_ID alone never enables linking.
  */
 export function isShowdownOauthLinkAvailable(
   env: EnvLike = process.env,
 ): boolean {
-  return (
-    SHOWDOWN_OAUTH_LINK_IMPLEMENTED && Boolean(getShowdownOauthClientId(env))
-  )
+  if (!SHOWDOWN_OAUTH_LINK_IMPLEMENTED) return false
+  if (!getShowdownOauthClientId(env)) return false
+  if (!env.SHOWDOWN_OAUTH_REDIRECT_URI?.trim()) return false
+  // Binding secret: explicit, or derived from service role (server-only).
+  if (
+    !env.SHOWDOWN_OAUTH_BINDING_SECRET?.trim() &&
+    !env.SUPABASE_SERVICE_ROLE_KEY?.trim()
+  ) {
+    return false
+  }
+  return true
 }
 
 export const LEGACY_SHOWDOWN_SYNC_DISABLED_CODE =
@@ -72,21 +78,23 @@ export const SHOWDOWN_OAUTH_UNAVAILABLE_CODE =
 
 export const SHOWDOWN_OAUTH_UNAVAILABLE_MESSAGE =
   "Verified central Showdown account linking is not available yet. " +
-  "OAuth link flow has not shipped; configuring a client id alone does not enable linking."
+  "OAuth requires implemented assertion verification plus client id, redirect URI, and a binding secret. " +
+  "Configuring a client id alone does not enable linking."
 
 export type ShowdownIdentityStatus = {
   legacy_sync_enabled: boolean
-  /** Capability + client id. Never true until Phase 2 implements OAuth. */
+  /** Capability + full env prerequisites. */
   oauth_link_available: boolean
   /** Implementation shipped? Independent of env — for honest UI. */
   oauth_link_implemented: boolean
   oauth_unavailable_reason: string | null
   /** Honest product copy — never claim "linked" via legacy sync alone. */
   team_import_note: string
-  /** Public flags only — never includes client_id secret/value. */
+  /** Public flags only — never includes client_id / secret values. */
   oauth_prerequisites: {
     client_id_configured: boolean
     redirect_uri_configured: boolean
+    binding_secret_configured: boolean
     registration_form: string
     blocked_reasons: string[]
   }
@@ -98,11 +106,15 @@ export function getShowdownIdentityStatus(
   const oauth = isShowdownOauthLinkAvailable(env)
   const clientConfigured = Boolean(getShowdownOauthClientId(env))
   const redirectConfigured = Boolean(env.SHOWDOWN_OAUTH_REDIRECT_URI?.trim())
+  const bindingConfigured = Boolean(
+    env.SHOWDOWN_OAUTH_BINDING_SECRET?.trim() ||
+      env.SUPABASE_SERVICE_ROLE_KEY?.trim(),
+  )
   const registrationForm = "https://forms.gle/VAoSjqHn4zwem7tp9"
   const blocked: string[] = []
   if (!SHOWDOWN_OAUTH_LINK_IMPLEMENTED) {
     blocked.push(
-      "OAuth link capability gate is off until routes + profile bind columns are approved.",
+      "OAuth link capability gate is off until assertion verification + session binding are approved.",
     )
   }
   if (!clientConfigured) {
@@ -115,14 +127,19 @@ export function getShowdownIdentityStatus(
       "No SHOWDOWN_OAUTH_REDIRECT_URI matching the registered origin.",
     )
   }
+  if (!bindingConfigured) {
+    blocked.push(
+      "No OAuth binding secret (SHOWDOWN_OAUTH_BINDING_SECRET or SUPABASE_SERVICE_ROLE_KEY).",
+    )
+  }
 
   let reason: string | null = null
   if (!oauth) {
     if (!SHOWDOWN_OAUTH_LINK_IMPLEMENTED) {
       reason = SHOWDOWN_OAUTH_UNAVAILABLE_MESSAGE
-    } else if (!clientConfigured) {
+    } else if (!clientConfigured || !redirectConfigured || !bindingConfigured) {
       reason =
-        "Verified linking requires SHOWDOWN_OAUTH_CLIENT_ID once OAuth is implemented."
+        "Verified linking requires SHOWDOWN_OAUTH_CLIENT_ID, SHOWDOWN_OAUTH_REDIRECT_URI, and a binding secret."
     } else {
       reason = SHOWDOWN_OAUTH_UNAVAILABLE_MESSAGE
     }
@@ -137,6 +154,7 @@ export function getShowdownIdentityStatus(
     oauth_prerequisites: {
       client_id_configured: clientConfigured,
       redirect_uri_configured: redirectConfigured,
+      binding_secret_configured: bindingConfigured,
       registration_form: registrationForm,
       blocked_reasons: blocked,
     },

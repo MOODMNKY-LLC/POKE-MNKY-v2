@@ -1,20 +1,26 @@
 /**
  * Central Pokémon Showdown OAuth2-*like* helpers (ownership proof).
  *
- * Upstream: https://github.com/smogon/pokemon-showdown-client/blob/master/api/OAUTH.md
+ * Upstream: https://github.com/smogon/pokemon-showdown-loginserver/blob/master/OAUTH.md
  *
- * Prerequisites (blocked until ops completes them):
+ * Prerequisites:
  * 1. Submit https://forms.gle/VAoSjqHn4zwem7tp9 for a public client_id
  * 2. Register exact origin (scheme + host + port) for callbacks
  * 3. Set SHOWDOWN_OAUTH_CLIENT_ID and SHOWDOWN_OAUTH_REDIRECT_URI in env
- * 4. Flip SHOWDOWN_OAUTH_LINK_IMPLEMENTED only after routes + DB columns ship
+ * 4. Binding secret available (SHOWDOWN_OAUTH_BINDING_SECRET or SUPABASE_SERVICE_ROLE_KEY)
+ * 5. SHOWDOWN_OAUTH_LINK_IMPLEMENTED true only when assertion+binding verification ships
  *
  * OAuth grants login assertions only — not getteams / cloud team sync.
  * Never collect Showdown passwords.
+ *
+ * Callbacks must:
+ * - validate HMAC binding (league session + state + challenge + single-use cookie)
+ * - cryptographically verify the assertion (RSA-SHA1 + challenge match)
+ * - derive userid from the verified assertion (never trust `user` alone)
  */
 
-import { createHash, randomBytes } from "crypto"
 import { SHOWDOWN_OAUTH_LINK_IMPLEMENTED } from "@/lib/showdown/identity-flags"
+import { getOauthBindingSecret } from "@/lib/showdown/oauth-binding"
 
 export const PS_OAUTH_AUTHORIZE_URL =
   "https://play.pokemonshowdown.com/api/oauth/authorize"
@@ -32,6 +38,7 @@ export type ShowdownOauthPrerequisites = {
   implemented: boolean
   client_id_configured: boolean
   redirect_uri_configured: boolean
+  binding_secret_configured: boolean
   ready: boolean
   blocked_reasons: string[]
   registration_form: string
@@ -47,10 +54,11 @@ export function getShowdownOauthPrerequisites(
 ): ShowdownOauthPrerequisites {
   const clientId = Boolean(env.SHOWDOWN_OAUTH_CLIENT_ID?.trim())
   const redirect = Boolean(getShowdownOauthRedirectUri(env))
+  const bindingSecret = Boolean(getOauthBindingSecret(env))
   const blocked: string[] = []
   if (!SHOWDOWN_OAUTH_LINK_IMPLEMENTED) {
     blocked.push(
-      "SHOWDOWN_OAUTH_LINK_IMPLEMENTED is false until OAuth routes and profile bind columns are approved for rollout.",
+      "SHOWDOWN_OAUTH_LINK_IMPLEMENTED is false until OAuth assertion verification and session binding are approved for rollout.",
     )
   }
   if (!clientId) {
@@ -63,23 +71,21 @@ export function getShowdownOauthPrerequisites(
       "No SHOWDOWN_OAUTH_REDIRECT_URI — must match the registered origin (path may vary; scheme/host/port exact).",
     )
   }
+  if (!bindingSecret) {
+    blocked.push(
+      "No OAuth binding secret — set SHOWDOWN_OAUTH_BINDING_SECRET or ensure SUPABASE_SERVICE_ROLE_KEY is available server-side.",
+    )
+  }
   return {
     implemented: SHOWDOWN_OAUTH_LINK_IMPLEMENTED,
     client_id_configured: clientId,
     redirect_uri_configured: redirect,
-    ready: SHOWDOWN_OAUTH_LINK_IMPLEMENTED && clientId && redirect,
+    binding_secret_configured: bindingSecret,
+    ready:
+      SHOWDOWN_OAUTH_LINK_IMPLEMENTED && clientId && redirect && bindingSecret,
     blocked_reasons: blocked,
     registration_form: SHOWDOWN_OAUTH_CLIENT_FORM,
   }
-}
-
-export function createOauthState(): string {
-  return randomBytes(24).toString("hex")
-}
-
-/** Lightweight PKCE-style challenge filler when no PS challstr is available yet. */
-export function createOauthChallenge(): string {
-  return createHash("sha256").update(randomBytes(32)).digest("hex")
 }
 
 export function buildAuthorizeUrl(params: {
@@ -95,10 +101,23 @@ export function buildAuthorizeUrl(params: {
 }
 
 /**
- * Normalize the `user` query param from OAuth redirect into a PS userid.
- * Upstream returns the logged-in username; we store the normalized userid.
+ * Normalize the optional `user` query param from OAuth redirect into a PS userid.
+ * Ownership must still come from a verified assertion — never bind from this alone.
  */
 export function normalizeOauthUserParam(user: string | null | undefined): string | null {
   if (!user?.trim()) return null
   return user.trim().toLowerCase().replace(/[^a-z0-9]/g, "") || null
 }
+
+// Re-export binding helpers used by routes (single import surface).
+export {
+  PS_OAUTH_BINDING_COOKIE,
+  PS_OAUTH_BINDING_MAX_AGE_SEC,
+  createOauthBindingPayload,
+  createOauthChallengeHex,
+  createOauthState,
+  getOauthBindingSecret,
+  redirectUriWithState,
+  signOauthBinding,
+  toOauthChallstr,
+} from "@/lib/showdown/oauth-binding"

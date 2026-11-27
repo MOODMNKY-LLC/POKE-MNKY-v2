@@ -3,15 +3,23 @@ import { createServerClient } from "@/lib/supabase/server"
 import { getShowdownOauthClientId } from "@/lib/showdown/identity-flags"
 import {
   buildAuthorizeUrl,
-  createOauthChallenge,
+  createOauthBindingPayload,
+  createOauthChallengeHex,
   createOauthState,
+  getOauthBindingSecret,
   getShowdownOauthPrerequisites,
   getShowdownOauthRedirectUri,
+  PS_OAUTH_BINDING_COOKIE,
+  PS_OAUTH_BINDING_MAX_AGE_SEC,
+  redirectUriWithState,
+  signOauthBinding,
+  toOauthChallstr,
 } from "@/lib/showdown/oauth"
 
 /**
  * Begin verified Showdown ownership linking.
- * Fail-closed until OAuth is implemented + client_id + redirect URI are set.
+ * Fail-closed until OAuth is implemented + client_id + redirect URI + binding secret.
+ * Issues a short-lived HMAC binding cookie tied to the league session.
  * Does not collect passwords. Does not enable cloud team sync.
  */
 export async function POST() {
@@ -37,7 +45,8 @@ export async function POST() {
 
   const clientId = getShowdownOauthClientId()
   const redirectUri = getShowdownOauthRedirectUri()
-  if (!clientId || !redirectUri) {
+  const bindingSecret = getOauthBindingSecret()
+  if (!clientId || !redirectUri || !bindingSecret) {
     return NextResponse.json(
       { error: "OAuth env incomplete", prerequisites: prereq },
       { status: 503 },
@@ -45,27 +54,35 @@ export async function POST() {
   }
 
   const state = createOauthState()
-  const challenge = createOauthChallenge()
-  const authorizeUrl = buildAuthorizeUrl({ clientId, redirectUri, challenge })
+  const challengeHex = createOauthChallengeHex()
+  const challstr = toOauthChallstr(challengeHex)
+  const redirectWithState = redirectUriWithState(redirectUri, state)
+  const authorizeUrl = buildAuthorizeUrl({
+    clientId,
+    redirectUri: redirectWithState,
+    challenge: challstr,
+  })
 
-  // Cookie binds callback to this league user (HttpOnly).
+  const binding = createOauthBindingPayload({
+    leagueUserId: user.id,
+    state,
+    challenge: challengeHex,
+  })
+  const bindingCookie = signOauthBinding(binding, bindingSecret)
+
   const response = NextResponse.json({
     authorize_url: authorizeUrl,
     note: "Complete authorization on play.pokemonshowdown.com, then return via callback.",
   })
-  response.cookies.set("ps_oauth_state", state, {
+  response.cookies.set(PS_OAUTH_BINDING_COOKIE, bindingCookie, {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    maxAge: 600,
+    maxAge: PS_OAUTH_BINDING_MAX_AGE_SEC,
   })
-  response.cookies.set("ps_oauth_challenge", challenge, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 600,
-  })
+  // Clear legacy unbound cookies from earlier broken flow.
+  response.cookies.set("ps_oauth_state", "", { path: "/", maxAge: 0 })
+  response.cookies.set("ps_oauth_challenge", "", { path: "/", maxAge: 0 })
   return response
 }
