@@ -8,6 +8,8 @@ import { cn } from "@/lib/utils"
 export type PokeMnkyPalette = "red-blue" | "gold-black"
 export type PokeMnkyVariant = "avatar" | "icon"
 
+const COMPACT_AVATAR_MAX_SIZE = 170
+
 interface PokeMnkyAvatarProps {
   /** Color palette - red-blue (primary) or gold-black (premium/admin) */
   palette?: PokeMnkyPalette
@@ -69,6 +71,11 @@ export function PokeMnkyAvatar({
       if (useSvg) {
         return `/poke-mnky/avatars/${palette}.svg`
       }
+      // The 512px WebP is at least 3x the displayed size up to 170px. Larger
+      // placements keep the original PNG, which next/image resizes on demand.
+      if (size <= COMPACT_AVATAR_MAX_SIZE) {
+        return `/poke-mnky/avatars/${palette}-512.webp`
+      }
       return `/poke-mnky/avatars/${palette}.png`
     }
   }
@@ -115,7 +122,6 @@ export function PokeMnkyAvatar({
           height={size}
           className={imageClassName}
           style={imageStyle}
-          unoptimized={variant === "icon"} // Icons may be larger, allow unoptimized
         />
       )}
     </div>

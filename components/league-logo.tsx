@@ -16,35 +16,20 @@ const sizeMap = {
   xl: 64,
 }
 
-export function LeagueLogo({ className, size = "md", variant = "default" }: LeagueLogoProps) {
+// league-logo-256.webp is 4x the largest displayed size (64px), so it stays crisp on 3x screens.
+export function LeagueLogo({ className, size = "md" }: LeagueLogoProps) {
   const pixelSize = sizeMap[size]
 
-  // For icon-only variant, use SVG inline for better scaling
-  if (variant === "icon-only") {
-    return (
-      <div className={cn("flex items-center justify-center", className)}>
-        <img
-          src="/league-logo.svg"
-          alt="Average at Best Battle League"
-          width={pixelSize}
-          height={pixelSize}
-          className="object-contain"
-          loading="eager"
-        />
-      </div>
-    )
-  }
-
-  // For default/full variants, use Next.js Image for optimization
   return (
     <div className={cn("flex items-center justify-center", className)}>
-      <img
-        src="/league-logo.svg"
+      <Image
+        src="/league-logo-256.webp"
         alt="Average at Best Battle League"
         width={pixelSize}
         height={pixelSize}
+        sizes={`${pixelSize}px`}
         className="object-contain"
-        loading="eager"
+        priority
       />
     </div>
   )

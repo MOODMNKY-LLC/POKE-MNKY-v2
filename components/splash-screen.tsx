@@ -72,12 +72,12 @@ export function SplashScreen({
       <div className="absolute inset-0 overflow-hidden">
         {/* Light mode background */}
         <div 
-          className="absolute inset-0 bg-[url('/league-bg-light.png')] bg-cover bg-center bg-no-repeat opacity-20 dark:hidden"
+          className="absolute inset-0 bg-league-light bg-cover bg-center bg-no-repeat opacity-20 dark:hidden"
           aria-hidden="true"
         />
         {/* Dark mode background */}
         <div 
-          className="absolute inset-0 hidden bg-[url('/league-bg-dark.png')] bg-cover bg-center bg-no-repeat opacity-25 dark:block"
+          className="absolute inset-0 hidden bg-league-dark bg-cover bg-center bg-no-repeat opacity-25 dark:block"
           aria-hidden="true"
         />
         {/* Overlay for better contrast */}
@@ -89,7 +89,7 @@ export function SplashScreen({
         {/* League Logo */}
         <div className="relative h-24 w-24 sm:h-32 sm:w-32 md:h-40 md:w-40 animate-fade-in">
           <Image
-            src="/league-logo.png"
+            src="/league-logo-512.webp"
             alt="Average at Best Battle League"
             width={160}
             height={160}

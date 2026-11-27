@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import {
@@ -179,11 +180,14 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
         <div className="mr-4 flex items-center gap-3">
           <Link href="/" className="flex items-center space-x-3 group">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary via-primary to-secondary group-hover:scale-110 transition-transform shadow-lg shadow-primary/20 overflow-hidden">
-              <img 
-                src="/league-logo.svg" 
-                alt="Average at Best Pokemon Battle League" 
+              <Image
+                src="/league-logo-128.webp"
+                alt="Average at Best Pokemon Battle League"
+                width={36}
+                height={36}
+                sizes="36px"
                 className="h-full w-full object-contain p-1"
-                loading="eager"
+                priority
               />
             </div>
             <div className="hidden lg:block">

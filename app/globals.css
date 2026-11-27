@@ -321,6 +321,29 @@ body [data-sonner-toaster][data-x-position="right"] {
   }
 }
 
+/*
+ * League background art. The first declaration is the WebP fallback for browsers
+ * that do not understand image-set() with type(); the second lets capable
+ * browsers pick AVIF, then WebP, then the original PNG.
+ */
+@utility bg-league-light {
+  background-image: url("/league-bg-light.webp");
+  background-image: image-set(
+    url("/league-bg-light.avif") type("image/avif"),
+    url("/league-bg-light.webp") type("image/webp"),
+    url("/league-bg-light.png") type("image/png")
+  );
+}
+
+@utility bg-league-dark {
+  background-image: url("/league-bg-dark.webp");
+  background-image: image-set(
+    url("/league-bg-dark.avif") type("image/avif"),
+    url("/league-bg-dark.webp") type("image/webp"),
+    url("/league-bg-dark.png") type("image/png")
+  );
+}
+
 /* Enhanced mobile responsiveness and accessibility */
 @layer utilities {
   /* Improved text balance for better mobile readability */

@@ -115,9 +115,9 @@ export default function RootLayout({
         {/* Branded background with dark/light mode support */}
         <div className="fixed inset-0 -z-10 overflow-hidden">
           {/* Light mode background */}
-          <div className="absolute inset-0 bg-[url('/league-bg-light.png')] bg-cover bg-center bg-no-repeat opacity-10 dark:hidden" />
+          <div className="absolute inset-0 bg-league-light bg-cover bg-center bg-no-repeat opacity-10 dark:hidden" />
           {/* Dark mode background */}
-          <div className="absolute inset-0 hidden bg-[url('/league-bg-dark.png')] bg-cover bg-center bg-no-repeat opacity-15 dark:block" />
+          <div className="absolute inset-0 hidden bg-league-dark bg-cover bg-center bg-no-repeat opacity-15 dark:block" />
           {/* Overlay to maintain gray background and reduce gold hue from images */}
           <div className="absolute inset-0 bg-background/90 dark:bg-background/95" />
         </div>
