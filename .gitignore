@@ -62,3 +62,7 @@ temp/pokepaste-repo/
 .cursor/mcp.json
 .env*.local
 .pg.url.local
+
+# Playwright
+playwright-report/
+test-results/
