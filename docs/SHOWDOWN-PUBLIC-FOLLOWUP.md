@@ -27,8 +27,10 @@ Baseline: `main` @ `#79`. Ownership-proof hotfix: `docs/SHOWDOWN-OAUTH-HOTFIX.md
 
 - `lib/showdown/public-web-api.ts` + authenticated proxies under `/api/showdown/public/*`
 - Replay discovery UI on attach panel (requires `REPLAY_INGEST_ENABLED`)
-- OAuth start/callback/unlink with **assertion verification + HMAC session binding**
-- Migration: `supabase/migrations/20261127210000_showdown_verified_link_columns.sql` (staging only until approved)
+- OAuth start/callback/unlink with **assertion verification + HMAC session binding + server-side JTI consume**
+- Migrations (staging only until approved; apply in order):
+  1. `supabase/migrations/20261127210000_showdown_verified_link_columns.sql`
+  2. `supabase/migrations/20261127213000_showdown_oauth_consumed_jti.sql`
 - Removed retired `aab-login.moodmnky.com` fallback from legacy sync paths
 
 ## Production posture (hotfix)
@@ -38,7 +40,8 @@ Baseline: `main` @ `#79`. Ownership-proof hotfix: `docs/SHOWDOWN-OAUTH-HOTFIX.md
 | OAuth capability gate | on in code (verification shipped) |
 | `SHOWDOWN_OAUTH_CLIENT_ID` + redirect | **keep unset in production** |
 | `REPLAY_INGEST_ENABLED` | **keep unset / false in production** |
-| Profile bind migration on prod | **do not apply yet** |
+| Migration #1 profile columns on prod | **do not apply yet** |
+| Migration #2 consumed JTI table on prod | **do not apply yet** |
 | PS client registration for prod | **do not register yet** |
 
 See `docs/SHOWDOWN-OAUTH-HOTFIX.md` for exact staging enablement steps.

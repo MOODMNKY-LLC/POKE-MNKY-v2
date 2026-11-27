@@ -164,6 +164,29 @@ describe("verifyOauthOwnershipProof", () => {
     if (!result.ok) expect(result.code).toBe("ASSERTION_UNREGISTERED_USER")
   })
 
+  it("rejects expired binding state", () => {
+    const payload = createOauthBindingPayload({
+      leagueUserId: LEAGUE_USER,
+      state: STATE,
+      challenge: CHALLENGE,
+      nowSec: NOW,
+      maxAgeSec: 60,
+    })
+    const cookie = signOauthBinding(payload, SECRET)
+    const result = verifyOauthOwnershipProof({
+      leagueUserId: LEAGUE_USER,
+      bindingCookie: cookie,
+      bindingSecret: SECRET,
+      stateFromQuery: STATE,
+      assertion: signAssertion(),
+      userParam: "zarel",
+      nowSec: NOW + 120,
+      assertionOptions: { publicKeyPem },
+    })
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.code).toBe("BINDING_EXPIRED")
+  })
+
   it("consumes JTI server-side so Cookie-header replay fails", async () => {
     const store = createMemoryOauthJtiStore()
     const payload = createOauthBindingPayload({
@@ -185,6 +208,34 @@ describe("verifyOauthOwnershipProof", () => {
     expect(first.ok).toBe(true)
     expect(second.ok).toBe(false)
     if (!second.ok) expect(second.code).toBe("JTI_REPLAY")
+  })
+
+  it("allows only one concurrent JTI consumer to succeed", async () => {
+    const store = createMemoryOauthJtiStore()
+    const payload = createOauthBindingPayload({
+      leagueUserId: LEAGUE_USER,
+      state: STATE,
+      challenge: CHALLENGE,
+      nowSec: NOW,
+    })
+    const params = {
+      jti: payload.jti,
+      leagueUserId: LEAGUE_USER,
+      expiresAt: new Date(payload.exp * 1000),
+    }
+    const results = await Promise.all([
+      store.tryConsume(params),
+      store.tryConsume(params),
+      store.tryConsume(params),
+      store.tryConsume(params),
+    ])
+    const wins = results.filter((r) => r.ok)
+    const losses = results.filter((r) => !r.ok)
+    expect(wins).toHaveLength(1)
+    expect(losses).toHaveLength(3)
+    for (const loss of losses) {
+      if (!loss.ok) expect(loss.code).toBe("JTI_REPLAY")
+    }
   })
 })
 
