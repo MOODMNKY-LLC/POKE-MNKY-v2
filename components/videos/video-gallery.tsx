@@ -111,7 +111,7 @@ export function VideoGallery() {
   if (error) {
     return (
       <div className="text-center py-12">
-        <p className="text-destructive mb-4">{error}</p>
+        <p className="text-destructive dark:text-red-400 mb-4">{error}</p>
         <Button onClick={() => window.location.reload()}>Retry</Button>
       </div>
     );
@@ -149,6 +149,8 @@ export function VideoGallery() {
               variant={viewMode === 'grid' ? 'default' : 'outline'}
               size="icon"
               onClick={() => setViewMode('grid')}
+              aria-label="Grid view"
+              aria-pressed={viewMode === 'grid'}
               className="tap-target"
             >
               <Grid3x3 className="h-4 w-4" />
@@ -157,6 +159,8 @@ export function VideoGallery() {
               variant={viewMode === 'list' ? 'default' : 'outline'}
               size="icon"
               onClick={() => setViewMode('list')}
+              aria-label="List view"
+              aria-pressed={viewMode === 'list'}
               className="tap-target"
             >
               <List className="h-4 w-4" />

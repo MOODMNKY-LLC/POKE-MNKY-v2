@@ -35,6 +35,8 @@ for (const colorScheme of ["light", "dark"] as const) {
         }, colorScheme)
         await page.goto(route)
         await page.waitForLoadState("networkidle")
+        // Let entrance animations (BlurFade) finish so axe measures final colors, not mid-fade opacity.
+        await page.waitForTimeout(1500)
 
         const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze()
         const blocking = results.violations.filter((v) => v.impact === "serious" || v.impact === "critical")

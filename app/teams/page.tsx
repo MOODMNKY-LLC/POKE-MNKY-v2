@@ -209,7 +209,7 @@ export default async function TeamsPage({
         <div className="container mx-auto px-4 md:px-6 py-8">
           <Card>
             <CardContent className="py-12 text-center">
-              <p className="text-destructive font-semibold mb-2">Failed to load teams</p>
+              <p className="text-destructive dark:text-red-400 font-semibold mb-2">Failed to load teams</p>
               <p className="text-sm text-muted-foreground">
                 {error instanceof Error ? error.message : "An unexpected error occurred. Please try again later."}
               </p>

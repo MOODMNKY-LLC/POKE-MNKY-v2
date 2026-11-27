@@ -200,7 +200,7 @@ export function HomepageLiveData() {
                     <Flame className="h-5 w-5 text-orange-500" />
                     Top weekly performers
                   </CardTitle>
-                  <Badge variant="default" className="bg-orange-600 hover:bg-orange-600">
+                  <Badge variant="default" className="bg-orange-700 text-white hover:bg-orange-700">
                     Week {data?.currentWeek ?? "—"}
                   </Badge>
                 </div>

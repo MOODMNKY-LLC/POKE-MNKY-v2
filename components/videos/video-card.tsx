@@ -88,7 +88,7 @@ export function VideoCard({ video, viewMode, onClick }: VideoCardProps) {
       <div className="relative aspect-video bg-muted">
         <button
           type="button"
-          aria-label={`Play ${video.title}`}
+          aria-label={duration ? `Play ${video.title}, ${duration}` : `Play ${video.title}`}
           className="group relative w-full h-full cursor-pointer border-0 bg-transparent p-0"
           onClick={onClick}
         >

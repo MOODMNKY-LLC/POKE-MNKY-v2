@@ -232,7 +232,7 @@ export default function InsightsPage() {
       <div className="container mx-auto space-y-8 px-4 py-8 md:px-6">
         {error ? (
           <Card className="border-destructive/40 bg-destructive/5">
-            <CardContent className="p-4 text-sm text-destructive">{error}</CardContent>
+            <CardContent className="p-4 text-sm text-destructive dark:text-red-400">{error}</CardContent>
           </Card>
         ) : null}
 

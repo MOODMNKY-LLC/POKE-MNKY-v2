@@ -381,13 +381,13 @@ export function TeamBuilder({ surface }: { surface: TeamBuilderSurface }) {
                 <span className="text-sm text-muted-foreground mr-2">Density</span>
                 <div className="flex items-center gap-2">
                   <button
-                    className={`px-2 py-1 rounded ${density === 'comfortable' ? 'bg-primary text-white' : 'bg-transparent'}`}
+                    className={`px-2 py-1 rounded ${density === 'comfortable' ? 'bg-primary text-primary-foreground' : 'bg-transparent'}`}
                     onClick={() => setDensity('comfortable')}
                   >
                     Comfortable
                   </button>
                   <button
-                    className={`px-2 py-1 rounded ${density === 'compact' ? 'bg-primary text-white' : 'bg-transparent'}`}
+                    className={`px-2 py-1 rounded ${density === 'compact' ? 'bg-primary text-primary-foreground' : 'bg-transparent'}`}
                     onClick={() => setDensity('compact')}
                   >
                     Compact
@@ -398,7 +398,7 @@ export function TeamBuilder({ surface }: { surface: TeamBuilderSurface }) {
                 <div className="flex gap-2 overflow-x-auto py-1">
                   <button
                     onClick={() => setPointFilter(null)}
-                    className={`px-2 py-1 rounded ${pointFilter === null ? 'bg-primary text-white' : 'bg-transparent'}`}
+                    className={`px-2 py-1 rounded ${pointFilter === null ? 'bg-primary text-primary-foreground' : 'bg-transparent'}`}
                   >
                     All
                   </button>
@@ -406,7 +406,7 @@ export function TeamBuilder({ surface }: { surface: TeamBuilderSurface }) {
                     <button
                       key={pv}
                       onClick={() => setPointFilter(pv)}
-                      className={`px-2 py-1 rounded ${pointFilter === pv ? 'bg-primary text-white' : 'bg-transparent'}`}
+                      className={`px-2 py-1 rounded ${pointFilter === pv ? 'bg-primary text-primary-foreground' : 'bg-transparent'}`}
                       title={`Points: ${pv}`}
                     >
                       {pv} ({availablePokemon.filter((p) => p.draft_cost === pv).length})
