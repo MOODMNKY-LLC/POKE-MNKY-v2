@@ -6,6 +6,7 @@ import { listStandingsSeasons, pickStandingsSeason } from "@/lib/standings-seaso
 import { SeasonSwitcher } from "@/components/league/season-switcher"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { TypeBadge } from "@/components/type-badge"
 import { Progress } from "@/components/ui/progress"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
@@ -34,14 +35,8 @@ function TypeBadges({ type1, type2 }: { type1?: string | null; type2?: string | 
   if (!type1) return null
   return (
     <div className="flex flex-wrap gap-1">
-      <Badge variant="secondary" className="text-[10px] capitalize">
-        {type1}
-      </Badge>
-      {type2 ? (
-        <Badge variant="outline" className="text-[10px] capitalize">
-          {type2}
-        </Badge>
-      ) : null}
+      <TypeBadge type={type1} className="text-[10px]" />
+      {type2 ? <TypeBadge type={type2} className="text-[10px]" /> : null}
     </div>
   )
 }
@@ -170,7 +165,7 @@ export default async function TeamDetailPage({
                   <span>Season win rate</span>
                   <span className="tabular-nums text-foreground">{recordWinPct}%</span>
                 </div>
-                <Progress value={recordWinPct} className="mt-2 h-2" />
+                <Progress value={recordWinPct} aria-label={`Win rate ${Math.round(recordWinPct)}%`} className="mt-2 h-2" />
                 <p className="mt-2 text-sm text-muted-foreground">
                   Regular season {regularWins}-{regularLosses} ({formatDiff(regularDiff)}). Playoffs {team.playoff_wins ?? 0}-{team.playoff_losses ?? 0}.
                 </p>

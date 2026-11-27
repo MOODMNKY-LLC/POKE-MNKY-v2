@@ -213,7 +213,7 @@ export function TeamBuilder({ surface }: { surface: TeamBuilderSurface }) {
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <div>
                 <Label>Team Name</Label>
-                <Input
+                <Input aria-label="Team name"
                   placeholder="Enter team name..."
                   value={teamName}
                   onChange={(e) => setTeamName(e.target.value)}
@@ -222,7 +222,7 @@ export function TeamBuilder({ surface }: { surface: TeamBuilderSurface }) {
               <div>
                 <Label>Generation</Label>
                 <Select value={generation.toString()} onValueChange={(v) => setGeneration(Number.parseInt(v))}>
-                  <SelectTrigger>
+                  <SelectTrigger aria-label="Generation">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -236,7 +236,7 @@ export function TeamBuilder({ surface }: { surface: TeamBuilderSurface }) {
               <div>
                 <Label>Format</Label>
                 <Select value={format} onValueChange={setFormat}>
-                  <SelectTrigger>
+                  <SelectTrigger aria-label="Format">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -252,7 +252,7 @@ export function TeamBuilder({ surface }: { surface: TeamBuilderSurface }) {
               <div>
                 <Label>Total Budget</Label>
                 <Select value={budget.toString()} onValueChange={(v) => setBudget(Number.parseInt(v))}>
-                  <SelectTrigger>
+                  <SelectTrigger aria-label="Total budget">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -374,20 +374,20 @@ export function TeamBuilder({ surface }: { surface: TeamBuilderSurface }) {
           <CardHeader className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <CardTitle>Available Pokémon</CardTitle>
-              <Input placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+              <Input aria-label="Search Pokémon" placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
             </div>
             <div className="flex flex-col items-end gap-2">
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground mr-2">Density</span>
                 <div className="flex items-center gap-2">
                   <button
-                    className={`px-2 py-1 rounded ${density === 'comfortable' ? 'bg-primary text-white' : 'bg-transparent'}`}
+                    className={`px-2 py-1 rounded ${density === 'comfortable' ? 'bg-primary text-primary-foreground' : 'bg-transparent'}`}
                     onClick={() => setDensity('comfortable')}
                   >
                     Comfortable
                   </button>
                   <button
-                    className={`px-2 py-1 rounded ${density === 'compact' ? 'bg-primary text-white' : 'bg-transparent'}`}
+                    className={`px-2 py-1 rounded ${density === 'compact' ? 'bg-primary text-primary-foreground' : 'bg-transparent'}`}
                     onClick={() => setDensity('compact')}
                   >
                     Compact
@@ -398,7 +398,7 @@ export function TeamBuilder({ surface }: { surface: TeamBuilderSurface }) {
                 <div className="flex gap-2 overflow-x-auto py-1">
                   <button
                     onClick={() => setPointFilter(null)}
-                    className={`px-2 py-1 rounded ${pointFilter === null ? 'bg-primary text-white' : 'bg-transparent'}`}
+                    className={`px-2 py-1 rounded ${pointFilter === null ? 'bg-primary text-primary-foreground' : 'bg-transparent'}`}
                   >
                     All
                   </button>
@@ -406,7 +406,7 @@ export function TeamBuilder({ surface }: { surface: TeamBuilderSurface }) {
                     <button
                       key={pv}
                       onClick={() => setPointFilter(pv)}
-                      className={`px-2 py-1 rounded ${pointFilter === pv ? 'bg-primary text-white' : 'bg-transparent'}`}
+                      className={`px-2 py-1 rounded ${pointFilter === pv ? 'bg-primary text-primary-foreground' : 'bg-transparent'}`}
                       title={`Points: ${pv}`}
                     >
                       {pv} ({availablePokemon.filter((p) => p.draft_cost === pv).length})

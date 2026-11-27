@@ -275,7 +275,7 @@ export function PokemonTeamCard({
                       <div key={statKey} className="flex items-center gap-2 text-xs">
                         <div className="w-8 text-right font-medium">{statLabel}</div>
                         <div className="flex-1">
-                          <Progress value={percentage} className="h-2" />
+                          <Progress value={percentage} aria-label={`Usage ${percentage}%`} className="h-2" />
                         </div>
                         <div className="w-12 text-right">{statValue}</div>
                         {evValue > 0 && (

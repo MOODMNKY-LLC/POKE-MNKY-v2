@@ -149,7 +149,7 @@ export function DraftBudgetSummary({
         >
           {budget.remaining} left
         </span>
-        <Progress value={pct} className="h-1.5 w-full min-w-[8rem] sm:w-32" />
+        <Progress value={pct} aria-label="Budget used" className="h-1.5 w-full min-w-[8rem] sm:w-32" />
       </div>
     )
   }
@@ -183,7 +183,7 @@ export function DraftBudgetSummary({
           <p>of {budget.total}</p>
         </div>
       </div>
-      <Progress value={pct} className="h-2" />
+      <Progress value={pct} aria-label="Budget used" className="h-2" />
     </div>
   )
 }

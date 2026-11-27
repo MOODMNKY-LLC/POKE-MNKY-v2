@@ -177,7 +177,7 @@ export default function InsightsPage() {
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <Select value={selectedWeek} onValueChange={(value) => void loadWeeklyStats(value)}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger aria-label="Week" className="w-[180px]">
                   <SelectValue placeholder="Select week" />
                 </SelectTrigger>
                 <SelectContent>
@@ -232,7 +232,7 @@ export default function InsightsPage() {
       <div className="container mx-auto space-y-8 px-4 py-8 md:px-6">
         {error ? (
           <Card className="border-destructive/40 bg-destructive/5">
-            <CardContent className="p-4 text-sm text-destructive">{error}</CardContent>
+            <CardContent className="p-4 text-sm text-destructive dark:text-red-400">{error}</CardContent>
           </Card>
         ) : null}
 

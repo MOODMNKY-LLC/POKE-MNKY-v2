@@ -223,7 +223,7 @@ export default async function StandingsPage({
                     </span>
                     <span className="truncate text-sm text-muted-foreground">{summary.leader.name}</span>
                   </div>
-                  <Progress value={summary.leaderWinPct} className="mt-4 h-2" />
+                  <Progress value={summary.leaderWinPct} aria-label={`Leader win rate ${Math.round(summary.leaderWinPct)}%`} className="mt-4 h-2" />
                 </CardContent>
               </Card>
             ) : null}

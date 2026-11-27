@@ -155,7 +155,7 @@ export default async function PlayoffsPage({
 
       <div className="container py-12">
         {playoffMatches && playoffMatches.length > 0 ? (
-          <div className="overflow-x-auto pb-4">
+          <div className="overflow-x-auto pb-4" tabIndex={0} role="region" aria-label="Playoff bracket, scroll horizontally">
             <div className="min-w-max">
               <div className="flex gap-8 justify-center">
                 {activeRoundKeys.map((roundKey, columnIndex) => {

@@ -216,7 +216,7 @@ export function CoachCard({
           </div>
 
           <div className="min-w-0 space-y-1">
-            <Progress value={budgetPercentage} className="h-2" />
+            <Progress value={budgetPercentage} aria-label={`Budget used ${budgetPercentage}%`} className="h-2" />
             <span className="text-xs text-muted-foreground">{budgetPercentage}% utilized</span>
           </div>
         </div>

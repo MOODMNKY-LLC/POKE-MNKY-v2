@@ -102,7 +102,7 @@ export function AdminLayout({ children, title, description }: AdminLayoutProps) 
       </div>
 
       {/* Main Content */}
-      <main className="container mx-auto flex-1 py-8 px-4">{children}</main>
+      <div className="container mx-auto flex-1 py-8 px-4">{children}</div>
     </div>
   )
 }

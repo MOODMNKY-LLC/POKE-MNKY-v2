@@ -197,7 +197,7 @@ export default function TeamLibrary() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search teams..."
+                  aria-label="Search teams" placeholder="Search teams..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -206,7 +206,7 @@ export default function TeamLibrary() {
               </div>
             </div>
             <Select value={formatFilter} onValueChange={setFormatFilter}>
-              <SelectTrigger className="w-full md:w-[180px]">
+              <SelectTrigger aria-label="Format" className="w-full md:w-[180px]">
                 <SelectValue placeholder="Format" />
               </SelectTrigger>
               <SelectContent>
@@ -220,7 +220,7 @@ export default function TeamLibrary() {
               </SelectContent>
             </Select>
             <Select value={generationFilter} onValueChange={setGenerationFilter}>
-              <SelectTrigger className="w-full md:w-[180px]">
+              <SelectTrigger aria-label="Generation" className="w-full md:w-[180px]">
                 <SelectValue placeholder="Generation" />
               </SelectTrigger>
               <SelectContent>

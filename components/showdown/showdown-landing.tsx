@@ -202,16 +202,16 @@ export function ShowdownLanding() {
         <CardContent>
           <ol className="list-decimal list-inside space-y-3 text-sm">
             <li className="text-muted-foreground">
-              <span className="font-semibold text-foreground">Browse Stock Teams:</span> Visit the <Link href="/showdown/team-library" className="text-primary hover:underline">Team Library</Link> for pre-built teams you can use as starting points.
+              <span className="font-semibold text-foreground">Browse Stock Teams:</span> Visit the <Link href="/showdown/team-library" className="text-primary underline underline-offset-2">Team Library</Link> for pre-built teams you can use as starting points.
             </li>
             <li className="text-muted-foreground">
-              <span className="font-semibold text-foreground">Validate Your Team:</span> Use the <Link href="/showdown/team-validator" className="text-primary hover:underline">Team Validator</Link> to ensure your team complies with league rules before battling.
+              <span className="font-semibold text-foreground">Validate Your Team:</span> Use the <Link href="/showdown/team-validator" className="text-primary underline underline-offset-2">Team Validator</Link> to ensure your team complies with league rules before battling.
             </li>
             <li className="text-muted-foreground">
-              <span className="font-semibold text-foreground">Launch a Battle:</span> Head to the <Link href="/showdown/match-lobby" className="text-primary hover:underline">Match Lobby</Link> to create a battle room or join an existing match.
+              <span className="font-semibold text-foreground">Launch a Battle:</span> Head to the <Link href="/showdown/match-lobby" className="text-primary underline underline-offset-2">Match Lobby</Link> to create a battle room or join an existing match.
             </li>
             <li className="text-muted-foreground">
-              <span className="font-semibold text-foreground">Review Replays:</span> After your battle, check the <Link href="/showdown/replay-library" className="text-primary hover:underline">Replay Library</Link> to study your performance and learn from others.
+              <span className="font-semibold text-foreground">Review Replays:</span> After your battle, check the <Link href="/showdown/replay-library" className="text-primary underline underline-offset-2">Replay Library</Link> to study your performance and learn from others.
             </li>
           </ol>
         </CardContent>

@@ -316,11 +316,11 @@ export function DraftBoardClient({
             <div className="flex items-center gap-3">
               <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "kanban" | "list")}>
                 <TabsList className="h-9">
-                  <TabsTrigger value="list" className="gap-1.5 text-xs">
+                  <TabsTrigger value="list" aria-controls={undefined} className="gap-1.5 text-xs">
                     <List className="h-4 w-4" />
                     Table
                   </TabsTrigger>
-                  <TabsTrigger value="kanban" className="gap-1.5 text-xs">
+                  <TabsTrigger value="kanban" aria-controls={undefined} className="gap-1.5 text-xs">
                     <LayoutGrid className="h-4 w-4" />
                     Kanban
                   </TabsTrigger>
@@ -349,13 +349,13 @@ export function DraftBoardClient({
           </div>
           <div className="grid gap-3 rounded-2xl border border-border/60 bg-muted/20 p-4 sm:grid-cols-3">
             <Input
-              placeholder="Search Pokemon..."
+              aria-label="Search Pokemon" placeholder="Search Pokemon..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="sm:col-span-1"
             />
             <Select value={selectedTier.toString()} onValueChange={(v) => setSelectedTier(v === "all" ? "all" : parseInt(v))}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger aria-label="Point tier" className="w-full">
                 <SelectValue placeholder="Point Tier" />
               </SelectTrigger>
               <SelectContent>
@@ -368,7 +368,7 @@ export function DraftBoardClient({
               </SelectContent>
             </Select>
             <Select value={selectedGeneration.toString()} onValueChange={(v) => setSelectedGeneration(v === "all" ? "all" : parseInt(v))}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger aria-label="Generation" className="w-full">
                 <SelectValue placeholder="Generation" />
               </SelectTrigger>
               <SelectContent>

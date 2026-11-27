@@ -32,7 +32,7 @@ function FixtureBody() {
       <header className="sticky top-0 z-30 flex h-14 items-center border-b px-4">
         <span className="text-sm font-medium">Dashboard</span>
       </header>
-      <main className="mx-auto flex min-w-0 max-w-5xl flex-col gap-4 p-4 pb-[calc(var(--mobile-tab-bar-height)+4.5rem)]">
+      <div className="mx-auto flex min-w-0 max-w-5xl flex-col gap-4 p-4 pb-[calc(var(--mobile-tab-bar-height)+4.5rem)]">
         <div className="min-w-0 space-y-2">
           <h1 className="text-2xl font-bold tracking-tight break-words">
             Welcome back, PHELPSIE12!
@@ -65,7 +65,7 @@ function FixtureBody() {
         >
           FAB
         </div>
-      </main>
+      </div>
       <MobileTabBar ctx={fixtureNav} />
     </div>
   )

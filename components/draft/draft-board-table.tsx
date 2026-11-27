@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { PokemonSprite } from "@/components/pokemon-sprite"
-import { POKEMON_TYPE_COLORS } from "@/lib/pokemon-type-colors"
+import { TypeBadge } from "@/components/type-badge"
 import { CheckCircle2 } from "lucide-react"
 
 export interface DraftBoardTablePokemon {
@@ -63,7 +63,7 @@ export function DraftBoardTable({
 
   return (
     <div className="rounded-md border bg-card overflow-hidden">
-      <div className="overflow-x-auto max-h-[calc(100vh-320px)] overflow-y-auto">
+      <div className="overflow-x-auto max-h-[calc(100vh-320px)] overflow-y-auto" tabIndex={0} role="region" aria-label="Draft board table, scroll horizontally">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -141,23 +141,9 @@ export function DraftBoardTable({
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
                       {(p.types ?? []).length > 0 ? (
-                        (p.types ?? []).map((t) => {
-                          const colors =
-                            POKEMON_TYPE_COLORS[t.toLowerCase()] ??
-                            POKEMON_TYPE_COLORS.normal
-                          return (
-                            <span
-                              key={t}
-                              className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium text-white border"
-                              style={{
-                                backgroundColor: colors.bg,
-                                borderColor: colors.border,
-                              }}
-                            >
-                              {t}
-                            </span>
-                          )
-                        })
+                        (p.types ?? []).map((t) => (
+                          <TypeBadge key={t} type={t} className="rounded px-1.5 font-medium" />
+                        ))
                       ) : (
                         <span className="text-muted-foreground text-xs">—</span>
                       )}

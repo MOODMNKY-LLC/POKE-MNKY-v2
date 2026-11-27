@@ -111,7 +111,7 @@ export function VideoGallery() {
   if (error) {
     return (
       <div className="text-center py-12">
-        <p className="text-destructive mb-4">{error}</p>
+        <p className="text-destructive dark:text-red-400 mb-4">{error}</p>
         <Button onClick={() => window.location.reload()}>Retry</Button>
       </div>
     );
@@ -124,7 +124,7 @@ export function VideoGallery() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search videos..."
+            aria-label="Search videos" placeholder="Search videos..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10 tap-target"
@@ -133,7 +133,7 @@ export function VideoGallery() {
         
         <div className="flex gap-2 sm:gap-4">
           <Select value={sortOption} onValueChange={(value) => setSortOption(value as SortOption)}>
-            <SelectTrigger className="w-full sm:w-[180px] tap-target">
+            <SelectTrigger aria-label="Sort videos" className="w-full sm:w-[180px] tap-target">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>
@@ -149,6 +149,8 @@ export function VideoGallery() {
               variant={viewMode === 'grid' ? 'default' : 'outline'}
               size="icon"
               onClick={() => setViewMode('grid')}
+              aria-label="Grid view"
+              aria-pressed={viewMode === 'grid'}
               className="tap-target"
             >
               <Grid3x3 className="h-4 w-4" />
@@ -157,6 +159,8 @@ export function VideoGallery() {
               variant={viewMode === 'list' ? 'default' : 'outline'}
               size="icon"
               onClick={() => setViewMode('list')}
+              aria-label="List view"
+              aria-pressed={viewMode === 'list'}
               className="tap-target"
             >
               <List className="h-4 w-4" />
