@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
-import { canAccessCoachFeatures, getCurrentUserProfile } from "@/lib/rbac"
+import { canAccessCoachFeatures, getCurrentUserProfile, isStrictlyCoach } from "@/lib/rbac"
 import {
   DEFAULT_NAV_CONTEXT,
   getNavFlags,
@@ -77,6 +77,7 @@ export async function getCoachNavShellData(): Promise<CoachNavShellData> {
     return {
       nav: {
         isCoach: canAccessCoachFeatures(profile),
+        canClaimTeam: isStrictlyCoach(profile) && !profile.team_id,
         onboardingComplete: Boolean(profile.onboarding_completed),
         draftPhase,
         flags,

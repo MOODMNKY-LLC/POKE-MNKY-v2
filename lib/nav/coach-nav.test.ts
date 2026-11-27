@@ -179,12 +179,17 @@ describe("section switcher", () => {
     expect(ids).toEqual(expect.arrayContaining(["dashboard", "this-week", "showdown", "guides"]))
   })
 
-  it("hides my-team for non-coaches and draft when none is scheduled", () => {
+  it("keeps the draft board available between drafts and hides My team for non-coaches", () => {
     const ids = getSectionSwitcherSections({ ...DEFAULT_NAV_CONTEXT, isCoach: false, draftPhase: "none" }).map(
       (s) => s.id,
     )
     expect(ids).not.toContain("my-team")
-    expect(ids).not.toContain("draft")
+    expect(ids).toContain("draft")
+  })
+
+  it("shows My team for a coach who can claim a team during onboarding", () => {
+    const sections = getSectionSwitcherSections({ ...DEFAULT_NAV_CONTEXT, canClaimTeam: true })
+    expect(sections.find((section) => section.id === "my-team")?.href).toBe("/dashboard/league-team")
   })
 
   it("resolves the active section from the pathname", () => {

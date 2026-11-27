@@ -41,6 +41,8 @@ export interface NavFlags {
 
 export interface CoachNavContext {
   isCoach: boolean
+  /** Coaches can open My team to claim a team before unlocking roster tools. */
+  canClaimTeam?: boolean
   onboardingComplete: boolean
   draftPhase: DraftPhase
   flags: NavFlags
@@ -394,7 +396,7 @@ export const SECTION_SWITCHER_SECTIONS: SectionSwitcherSection[] = [
     href: "/dashboard/league-team",
     icon: Trophy,
     matchPrefixes: ["/dashboard/league-team", "/dashboard/free-agency", "/dashboard/trade-block"],
-    isVisible: (ctx) => ctx.isCoach,
+    isVisible: (ctx) => ctx.isCoach || ctx.canClaimTeam === true,
   },
   {
     id: "this-week",
@@ -411,7 +413,6 @@ export const SECTION_SWITCHER_SECTIONS: SectionSwitcherSection[] = [
     href: "/dashboard/draft/board",
     icon: ClipboardList,
     matchPrefixes: ["/dashboard/draft", "/draft"],
-    isVisible: (ctx) => ctx.draftPhase !== "none",
   },
   {
     id: "showdown",
