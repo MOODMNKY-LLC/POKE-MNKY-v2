@@ -27,19 +27,30 @@ describe("showdown identity flags", () => {
     }
   })
 
-  it("enables oauth availability only when implemented and client id set", () => {
+  it("enables oauth availability only when implemented and full env set", () => {
     expect(SHOWDOWN_OAUTH_LINK_IMPLEMENTED).toBe(true)
     expect(isShowdownOauthLinkAvailable({})).toBe(false)
     expect(
       isShowdownOauthLinkAvailable({ SHOWDOWN_OAUTH_CLIENT_ID: "ps-client" }),
+    ).toBe(false)
+    expect(
+      isShowdownOauthLinkAvailable({
+        SHOWDOWN_OAUTH_CLIENT_ID: "ps-client",
+        SHOWDOWN_OAUTH_REDIRECT_URI: "https://example.com/api/showdown/oauth/callback",
+        SHOWDOWN_OAUTH_BINDING_SECRET: "binding-secret",
+      }),
     ).toBe(true)
     const status = getShowdownIdentityStatus({
       SHOWDOWN_OAUTH_CLIENT_ID: "ps-client",
+      SHOWDOWN_OAUTH_REDIRECT_URI: "https://example.com/api/showdown/oauth/callback",
+      SHOWDOWN_OAUTH_BINDING_SECRET: "binding-secret",
     })
     expect(status.oauth_link_available).toBe(true)
     expect(status.oauth_link_implemented).toBe(true)
-    // Never leak client id into status payload
+    expect(status.oauth_prerequisites.binding_secret_configured).toBe(true)
+    // Never leak client id / binding secret into status payload
     expect(JSON.stringify(status)).not.toContain("ps-client")
+    expect(JSON.stringify(status)).not.toContain("binding-secret")
   })
 
   it("status never claims team cloud import", () => {

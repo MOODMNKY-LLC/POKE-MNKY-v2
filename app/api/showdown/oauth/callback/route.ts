@@ -1,22 +1,51 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase/server"
 import { createServiceRoleClient } from "@/lib/supabase/service"
-import { getShowdownOauthPrerequisites, normalizeOauthUserParam } from "@/lib/showdown/oauth"
+import {
+  getOauthBindingSecret,
+  getShowdownOauthPrerequisites,
+  PS_OAUTH_BINDING_COOKIE,
+} from "@/lib/showdown/oauth"
+import { verifyOauthOwnershipProof } from "@/lib/showdown/oauth-verify"
+
+function clearOauthCookies(response: NextResponse): NextResponse {
+  response.cookies.set(PS_OAUTH_BINDING_COOKIE, "", { path: "/", maxAge: 0 })
+  response.cookies.set("ps_oauth_state", "", { path: "/", maxAge: 0 })
+  response.cookies.set("ps_oauth_challenge", "", { path: "/", maxAge: 0 })
+  return response
+}
 
 /**
- * OAuth redirect handler. Expects assertion, token, user from Play Pokémon Showdown.
- * Binds verified userid to the league profile. Does not store passwords or enable getteams.
+ * OAuth redirect handler. Verifies provider-signed assertion + session binding,
+ * then binds the derived Showdown userid to the league profile.
+ * Does not store passwords or enable getteams.
  */
 export async function GET(request: NextRequest) {
   const prereq = getShowdownOauthPrerequisites()
   if (!prereq.ready) {
-    return NextResponse.json(
-      {
-        error: "Verified Showdown linking callback is not active.",
-        code: "SHOWDOWN_OAUTH_UNAVAILABLE",
-        prerequisites: prereq,
-      },
-      { status: 503 },
+    return clearOauthCookies(
+      NextResponse.json(
+        {
+          error: "Verified Showdown linking callback is not active.",
+          code: "SHOWDOWN_OAUTH_UNAVAILABLE",
+          prerequisites: prereq,
+        },
+        { status: 503 },
+      ),
+    )
+  }
+
+  const bindingSecret = getOauthBindingSecret()
+  if (!bindingSecret) {
+    return clearOauthCookies(
+      NextResponse.json(
+        {
+          error: "OAuth binding secret unavailable.",
+          code: "SHOWDOWN_OAUTH_UNAVAILABLE",
+          prerequisites: prereq,
+        },
+        { status: 503 },
+      ),
     )
   }
 
@@ -25,28 +54,32 @@ export async function GET(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) {
-    return NextResponse.redirect(new URL("/auth/login?next=/profile", request.url))
+    return clearOauthCookies(
+      NextResponse.redirect(new URL("/auth/login?next=/profile", request.url)),
+    )
   }
 
   const sp = request.nextUrl.searchParams
-  const assertion = sp.get("assertion")
-  const oauthUser = normalizeOauthUserParam(sp.get("user"))
+  const proof = verifyOauthOwnershipProof({
+    leagueUserId: user.id,
+    bindingCookie: request.cookies.get(PS_OAUTH_BINDING_COOKIE)?.value,
+    bindingSecret,
+    stateFromQuery: sp.get("state"),
+    assertion: sp.get("assertion"),
+    userParam: sp.get("user"),
+  })
 
-  if (!assertion || !oauthUser) {
-    return NextResponse.json(
-      { error: "Missing assertion or user from Showdown OAuth redirect" },
-      { status: 400 },
+  // Consume binding on every callback attempt (single-use / anti-replay).
+  if (!proof.ok) {
+    return clearOauthCookies(
+      NextResponse.json(
+        { error: proof.message, code: proof.code },
+        { status: proof.status },
+      ),
     )
   }
 
-  const cookieState = request.cookies.get("ps_oauth_state")?.value
-  if (!cookieState) {
-    return NextResponse.json(
-      { error: "Missing OAuth state cookie — restart linking from the profile page." },
-      { status: 400 },
-    )
-  }
-
+  const oauthUser = proof.userid
   const admin = createServiceRoleClient()
   const { data: conflict } = await admin
     .from("profiles")
@@ -56,12 +89,14 @@ export async function GET(request: NextRequest) {
     .maybeSingle()
 
   if (conflict?.id) {
-    return NextResponse.json(
-      {
-        error: "That Showdown account is already linked to another league profile.",
-        code: "SHOWDOWN_USERID_TAKEN",
-      },
-      { status: 409 },
+    return clearOauthCookies(
+      NextResponse.json(
+        {
+          error: "That Showdown account is already linked to another league profile.",
+          code: "SHOWDOWN_USERID_TAKEN",
+        },
+        { status: 409 },
+      ),
     )
   }
 
@@ -75,18 +110,19 @@ export async function GET(request: NextRequest) {
     .eq("id", user.id)
 
   if (error) {
-    return NextResponse.json(
-      {
-        error: error.message,
-        code: "SHOWDOWN_OAUTH_BIND_FAILED",
-        hint: "Ensure migration 20261127210000_showdown_verified_link_columns is applied.",
-      },
-      { status: 500 },
+    return clearOauthCookies(
+      NextResponse.json(
+        {
+          error: error.message,
+          code: "SHOWDOWN_OAUTH_BIND_FAILED",
+          hint: "Ensure migration 20261127210000_showdown_verified_link_columns is applied on the target environment.",
+        },
+        { status: 500 },
+      ),
     )
   }
 
-  const response = NextResponse.redirect(new URL("/profile?showdown_linked=1", request.url))
-  response.cookies.set("ps_oauth_state", "", { path: "/", maxAge: 0 })
-  response.cookies.set("ps_oauth_challenge", "", { path: "/", maxAge: 0 })
-  return response
+  return clearOauthCookies(
+    NextResponse.redirect(new URL("/profile?showdown_linked=1", request.url)),
+  )
 }

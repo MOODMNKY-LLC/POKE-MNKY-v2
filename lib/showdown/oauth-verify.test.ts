@@ -1,0 +1,275 @@
+import { createSign, generateKeyPairSync } from "crypto"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { NextRequest } from "next/server"
+import {
+  createOauthBindingPayload,
+  signOauthBinding,
+} from "./oauth-binding"
+import { verifyOauthOwnershipProof } from "./oauth-verify"
+
+const { publicKey, privateKey } = generateKeyPairSync("rsa", {
+  modulusLength: 2048,
+})
+const publicKeyPem = publicKey.export({ type: "spki", format: "pem" }).toString()
+const privateKeyPem = privateKey.export({ type: "pkcs8", format: "pem" }).toString()
+
+const SECRET = "test-binding-secret-not-for-prod"
+const LEAGUE_USER = "league-user-1"
+const STATE = "statehexstatehexstatehexstatehex"
+const CHALLENGE = "c".repeat(64)
+const NOW = 1_700_000_000
+
+function signAssertion(userid = "zarel", challenge = CHALLENGE): string {
+  const data = `${challenge},${userid},2,${NOW},sim3.psim.us`
+  const signer = createSign("RSA-SHA1")
+  signer.update(data)
+  signer.end()
+  return `${data};${signer.sign(privateKeyPem, "hex")}`
+}
+
+function bindingCookie(overrides?: Partial<{ uid: string; state: string; challenge: string }>) {
+  const payload = createOauthBindingPayload({
+    leagueUserId: overrides?.uid ?? LEAGUE_USER,
+    state: overrides?.state ?? STATE,
+    challenge: overrides?.challenge ?? CHALLENGE,
+    nowSec: NOW,
+  })
+  return signOauthBinding(payload, SECRET)
+}
+
+describe("verifyOauthOwnershipProof", () => {
+  it("accepts valid binding + signed assertion and derives userid", () => {
+    const result = verifyOauthOwnershipProof({
+      leagueUserId: LEAGUE_USER,
+      bindingCookie: bindingCookie(),
+      bindingSecret: SECRET,
+      stateFromQuery: STATE,
+      assertion: signAssertion("zarel"),
+      userParam: "Zarel",
+      nowSec: NOW,
+      assertionOptions: { publicKeyPem },
+    })
+    expect(result.ok).toBe(true)
+    if (result.ok) expect(result.userid).toBe("zarel")
+  })
+
+  it("rejects invalid proof (bad signature)", () => {
+    const result = verifyOauthOwnershipProof({
+      leagueUserId: LEAGUE_USER,
+      bindingCookie: bindingCookie(),
+      bindingSecret: SECRET,
+      stateFromQuery: STATE,
+      assertion: `${CHALLENGE},zarel,2,${NOW},host;abcd`,
+      userParam: null,
+      nowSec: NOW,
+      assertionOptions: { publicKeyPem },
+    })
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.code).toBe("ASSERTION_SIGNATURE_INVALID")
+  })
+
+  it("rejects mismatched league session", () => {
+    const result = verifyOauthOwnershipProof({
+      leagueUserId: "other-user",
+      bindingCookie: bindingCookie(),
+      bindingSecret: SECRET,
+      stateFromQuery: STATE,
+      assertion: signAssertion(),
+      userParam: null,
+      nowSec: NOW,
+      assertionOptions: { publicKeyPem },
+    })
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.code).toBe("BINDING_USER_MISMATCH")
+  })
+
+  it("rejects mismatched state", () => {
+    const result = verifyOauthOwnershipProof({
+      leagueUserId: LEAGUE_USER,
+      bindingCookie: bindingCookie(),
+      bindingSecret: SECRET,
+      stateFromQuery: "wrong-state",
+      assertion: signAssertion(),
+      userParam: null,
+      nowSec: NOW,
+      assertionOptions: { publicKeyPem },
+    })
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.code).toBe("BINDING_STATE_MISMATCH")
+  })
+
+  it("rejects challenge / identity mismatch between binding and assertion", () => {
+    const result = verifyOauthOwnershipProof({
+      leagueUserId: LEAGUE_USER,
+      bindingCookie: bindingCookie({ challenge: "d".repeat(64) }),
+      bindingSecret: SECRET,
+      stateFromQuery: STATE,
+      assertion: signAssertion("zarel", CHALLENGE),
+      userParam: null,
+      nowSec: NOW,
+      assertionOptions: { publicKeyPem },
+    })
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.code).toBe("ASSERTION_CHALLENGE_MISMATCH")
+  })
+
+  it("rejects forged user query param that disagrees with assertion", () => {
+    const result = verifyOauthOwnershipProof({
+      leagueUserId: LEAGUE_USER,
+      bindingCookie: bindingCookie(),
+      bindingSecret: SECRET,
+      stateFromQuery: STATE,
+      assertion: signAssertion("zarel"),
+      userParam: "eviluser",
+      nowSec: NOW,
+      assertionOptions: { publicKeyPem },
+    })
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.code).toBe("OAUTH_USER_PARAM_MISMATCH")
+  })
+
+  it("rejects replay after binding cookie is cleared (missing binding)", () => {
+    const result = verifyOauthOwnershipProof({
+      leagueUserId: LEAGUE_USER,
+      bindingCookie: null,
+      bindingSecret: SECRET,
+      stateFromQuery: STATE,
+      assertion: signAssertion(),
+      userParam: "zarel",
+      nowSec: NOW,
+      assertionOptions: { publicKeyPem },
+    })
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.code).toBe("BINDING_MISSING")
+  })
+})
+
+describe("oauth callback + unlink routes (mocked provider proof)", () => {
+  const profileUpdate = vi.fn()
+  const profileSelect = vi.fn()
+  const getUser = vi.fn()
+
+  beforeEach(() => {
+    process.env.SHOWDOWN_OAUTH_CLIENT_ID = "test-client"
+    process.env.SHOWDOWN_OAUTH_REDIRECT_URI =
+      "https://example.com/api/showdown/oauth/callback"
+    process.env.SHOWDOWN_OAUTH_BINDING_SECRET = SECRET
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-for-tests"
+    profileUpdate.mockReset()
+    profileSelect.mockReset()
+    getUser.mockReset()
+    getUser.mockResolvedValue({ data: { user: { id: LEAGUE_USER } } })
+    profileSelect.mockReturnValue({
+      eq: vi.fn().mockReturnValue({
+        neq: vi.fn().mockReturnValue({
+          maybeSingle: vi.fn().mockResolvedValue({ data: null }),
+        }),
+      }),
+    })
+    profileUpdate.mockReturnValue({
+      eq: vi.fn().mockResolvedValue({ error: null }),
+    })
+  })
+
+  afterEach(() => {
+    delete process.env.SHOWDOWN_OAUTH_CLIENT_ID
+    delete process.env.SHOWDOWN_OAUTH_REDIRECT_URI
+    delete process.env.SHOWDOWN_OAUTH_BINDING_SECRET
+    vi.resetModules()
+  })
+
+  async function loadRoutes() {
+    vi.resetModules()
+    vi.doMock("@/lib/supabase/server", () => ({
+      createServerClient: vi.fn(async () => ({
+        auth: { getUser },
+      })),
+    }))
+    vi.doMock("@/lib/supabase/service", () => ({
+      createServiceRoleClient: vi.fn(() => ({
+        from: vi.fn((table: string) => {
+          if (table !== "profiles") throw new Error(`unexpected table ${table}`)
+          return {
+            select: profileSelect,
+            update: profileUpdate,
+          }
+        }),
+      })),
+    }))
+    // Force assertion verification to use test key via oauth-verify path:
+    // we patch verifyShowdownAssertion by signing with official-format and
+    // injecting through verifyOauthOwnershipProof's assertionOptions in unit tests above.
+    // For route tests, mock oauth-verify to keep route wiring focused.
+    const verifyOauthOwnershipProofMock = vi.fn()
+    vi.doMock("@/lib/showdown/oauth-verify", () => ({
+      verifyOauthOwnershipProof: verifyOauthOwnershipProofMock,
+    }))
+    const callback = await import("@/app/api/showdown/oauth/callback/route")
+    const unlink = await import("@/app/api/showdown/oauth/unlink/route")
+    return { callback, unlink, verifyOauthOwnershipProofMock }
+  }
+
+  it("binds profile on valid proof and clears binding cookie", async () => {
+    const { callback, verifyOauthOwnershipProofMock } = await loadRoutes()
+    verifyOauthOwnershipProofMock.mockReturnValue({
+      ok: true,
+      userid: "zarel",
+      binding: createOauthBindingPayload({
+        leagueUserId: LEAGUE_USER,
+        state: STATE,
+        challenge: CHALLENGE,
+        nowSec: NOW,
+      }),
+      assertion: {
+        ok: true,
+        userid: "zarel",
+        challenge: CHALLENGE,
+        userType: "2",
+        issuedAtSec: NOW,
+        hostname: "sim3.psim.us",
+      },
+    })
+
+    const cookie = bindingCookie()
+    const req = new NextRequest(
+      `https://example.com/api/showdown/oauth/callback?assertion=x&state=${STATE}&user=zarel`,
+      { headers: { cookie: `ps_oauth_binding=${cookie}` } },
+    )
+    const res = await callback.GET(req)
+    expect(res.status).toBe(307)
+    expect(res.headers.get("location")).toContain("showdown_linked=1")
+    expect(profileUpdate).toHaveBeenCalled()
+    const setCookie = res.headers.getSetCookie?.() ?? []
+    expect(setCookie.some((c) => c.startsWith("ps_oauth_binding=;"))).toBe(true)
+  })
+
+  it("fails closed on invalid proof without updating profile", async () => {
+    const { callback, verifyOauthOwnershipProofMock } = await loadRoutes()
+    verifyOauthOwnershipProofMock.mockReturnValue({
+      ok: false,
+      code: "ASSERTION_SIGNATURE_INVALID",
+      message: "bad",
+      status: 400,
+    })
+    const req = new NextRequest(
+      `https://example.com/api/showdown/oauth/callback?assertion=x&state=${STATE}`,
+      { headers: { cookie: `ps_oauth_binding=${bindingCookie()}` } },
+    )
+    const res = await callback.GET(req)
+    expect(res.status).toBe(400)
+    expect(profileUpdate).not.toHaveBeenCalled()
+  })
+
+  it("unlinks verified fields for the signed-in user", async () => {
+    const { unlink } = await loadRoutes()
+    const res = await unlink.DELETE()
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.unlinked).toBe(true)
+    expect(profileUpdate).toHaveBeenCalledWith({
+      showdown_userid: null,
+      showdown_linked_at: null,
+      showdown_link_method: null,
+    })
+  })
+})

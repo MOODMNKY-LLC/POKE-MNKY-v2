@@ -1,6 +1,6 @@
 # Showdown public data + verified linking — follow-up status
 
-Baseline: `main` @ `09f5817` (#77). Companion Notion plan: [Showdown Identity + Public Replay Archive](https://app.notion.com/p/411cd2a6542281d2b6baf8cae414533b).
+Baseline: `main` @ `#79`. Ownership-proof hotfix: `docs/SHOWDOWN-OAUTH-HOTFIX.md`.
 
 ## Verified in this pass
 
@@ -16,29 +16,31 @@ Baseline: `main` @ `09f5817` (#77). Companion Notion plan: [Showdown Identity + 
 | Calc web + Discord | `/calc` + `/dashboard/calc` → `calc.pokemonshowdown.com`; Discord `/calc` → `POST /api/calc` |
 | Pokédex ingest failure path | `triggerShowdownPokedexIngestion` returns `success: false` when Edge Function fails or `processed===0` with errors |
 
+## Public vs verified linking
+
+| Surface | Proves ownership? |
+| --- | --- |
+| Public profile / ladder / moves / replay search | **No** — read-only observational |
+| OAuth link (assertion + binding) | **Yes** — RSA-verified assertion bound to league session |
+
 ## Shipped in app
 
 - `lib/showdown/public-web-api.ts` + authenticated proxies under `/api/showdown/public/*`
 - Replay discovery UI on attach panel (requires `REPLAY_INGEST_ENABLED`)
-- OAuth start/callback/unlink with profile bind (`showdown_userid*`)
-- Migration: `supabase/migrations/20261127210000_showdown_verified_link_columns.sql`
-- `SHOWDOWN_OAUTH_LINK_IMPLEMENTED = true` (still needs client id + redirect env)
+- OAuth start/callback/unlink with **assertion verification + HMAC session binding**
+- Migration: `supabase/migrations/20261127210000_showdown_verified_link_columns.sql` (staging only until approved)
 - Removed retired `aab-login.moodmnky.com` fallback from legacy sync paths
 
-## Rollout (user-approved)
+## Production posture (hotfix)
 
 | Item | State |
 | --- | --- |
-| OAuth capability gate | **on** in code |
-| Profile bind migration | in active migrations path — apply on deploy |
-| `SHOWDOWN_OAUTH_CLIENT_ID` + redirect | **set in Vercel** after PS form approval |
-| `REPLAY_INGEST_ENABLED` | set `true` in Vercel when ready |
+| OAuth capability gate | on in code (verification shipped) |
+| `SHOWDOWN_OAUTH_CLIENT_ID` + redirect | **keep unset in production** |
+| `REPLAY_INGEST_ENABLED` | **keep unset / false in production** |
+| Profile bind migration on prod | **do not apply yet** |
+| PS client registration for prod | **do not register yet** |
 
-## Still needs ops env
-
-1. Submit [PS OAuth form](https://forms.gle/VAoSjqHn4zwem7tp9); register exact production origin
-2. `SHOWDOWN_OAUTH_CLIENT_ID` + `SHOWDOWN_OAUTH_REDIRECT_URI=https://<host>/api/showdown/oauth/callback`
-3. Apply migration `20261127210000_showdown_verified_link_columns`
-4. Optional: `REPLAY_INGEST_ENABLED=true` after staging soak
+See `docs/SHOWDOWN-OAUTH-HOTFIX.md` for exact staging enablement steps.
 
 Cloud `getteams` / password collection remain out of scope.
