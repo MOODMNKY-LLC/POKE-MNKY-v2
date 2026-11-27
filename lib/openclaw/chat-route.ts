@@ -16,24 +16,32 @@ export function isOpenClawConfigured(): boolean {
 
 /** True when env suggests OpenClaw is intended (avoid silent OpenAI fallback with a stale key). */
 export function prefersOpenClawChat(): boolean {
-  if (process.env.AI_CHAT_PROVIDER?.trim().toLowerCase() === "openclaw") {
-    return true
-  }
-  if (process.env.AI_CHAT_PROVIDER?.trim().toLowerCase() === "openai") {
+  const provider = process.env.AI_CHAT_PROVIDER?.trim().toLowerCase()
+  if (provider === "openai" || provider === "sources-only" || provider === "off") {
     return false
   }
+  if (provider === "openclaw") {
+    // Intended, but only when a real gateway URL is configured (empty URL = fail closed).
+    return Boolean(process.env.OPENCLAW_GATEWAY_URL?.trim())
+  }
+  // Agent id / CF Access secrets alone must not force OpenClaw while the
+  // member gateway hostname (aab-chat-gw) is still unrepaired (503).
   return Boolean(
-    process.env.OPENCLAW_GATEWAY_TOKEN?.trim() ||
-      process.env.OPENCLAW_AGENT_ID?.trim() ||
-      process.env.OPENCLAW_HOOKS_TOKEN?.trim() ||
-      process.env.OPENCLAW_GATEWAY_URL?.trim() ||
-      process.env.OPENCLAW_CF_ACCESS_CLIENT_ID?.trim() ||
-      process.env.OPENCLAW_CF_ACCESS_CLIENT_SECRET?.trim()
+    process.env.OPENCLAW_GATEWAY_URL?.trim() &&
+      (process.env.OPENCLAW_GATEWAY_TOKEN?.trim() ||
+        (process.env.OPENCLAW_CF_ACCESS_CLIENT_ID?.trim() &&
+          process.env.OPENCLAW_CF_ACCESS_CLIENT_SECRET?.trim()))
   )
 }
 
 export function openClawConfigError(): string {
-  if (!process.env.OPENCLAW_GATEWAY_URL?.trim()) return "OPENCLAW_GATEWAY_URL is not set"
+  if (!process.env.OPENCLAW_GATEWAY_URL?.trim()) {
+    return (
+      "OpenClaw chat is disabled: OPENCLAW_GATEWAY_URL is empty. " +
+      "League knowledge remains available via sources-only routes when AAB_KNOWLEDGE_ENABLED is on. " +
+      "Do not use unrepaired hosts (aab-openclaw / aab-chat-gw) until Coolify+CF Access are live."
+    )
+  }
   if (!process.env.OPENCLAW_AGENT_ID?.trim()) return "OPENCLAW_AGENT_ID is not set"
   const hasAccess = Boolean(
     process.env.OPENCLAW_CF_ACCESS_CLIENT_ID?.trim() &&
