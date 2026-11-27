@@ -14,45 +14,74 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { UserAvatar } from "@/components/ui/user-avatar"
-import { PokeballIcon } from "@/components/ui/pokeball-icon"
-import { LogIn, Sparkles, Menu, Database, Brain, Trophy, Calendar, Users, BookOpen, LogOut, Info, Loader2, CheckCircle2, Swords, ChevronDown, FileText, LayoutDashboard, ClipboardList, PlayCircle, Library, History, Shield, Target } from "lucide-react"
+import {
+  LogIn,
+  Menu,
+  Database,
+  LogOut,
+  ChevronDown,
+  LayoutDashboard,
+  Search,
+  Music2,
+  BookOpen,
+} from "lucide-react"
 import { ThemeSwitcher } from "@/components/theme-switcher"
 import { ScrollingText } from "@/components/ui/scrolling-text"
 import { HeaderMusicPlayer } from "@/components/music/header-music-player"
+import { OPEN_MOBILE_MUSIC_EVENT } from "@/components/music/mobile-music-player"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import type { AuthChangeEvent, Session, User as SupabaseUser } from "@supabase/supabase-js"
-import { Badge } from "@/components/ui/badge"
 import { getCurrentUserProfile, type UserProfile } from "@/lib/rbac"
 import type { User } from "@supabase/supabase-js"
 import { ReferencePopoutSheet, type ReferencePopoutVariant } from "@/components/reference-popout-sheet"
+import { OPEN_COMMAND_PALETTE_EVENT } from "@/components/command-palette"
+import { PUBLIC_NAV_GROUPS, type PublicNavItem } from "@/lib/nav/public-nav"
 
 interface SiteHeaderProps {
   initialUser?: User | null
   initialProfile?: UserProfile | null
 }
 
+function DesktopNavItem({ item }: { item: PublicNavItem }) {
+  const Icon = item.icon
+  if (item.external) {
+    return (
+      <DropdownMenuItem asChild>
+        <a href={item.href} target="_blank" rel="noopener noreferrer" className="cursor-pointer">
+          <Icon className="mr-2 h-4 w-4" aria-hidden="true" />
+          {item.title}
+        </a>
+      </DropdownMenuItem>
+    )
+  }
+  return (
+    <DropdownMenuItem asChild>
+      <Link href={item.href} className="cursor-pointer">
+        <Icon className="mr-2 h-4 w-4" aria-hidden="true" />
+        {item.title}
+      </Link>
+    </DropdownMenuItem>
+  )
+}
+
 export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}) {
-  // Determine if we have server-side data (even if null, it means server tried)
   const hasServerData = initialUser !== undefined
-  
+
   const [user, setUser] = useState<SupabaseUser | null>(initialUser ?? null)
   const [userProfile, setUserProfile] = useState<UserProfile | null>(initialProfile ?? null)
-  const [isLoading, setIsLoading] = useState(!hasServerData) // Start as false if we have server data
-  // syncState removed - PokepediaSyncProvider deleted
+  const [isLoading, setIsLoading] = useState(!hasServerData)
   const [mounted, setMounted] = useState(false)
   const [referencePopout, setReferencePopout] = useState<ReferencePopoutVariant>(null)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const router = useRouter()
 
-  // Only create Supabase client on the client side
   useEffect(() => {
     setMounted(true)
   }, [])
 
   useEffect(() => {
-    // Only run on client side
     if (!mounted) return
 
     let cancelled = false
@@ -65,11 +94,7 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
       return
     }
 
-    // Only fetch if we don't have server-side data
-    // Use getSession() first (faster, checks local storage)
-    // Then rely on onAuthStateChange for actual user data
     const checkAuth = async () => {
-      // If we already have server-side data, skip fetching
       if (hasServerData) {
         setIsLoading(false)
         return
@@ -77,35 +102,33 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
 
       setIsLoading(true)
 
-      // Quick session check (checks local storage, doesn't hit server)
       try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-        
+        const {
+          data: { session },
+          error: sessionError,
+        } = await supabase.auth.getSession()
+
         if (cancelled) return
 
-        // If no session, show login button immediately
         if (!session || sessionError) {
           setIsLoading(false)
-          // Don't set user here - let onAuthStateChange handle it
           return
         }
 
-        // If we have a session, set user from session (faster than getUser())
         if (session.user && !cancelled) {
           setUser(session.user)
-          
-          // Fetch profile asynchronously (don't block)
+
           getCurrentUserProfile(supabase)
-            .then(profile => {
+            .then((profile) => {
               if (!cancelled) {
                 setUserProfile(profile)
               }
             })
-            .catch(profileError => {
+            .catch((profileError) => {
               console.debug("[SiteHeader] Error fetching profile:", profileError)
             })
         }
-        
+
         if (!cancelled) {
           setIsLoading(false)
         }
@@ -113,33 +136,27 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
         if (cancelled) return
         console.debug("[SiteHeader] Session check error:", error)
         setIsLoading(false)
-        // Don't set user to null - let onAuthStateChange handle it
       }
     }
 
-    // Check auth state quickly
     checkAuth()
 
-    // Listen for auth changes (this is more reliable than getUser)
-    // This fires immediately with current session and on any auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event: AuthChangeEvent, session: Session | null) => {
       if (cancelled) return
-      
-      // Update user immediately when auth state changes
+
       setUser(session?.user ?? null)
-      setIsLoading(false) // Always set loading to false when auth state changes
-      
+      setIsLoading(false)
+
       if (session?.user) {
-        // Fetch profile asynchronously (don't block)
         getCurrentUserProfile(supabase)
-          .then(profile => {
+          .then((profile) => {
             if (!cancelled) {
               setUserProfile(profile)
             }
           })
-          .catch(profileError => {
+          .catch((profileError) => {
             console.debug("[SiteHeader] Error fetching profile:", profileError)
           })
       } else {
@@ -153,8 +170,6 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
     }
   }, [mounted, hasServerData])
 
-  // Sync state functionality removed - PokepediaSyncProvider deleted
-
   const handleSignOut = async () => {
     if (!mounted) return
     try {
@@ -164,14 +179,23 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
       router.refresh()
     } catch (error) {
       console.error("[SiteHeader] Error signing out:", error)
-      // Still redirect even if sign out fails
       router.push("/")
       router.refresh()
     }
   }
 
+  const openCommandPalette = () => {
+    window.dispatchEvent(new Event(OPEN_COMMAND_PALETTE_EVENT))
+  }
+
+  const openMobileMusic = () => {
+    window.dispatchEvent(new Event(OPEN_MOBILE_MUSIC_EVENT))
+    setMobileNavOpen(false)
+  }
+
   const discordAvatar = user?.user_metadata?.avatar_url
-  const discordUsername = user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split("@")[0]
+  const discordUsername =
+    user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split("@")[0]
   const userInitials = discordUsername?.substring(0, 2).toUpperCase() || "U"
 
   return (
@@ -198,229 +222,89 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
                 className="font-bold text-foreground group-hover:text-primary transition-colors font-marker"
               />
             </div>
-            <span className="hidden font-bold text-foreground sm:inline-block lg:hidden font-marker" suppressHydrationWarning>AAB League</span>
+            <span
+              className="hidden font-bold text-foreground sm:inline-block lg:hidden font-marker whitespace-nowrap"
+              suppressHydrationWarning
+            >
+              AAB League
+            </span>
           </Link>
         </div>
 
-        {/* Desktop Navigation */}
-        <nav className="hidden lg:flex flex-1 items-center justify-between gap-6">
+        <nav className="hidden lg:flex flex-1 items-center justify-between gap-6" aria-label="Primary">
           <div className="flex items-center gap-1">
-            {/* League Dropdown - Static league information */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild suppressHydrationWarning>
-                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-                  <Trophy className="h-4 w-4 mr-1.5" />
-                  League
-                  <ChevronDown className="h-3 w-3 ml-1" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-56">
-                <DropdownMenuLabel>League Information</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/standings" className="cursor-pointer">
-                    <Trophy className="mr-2 h-4 w-4" />
-                    Standings
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/teams" className="cursor-pointer">
-                    <Users className="mr-2 h-4 w-4" />
-                    Teams
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/schedule" className="cursor-pointer">
-                    <Calendar className="mr-2 h-4 w-4" />
-                    Schedule
-                  </Link>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            
-            {/* Divider */}
-            <div className="h-6 w-px bg-border mx-1" />
-            
-            {/* Draft Dropdown - Interactive draft features */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild suppressHydrationWarning>
-                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-                  <ClipboardList className="h-4 w-4 mr-1.5" />
-                  Draft
-                  <ChevronDown className="h-3 w-3 ml-1" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-56">
-                <DropdownMenuLabel>Draft & Selection</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/draft" className="cursor-pointer">
-                    <ClipboardList className="mr-2 h-4 w-4" />
-                    Draft Hub
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/draft/board" className="cursor-pointer">
-                    <Target className="mr-2 h-4 w-4" />
-                    Draft Board
-                  </Link>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            
-            {/* Divider */}
-            <div className="h-6 w-px bg-border mx-1" />
-            
-            {/* Battle Dropdown - Showdown and battle-related features */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild suppressHydrationWarning>
-                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-                  <Swords className="h-4 w-4 mr-1.5" />
-                  Battle
-                  <ChevronDown className="h-3 w-3 ml-1" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-56">
-                <DropdownMenuLabel>Battle & Teams</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/showdown" className="cursor-pointer">
-                    <Swords className="mr-2 h-4 w-4" />
-                    Showdown Hub
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/showdown/match-lobby" className="cursor-pointer">
-                    <Users className="mr-2 h-4 w-4" />
-                    Match Lobby
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/showdown/team-library" className="cursor-pointer">
-                    <Library className="mr-2 h-4 w-4" />
-                    Team Library
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/showdown/team-validator" className="cursor-pointer">
-                    <Shield className="mr-2 h-4 w-4" />
-                    Team Validator
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/showdown/replay-library" className="cursor-pointer">
-                    <History className="mr-2 h-4 w-4" />
-                    Replay Library
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/teams/builder" className="cursor-pointer">
-                    <Brain className="mr-2 h-4 w-4" />
-                    Team Builder
-                  </Link>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            
-            {/* Divider */}
-            <div className="h-6 w-px bg-border mx-1" />
-            
-            {/* Reference Dropdown - Reference materials and learning */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild suppressHydrationWarning>
-                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-                  <BookOpen className="h-4 w-4 mr-1.5" />
-                  Reference
-                  <ChevronDown className="h-3 w-3 ml-1" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-56">
-                <DropdownMenuLabel>Reference & Learning</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/pokedex" className="cursor-pointer">
-                    <BookOpen className="mr-2 h-4 w-4" />
-                    Pokédex
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/insights" className="cursor-pointer">
-                    <Sparkles className="mr-2 h-4 w-4" />
-                    AI Insights
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/videos" className="cursor-pointer">
-                    <PlayCircle className="mr-2 h-4 w-4" />
-                    Videos
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel className="text-muted-foreground font-normal">League & dashboard guides</DropdownMenuLabel>
-                <DropdownMenuItem
-                  onClick={() => setReferencePopout("league")}
-                  className="cursor-pointer"
-                >
-                  <BookOpen className="mr-2 h-4 w-4" />
-                  League Features Guide (v3)
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => setReferencePopout("dashboard")}
-                  className="cursor-pointer"
-                >
-                  <BookOpen className="mr-2 h-4 w-4" />
-                  Dashboard Guides &amp; References
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <ReferencePopoutSheet
-              open={referencePopout !== null}
-              onOpenChange={(open) => !open && setReferencePopout(null)}
-              variant={referencePopout}
-              onOpenLeagueInPopout={() => setReferencePopout("league")}
-            />
-            
-            {/* Divider */}
-            <div className="h-6 w-px bg-border mx-1" />
-            
-            {/* Resources Dropdown - Developer and testing tools */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild suppressHydrationWarning>
-                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-                  <FileText className="h-4 w-4 mr-1.5" />
-                  Resources
-                  <ChevronDown className="h-3 w-3 ml-1" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-56">
-                <DropdownMenuLabel>Developer Resources</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <a 
-                    href="https://docs.poke-mnky.moodmnky.com" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="cursor-pointer"
-                  >
-                    <BookOpen className="mr-2 h-4 w-4" />
-                    App Documentation
-                  </a>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/docs/api" className="cursor-pointer">
-                    <FileText className="mr-2 h-4 w-4" />
-                    PokéAPI Documentation
-                  </Link>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {PUBLIC_NAV_GROUPS.map((group, index) => {
+              const GroupIcon = group.icon
+              return (
+                <div key={group.id} className="flex items-center">
+                  {index > 0 ? <div className="mx-1 h-6 w-px bg-border" aria-hidden="true" /> : null}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild suppressHydrationWarning>
+                      <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+                        <GroupIcon className="mr-1.5 h-4 w-4" aria-hidden="true" />
+                        {group.label}
+                        <ChevronDown className="ml-1 h-3 w-3" aria-hidden="true" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-56">
+                      <DropdownMenuLabel>{group.menuLabel}</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {group.items.map((item) => (
+                        <DesktopNavItem key={item.id} item={item} />
+                      ))}
+                      {group.id === "reference" ? (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuLabel className="font-normal text-muted-foreground">
+                            League & dashboard guides
+                          </DropdownMenuLabel>
+                          <DropdownMenuItem
+                            onClick={() => setReferencePopout("league")}
+                            className="cursor-pointer"
+                          >
+                            <BookOpen className="mr-2 h-4 w-4" aria-hidden="true" />
+                            League Features Guide (v3)
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => setReferencePopout("dashboard")}
+                            className="cursor-pointer"
+                          >
+                            <BookOpen className="mr-2 h-4 w-4" aria-hidden="true" />
+                            Dashboard Guides &amp; References
+                          </DropdownMenuItem>
+                        </>
+                      ) : null}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              )
+            })}
           </div>
+
+          <ReferencePopoutSheet
+            open={referencePopout !== null}
+            onOpenChange={(open) => !open && setReferencePopout(null)}
+            variant={referencePopout}
+            onOpenLeagueInPopout={() => setReferencePopout("league")}
+          />
+
           <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="gap-1.5 text-muted-foreground"
+              onClick={openCommandPalette}
+            >
+              <Search className="h-4 w-4" aria-hidden="true" />
+              <span>Search</span>
+              <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:inline-flex">
+                ⌘K
+              </kbd>
+            </Button>
             <HeaderMusicPlayer />
             <ThemeSwitcher />
             {isLoading ? (
-              // Loading skeleton to prevent layout shift
               <div className="h-8 w-24 animate-pulse rounded-md bg-muted" />
             ) : user ? (
               <DropdownMenu>
@@ -428,7 +312,7 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
                   <Button variant="ghost" size="sm" className="gap-2">
                     <Avatar className="h-7 w-7">
                       <AvatarImage src={discordAvatar || "/placeholder.svg"} alt={discordUsername} />
-                      <AvatarFallback className="bg-[#5865F2] text-white text-xs">{userInitials}</AvatarFallback>
+                      <AvatarFallback className="bg-[#5865F2] text-xs text-white">{userInitials}</AvatarFallback>
                     </Avatar>
                     <span className="hidden md:inline-block">{discordUsername}</span>
                   </Button>
@@ -443,14 +327,14 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
                     <Link href="/dashboard" className="cursor-pointer">
-                      <LayoutDashboard className="mr-2 h-4 w-4" />
+                      <LayoutDashboard className="mr-2 h-4 w-4" aria-hidden="true" />
                       Dashboard
                     </Link>
                   </DropdownMenuItem>
                   {userProfile?.role === "admin" && (
                     <DropdownMenuItem asChild>
                       <Link href="/admin" className="cursor-pointer">
-                        <Database className="mr-2 h-4 w-4" />
+                        <Database className="mr-2 h-4 w-4" aria-hidden="true" />
                         Admin Dashboard
                       </Link>
                     </DropdownMenuItem>
@@ -460,7 +344,7 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
                     onClick={handleSignOut}
                     className="cursor-pointer text-destructive focus:text-destructive"
                   >
-                    <LogOut className="mr-2 h-4 w-4" />
+                    <LogOut className="mr-2 h-4 w-4" aria-hidden="true" />
                     Sign Out
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -468,7 +352,7 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
             ) : (
               <Button asChild size="sm" variant="outline">
                 <Link href="/auth/login" aria-label="Sign in with Discord">
-                  <LogIn className="h-4 w-4 mr-2" aria-hidden="true" />
+                  <LogIn className="mr-2 h-4 w-4" aria-hidden="true" />
                   Sign in
                 </Link>
               </Button>
@@ -476,251 +360,164 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
           </div>
         </nav>
 
-        {/* Mobile Navigation */}
-        <div className="flex flex-1 items-center justify-end lg:hidden gap-2">
-          {/* Sync Status Indicator removed - PokepediaSyncProvider deleted */}
+        <div className="flex flex-1 items-center justify-end gap-2 lg:hidden">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="px-2"
+            onClick={openCommandPalette}
+            aria-label="Search"
+          >
+            <Search className="h-4 w-4" aria-hidden="true" />
+          </Button>
           <ThemeSwitcher />
           {isLoading ? (
-            // Loading skeleton to prevent layout shift
             <div className="h-8 w-8 animate-pulse rounded-md bg-muted" />
           ) : user ? (
             <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="p-1" aria-label="Account menu">
-                    <UserAvatar
-                      src={discordAvatar || undefined}
-                      alt={discordUsername}
-                      fallback={userInitials}
-                      role={userProfile?.role}
-                      size="sm"
-                      showBadge={true}
-                      showPokeball={false}
-                    />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">{discordUsername}</p>
-                      <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
-                    </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="p-1" aria-label="Account menu">
+                  <UserAvatar
+                    src={discordAvatar || undefined}
+                    alt={discordUsername}
+                    fallback={userInitials}
+                    role={userProfile?.role}
+                    size="sm"
+                    showBadge={true}
+                    showPokeball={false}
+                  />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">{discordUsername}</p>
+                    <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard" className="cursor-pointer">
+                    <LayoutDashboard className="mr-2 h-4 w-4" aria-hidden="true" />
+                    Dashboard
+                  </Link>
+                </DropdownMenuItem>
+                {userProfile?.role === "admin" && (
                   <DropdownMenuItem asChild>
-                    <Link href="/dashboard" className="cursor-pointer">
-                      <LayoutDashboard className="mr-2 h-4 w-4" />
-                      Dashboard
+                    <Link href="/admin" className="cursor-pointer">
+                      <Database className="mr-2 h-4 w-4" aria-hidden="true" />
+                      Admin Dashboard
                     </Link>
                   </DropdownMenuItem>
-                  {userProfile?.role === "admin" && (
-                    <DropdownMenuItem asChild>
-                      <Link href="/admin" className="cursor-pointer">
-                        <Database className="mr-2 h-4 w-4" />
-                        Admin Dashboard
-                      </Link>
-                    </DropdownMenuItem>
-                  )}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={handleSignOut}
-                    className="cursor-pointer text-destructive focus:text-destructive"
-                  >
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Sign Out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <Button asChild size="sm" variant="outline">
-                <Link href="/auth/login" aria-label="Sign in with Discord">
-                  <LogIn className="h-4 w-4" aria-hidden="true" />
-                  <span className="hidden min-[380px]:inline">Sign in</span>
-                </Link>
-              </Button>
-            )}
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={handleSignOut}
+                  className="cursor-pointer text-destructive focus:text-destructive"
+                >
+                  <LogOut className="mr-2 h-4 w-4" aria-hidden="true" />
+                  Sign Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button asChild size="sm" variant="outline">
+              <Link href="/auth/login" aria-label="Sign in with Discord">
+                <LogIn className="h-4 w-4" aria-hidden="true" />
+                <span className="hidden min-[380px]:inline">Sign in</span>
+              </Link>
+            </Button>
+          )}
           <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="sm" className="px-2" suppressHydrationWarning>
-                <Menu className="h-5 w-5" />
+                <Menu className="h-5 w-5" aria-hidden="true" />
                 <span className="sr-only">Toggle menu</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[300px] sm:w-[400px] overflow-y-auto max-h-screen">
-              <nav className="flex flex-col gap-4 mt-8 pb-4">
-                {/* League Section */}
+            <SheetContent side="right" className="max-h-screen w-[300px] overflow-y-auto sm:w-[400px]">
+              <nav className="mt-8 flex flex-col gap-4 pb-4" aria-label="Mobile">
+                {PUBLIC_NAV_GROUPS.map((group, index) => (
+                  <div key={group.id} className="space-y-2">
+                    {index > 0 ? <div className="h-px bg-border" aria-hidden="true" /> : null}
+                    <p className="px-2 text-xs font-semibold uppercase text-muted-foreground">{group.label}</p>
+                    {group.items.map((item) => {
+                      const Icon = item.icon
+                      const linkClass =
+                        "flex items-center gap-3 px-2 text-lg font-medium transition-colors hover:text-primary"
+                      if (item.external) {
+                        return (
+                          <a
+                            key={item.id}
+                            href={item.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={linkClass}
+                            onClick={() => setMobileNavOpen(false)}
+                          >
+                            <Icon className="h-5 w-5" aria-hidden="true" />
+                            {item.title}
+                          </a>
+                        )
+                      }
+                      return (
+                        <Link
+                          key={item.id}
+                          href={item.href}
+                          className={linkClass}
+                          onClick={() => setMobileNavOpen(false)}
+                        >
+                          <Icon className="h-5 w-5" aria-hidden="true" />
+                          {item.title}
+                        </Link>
+                      )
+                    })}
+                    {group.id === "reference" ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMobileNavOpen(false)
+                            setReferencePopout("league")
+                          }}
+                          className="flex w-full items-center gap-3 px-2 text-left text-lg font-medium transition-colors hover:text-primary"
+                        >
+                          <BookOpen className="h-5 w-5" aria-hidden="true" />
+                          League Features Guide (v3)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMobileNavOpen(false)
+                            setReferencePopout("dashboard")
+                          }}
+                          className="flex w-full items-center gap-3 px-2 text-left text-lg font-medium transition-colors hover:text-primary"
+                        >
+                          <BookOpen className="h-5 w-5" aria-hidden="true" />
+                          Dashboard Guides &amp; References
+                        </button>
+                      </>
+                    ) : null}
+                  </div>
+                ))}
+
+                <div className="h-px bg-border" aria-hidden="true" />
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase px-2">League</p>
-                  <Link
-                    href="/standings"
-                    className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2"
-                  >
-                    <Trophy className="h-5 w-5" />
-                    Standings
-                  </Link>
-                  <Link
-                    href="/teams"
-                    className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2"
-                  >
-                    <Users className="h-5 w-5" />
-                    Teams
-                  </Link>
-                  <Link
-                    href="/schedule"
-                    className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2"
-                  >
-                    <Calendar className="h-5 w-5" />
-                    Schedule
-                  </Link>
-                </div>
-                
-                {/* Divider */}
-                <div className="h-px bg-border" />
-                
-                {/* Draft Section */}
-                <div className="space-y-2">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase px-2">Draft</p>
-                  <Link
-                    href="/draft"
-                    className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2"
-                  >
-                    <ClipboardList className="h-5 w-5" />
-                    Draft Hub
-                  </Link>
-                  <Link
-                    href="/draft/board"
-                    className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2"
-                  >
-                    <Target className="h-5 w-5" />
-                    Draft Board
-                  </Link>
-                </div>
-                
-                {/* Divider */}
-                <div className="h-px bg-border" />
-                
-                {/* Battle Section */}
-                <div className="space-y-2">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase px-2">Battle</p>
-                  <Link
-                    href="/showdown"
-                    className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2"
-                  >
-                    <Swords className="h-5 w-5" />
-                    Showdown Hub
-                  </Link>
-                  <Link
-                    href="/showdown/match-lobby"
-                    className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2"
-                  >
-                    <Users className="h-5 w-5" />
-                    Match Lobby
-                  </Link>
-                  <Link
-                    href="/showdown/team-library"
-                    className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2"
-                  >
-                    <Library className="h-5 w-5" />
-                    Team Library
-                  </Link>
-                  <Link
-                    href="/showdown/team-validator"
-                    className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2"
-                  >
-                    <Shield className="h-5 w-5" />
-                    Team Validator
-                  </Link>
-                  <Link
-                    href="/showdown/replay-library"
-                    className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2"
-                  >
-                    <History className="h-5 w-5" />
-                    Replay Library
-                  </Link>
-                  <Link
-                    href="/teams/builder"
-                    className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2"
-                  >
-                    <Brain className="h-5 w-5" />
-                    Team Builder
-                  </Link>
-                </div>
-                
-                {/* Divider */}
-                <div className="h-px bg-border" />
-                
-                {/* Reference Section */}
-                <div className="space-y-2">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase px-2">Reference</p>
-                  <Link
-                    href="/pokedex"
-                    className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2"
-                  >
-                    <BookOpen className="h-5 w-5" />
-                    Pokédex
-                  </Link>
-                  <Link
-                    href="/insights"
-                    className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2"
-                  >
-                    <Sparkles className="h-5 w-5" />
-                    AI Insights
-                  </Link>
-                  <Link
-                    href="/videos"
-                    className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2"
-                  >
-                    <PlayCircle className="h-5 w-5" />
-                    Videos
-                  </Link>
+                  <p className="px-2 text-xs font-semibold uppercase text-muted-foreground">Music</p>
                   <button
                     type="button"
-                    onClick={() => {
-                      setMobileNavOpen(false)
-                      setReferencePopout("league")
-                    }}
-                    className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2 w-full text-left"
+                    onClick={openMobileMusic}
+                    className="flex w-full items-center gap-3 px-2 text-left text-lg font-medium transition-colors hover:text-primary"
+                    aria-label="Open music player"
+                    data-testid="mobile-menu-music"
                   >
-                    <BookOpen className="h-5 w-5" />
-                    League Features Guide (v3)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMobileNavOpen(false)
-                      setReferencePopout("dashboard")
-                    }}
-                    className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2 w-full text-left"
-                  >
-                    <BookOpen className="h-5 w-5" />
-                    Dashboard Guides &amp; References
+                    <Music2 className="h-5 w-5" aria-hidden="true" />
+                    Music
                   </button>
                 </div>
-                
-                {/* Divider */}
-                <div className="h-px bg-border" />
-                
-                {/* Resources Section */}
-                <div className="space-y-2">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase px-2">Resources</p>
-                  <a
-                    href="https://docs.poke-mnky.moodmnky.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2"
-                  >
-                    <BookOpen className="h-5 w-5" />
-                    App Documentation
-                  </a>
-                  <Link
-                    href="/docs/api"
-                    className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors px-2"
-                  >
-                    <FileText className="h-5 w-5" />
-                    PokéAPI Documentation
-                  </Link>
-                </div>
-                
-                <div className="pt-4 mt-4 border-t border-border">
+
+                <div className="mt-4 border-t border-border pt-4">
                   {user ? (
                     <>
                       <div className="mb-4 flex items-center gap-3 px-2">
@@ -734,14 +531,14 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
                         </div>
                       </div>
                       <Button onClick={handleSignOut} size="lg" variant="outline" className="w-full bg-transparent">
-                        <LogOut className="h-5 w-5 mr-2" />
+                        <LogOut className="mr-2 h-5 w-5" aria-hidden="true" />
                         Sign Out
                       </Button>
                     </>
                   ) : (
                     <Button asChild size="lg" variant="outline" className="w-full">
                       <Link href="/auth/login">
-                        <LogIn className="h-5 w-5 mr-2" aria-hidden="true" />
+                        <LogIn className="mr-2 h-5 w-5" aria-hidden="true" />
                         Sign In with Discord
                       </Link>
                     </Button>

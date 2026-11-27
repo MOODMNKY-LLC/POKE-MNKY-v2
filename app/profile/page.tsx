@@ -86,7 +86,7 @@ export default function ProfilePage() {
     const profile = await getCurrentUserProfile(supabase)
 
     if (!profile) {
-      router.push("/auth/login")
+      router.push("/auth/login?next=/profile")
       return
     }
 

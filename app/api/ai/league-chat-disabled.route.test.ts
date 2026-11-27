@@ -71,8 +71,12 @@ describe("league chat routes when OpenClaw is not configured", () => {
     for (const key of KEYS) {
       if (!previous.has(key)) previous.set(key, process.env[key])
       const value = next[key]
-      if (value === undefined) delete process.env[key]
-      else process.env[key] = value
+      if (value === undefined) {
+        process.env[key] = ""
+        delete process.env[key]
+      } else {
+        process.env[key] = value
+      }
     }
   }
 
@@ -116,22 +120,29 @@ describe("league chat routes when OpenClaw is not configured", () => {
   ]
 
   for (const route of routes) {
-    it(`${route.name} returns JSON 503 and does not call the gateway when URL or agent id is unset`, async () => {
+    it(`${route.name} returns OpenAI-absent 503 when openclaw is requested but the gateway URL is empty`, async () => {
       setEnv({
         OPENAI_API_KEY: undefined,
         AI_CHAT_PROVIDER: "openclaw",
         OPENCLAW_GATEWAY_TOKEN: "gateway-token",
-        OPENCLAW_AGENT_ID: undefined,
+        OPENCLAW_AGENT_ID: "league-agent",
         OPENCLAW_HOOKS_TOKEN: undefined,
         OPENCLAW_GATEWAY_URL: undefined,
         OPENCLAW_HTTP_CHAT: undefined,
       })
-      await expectUnavailable(await route.post(post(route.path, route.body)), AI_CHAT_UNAVAILABLE_MESSAGE)
+      // Fail-closed URL: do not pin the OpenClaw route; surface the OpenAI-absent 503.
+      await expectUnavailable(await route.post(post(route.path, route.body)), OPENAI_UNAVAILABLE_MESSAGE)
+    })
 
+    it(`${route.name} returns AI-chat 503 when OpenClaw is preferred but agent id is unset`, async () => {
       setEnv({
+        OPENAI_API_KEY: undefined,
+        AI_CHAT_PROVIDER: "openclaw",
         OPENCLAW_GATEWAY_URL: "wss://aab-openclaw.moodmnky.com",
         OPENCLAW_AGENT_ID: undefined,
         OPENCLAW_GATEWAY_TOKEN: "gateway-token",
+        OPENCLAW_HOOKS_TOKEN: undefined,
+        OPENCLAW_HTTP_CHAT: undefined,
       })
       await expectUnavailable(await route.post(post(route.path, route.body)), AI_CHAT_UNAVAILABLE_MESSAGE)
     })

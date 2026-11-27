@@ -4,11 +4,38 @@ import * as React from 'react'
 
 import { cn } from '@/lib/utils'
 
-function Table({ className, ...props }: React.ComponentProps<'table'>) {
+type TableProps = React.ComponentProps<'table'> & {
+  /** When set, the scroll wrapper is a keyboard-focusable region (axe scrollable-region-focusable). */
+  scrollLabel?: string
+  /**
+   * When false, omit overflow-x-auto on the wrapper because a parent is already the scroll container.
+   * Defaults to true.
+   */
+  containerOverflow?: boolean
+}
+
+function Table({
+  className,
+  scrollLabel,
+  containerOverflow = true,
+  ...props
+}: TableProps) {
   return (
     <div
       data-slot="table-container"
-      className="relative w-full overflow-x-auto"
+      className={cn(
+        'relative w-full',
+        containerOverflow && 'overflow-x-auto',
+        scrollLabel &&
+          'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
+      )}
+      {...(scrollLabel
+        ? {
+            tabIndex: 0 as const,
+            role: 'region' as const,
+            'aria-label': scrollLabel,
+          }
+        : {})}
     >
       <table
         data-slot="table"

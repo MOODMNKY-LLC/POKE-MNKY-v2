@@ -3,17 +3,16 @@
 import { usePathname } from "next/navigation"
 import { HomepageCountdown } from "@/components/homepage-countdown"
 import { SiteHeaderWrapper } from "@/components/site-header-wrapper"
-import { Skeleton } from "@/components/ui/skeleton"
+import { shouldHidePublicChrome } from "@/lib/nav/public-shell"
 
 /**
  * Conditionally renders the site header based on the current route.
- * Hides the header on dashboard routes since the dashboard has its own sidebar navigation.
+ * Hides the header on dashboard and admin (each has its own chrome).
  */
 export function ConditionalHeader() {
   const pathname = usePathname()
 
-  // Hide header on dashboard routes
-  if (pathname?.startsWith("/dashboard")) {
+  if (shouldHidePublicChrome(pathname)) {
     return null
   }
 
@@ -24,18 +23,5 @@ export function ConditionalHeader() {
       <SiteHeaderWrapper />
       {isHome ? <HomepageCountdown variant="banner" /> : null}
     </>
-  )
-}
-
-function HeaderSkeleton() {
-  return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 pt-[env(safe-area-inset-top)] pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)] backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center">
-        <Skeleton className="h-8 w-32" />
-        <div className="ml-auto flex items-center gap-4">
-          <Skeleton className="h-8 w-8 rounded-full" />
-        </div>
-      </div>
-    </header>
   )
 }

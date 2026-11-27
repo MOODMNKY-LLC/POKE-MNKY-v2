@@ -9,12 +9,13 @@ import { InstallAppProvider } from "@/components/pwa/install-app-provider"
 import { ThemeColorSync } from "@/components/pwa/theme-color-sync"
 import { PWA_THEME_COLORS } from "@/lib/pwa/theme-colors"
 import { ConditionalHeader } from "@/components/conditional-header"
+import { ConditionalFooter } from "@/components/conditional-footer"
 import { AssistantWrapper } from "@/components/ai/assistant-wrapper"
 import { AiAvailabilityProvider } from "@/components/ai/openai-availability"
 import { isLeagueChatAvailable } from "@/lib/ai/chat-availability"
 import { isOpenAIConfigured } from "@/lib/openai-client"
 import { MobileMusicPlayer } from "@/components/music/mobile-music-player"
-import { Suspense } from "react"
+import { PublicCommandPalette } from "@/components/public-command-palette"
 import { Toaster } from "sonner"
 import "./globals.css"
 
@@ -139,10 +140,12 @@ export default function RootLayout({
               <main id="main-content" tabIndex={-1} className="flex-1 w-full focus:outline-none focus-visible:outline-none">
                 {children}
               </main>
+              <ConditionalFooter />
             </div>
           </InstallAppProvider>
           <ThemeColorSync />
           <AssistantWrapper />
+          <PublicCommandPalette />
           </AiAvailabilityProvider>
         </ThemeProvider>
         <Analytics />

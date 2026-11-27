@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest"
 import { isLeagueChatAvailable } from "./chat-availability"
 import { isOpenAIConfigured } from "@/lib/openai-client"
+import { prefersOpenClawChat } from "@/lib/openclaw/chat-route"
 
 const KEYS = [
   "OPENAI_API_KEY",
@@ -29,8 +30,13 @@ describe("chat availability without OPENAI_API_KEY", () => {
     for (const key of KEYS) {
       if (!previous.has(key)) previous.set(key, process.env[key])
       const value = next[key]
-      if (value === undefined) delete process.env[key]
-      else process.env[key] = value
+      // Assign empty string when clearing so parallel CI workers cannot revive a prior value.
+      if (value === undefined) {
+        process.env[key] = ""
+        delete process.env[key]
+      } else {
+        process.env[key] = value
+      }
     }
   }
 
@@ -47,7 +53,18 @@ describe("chat availability without OPENAI_API_KEY", () => {
     expect(isLeagueChatAvailable()).toBe(true)
   })
 
-  it("disables league chat when OpenClaw is requested but URL or agent id is unset", () => {
+  it("fails closed on OpenClaw when the gateway URL is empty, even if openclaw is requested", () => {
+    setEnv({
+      OPENAI_API_KEY: undefined,
+      AI_CHAT_PROVIDER: "openclaw",
+      OPENCLAW_GATEWAY_TOKEN: "gateway-token",
+      OPENCLAW_AGENT_ID: "league-agent",
+      OPENCLAW_HOOKS_TOKEN: undefined,
+      OPENCLAW_GATEWAY_URL: undefined,
+    })
+    expect(prefersOpenClawChat()).toBe(false)
+    expect(isLeagueChatAvailable()).toBe(false)
+
     setEnv({
       OPENAI_API_KEY: "sk-test",
       AI_CHAT_PROVIDER: "openclaw",
@@ -56,8 +73,12 @@ describe("chat availability without OPENAI_API_KEY", () => {
       OPENCLAW_HOOKS_TOKEN: undefined,
       OPENCLAW_GATEWAY_URL: undefined,
     })
-    expect(isLeagueChatAvailable()).toBe(false)
+    // Empty URL must not pin the OpenClaw path; OpenAI remains usable when configured.
+    expect(prefersOpenClawChat()).toBe(false)
+    expect(isLeagueChatAvailable()).toBe(true)
+  })
 
+  it("disables league chat when OpenClaw is preferred but the agent id is unset", () => {
     setEnv({
       OPENAI_API_KEY: undefined,
       AI_CHAT_PROVIDER: "openclaw",
@@ -66,6 +87,7 @@ describe("chat availability without OPENAI_API_KEY", () => {
       OPENCLAW_HOOKS_TOKEN: undefined,
       OPENCLAW_GATEWAY_URL: "wss://gateway.example/ws",
     })
+    expect(prefersOpenClawChat()).toBe(true)
     expect(isLeagueChatAvailable()).toBe(false)
 
     setEnv({
@@ -76,6 +98,7 @@ describe("chat availability without OPENAI_API_KEY", () => {
       OPENCLAW_HOOKS_TOKEN: undefined,
       OPENCLAW_GATEWAY_URL: "   ",
     })
+    expect(prefersOpenClawChat()).toBe(false)
     expect(isLeagueChatAvailable()).toBe(false)
   })
 
@@ -106,9 +129,22 @@ describe("chat availability without OPENAI_API_KEY", () => {
     expect(isLeagueChatAvailable()).toBe(true)
   })
 
-  it("disables league chat when a URL and agent id have no auth", () => {
+  it("does not prefer OpenClaw when a URL and agent id have no auth", () => {
     setEnv({
       OPENAI_API_KEY: "sk-test",
+      AI_CHAT_PROVIDER: undefined,
+      OPENCLAW_GATEWAY_TOKEN: undefined,
+      OPENCLAW_AGENT_ID: "stale-agent",
+      OPENCLAW_HOOKS_TOKEN: undefined,
+      OPENCLAW_GATEWAY_URL: "wss://gateway.example/ws",
+      OPENCLAW_CF_ACCESS_CLIENT_ID: undefined,
+      OPENCLAW_CF_ACCESS_CLIENT_SECRET: undefined,
+    })
+    expect(prefersOpenClawChat()).toBe(false)
+    expect(isLeagueChatAvailable()).toBe(true)
+
+    setEnv({
+      OPENAI_API_KEY: undefined,
       AI_CHAT_PROVIDER: undefined,
       OPENCLAW_GATEWAY_TOKEN: undefined,
       OPENCLAW_AGENT_ID: "stale-agent",

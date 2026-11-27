@@ -64,7 +64,7 @@ export function DraftBoardTable({
   return (
     <div className="rounded-md border bg-card overflow-hidden">
       <div className="overflow-x-auto max-h-[calc(100vh-320px)] overflow-y-auto" tabIndex={0} role="region" aria-label="Draft board table, scroll horizontally">
-        <Table>
+        <Table containerOverflow={false}>
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
               <TableHead className="w-[220px] font-semibold">Name</TableHead>

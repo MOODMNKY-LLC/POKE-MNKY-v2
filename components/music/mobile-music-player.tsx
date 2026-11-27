@@ -1,8 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { usePathname } from "next/navigation"
-import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import {
@@ -18,7 +16,9 @@ import {
   AudioPlayerMuteButton,
   AudioPlayerVolumeRange,
 } from "@/components/ai-elements/audio-player"
-import { Music2, X } from "lucide-react"
+import { X } from "lucide-react"
+
+export const OPEN_MOBILE_MUSIC_EVENT = "open-mobile-music"
 
 interface MusicTrack {
   id: string
@@ -28,8 +28,11 @@ interface MusicTrack {
   storageUrl: string
 }
 
+/**
+ * Mobile music sheet only (no floating corner button).
+ * Open via OPEN_MOBILE_MUSIC_EVENT from the header mobile menu.
+ */
 export function MobileMusicPlayer() {
-  const onDashboard = usePathname().startsWith("/dashboard")
   const [tracks, setTracks] = useState<MusicTrack[]>([])
   const [currentTrackIndex, setCurrentTrackIndex] = useState<number>(0)
   const [isOpen, setIsOpen] = useState(false)
@@ -37,41 +40,57 @@ export function MobileMusicPlayer() {
 
   useEffect(() => {
     fetchPlaylistTracks()
-    
-    const savedEnabled = localStorage.getItem('music-player-enabled')
-    if (savedEnabled === 'true') {
+
+    const savedEnabled = localStorage.getItem("music-player-enabled")
+    if (savedEnabled === "true") {
       setIsEnabled(true)
     }
-    
-    // Refresh tracks periodically to catch newly enabled tracks
+
     const interval = setInterval(() => {
       fetchPlaylistTracks()
-    }, 30000) // Every 30 seconds
-    
+    }, 30000)
+
     return () => clearInterval(interval)
+  }, [])
+
+  useEffect(() => {
+    const onOpen = () => setIsOpen(true)
+    window.addEventListener(OPEN_MOBILE_MUSIC_EVENT, onOpen)
+    return () => window.removeEventListener(OPEN_MOBILE_MUSIC_EVENT, onOpen)
   }, [])
 
   const fetchPlaylistTracks = async () => {
     try {
-      const response = await fetch('/api/music/music-tracks')
+      const response = await fetch("/api/music/music-tracks")
       const data = await response.json()
-      
-      const enabledTracks = (data.tracks || []).filter((track: any) => track.playlist_enabled === true)
-      const mappedTracks = enabledTracks.map((track: any) => ({
-        id: track.id,
-        title: track.title,
-        artist: track.artist || null,
-        duration: track.duration || null,
-        storageUrl: track.storageUrl || track.storage_url,
-      }))
-      
+
+      const enabledTracks = (data.tracks || []).filter(
+        (track: { playlist_enabled?: boolean }) => track.playlist_enabled === true,
+      )
+      const mappedTracks = enabledTracks.map(
+        (track: {
+          id: string
+          title: string
+          artist?: string | null
+          duration?: number | null
+          storageUrl?: string
+          storage_url?: string
+        }) => ({
+          id: track.id,
+          title: track.title,
+          artist: track.artist || null,
+          duration: track.duration || null,
+          storageUrl: track.storageUrl || track.storage_url || "",
+        }),
+      )
+
       setTracks(mappedTracks)
-      
+
       if (mappedTracks.length > 0 && currentTrackIndex >= mappedTracks.length) {
         setCurrentTrackIndex(0)
       }
     } catch (error) {
-      console.error('Failed to fetch playlist tracks:', error)
+      console.error("Failed to fetch playlist tracks:", error)
     }
   }
 
@@ -92,95 +111,68 @@ export function MobileMusicPlayer() {
   }
 
   useEffect(() => {
-    localStorage.setItem('music-player-enabled', String(isEnabled))
+    localStorage.setItem("music-player-enabled", String(isEnabled))
   }, [isEnabled])
 
-  // Always show the button, even if no tracks (so it's visible in production)
   return (
-    <>
-      {/* Floating Button - Always Visible on Mobile */}
-      <Button
-        variant="outline"
-        size="icon"
-        className={cn(
-          "fixed left-[calc(1rem+env(safe-area-inset-left))] z-[45] h-12 w-12 rounded-full shadow-lg bg-background xl:hidden",
-          onDashboard
-            ? "bottom-[calc(var(--mobile-tab-bar-height)+var(--assistant-dock-bar)+0.5rem)] md:bottom-[calc(var(--assistant-dock-height)+0.5rem)]"
-            : "bottom-[calc(var(--assistant-dock-height)+0.5rem)]",
-        )}
-        onClick={() => setIsOpen(true)}
-        title={tracks.length === 0 ? "Music Player (No tracks available)" : "Music Player"}
-      >
-        <Music2 className="h-5 w-5" />
-      </Button>
+    <Sheet open={isOpen} onOpenChange={setIsOpen}>
+      <SheetContent side="bottom" className="h-auto">
+        <SheetHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <SheetTitle>Music Player</SheetTitle>
+              <SheetDescription>
+                {currentTrack ? (
+                  <>
+                    {currentTrack.title}
+                    {currentTrack.artist && ` • ${currentTrack.artist}`}
+                  </>
+                ) : (
+                  `${tracks.length} track${tracks.length !== 1 ? "s" : ""} available`
+                )}
+              </SheetDescription>
+            </div>
+            <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} aria-label="Close music player">
+              <X className="h-4 w-4" aria-hidden="true" />
+            </Button>
+          </div>
+        </SheetHeader>
 
-      {/* Sheet Modal for Mobile */}
-      <Sheet open={isOpen} onOpenChange={setIsOpen}>
-        <SheetContent side="bottom" className="h-auto">
-          <SheetHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <SheetTitle>Music Player</SheetTitle>
-                <SheetDescription>
-                  {currentTrack ? (
-                    <>
-                      {currentTrack.title}
-                      {currentTrack.artist && ` • ${currentTrack.artist}`}
-                    </>
-                  ) : (
-                    `${tracks.length} track${tracks.length !== 1 ? 's' : ''} available`
-                  )}
-                </SheetDescription>
-              </div>
+        <div className="mt-6 space-y-4">
+          {currentTrack && isEnabled ? (
+            <AudioPlayer key={currentTrack.id}>
+              <AudioPlayerElement src={currentTrack.storageUrl} onEnded={handleEnded} />
+              <AudioPlayerControlBar>
+                <AudioPlayerPlayButton />
+                <AudioPlayerSeekBackwardButton seekOffset={10} />
+                <AudioPlayerSeekForwardButton seekOffset={10} />
+                <AudioPlayerTimeDisplay />
+                <AudioPlayerTimeRange />
+                <AudioPlayerDurationDisplay />
+                <AudioPlayerMuteButton />
+                <AudioPlayerVolumeRange />
+              </AudioPlayerControlBar>
+            </AudioPlayer>
+          ) : (
+            <div className="space-y-4">
+              <p className="text-center text-sm text-muted-foreground">
+                {tracks.length} track{tracks.length !== 1 ? "s" : ""} available
+              </p>
               <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsOpen(false)}
+                className="w-full"
+                onClick={() => {
+                  setIsEnabled(true)
+                  if (tracks.length > 0) {
+                    setCurrentTrackIndex(0)
+                  }
+                }}
               >
-                <X className="h-4 w-4" />
+                Enable Music
               </Button>
             </div>
-          </SheetHeader>
-
-          <div className="mt-6 space-y-4">
-            {currentTrack && isEnabled ? (
-              <AudioPlayer key={currentTrack.id}>
-                <AudioPlayerElement
-                  src={currentTrack.storageUrl}
-                  onEnded={handleEnded}
-                />
-                <AudioPlayerControlBar>
-                  <AudioPlayerPlayButton />
-                  <AudioPlayerSeekBackwardButton seekOffset={10} />
-                  <AudioPlayerSeekForwardButton seekOffset={10} />
-                  <AudioPlayerTimeDisplay />
-                  <AudioPlayerTimeRange />
-                  <AudioPlayerDurationDisplay />
-                  <AudioPlayerMuteButton />
-                  <AudioPlayerVolumeRange />
-                </AudioPlayerControlBar>
-              </AudioPlayer>
-            ) : (
-              <div className="space-y-4">
-                <p className="text-sm text-muted-foreground text-center">
-                  {tracks.length} track{tracks.length !== 1 ? 's' : ''} available
-                </p>
-                <Button
-                  className="w-full"
-                  onClick={() => {
-                    setIsEnabled(true)
-                    if (tracks.length > 0) {
-                      setCurrentTrackIndex(0)
-                    }
-                  }}
-                >
-                  Enable Music
-                </Button>
-              </div>
-            )}
-          </div>
-        </SheetContent>
-      </Sheet>
-    </>
+          )}
+        </div>
+      </SheetContent>
+    </Sheet>
   )
 }
