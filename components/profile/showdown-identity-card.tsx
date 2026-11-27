@@ -6,11 +6,14 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { CheckCircle2, XCircle, Loader2, RefreshCw, Info } from "lucide-react"
+import { CheckCircle2, XCircle, Loader2, RefreshCw, Info, Link2, Unlink } from "lucide-react"
 import type { ShowdownIdentityStatus } from "@/lib/showdown/identity-flags"
 
 type ProfileShowdownFields = {
   showdown_username?: string | null
+  showdown_userid?: string | null
+  showdown_linked_at?: string | null
+  showdown_link_method?: string | null
   showdown_account_synced?: boolean | null
   showdown_account_synced_at?: string | null
 }
@@ -30,6 +33,9 @@ export function ShowdownIdentityCard({
 }: Props) {
   const [status, setStatus] = useState<ShowdownIdentityStatus | null>(null)
   const [statusError, setStatusError] = useState<string | null>(null)
+  const [linkBusy, setLinkBusy] = useState(false)
+  const [linkError, setLinkError] = useState<string | null>(null)
+  const [linkedUserid, setLinkedUserid] = useState(profile.showdown_userid || null)
 
   useEffect(() => {
     let cancelled = false
@@ -59,6 +65,53 @@ export function ShowdownIdentityCard({
   const oauthAvailable = status?.oauth_link_available === true
   const hasLegacyRecord =
     Boolean(profile.showdown_account_synced) || Boolean(profile.showdown_username)
+  const verified = Boolean(linkedUserid)
+
+  async function startLink() {
+    setLinkBusy(true)
+    setLinkError(null)
+    try {
+      const res = await fetch("/api/showdown/oauth/start", {
+        method: "POST",
+        credentials: "include",
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setLinkError(data.error || "Could not start Showdown linking")
+        return
+      }
+      if (data.authorize_url) {
+        window.location.href = data.authorize_url as string
+        return
+      }
+      setLinkError("Authorize URL missing")
+    } catch {
+      setLinkError("Could not start Showdown linking")
+    } finally {
+      setLinkBusy(false)
+    }
+  }
+
+  async function unlink() {
+    setLinkBusy(true)
+    setLinkError(null)
+    try {
+      const res = await fetch("/api/showdown/oauth/unlink", {
+        method: "DELETE",
+        credentials: "include",
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setLinkError(data.error || "Unlink failed")
+        return
+      }
+      setLinkedUserid(null)
+    } catch {
+      setLinkError("Unlink failed")
+    } finally {
+      setLinkBusy(false)
+    }
+  }
 
   return (
     <Card>
@@ -89,29 +142,68 @@ export function ShowdownIdentityCard({
           <>
             <div className="space-y-2">
               <Label>Verified central account link</Label>
-              {/*
-                oauth_link_available requires an implemented OAuth flow AND client id.
-                Never render a Link button from client-id alone — Phase 2 ships the flow.
-              */}
-              {oauthAvailable && status.oauth_link_implemented ? (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Info className="h-4 w-4" />
-                  <span>
-                    Linking is enabled server-side. Use the in-app Link control when
-                    it appears in a later release — this card does not claim you are
-                    verified.
-                  </span>
+              {verified ? (
+                <div className="space-y-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge className="font-mono">{linkedUserid}</Badge>
+                    <Badge variant="secondary">OAuth verified</Badge>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={linkBusy}
+                    onClick={() => void unlink()}
+                  >
+                    {linkBusy ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Unlink className="h-4 w-4 mr-2" />
+                    )}
+                    Unlink
+                  </Button>
+                </div>
+              ) : oauthAvailable && status.oauth_link_implemented ? (
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground text-pretty">
+                    Prove ownership of your Main Pokémon Showdown account via official
+                    OAuth. We never collect your Showdown password. Cloud team sync is
+                    not included.
+                  </p>
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={linkBusy}
+                    onClick={() => void startLink()}
+                  >
+                    {linkBusy ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Link2 className="h-4 w-4 mr-2" />
+                    )}
+                    Link Showdown account
+                  </Button>
                 </div>
               ) : (
                 <Alert>
                   <Info className="h-4 w-4" />
                   <AlertTitle>Unavailable</AlertTitle>
-                  <AlertDescription>
-                    {status.oauth_unavailable_reason ||
-                      "Verified linking to an existing Pokémon Showdown Main account is not available yet."}
+                  <AlertDescription className="space-y-1">
+                    <p>
+                      {status.oauth_unavailable_reason ||
+                        "Verified linking to an existing Pokémon Showdown Main account is not available yet."}
+                    </p>
+                    {status.oauth_prerequisites?.blocked_reasons?.[0] ? (
+                      <p className="text-xs text-muted-foreground">
+                        {status.oauth_prerequisites.blocked_reasons[0]}
+                      </p>
+                    ) : null}
                   </AlertDescription>
                 </Alert>
               )}
+              {linkError ? (
+                <p className="text-sm text-destructive">{linkError}</p>
+              ) : null}
             </div>
 
             <div className="space-y-2">

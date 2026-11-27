@@ -283,8 +283,18 @@ export async function POST(request: NextRequest) {
       }, { status: 500 })
     }
 
-    // Call loginserver API
-    const loginserverUrl = process.env.LOGINSERVER_URL || 'https://aab-login.moodmnky.com'
+    // Call loginserver API — no retired aab-login default; must be explicit.
+    const loginserverUrl = process.env.LOGINSERVER_URL?.trim()
+    if (!loginserverUrl) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "LOGINSERVER_URL is not configured. Legacy sync must not fall back to retired aab-login hosts.",
+        },
+        { status: 503 },
+      )
+    }
     
     const payload = {
       act: 'register',

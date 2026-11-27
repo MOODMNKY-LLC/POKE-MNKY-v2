@@ -38,7 +38,7 @@ temp/*.json
 
 # Database dumps (too large for git)
 *.sql
-!supabase/migrations/*.sql
+!supabase/migrations/**/*.sql
 !supabase/tests/*.sql
 !fixtures/**/*.sql
 
