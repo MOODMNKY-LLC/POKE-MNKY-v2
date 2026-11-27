@@ -3,6 +3,7 @@
 import { TeamPokemonSprite } from './team-pokemon-sprite';
 import { Badge } from '@/components/ui/badge';
 import { getPokemonTypeColors } from '@/lib/pokemon-type-colors';
+import { TypeBadge } from '@/components/type-badge';
 import { type ParsedPokemon } from '@/lib/team-parser';
 import { cn } from '@/lib/utils';
 import { type PokemonDisplayData } from '@/lib/pokemon-utils';
@@ -66,25 +67,13 @@ export function TeamPokemonCardMini({
       {/* Types */}
       {types.length > 0 && (
         <div className="flex gap-0.5 flex-wrap justify-center">
-          {types.map((type) => {
-            const typeColor = getPokemonTypeColors([type]);
-            return (
-              <Badge
-                key={type}
-                className={cn(
-                  'capitalize',
-                  viewMode === 'list' ? 'text-[10px] px-1 py-0' : 'text-[9px] px-0.5 py-0'
-                )}
-                style={{
-                  backgroundColor: typeColor.bg,
-                  color: typeColor.text,
-                  borderColor: typeColor.border,
-                }}
-              >
-                {type}
-              </Badge>
-            );
-          })}
+          {types.map((type) => (
+            <TypeBadge
+              key={type}
+              type={type}
+              className={viewMode === 'list' ? 'text-[10px] px-1 py-0' : 'text-[10px] px-0.5 py-0'}
+            />
+          ))}
         </div>
       )}
     </div>

@@ -124,7 +124,7 @@ export function VideoGallery() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search videos..."
+            aria-label="Search videos" placeholder="Search videos..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10 tap-target"
@@ -133,7 +133,7 @@ export function VideoGallery() {
         
         <div className="flex gap-2 sm:gap-4">
           <Select value={sortOption} onValueChange={(value) => setSortOption(value as SortOption)}>
-            <SelectTrigger className="w-full sm:w-[180px] tap-target">
+            <SelectTrigger aria-label="Sort videos" className="w-full sm:w-[180px] tap-target">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>

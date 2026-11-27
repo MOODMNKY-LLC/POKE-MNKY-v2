@@ -222,7 +222,7 @@ export default async function MVPPage({
             </CardHeader>
             <CardContent className="p-0">
               {topPokemon.length > 0 ? (
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Top MVP candidates, scroll horizontally">
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-border bg-muted/50">

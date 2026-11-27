@@ -19,7 +19,7 @@ type Season = { id: string; name: string }
 
 function PoolErrorCard() {
   return (
-    <main className="mx-auto flex min-h-[60dvh] max-w-3xl items-center px-4 py-10">
+    <div className="mx-auto flex min-h-[60dvh] max-w-3xl items-center px-4 py-10">
       <Card className="w-full">
         <CardHeader>
           <CardTitle>We couldn&apos;t load the draft pool right now</CardTitle>
@@ -29,7 +29,7 @@ function PoolErrorCard() {
           <Button asChild variant="outline" className="w-fit"><Link href="/draft/board">Open the draft board</Link></Button>
         </CardContent>
       </Card>
-    </main>
+    </div>
   )
 }
 
@@ -95,12 +95,12 @@ export default async function DraftPoolPage({ searchParams }: { searchParams: Pr
   const selectedSeason = requestedSeason ?? (currentSeason as Season | null) ?? seasonById.get(publishedSeasonIds[0] ?? "")
 
   if (!selectedSeason) {
-    return <main className="mx-auto flex min-h-[60dvh] max-w-3xl items-center px-4 py-10"><Card className="w-full"><CardHeader><CardTitle>No season is available</CardTitle></CardHeader><CardContent><Button asChild variant="outline"><Link href="/draft/board">Open draft board</Link></Button></CardContent></Card></main>
+    return <div className="mx-auto flex min-h-[60dvh] max-w-3xl items-center px-4 py-10"><Card className="w-full"><CardHeader><CardTitle>No season is available</CardTitle></CardHeader><CardContent><Button asChild variant="outline"><Link href="/draft/board">Open draft board</Link></Button></CardContent></Card></div>
   }
 
   const version = publishedVersions.find((candidate) => candidate.season_id === selectedSeason.id)
   if (!version) {
-    return <main className="mx-auto flex min-h-[60dvh] max-w-3xl items-center px-4 py-10"><Card className="w-full"><CardHeader><CardTitle>{`The ${selectedSeason.name} draft pool hasn't been published in the app yet`}</CardTitle></CardHeader><CardContent><Button asChild variant="outline"><Link href="/draft/board">Open the draft board</Link></Button></CardContent></Card></main>
+    return <div className="mx-auto flex min-h-[60dvh] max-w-3xl items-center px-4 py-10"><Card className="w-full"><CardHeader><CardTitle>{`The ${selectedSeason.name} draft pool hasn't been published in the app yet`}</CardTitle></CardHeader><CardContent><Button asChild variant="outline"><Link href="/draft/board">Open the draft board</Link></Button></CardContent></Card></div>
   }
 
   let entries: CoachPoolEntry[]
@@ -117,5 +117,5 @@ export default async function DraftPoolPage({ searchParams }: { searchParams: Pr
     : null
   const publishedSeasons = publishedSeasonIds.map((id) => seasonById.get(id)).filter((season): season is Season => Boolean(season)).sort((a, b) => a.name.localeCompare(b.name))
 
-  return <main className="mx-auto w-full max-w-7xl px-4 py-6 md:py-10"><div className="mb-6 flex flex-col gap-3"><Button asChild variant="ghost" className="w-fit"><Link href="/draft/board"><ArrowLeftIcon data-icon="inline-start" />Draft board</Link></Button><div><p className="text-sm font-medium text-primary">{publishedLabel ? `Published league pool · ${publishedLabel}` : "Published league pool"}</p><h1 className="text-3xl font-bold text-balance md:text-4xl">{selectedSeason.name} draft pool</h1><p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground md:text-base">Browse official points, Tera eligibility, and team-sheet restrictions before you draft.</p></div></div><CoachPoolClient entries={entries} restrictions={restrictions} season={selectedSeason} publishedSeasons={publishedSeasons} /></main>
+  return <div className="mx-auto w-full max-w-7xl px-4 py-6 md:py-10"><div className="mb-6 flex flex-col gap-3"><Button asChild variant="ghost" className="w-fit"><Link href="/draft/board"><ArrowLeftIcon data-icon="inline-start" />Draft board</Link></Button><div><p className="text-sm font-medium text-primary">{publishedLabel ? `Published league pool · ${publishedLabel}` : "Published league pool"}</p><h1 className="text-3xl font-bold text-balance md:text-4xl">{selectedSeason.name} draft pool</h1><p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground md:text-base">Browse official points, Tera eligibility, and team-sheet restrictions before you draft.</p></div></div><CoachPoolClient entries={entries} restrictions={restrictions} season={selectedSeason} publishedSeasons={publishedSeasons} /></div>
 }

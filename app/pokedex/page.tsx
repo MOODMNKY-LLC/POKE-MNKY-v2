@@ -5,6 +5,7 @@ import { Search, ImageIcon, ArrowRight } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { TypeBadge } from "@/components/type-badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { PokemonSprite } from "@/components/pokemon-sprite"
@@ -224,6 +225,7 @@ export default function PokedexPage() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
+              aria-label="Search Pokémon"
               placeholder="Search Pokémon..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -231,7 +233,7 @@ export default function PokedexPage() {
             />
           </div>
           <Select value={spriteMode} onValueChange={(v: any) => setSpriteMode(v)}>
-            <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectTrigger aria-label="Sprite style" className="w-full sm:w-[180px]">
               <ImageIcon className="h-4 w-4 mr-2" />
               <SelectValue />
             </SelectTrigger>
@@ -247,7 +249,7 @@ export default function PokedexPage() {
         {/* Bottom row: Generation Filter, Sort, and Count */}
         <div className="flex flex-col sm:flex-row gap-4 items-center">
           <Select value={selectedGeneration.toString()} onValueChange={(v) => setSelectedGeneration(v === "all" ? "all" : parseInt(v))}>
-            <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectTrigger aria-label="Generation" className="w-full sm:w-[180px]">
               <SelectValue placeholder="Generation" />
             </SelectTrigger>
             <SelectContent>
@@ -261,7 +263,7 @@ export default function PokedexPage() {
           </Select>
 
           <Select value={sortBy} onValueChange={(v: SortOption) => setSortBy(v)}>
-            <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectTrigger aria-label="Sort by" className="w-full sm:w-[180px]">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>
@@ -375,9 +377,7 @@ export default function PokedexPage() {
                         <h3 className="font-semibold mb-2">Types</h3>
                         <div className="flex gap-2">
                           {selectedPokemon.types.map((type: string) => (
-                            <Badge key={type} className={`${getTypeColor(type)} capitalize font-semibold`}>
-                              {type.toUpperCase()}
-                            </Badge>
+                            <TypeBadge key={type} type={type} className="uppercase" />
                           ))}
                         </div>
                       </div>
@@ -507,9 +507,7 @@ export default function PokedexPage() {
                             key={`${move.name}-${idx}`}
                             className="flex items-center gap-4 p-2 rounded-lg hover:bg-muted/50"
                           >
-                            <Badge className={getTypeColor(move.type || "normal")}>
-                              {(move.type || "normal").toUpperCase()}
-                            </Badge>
+                            <TypeBadge type={move.type || "normal"} className="uppercase" />
                             <span className="font-semibold capitalize flex-1">
                               {move.name.replace(/-/g, " ")}
                             </span>

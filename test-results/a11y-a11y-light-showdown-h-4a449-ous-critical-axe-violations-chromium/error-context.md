@@ -1,0 +1,165 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - link "Skip to content" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=e6]:
+    - banner [ref=e7]:
+      - generic [ref=e8]:
+        - link "Average at Best Pokemon Battle League Average At Best Pokemon Battle League • Average At Best Pokemon Battle League" [ref=e10] [cursor=pointer]:
+          - /url: /
+          - img "Average at Best Pokemon Battle League" [ref=e12]
+          - generic [ref=e15]: Average At Best Pokemon Battle League • Average At Best Pokemon Battle League
+        - navigation [ref=e16]:
+          - generic [ref=e17]:
+            - button "League" [ref=e18]:
+              - img
+              - text: League
+              - img
+            - button "Draft" [ref=e20]:
+              - img
+              - text: Draft
+              - img
+            - button "Battle" [ref=e22]:
+              - img
+              - text: Battle
+              - img
+            - button "Reference" [ref=e24]:
+              - img
+              - text: Reference
+              - img
+            - button "Resources" [ref=e26]:
+              - img
+              - text: Resources
+              - img
+          - generic [ref=e27]:
+            - button "Music" [ref=e29]:
+              - img
+              - generic [ref=e30]: Music
+            - button "Toggle theme" [ref=e31]:
+              - img
+              - generic [ref=e32]: Toggle theme
+            - link "Sign in with Discord" [ref=e33] [cursor=pointer]:
+              - /url: /auth/login
+              - img
+              - text: Sign in
+    - main [ref=e34]:
+      - generic [ref=e36]:
+        - generic [ref=e37]:
+          - generic [ref=e38]:
+            - img [ref=e39]
+            - heading "Pokémon Showdown" [level=1] [ref=e48]
+          - paragraph [ref=e49]: Your integrated battle simulator and team management hub for the Average at Best Draft League
+          - generic [ref=e50]:
+            - generic [ref=e51]: Self-Hosted Infrastructure
+            - generic [ref=e52]: League-Optimized
+            - generic [ref=e53]: Fully Integrated
+        - generic [ref=e54]:
+          - generic [ref=e56]:
+            - img [ref=e57]
+            - text: What is Pokémon Showdown?
+          - generic [ref=e60]:
+            - paragraph [ref=e61]: Pokémon Showdown is the industry-standard battle simulator used by competitive Pokémon players worldwide. It provides accurate damage calculations, move legality validation, and real-time battle mechanics that match the official games exactly.
+            - generic [ref=e62]:
+              - paragraph [ref=e63]: "How We Use Showdown:"
+              - list [ref=e64]:
+                - listitem [ref=e65]: Self-hosted Showdown server running in our infrastructure for league-exclusive access
+                - listitem [ref=e66]: Deep integration with league rosters, schedules, and match results
+                - listitem [ref=e67]: Automatic team validation against league rules and banned moves
+                - listitem [ref=e68]: Replay capture and storage for all league battles
+                - listitem [ref=e69]: Custom formats tailored to our draft league structure
+            - generic [ref=e70]:
+              - link "Launch Battle Client" [ref=e71] [cursor=pointer]:
+                - /url: https://aab-play.moodmnky.com
+                - img
+                - text: Launch Battle Client
+              - paragraph [ref=e72]: Opens our self-hosted Showdown client in a new tab
+        - generic [ref=e73]:
+          - heading "Why Use Our Showdown Integration?" [level=2] [ref=e74]
+          - generic [ref=e75]:
+            - generic [ref=e76]:
+              - generic [ref=e77]:
+                - img [ref=e79]
+                - generic [ref=e81]: Showdown-Level Accuracy
+              - paragraph [ref=e83]: Our self-hosted Showdown server ensures battle calculations match the official simulator exactly.
+            - generic [ref=e84]:
+              - generic [ref=e85]:
+                - img [ref=e87]
+                - generic [ref=e89]: Seamless Integration
+              - paragraph [ref=e91]: Teams, matches, and replays sync automatically with your league data. No manual data entry required.
+            - generic [ref=e92]:
+              - generic [ref=e93]:
+                - img [ref=e95]
+                - generic [ref=e98]: League-Specific Rules
+              - paragraph [ref=e100]: Custom formats and rulesets tailored to Average at Best Draft League requirements.
+        - generic [ref=e101]:
+          - heading "Explore Our Showdown Tools" [level=2] [ref=e102]
+          - generic [ref=e103]:
+            - generic [ref=e104]:
+              - generic [ref=e105]:
+                - img [ref=e107]
+                - generic [ref=e109]: Team Library
+                - generic [ref=e110]: Browse and manage your saved Pokémon Showdown teams. Import stock teams, create custom builds, and organize your collection.
+              - link "Open Team Library" [ref=e112] [cursor=pointer]:
+                - /url: /showdown/team-library
+                - text: Open Team Library
+                - img
+            - generic [ref=e113]:
+              - generic [ref=e114]:
+                - img [ref=e116]
+                - generic [ref=e121]: Match Lobby
+                - generic [ref=e122]: Launch battles, find opponents, and create private battle rooms. Connect with league members for scheduled matches.
+              - link "Open Match Lobby" [ref=e124] [cursor=pointer]:
+                - /url: /showdown/match-lobby
+                - text: Open Match Lobby
+                - img
+            - generic [ref=e125]:
+              - generic [ref=e126]:
+                - img [ref=e128]
+                - generic [ref=e131]: Team Validator
+                - generic [ref=e132]: Validate your team compositions against league rules. Check for banned moves, verify legal Pokémon, and ensure compliance.
+              - link "Open Team Validator" [ref=e134] [cursor=pointer]:
+                - /url: /showdown/team-validator
+                - text: Open Team Validator
+                - img
+            - generic [ref=e135]:
+              - generic [ref=e136]:
+                - img [ref=e138]
+                - generic [ref=e142]: Replay Library
+                - generic [ref=e143]: Browse battle replays from league matches. Study strategies, review past battles, and learn from the community.
+              - link "Open Replay Library" [ref=e145] [cursor=pointer]:
+                - /url: /showdown/replay-library
+                - text: Open Replay Library
+                - img
+        - generic [ref=e146]:
+          - generic [ref=e147]:
+            - generic [ref=e148]: Quick Start Guide
+            - generic [ref=e149]: "New to Showdown or our integration? Here's how to get started:"
+          - list [ref=e151]:
+            - listitem [ref=e152]:
+              - text: "Browse Stock Teams: Visit the"
+              - link "Team Library" [ref=e153] [cursor=pointer]:
+                - /url: /showdown/team-library
+              - text: for pre-built teams you can use as starting points.
+            - listitem [ref=e154]:
+              - text: "Validate Your Team: Use the"
+              - link "Team Validator" [ref=e155] [cursor=pointer]:
+                - /url: /showdown/team-validator
+              - text: to ensure your team complies with league rules before battling.
+            - listitem [ref=e156]:
+              - text: "Launch a Battle: Head to the"
+              - link "Match Lobby" [ref=e157] [cursor=pointer]:
+                - /url: /showdown/match-lobby
+              - text: to create a battle room or join an existing match.
+            - listitem [ref=e158]:
+              - text: "Review Replays: After your battle, check the"
+              - link "Replay Library" [ref=e159] [cursor=pointer]:
+                - /url: /showdown/replay-library
+              - text: to study your performance and learn from others.
+  - button "Ask POKE MNKY" [ref=e162]:
+    - img
+    - text: Ask POKE MNKY
+  - region "Notifications alt+T"
+  - alert [ref=e163]
+```

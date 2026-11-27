@@ -355,7 +355,7 @@ export function TeamRosterPanel(props: TeamRosterPanelProps) {
                   setSelectedWeek(value === "live" ? null : Number(value))
                 }}
               >
-                <SelectTrigger className="h-8 w-[132px]">
+                <SelectTrigger aria-label="Roster week" className="h-8 w-[132px]">
                   <SelectValue placeholder="Live" />
                 </SelectTrigger>
                 <SelectContent align="end">
@@ -380,7 +380,7 @@ export function TeamRosterPanel(props: TeamRosterPanelProps) {
               <span className="font-semibold text-foreground">{budget.spent}</span> / {budget.total}
             </span>
           </div>
-          <Progress value={pct} className="h-2" />
+          <Progress value={pct} aria-label="Roster budget used" className="h-2" />
           <p
             className={cn(
               "text-xs tabular-nums",

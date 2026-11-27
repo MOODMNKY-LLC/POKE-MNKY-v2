@@ -139,7 +139,7 @@ export function TrainerCard({ className, palette = "red-blue" }: TrainerCardProp
                   {MOCK_DRAFT_STATS.budgetUsed}/{MOCK_DRAFT_STATS.budgetTotal}
                 </span>
               </div>
-              <Progress value={budgetPercentage} className="h-1.5" />
+              <Progress value={budgetPercentage} aria-label={`Budget used ${budgetPercentage}%`} className="h-1.5" />
             </div>
 
             {/* Favorite Type */}

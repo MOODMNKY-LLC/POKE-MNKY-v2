@@ -349,13 +349,13 @@ export function DraftBoardClient({
           </div>
           <div className="grid gap-3 rounded-2xl border border-border/60 bg-muted/20 p-4 sm:grid-cols-3">
             <Input
-              placeholder="Search Pokemon..."
+              aria-label="Search Pokemon" placeholder="Search Pokemon..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="sm:col-span-1"
             />
             <Select value={selectedTier.toString()} onValueChange={(v) => setSelectedTier(v === "all" ? "all" : parseInt(v))}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger aria-label="Point tier" className="w-full">
                 <SelectValue placeholder="Point Tier" />
               </SelectTrigger>
               <SelectContent>
@@ -368,7 +368,7 @@ export function DraftBoardClient({
               </SelectContent>
             </Select>
             <Select value={selectedGeneration.toString()} onValueChange={(v) => setSelectedGeneration(v === "all" ? "all" : parseInt(v))}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger aria-label="Generation" className="w-full">
                 <SelectValue placeholder="Generation" />
               </SelectTrigger>
               <SelectContent>

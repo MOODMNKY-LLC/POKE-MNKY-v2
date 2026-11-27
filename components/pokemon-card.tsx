@@ -11,6 +11,7 @@ import { Badge } from "./ui/badge"
 import { Card } from "./ui/card"
 import { usePokemonData } from "@/hooks/use-pokemon-data"
 import { getPokemonTypeColors } from "@/lib/pokemon-type-colors"
+import { TypeBadge } from "@/components/type-badge"
 import { cn } from "@/lib/utils"
 import {
   Activity,
@@ -116,17 +117,7 @@ export function PokemonCard({ pokemonId, className }: PokemonCardProps) {
             </div>
             <div className="flex gap-1">
               {pokemon.types.map((type) => (
-                <Badge
-                  key={type}
-                  className="capitalize text-xs"
-                  style={{
-                    backgroundColor: typeColors.bg,
-                    color: typeColors.text,
-                    borderColor: typeColors.border,
-                  }}
-                >
-                  {type}
-                </Badge>
+                <TypeBadge key={type} type={type} />
               ))}
             </div>
           </div>

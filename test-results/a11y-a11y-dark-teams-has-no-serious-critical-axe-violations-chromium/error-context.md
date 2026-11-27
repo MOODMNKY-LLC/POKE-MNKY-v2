@@ -1,0 +1,59 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - link "Skip to content" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=e6]:
+    - banner [ref=e7]:
+      - generic [ref=e8]:
+        - link "Average at Best Pokemon Battle League Average At Best Pokemon Battle League • Average At Best Pokemon Battle League" [ref=e10] [cursor=pointer]:
+          - /url: /
+          - img "Average at Best Pokemon Battle League" [ref=e12]
+          - generic [ref=e15]: Average At Best Pokemon Battle League • Average At Best Pokemon Battle League
+        - navigation [ref=e16]:
+          - generic [ref=e17]:
+            - button "League" [ref=e18]:
+              - img
+              - text: League
+              - img
+            - button "Draft" [ref=e20]:
+              - img
+              - text: Draft
+              - img
+            - button "Battle" [ref=e22]:
+              - img
+              - text: Battle
+              - img
+            - button "Reference" [ref=e24]:
+              - img
+              - text: Reference
+              - img
+            - button "Resources" [ref=e26]:
+              - img
+              - text: Resources
+              - img
+          - generic [ref=e27]:
+            - button "Music" [ref=e29]:
+              - img
+              - generic [ref=e30]: Music
+            - button "Toggle theme" [ref=e31]:
+              - img
+              - generic [ref=e32]: Toggle theme
+            - link "Sign in with Discord" [ref=e33] [cursor=pointer]:
+              - /url: /auth/login
+              - img
+              - text: Sign in
+    - main [ref=e34]:
+      - generic [ref=e36]:
+        - heading "All Teams" [level=1] [ref=e37]
+        - paragraph [ref=e38]: Browse all teams competing in the league
+      - generic [ref=e41]:
+        - paragraph [ref=e42]: Failed to load teams
+        - paragraph [ref=e43]: "TypeError: fetch failed"
+  - button "Ask POKE MNKY" [ref=e46]:
+    - img
+    - text: Ask POKE MNKY
+  - region "Notifications alt+T"
+  - alert [ref=e47]
+```

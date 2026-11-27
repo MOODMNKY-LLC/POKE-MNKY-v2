@@ -112,6 +112,12 @@ export default function RootLayout({
       <body
         className={`${fredoka.variable} ${permanentMarker.variable} ${geistMono.variable} font-sans antialiased overflow-x-hidden`}
       >
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-md focus:bg-background focus:px-4 focus:py-3 focus:text-sm focus:font-medium focus:text-foreground focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
+        >
+          Skip to content
+        </a>
         {/* Branded background with dark/light mode support */}
         <div className="fixed inset-0 -z-10 overflow-hidden">
           {/* Light mode background */}
@@ -130,7 +136,9 @@ export default function RootLayout({
           <InstallAppProvider>
             <div className="flex min-h-screen flex-col relative">
               <ConditionalHeader />
-              <main className="flex-1 w-full">{children}</main>
+              <main id="main-content" tabIndex={-1} className="flex-1 w-full focus:outline-none focus-visible:outline-none">
+                {children}
+              </main>
             </div>
           </InstallAppProvider>
           <ThemeColorSync />

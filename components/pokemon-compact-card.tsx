@@ -11,6 +11,7 @@ import { Badge } from "./ui/badge"
 import { Card } from "./ui/card"
 import { usePokemonData } from "@/hooks/use-pokemon-data"
 import { getPokemonTypeColors } from "@/lib/pokemon-type-colors"
+import { TypeBadge } from "@/components/type-badge"
 import { cn } from "@/lib/utils"
 import { Activity, Zap, ArrowRight } from "lucide-react"
 import { PokeballIcon } from "./pokeball-icon"
@@ -142,17 +143,7 @@ export function PokemonCompactCard({
         {/* Types */}
         <div className="flex gap-0.5 mb-2">
           {pokemon.types.map((type) => (
-            <Badge
-              key={type}
-              className="capitalize text-[9px] px-1 py-0"
-              style={{
-                backgroundColor: typeColors.bg,
-                color: typeColors.text,
-                borderColor: typeColors.border,
-              }}
-            >
-              {type}
-            </Badge>
+            <TypeBadge key={type} type={type} className="text-[10px] px-1 py-0" />
           ))}
         </div>
 

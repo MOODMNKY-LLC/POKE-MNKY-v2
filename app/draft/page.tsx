@@ -106,7 +106,7 @@ export default async function DraftLandingPage() {
               <BlurFade delay={0.1}>
                 <div className="space-y-4 min-w-0">
                   <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none text-balance break-words">
-                    Battle League
+                    Battle League{" "}
                     <span className="block">
                       <AnimatedGradientText className="text-4xl sm:text-5xl xl:text-6xl">
                         Draft System

@@ -110,7 +110,7 @@ export function TeamVisualDisplay({
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium">Format:</span>
             <Select value={currentFormat} onValueChange={setCurrentFormat} disabled={readOnly}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger aria-label="Format" className="w-[180px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

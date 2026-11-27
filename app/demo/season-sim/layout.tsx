@@ -17,7 +17,7 @@ export default function DemoSeasonSimLayout({ children }: { children: ReactNode 
       >
         Skip to practice season
       </a>
-      <header className="border-b border-border bg-card">
+      <div className="border-b border-border bg-card">
         <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-3 text-sm sm:px-6">
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
             <span className="font-semibold tracking-wide text-card-foreground">POKÉ MNKY</span>
@@ -30,8 +30,8 @@ export default function DemoSeasonSimLayout({ children }: { children: ReactNode 
             Sign in
           </Link>
         </div>
-      </header>
-      <main id="sim-main">{children}</main>
+      </div>
+      <div id="sim-main">{children}</div>
     </div>
   )
 }

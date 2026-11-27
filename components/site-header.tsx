@@ -15,7 +15,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { UserAvatar } from "@/components/ui/user-avatar"
 import { PokeballIcon } from "@/components/ui/pokeball-icon"
-import { MessageSquare, Sparkles, Menu, Database, Brain, Trophy, Calendar, Users, BookOpen, LogOut, Info, Loader2, CheckCircle2, Swords, ChevronDown, FileText, LayoutDashboard, ClipboardList, PlayCircle, Library, History, Shield, Target } from "lucide-react"
+import { LogIn, Sparkles, Menu, Database, Brain, Trophy, Calendar, Users, BookOpen, LogOut, Info, Loader2, CheckCircle2, Swords, ChevronDown, FileText, LayoutDashboard, ClipboardList, PlayCircle, Library, History, Shield, Target } from "lucide-react"
 import { ThemeSwitcher } from "@/components/theme-switcher"
 import { ScrollingText } from "@/components/ui/scrolling-text"
 import { HeaderMusicPlayer } from "@/components/music/header-music-player"
@@ -466,10 +466,10 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Button asChild size="sm" className="bg-gradient-to-r from-primary to-secondary hover:opacity-90">
-                <Link href="/auth/login">
-                  <MessageSquare className="h-4 w-4 mr-2" />
-                  Login
+              <Button asChild size="sm" variant="outline">
+                <Link href="/auth/login" aria-label="Sign in with Discord">
+                  <LogIn className="h-4 w-4 mr-2" aria-hidden="true" />
+                  Sign in
                 </Link>
               </Button>
             )}
@@ -486,7 +486,7 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
           ) : user ? (
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="p-1">
+                  <Button variant="ghost" size="sm" className="p-1" aria-label="Account menu">
                     <UserAvatar
                       src={discordAvatar || undefined}
                       alt={discordUsername}
@@ -531,9 +531,10 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Button asChild size="sm" className="bg-gradient-to-r from-primary to-secondary">
-                <Link href="/auth/login">
-                  <MessageSquare className="h-4 w-4" />
+              <Button asChild size="sm" variant="outline">
+                <Link href="/auth/login" aria-label="Sign in with Discord">
+                  <LogIn className="h-4 w-4" aria-hidden="true" />
+                  <span className="hidden min-[380px]:inline">Sign in</span>
                 </Link>
               </Button>
             )}
@@ -738,9 +739,9 @@ export function SiteHeader({ initialUser, initialProfile }: SiteHeaderProps = {}
                       </Button>
                     </>
                   ) : (
-                    <Button asChild size="lg" className="w-full bg-gradient-to-r from-primary to-secondary">
+                    <Button asChild size="lg" variant="outline" className="w-full">
                       <Link href="/auth/login">
-                        <MessageSquare className="h-5 w-5 mr-2" />
+                        <LogIn className="h-5 w-5 mr-2" aria-hidden="true" />
                         Sign In with Discord
                       </Link>
                     </Button>

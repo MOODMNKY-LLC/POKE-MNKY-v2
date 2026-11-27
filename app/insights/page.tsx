@@ -177,7 +177,7 @@ export default function InsightsPage() {
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <Select value={selectedWeek} onValueChange={(value) => void loadWeeklyStats(value)}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger aria-label="Week" className="w-[180px]">
                   <SelectValue placeholder="Select week" />
                 </SelectTrigger>
                 <SelectContent>
