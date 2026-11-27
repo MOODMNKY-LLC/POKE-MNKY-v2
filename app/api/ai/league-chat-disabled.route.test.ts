@@ -46,8 +46,6 @@ const KEYS = [
 const messages = [{ role: "user", parts: [{ type: "text", text: "Who should I draft?" }] }]
 
 describe("league chat routes when OpenClaw is not configured", () => {
-  const previous = new Map<string, string | undefined>()
-
   beforeEach(() => {
     fetchMock.mockReset()
     fetchMock.mockRejectedValue(new Error("fetch should not be called"))
@@ -59,20 +57,14 @@ describe("league chat routes when OpenClaw is not configured", () => {
 
   afterEach(() => {
     vi.unstubAllGlobals()
-    for (const key of KEYS) {
-      const value = previous.get(key)
-      if (value === undefined) delete process.env[key]
-      else process.env[key] = value
-    }
-    previous.clear()
+    vi.unstubAllEnvs()
   })
 
   function setEnv(next: Partial<Record<(typeof KEYS)[number], string | undefined>>) {
     for (const key of KEYS) {
-      if (!previous.has(key)) previous.set(key, process.env[key])
-      const value = next[key]
-      if (value === undefined) delete process.env[key]
-      else process.env[key] = value
+      // Empty string is falsy for Boolean(...?.trim()) checks; prefer stubEnv over
+      // delete process.env, which is unreliable under Vitest's forks pool on CI.
+      vi.stubEnv(key, next[key] ?? "")
     }
   }
 
@@ -129,9 +121,13 @@ describe("league chat routes when OpenClaw is not configured", () => {
       await expectUnavailable(await route.post(post(route.path, route.body)), AI_CHAT_UNAVAILABLE_MESSAGE)
 
       setEnv({
+        OPENAI_API_KEY: undefined,
+        AI_CHAT_PROVIDER: "openclaw",
         OPENCLAW_GATEWAY_URL: "wss://aab-openclaw.moodmnky.com",
         OPENCLAW_AGENT_ID: undefined,
         OPENCLAW_GATEWAY_TOKEN: "gateway-token",
+        OPENCLAW_HOOKS_TOKEN: undefined,
+        OPENCLAW_HTTP_CHAT: undefined,
       })
       await expectUnavailable(await route.post(post(route.path, route.body)), AI_CHAT_UNAVAILABLE_MESSAGE)
     })

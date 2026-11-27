@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import { isLeagueChatAvailable } from "./chat-availability"
 import { isOpenAIConfigured } from "@/lib/openai-client"
 
@@ -14,23 +14,15 @@ const KEYS = [
 ] as const
 
 describe("chat availability without OPENAI_API_KEY", () => {
-  const previous = new Map<string, string | undefined>()
-
   afterEach(() => {
-    for (const key of KEYS) {
-      const value = previous.get(key)
-      if (value === undefined) delete process.env[key]
-      else process.env[key] = value
-    }
-    previous.clear()
+    vi.unstubAllEnvs()
   })
 
   function setEnv(next: Partial<Record<(typeof KEYS)[number], string | undefined>>) {
     for (const key of KEYS) {
-      if (!previous.has(key)) previous.set(key, process.env[key])
-      const value = next[key]
-      if (value === undefined) delete process.env[key]
-      else process.env[key] = value
+      // Empty string is falsy for Boolean(...?.trim()) checks; prefer stubEnv over
+      // delete process.env, which is unreliable under Vitest's forks pool on CI.
+      vi.stubEnv(key, next[key] ?? "")
     }
   }
 
