@@ -21,17 +21,24 @@ export function prefersOpenClawChat(): boolean {
     return false
   }
   if (provider === "openclaw") {
-    // Intended, but only when a real gateway URL is configured (empty URL = fail closed).
-    return Boolean(process.env.OPENCLAW_GATEWAY_URL?.trim())
+    // Explicit OpenClaw preference: fail closed even when URL/auth/agent are incomplete.
+    // Returning false here would incorrectly fall through to OpenAI.
+    return true
   }
-  // Agent id / CF Access secrets alone must not force OpenClaw while the
-  // member gateway hostname (aab-chat-gw) is still unrepaired (503).
-  return Boolean(
-    process.env.OPENCLAW_GATEWAY_URL?.trim() &&
-      (process.env.OPENCLAW_GATEWAY_TOKEN?.trim() ||
-        (process.env.OPENCLAW_CF_ACCESS_CLIENT_ID?.trim() &&
-          process.env.OPENCLAW_CF_ACCESS_CLIENT_SECRET?.trim()))
+  const hasUrl = Boolean(process.env.OPENCLAW_GATEWAY_URL?.trim())
+  const hasAgent = Boolean(process.env.OPENCLAW_AGENT_ID?.trim())
+  const hasAuth = Boolean(
+    process.env.OPENCLAW_GATEWAY_TOKEN?.trim() ||
+      (process.env.OPENCLAW_CF_ACCESS_CLIENT_ID?.trim() &&
+        process.env.OPENCLAW_CF_ACCESS_CLIENT_SECRET?.trim()),
   )
+  // Stale URL + agent without auth: treat as intended OpenClaw and block OpenAI fallback.
+  if (hasUrl && hasAgent) return true
+  // URL with auth configured (agent may still be missing — getOpenClawConfig fails closed).
+  if (hasUrl && hasAuth) return true
+  // Agent id / CF Access secrets alone must not force OpenClaw while the
+  // member gateway hostname is still unrepaired.
+  return false
 }
 
 export function openClawConfigError(): string {

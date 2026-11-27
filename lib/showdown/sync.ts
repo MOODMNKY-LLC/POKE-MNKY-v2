@@ -45,7 +45,7 @@ export function generateShowdownPassword(userId: string): string {
  * Connects to Showdown server WebSocket and waits for |challstr| message
  */
 export async function getChallengeString(): Promise<string> {
-  const showdownServerUrl = process.env.SHOWDOWN_SERVER_URL || 'https://aab-showdown.moodmnky.com'
+  const showdownServerUrl = process.env.SHOWDOWN_SERVER_URL || 'https://play.pokemonshowdown.com'
   
   // Convert HTTPS URL to WebSocket URL
   const wsUrl = showdownServerUrl

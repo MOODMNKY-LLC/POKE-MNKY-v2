@@ -2,6 +2,8 @@
 
 The coach onboarding flow (Dashboard → Onboarding) is the single checklist for getting from Discord identity to a coach-ready dashboard. It is hooked up to **Supabase** (progress and profile sync) and optionally to **Notion** (full guide link).
 
+**Current product flow (2026-11):** Discord linked → coach assigned → league team linked → Team Builder intro → complete. Public Pokémon Showdown is optional. NetBird battle-network setup is a separate optional guide (`/dashboard/guides/netbird`) for Ryujinx battles — not part of the core checklist.
+
 ## Supabase integration
 
 - **Table**: `coach_onboarding` stores per-user progress (`current_step`, `completed_steps`, `completed_at`). RLS allows authenticated users to select/insert/update only their own row.
@@ -11,8 +13,9 @@ The coach onboarding flow (Dashboard → Onboarding) is the single checklist for
 
 ## Team Builder hookup
 
-- On the **Team builder intro** step, the onboarding page shows **“Open Team Builder”** (primary) and **“Coach & team builder guide”** (outline). Both link to `/dashboard/teams/builder` and `/dashboard/guides/coach-and-team-builder` respectively.
-- On the **Complete** step, the page shows **“Open Team Builder”** and **“View all guides”** so users can go straight to the builder or browse guides.
+- On the **Team builder intro** step, the onboarding page shows **Open Team Builder** linking to `/dashboard/teams/builder`.
+- On the **Complete** step, the page shows **Open Team Builder** plus an optional **Battle network guide** link to `/dashboard/guides/netbird`.
+- An optional Notion “full guide” button appears when `COACH_ONBOARDING_NOTION_PAGE_ID` is configured.
 
 ## Notion “View full guide” feature
 
