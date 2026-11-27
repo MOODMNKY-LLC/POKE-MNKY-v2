@@ -17,7 +17,11 @@ function trimmed(name: string): string {
   return process.env[name]?.trim() || ""
 }
 
-function resolveAuthMode(cfAccessClientId: string, cfAccessClientSecret: string, gatewayToken: string): OpenClawAuthMode {
+function resolveAuthMode(
+  cfAccessClientId: string,
+  cfAccessClientSecret: string,
+  gatewayToken: string
+): OpenClawAuthMode {
   if (cfAccessClientId && cfAccessClientSecret) return "cf-access"
   if (gatewayToken) return "token"
   return "none"
@@ -33,9 +37,14 @@ export function getOpenClawConfig(): OpenClawConfig {
   // cli + cli: operator.write for chat.send. (backend = health/read only; webchat-ui may hit origin ACL.)
   const clientId = trimmed("OPENCLAW_CLIENT_ID") || "cli"
   const clientMode = trimmed("OPENCLAW_CLIENT_MODE") || "cli"
-  const authMode = resolveAuthMode(cfAccessClientId, cfAccessClientSecret, gatewayToken)
+  const authMode = resolveAuthMode(
+    cfAccessClientId,
+    cfAccessClientSecret,
+    gatewayToken
+  )
   const allowedAgentId = trimmed("OPENCLAW_ALLOWED_AGENT_ID")
-  const agentAllowed = authMode !== "cf-access" || !allowedAgentId || agentId === allowedAgentId
+  const agentAllowed =
+    authMode !== "cf-access" || !allowedAgentId || agentId === allowedAgentId
 
   return {
     gatewayUrl,
@@ -46,14 +55,20 @@ export function getOpenClawConfig(): OpenClawConfig {
     agentId,
     clientId,
     clientMode,
-    insecureSkipTlsVerify: process.env.OPENCLAW_GATEWAY_INSECURE_SKIP_TLS_VERIFY === "true",
-    enabled: Boolean(gatewayUrl && agentId && authMode !== "none" && agentAllowed),
+    insecureSkipTlsVerify:
+      process.env.OPENCLAW_GATEWAY_INSECURE_SKIP_TLS_VERIFY === "true",
+    enabled: Boolean(
+      gatewayUrl && agentId && authMode !== "none" && agentAllowed
+    ),
   }
 }
 
 /** Origin for POST /v1/chat/completions. Accepts https:// and legacy ws(s)://. */
 export function toOpenClawHttpBaseUrl(gatewayUrl: string): string {
-  return gatewayUrl.replace(/^wss:/i, "https:").replace(/^ws:/i, "http:").replace(/\/$/, "")
+  return gatewayUrl
+    .replace(/^wss:/i, "https:")
+    .replace(/^ws:/i, "http:")
+    .replace(/\/$/, "")
 }
 
 export function openClawMaxTokens(): number {

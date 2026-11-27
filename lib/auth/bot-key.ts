@@ -11,8 +11,10 @@ export const DISCORD_BOT_KEY_HEADER = "x-discord-bot-key"
 const API_KEY_HEADER = "x-api-key"
 
 /**
- * Extract bot key from (in order): X-Discord-Bot-Key, X-API-Key, Authorization.
- * Internal server-to-server calls send all three so at least one survives.
+ * Extract bot key from (in order): X-Discord-Bot-Key, X-API-Key, Authorization,
+ * then optional query `discord_bot_key` when CLAW_WEB_FETCH_BRIDGE=1.
+ * Query auth exists only so OpenClaw `web_fetch` (GET, no custom headers) can
+ * call league bot APIs from the operator Claw plane. Prefer headers for Edge/bot hosts.
  */
 export function extractBotKey(request: NextRequest): string | null {
   const customKey = request.headers.get(DISCORD_BOT_KEY_HEADER)?.trim()
@@ -22,12 +24,22 @@ export function extractBotKey(request: NextRequest): string | null {
   if (apiKey) return apiKey
 
   const authHeader = request.headers.get("authorization")
-  if (!authHeader) return null
-
-  if (authHeader.startsWith("Bearer ")) {
-    return authHeader.replace("Bearer ", "").trim()
+  if (authHeader) {
+    if (authHeader.startsWith("Bearer ")) {
+      return authHeader.replace("Bearer ", "").trim()
+    }
+    return authHeader.trim()
   }
-  return authHeader.trim()
+
+  const bridgeEnabled =
+    process.env.CLAW_WEB_FETCH_BRIDGE?.trim().toLowerCase() === "1" ||
+    process.env.CLAW_WEB_FETCH_BRIDGE?.trim().toLowerCase() === "true"
+  if (bridgeEnabled) {
+    const q = request.nextUrl.searchParams.get("discord_bot_key")?.trim()
+    if (q) return q
+  }
+
+  return null
 }
 
 export type BotKeyDecision = {
